@@ -1,0 +1,275 @@
+class_name BotFloorWay
+extends RefCounted
+## A bot's way over the floor to the portal its route goes through next (D10, #491). The walk
+## graph routes as if a zone's floor were open from portal to portal, and it is not always:
+## a passage holds the solid side of the stair down into it and, beside it, the hole of the
+## stair on down; a staircase's room walls in its lift well; a house stands on an open deck.
+## While a body could walk straight at the point its route gives — the next LOOK metres of
+## that walk on a floor, or the leg's own stair, clear of all that holds a body back — the
+## bot walks straight there; else round by the floor: the shortest way to the portal over a
+## grid of CELL squares, each one a body could stand on, never a stair but its own — through
+## whatever zones the floor runs through — then along that way as far as it could walk
+## straight. It looks once a think, the bot's own think_period, and walks at what it found in
+## between. Asked of the Surfaces of the frame it stands in; nothing here rolls the bot's
+## stream.
+
+## The side of a square of the floor a way round is found over, in metres.
+const CELL := 0.25
+## How far along a walk straight at its point the bot looks before it trusts it, in metres.
+const LOOK := 2.0
+## How far round the box of the bot and the portal a way round is looked for, in metres.
+const MARGIN := 6.0
+## The most squares a search for a way round settles before it gives up.
+const MOST := 4096
+## How near the way round it found the bot keeps to it: further off, it looks again.
+const NEAR := 1.0
+## The squares ahead along the way that it tries to walk straight to, furthest first.
+const AHEAD: Array[int] = [12, 8, 4, 2, 1]
+## A body's radius by this is what a square holds: a doorway a body's width wide still lets
+## one through.
+const SNUG := 0.95
+## A body's radius by this is what a walk straight is looked along by, a step of twice it at
+## a time: the jamb of a doorway it lines up on (WalkGraph.toward) stands in no walk's way, a
+## stair's side or a wall does.
+const LEAN := 0.5
+## The most ways round it looks for along one leg, once off the last it found.
+const FINDS := 4
+
+var _surfaces: Surfaces
+var _rules: BrawlRules
+## What a square holds, and what a walk straight is looked along by (SNUG, LEAN).
+var _snug: float
+var _lean: float
+## Ticks between its looks: the bot's think_period.
+var _every: int
+## Ticks to its next look, and where it walks till then: Vector3.INF for the point its route
+## gives.
+var _wait := 0
+var _aim := Vector3.INF
+## The way round it found last, its points from where it stood to the portal, the leg it is
+## for and how many more it may look for along that leg; empty for none.
+var _way := PackedVector3Array()
+var _way_leg: WalkGraph.Portal = null
+var _finds := 0
+
+
+func _init(walk_graph: WalkGraph, rules: BrawlRules, think_period: int) -> void:
+	_surfaces = walk_graph.surfaces()
+	_rules = rules
+	_snug = rules.body_radius * SNUG
+	_lean = rules.body_radius * LEAN
+	_every = think_period
+
+
+## Where a body at [param from] on [param surface] walks to go on along [param leg] toward
+## [param to] — the walk graph's point for it (WalkGraph.toward): [param to] itself while a
+## walk straight at it holds, or the bot is off its feet; else the furthest point along the
+## way round to the leg's entry that it could walk straight to — [param to] once that is
+## the entry, or with no way round found. Between its looks, the same.
+func toward(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> Vector3:
+	if surface == Surfaces.NONE:
+		return to
+	if _way_leg != leg:
+		_way.clear()
+		_way_leg = leg
+		_finds = FINDS
+		_wait = 0
+	if _wait > 0:
+		_wait -= 1
+		return to if _aim == Vector3.INF else _aim
+	_wait = _every - 1
+	_aim = _look(from, surface, leg, to)
+	return to if _aim == Vector3.INF else _aim
+
+
+## Whether a body at [param from] is on the way round it holds for [param leg], within NEAR
+## of a point of it: through whatever zones that way takes it, it is still on its leg.
+func holds(leg: WalkGraph.Portal, from: Vector3) -> bool:
+	return leg == _way_leg and _nearest(from) != -1
+
+
+## One look (toward): Vector3.INF to walk at [param to], else the point of the way round to
+## walk to.
+func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> Vector3:
+	var keep := PackedInt32Array([surface])
+	if leg.ramp != WalkGraph.NONE:
+		keep.append(_surfaces.ramp_surface(leg.ramp))
+	var near := _nearest(from)
+	if near == -1:
+		_way.clear()
+		if _finds == 0 or _walks(from, to, keep, LOOK):
+			return Vector3.INF
+		_way = _find(from, leg, keep)
+		# None found, it looks for none again along this leg.
+		_finds = _finds - 1 if not _way.is_empty() else 0
+		if _way.is_empty():
+			return Vector3.INF
+		near = 0
+	var last := _way.size() - 1
+	for ahead: int in AHEAD:
+		var at := mini(near + ahead, last)
+		if _walks(from, _way[at], keep, INF):
+			if at == last and _walks(from, to, keep, LOOK):
+				return Vector3.INF
+			return _way[at]
+	return _way[mini(near + 1, last)]
+
+
+## The index of the point of the way round held that lies nearest [param from], within
+## NEAR of it; -1 when none does, or none is held.
+func _nearest(from: Vector3) -> int:
+	var best := -1
+	var best_distance := NEAR
+	for index in _way.size():
+		var distance := Vector2(_way[index].x - from.x, _way[index].z - from.z).length()
+		if distance <= best_distance:
+			best = index
+			best_distance = distance
+	return best
+
+
+## Whether a body could walk straight from [param from] at [param to], as far as
+## [param reach] metres of it: its feet carried along it a step at a time — up and down a
+## stair on [param keep] — every one where a body LEAN of its radius round could stand
+## (_stands).
+func _walks(from: Vector3, to: Vector3, keep: PackedInt32Array, reach: float) -> bool:
+	var flat := Vector2(to.x - from.x, to.z - from.z)
+	var length := minf(flat.length(), reach)
+	var stride := _lean * 2.0
+	if length < stride:
+		return true
+	var way := flat.normalized()
+	var steps := ceili(length / stride)
+	var feet := from.y
+	for index in range(1, steps + 1):
+		var at := Vector2(from.x, from.z) + way * (length * index / steps)
+		var point := Vector3(at.x, feet, at.y)
+		var surface := _surfaces.under(point, _rules.step_height)
+		if not _stands(point, surface, keep, _lean):
+			return false
+		feet = _surfaces.height_at(surface, point)
+	return true
+
+
+## Whether a body [param radius] round could stand with its feet at [param point] on
+## [param surface]: a floor, not a stair but one of [param keep], and nothing there holding
+## it back, as the sim holds a body on its feet — no blocker, stair side or deck edge too
+## high to step onto, crate or railing.
+func _stands(point: Vector3, surface: int, keep: PackedInt32Array, radius: float) -> bool:
+	if surface == Surfaces.NONE or _surfaces.is_ramp(surface) and not surface in keep:
+		return false
+	var feet := Vector3(point.x, _surfaces.height_at(surface, point), point.z)
+	var contacts := _surfaces.obstacle_contacts(
+		feet, radius, _rules.body_height, _rules.step_height, Surfaces.NONE, _rules.crawl_height
+	)
+	return contacts.is_empty() and _surfaces.rail_contacts(feet, radius, surface).is_empty()
+
+
+## The shortest way round by the floor from [param from] to [param leg]'s entry, over the
+## squares of a grid round the two, MARGIN past their box, that a body could stand on with
+## its feet at [param from]'s height (_stands, [param keep]), eight ways — never across a
+## corner — as points from the middle of its first square on to the entry; empty when the
+## search settles MOST squares, or all it can reach, before it comes within a square and a
+## half of the entry.
+func _find(from: Vector3, leg: WalkGraph.Portal, keep: PackedInt32Array) -> PackedVector3Array:
+	var start := Vector2(from.x, from.z)
+	var goal := Vector2(leg.entry.x, leg.entry.z)
+	var box := Rect2(start, Vector2.ZERO).expand(goal).grow(MARGIN)
+	var origin := (box.position / CELL).floor() * CELL
+	var width := ceili((box.end.x - origin.x) / CELL)
+	var height := ceili((box.end.y - origin.y) / CELL)
+	var cells := width * height
+	var first := _cell(start, origin, width)
+	# Per square: 0 not yet asked, 1 a body stands there, 2 it does not; the cost to it, the
+	# square it was reached from, and whether it is settled.
+	var stands := PackedByteArray()
+	stands.resize(cells)
+	stands[first] = 1
+	var cost := PackedFloat64Array()
+	cost.resize(cells)
+	cost.fill(INF)
+	cost[first] = 0.0
+	var came := PackedInt32Array()
+	came.resize(cells)
+	came.fill(-1)
+	var done := PackedByteArray()
+	done.resize(cells)
+	var open := WalkGraph.OpenSet.new()
+	open.push(start.distance_to(goal), first)
+	var settled := 0
+	var reached := -1
+	while not open.is_empty() and settled < MOST:
+		var cell := open.pop()
+		if done[cell] == 1:
+			continue
+		done[cell] = 1
+		settled += 1
+		if _middle(cell, origin, width).distance_to(goal) <= CELL * 1.5:
+			reached = cell
+			break
+		var x := cell % width
+		var z := floori(float(cell) / width)
+		for dz in range(-1, 2):
+			for dx in range(-1, 2):
+				var nx := x + dx
+				var nz := z + dz
+				if dx == 0 and dz == 0 or nx < 0 or nz < 0 or nx >= width or nz >= height:
+					continue
+				var next := nz * width + nx
+				if done[next] == 1 or not _square(next, origin, width, from.y, stands, keep):
+					continue
+				# Never across a corner: both squares it passes between stand too.
+				if (
+					dx != 0
+					and dz != 0
+					and not (
+						_square(z * width + nx, origin, width, from.y, stands, keep)
+						and _square(nz * width + x, origin, width, from.y, stands, keep)
+					)
+				):
+					continue
+				var through := cost[cell] + CELL * Vector2(dx, dz).length()
+				if through < cost[next]:
+					cost[next] = through
+					came[next] = cell
+					open.push(through + _middle(next, origin, width).distance_to(goal), next)
+	var way := PackedVector3Array()
+	if reached == -1:
+		return way
+	way.append(leg.entry)
+	var back := reached
+	while back != -1:
+		var middle := _middle(back, origin, width)
+		way.append(Vector3(middle.x, from.y, middle.y))
+		back = came[back]
+	way.reverse()
+	return way
+
+
+## Whether a body could stand on square [param cell] of the grid from [param origin],
+## [param width] squares wide, with its feet at [param feet] (_stands): asked once, then
+## read from [param stands].
+func _square(
+	cell: int,
+	origin: Vector2,
+	width: int,
+	feet: float,
+	stands: PackedByteArray,
+	keep: PackedInt32Array
+) -> bool:
+	if stands[cell] == 0:
+		var middle := _middle(cell, origin, width)
+		var point := Vector3(middle.x, feet, middle.y)
+		var surface := _surfaces.under(point, _rules.step_height)
+		stands[cell] = 1 if _stands(point, surface, keep, _snug) else 2
+	return stands[cell] == 1
+
+
+static func _cell(point: Vector2, origin: Vector2, width: int) -> int:
+	var at := ((point - origin) / CELL).floor()
+	return int(at.y) * width + int(at.x)
+
+
+static func _middle(cell: int, origin: Vector2, width: int) -> Vector2:
+	var at := Vector2(cell % width, floori(float(cell) / width))
+	return origin + (at + Vector2(0.5, 0.5)) * CELL
