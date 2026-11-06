@@ -8,8 +8,8 @@ extends RefCounted
 const RunMatch := preload("res://tools/run_match.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
 ## A match that runs on through her going down to its end, so every effect of the
-## sinking is watched: struck by an explicit hit that has her gone in minutes, as a
-## tool's HIT= strikes her.
+## sinking is watched (match_config): struck by an explicit hit that has her gone in
+## minutes, as a tool's HIT= strikes her.
 const SEED := 7
 const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
 ## The ticks stepped a frame as the sinking's effects are watched through the match,
@@ -24,10 +24,7 @@ static func check(root: Window, match_seed: int, seats: int) -> Array:
 	var checks := 0
 	var scene: MatchScene = (load(MATCH_SCENE) as PackedScene).instantiate()
 	root.add_child(scene)
-	var config := RunMatch.default_config(match_seed, seats)
-	config.scenario = config.scenario.duplicate()
-	config.scenario.explicit_hit = load(FAST_HIT)
-	scene.start(config, true, true)
+	scene.start(match_config(match_seed, seats), true, true)
 	scene.set_paused(true)
 	var driver: SimDriver = scene.get_node("SimDriver")
 	var view: MatchView = scene.get_node("MatchView")
@@ -77,6 +74,19 @@ static func check(root: Window, match_seed: int, seats: int) -> Array:
 	# The last check: the scene goes before the lint quits, or its pools leak.
 	await root.get_tree().process_frame
 	return [problems, checks]
+
+
+## The match of [param match_seed] with [param seats] seats the check watches: the default
+## match struck by FAST_HIT, played for survival (MatchRules.Goal), which a lone seat plays
+## on in until her sinking is over (MatchVerdict) — a match to the last one standing ends
+## whenever the bots have knocked one another out, which can be before her sinking has
+## floated a single piece of wreckage.
+static func match_config(match_seed: int, seats: int) -> MatchConfig:
+	var config := RunMatch.default_config(match_seed, seats)
+	config.scenario = config.scenario.duplicate()
+	config.scenario.explicit_hit = load(FAST_HIT)
+	config.goal = MatchRules.Goal.SURVIVAL
+	return config
 
 
 ## The decks of [param layout], by index, that any piece of wreckage afloat at
