@@ -191,6 +191,10 @@ var _occluders: ShipOccluders
 var _falls: Array[StringName] = []
 ## What build_frame() drew, for build_fittings() to go on from; null when none waits.
 var _frame: Frame
+## A mesh made and judged as hers are, which draws nothing: every one _mesh() makes is
+## made like it (ShipMesh.like). Made the first time _mesh() is asked after build_frame()
+## begins; null before.
+var _judged: ShipMesh
 
 
 ## What build_frame() leaves for build_fittings(): her layout, the rules' numbers, her
@@ -240,6 +244,7 @@ func build_frame(
 	_space = shared_space if shared else ShipSpace.new(layout)
 	_roofed = RoofedIndoors.new(_space)
 	_rooms_boxed()
+	_judged = null
 	_dressing = RoomDressing.new(_space, cut_above)
 	_lined = LinedFaces.new(_dressing)
 	_lamp_sight = LampSight.new(_space)
@@ -622,8 +627,10 @@ func _process(delta: float) -> void:
 
 ## The faces of the ship, gathered for one commit.
 func _mesh() -> ShipMesh:
-	var mesh := ShipMesh.new(_outdoors, _space.room_lines())
-	mesh.judge_by(_space.rooms_grid, _room_boxes, _roofed)
+	if _judged == null:
+		_judged = ShipMesh.new(_outdoors, _space.room_lines())
+		_judged.judge_by(_space.rooms_grid, _room_boxes, _roofed)
+	var mesh := ShipMesh.like(_judged)
 	mesh.cut_above = cut_above
 	mesh.keep = span
 	return mesh
@@ -642,7 +649,8 @@ func _rooms_boxed() -> void:
 	_room_boxes.clear()
 	for room: ShipRoom in _space.layout.rooms:
 		var top := room.floor_height + ShipSpace.OPEN_ROOM_HEIGHT
-		for platform: ShipPlatform in _space.layout.platforms:
+		for index: int in _space._platforms_near(room.area):
+			var platform := _space.layout.platforms[index]
 			if platform.height > room.floor_height and platform.area.intersects(room.area):
 				top = maxf(top, platform.height)
 		var foot := Vector3(room.area.position.x, room.floor_height, room.area.position.y)
