@@ -480,16 +480,18 @@ func test_no_rig_line_is_made_fast_to_her_gear() -> void:
 
 
 ## Each kind of her gear, at every size she carries it, drawn — its foot and each of its
-## other parts (DeckGear) — inside the parts it is made of: no face of it out of them all.
+## other parts (DeckGear) — inside the parts it is made of: no face of it out of them all;
+## a crane pointing its jib forward and one pointing it aft each.
 func test_each_kind_of_her_gear_is_drawn_inside_its_parts() -> void:
 	var titanic := _layout("titanic")
 	var drawn := {}
 	for blocker: ShipBlocker in titanic.blockers:
-		var size := DeckGear.foot_of(blocker)
-		if size == Vector3.ZERO or drawn.has([blocker.name, size]):
+		var standing := DeckGear.stance(titanic, blocker)
+		var made := [blocker.name, standing[0], (standing[1] as Transform3D).basis.x]
+		if standing[0] == Vector3.ZERO or drawn.has(made):
 			continue
-		drawn[[blocker.name, size]] = true
-		var parts := DeckGear.laid(blocker)
+		drawn[made] = true
+		var parts := DeckGear.laid(titanic, blocker)
 		var faces := PackedVector3Array()
 		for part in parts:
 			faces.append_array(_drawn(titanic, part))
