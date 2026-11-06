@@ -3,7 +3,8 @@ extends GutTest
 ## across her out to its sides and widened forward about her centre line, on stanchions,
 ## railed round, its wheel stand on her centre line; a body climbs either of its ladders
 ## up from the poop — the plate's to starboard, its mirror to port (est.) —, no steeper than
-## it walks, and a normal bot goes up by either, from aft of its foot as from forward.
+## it walks, and a normal bot goes up by either, from aft of its foot as from forward; an
+## easy bot too, most times, holding each ladder's middle (BotStair, #447).
 
 const POOP := 3.3125
 ## Its deck over the poop's (est., Plate III's elevation).
@@ -118,8 +119,7 @@ func test_its_ladders_climb_from_the_poop_to_its_deck_no_steeper_than_a_body_wal
 ## A normal bot on the poop climbs onto the docking bridge by either ladder, from aft of
 ## its foot — behind the capstan the plate draws on each ladder's line, which the bot
 ## turns round (BotFooting.clear_heading, #445) — as from forward; the world held dry, and
-## a seat standing on the bridge to go for. (An easy bot can fall off a ladder's open side
-## near its head, #447: no easy bot is held to it.)
+## a seat standing on the bridge to go for.
 func test_a_normal_bot_climbs_either_ladder_from_aft_or_from_forward() -> void:
 	var surfaces := Surfaces.new(_layout)
 	var rules := SimFixtures.rules()
@@ -158,3 +158,44 @@ func test_a_normal_bot_climbs_either_ladder_from_aft_or_from_forward() -> void:
 		if ladder >= 0:
 			climbed[signf(_layout.ramps[ladder].area.get_center().y)] = true
 	assert_eq(climbed.size(), 2, "up the ladder to starboard and the one to port")
+
+
+## An easy bot on the poop goes up a ladder to the docking bridge from most places aft of
+## either ladder's foot and from forward: it holds the 1 m ladder's middle, rather than
+## stepping off its open side near its head, round and round (#447). The world held dry.
+func test_an_easy_bot_climbs_a_ladder_from_most_starts() -> void:
+	var surfaces := Surfaces.new(_layout)
+	var rules := SimFixtures.rules()
+	var graph := WalkGraph.new(_layout, surfaces, rules)
+	var goal := graph.deck_of(_bridge()[0])
+	var middle := _layout.platforms[_bridge()[0]].area.get_center()
+	var starts: Array[Vector3] = [Vector3(-118.0, POOP, 0.0)]
+	for x: float in [-132.4, -134.0, -136.0]:
+		for z: float in [3.0, 4.125, 5.2]:
+			starts.append(Vector3(x, POOP, z))
+			starts.append(Vector3(x, POOP, -z))
+	var up := 0
+	var stuck := PackedStringArray()
+	for start in starts:
+		var sim := SimFixtures.sim(2, null, _layout)
+		SimFixtures.place(sim, 0, start)
+		SimFixtures.place(sim, 1, Vector3(middle.x, BRIDGE, middle.y))
+		HeldPose.hold(sim, HeldPose.flooded(_layout, -_layout.freeboard, {}))
+		var sources: Array[InputSource] = [
+			BotInputSource.new(0, BotProfile.for_tier(&"easy"), sim.config), InputSource.new()
+		]
+		var runner := MatchRunner.new(sim, sources)
+		var there := false
+		for _tick in Ticks.from_seconds(30.0):
+			runner.step()
+			var bot := sim.state.seats[0]
+			if not surfaces.is_ramp(bot.surface) and graph.zone_at(bot.pos, bot.surface) == goal:
+				there = true
+				break
+		if there:
+			up += 1
+		else:
+			stuck.append("%s" % start)
+	assert_gte(
+		up, ceili(starts.size() * 0.75), "up from most starts; not from %s" % ", ".join(stuck)
+	)
