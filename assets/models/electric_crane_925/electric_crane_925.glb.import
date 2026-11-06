@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://i6bbu45xyc"
-path="res://.godot/imported/electric_crane.glb-4921707d606939c22a7c205ca123b3a2.scn"
+uid="uid://e6txqh2jky1u"
+path="res://.godot/imported/electric_crane_925.glb-716b1bd0c744b122cae4fa352d53005c.scn"
 
 [deps]
 
-source_file="res://assets/models/electric_crane/electric_crane.glb"
-dest_files=["res://.godot/imported/electric_crane.glb-4921707d606939c22a7c205ca123b3a2.scn"]
+source_file="res://assets/models/electric_crane_925/electric_crane_925.glb"
+dest_files=["res://.godot/imported/electric_crane_925.glb-716b1bd0c744b122cae4fa352d53005c.scn"]
 
 [params]
 

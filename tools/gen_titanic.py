@@ -195,7 +195,7 @@ def cylinder(bid, cx, cz, r, bottom, top, name=None):
 ROUND_GEAR = ("capstan", "stanchion")
 GEAR = {
     "capstan": [(1.625, 0.9375, 1.625), (1.375, 0.9375, 1.375), (1.125, 0.9375, 1.125)],
-    "electric crane": [(1.5, 2.5, 1.5)],
+    "electric crane": [(8.375, 2.5, 1.5), (10.75, 2.5, 1.5), (8.5, 2.5, 1.5)],
     "electric winch": [(1.0, 1.0, 0.75), (1.875, 1.0, 0.875), (1.5625, 1.0, 1.125), (2.3125, 1.0, 1.125)],
     "wheel stand": [(0.75, 1.25, 0.625)],
     "stanchion": [(0.125, 2.625, 0.125)],
@@ -217,9 +217,15 @@ GEAR_PARTS = {
     "cable holder": {(2.75, 0.75, 2.1875): [
         ("", False, -1.375, 1.375, 0.0, 0.25, -1.09375, 1.09375),
         ("wildcat", True, -0.875, 0.875, 0.25, 0.75, -0.875, 0.875)]},
-    "electric crane": {(1.5, 2.5, 1.5): [
-        ("", True, -0.4375, 0.4375, 0.0, 1.0, -0.4375, 0.4375),
-        ("house", False, -0.75, 0.75, 1.0, 2.5, -0.75, 0.75)]},
+    # Her pedestal, her machinery house and her jib stowed level on its crutch post under its
+    # head, the post on the deck under it (CRANE_JIBS): her wells', her poop's, A deck's.
+    "electric crane": {(2 * h, 2.5, 1.5): [
+        ("", True, a - 0.4375, a + 0.4375, 0.0, 1.0, -0.4375, 0.4375),
+        ("house", False, a - 0.75, a + 0.75, 1.0, 2.5, -0.75, 0.75),
+        ("jib", False, a + 0.75, h, 2.125, 2.5, -0.25, 0.25),
+        ("crutch", True, h - 0.375, h, -drop, 2.125, -0.1875, 0.1875)]
+        for j, drop in [(6.875, 0.0), (9.25, 3.3125), (7.0, 2.75)]
+        for h in [(j + 1.5) / 2] for a in [0.75 - h]},
     "steam windlass": {(5.625, 1.25, 3.3125): [
         ("", False, -2.8125, 2.8125, 0.0, 0.3125, -1.65625, 1.65625),
         ("cylinder", True, -2.5625, -1.5625, 0.3125, 1.25, -0.5, 0.5),
@@ -232,14 +238,23 @@ GEAR_PARTS = {
         ("frame", False, -0.78125, 1.65625, 0.25, 1.25, -1.125, 1.125)]},
 }
 
+# The part of a kind of her gear her plans draw it by, where that is not the whole piece:
+# an electric crane by its slewing ring, its machinery house's box (a.py, c.py, poop.py).
+DRAWN_BY = {"electric crane": "house"}
+
 def gear(bid, kind, x0, x1, z0, z1, bottom):
     """A piece of her gear of kind where its plate draws it, x0..x1 by z0..z1 (its ink's box,
     or its place): the size of its kind nearest that box laid on its middle, its longer side
     the way the box's is — a round piece's axis there — from bottom, on the grain, as its
-    parts (GEAR_PARTS), each a blocker of its own; its footprint (x0, x1, z0, z1)."""
+    parts (GEAR_PARTS), each a blocker of its own; its footprint (x0, x1, z0, z1). A crane
+    is laid at the size made for the deck it stands on, along her, its jib forward or aft
+    (CRANE_JIBS), the part its plan draws it by (DRAWN_BY) on the box's middle."""
     along_x = x1 - x0 >= z1 - z0
     longer, shorter = (x1 - x0, z1 - z0) if along_x else (z1 - z0, x1 - x0)
     size = min(GEAR[kind], key=lambda s: abs(s[0] - longer) + abs(s[2] - shorter))
+    way = 1
+    if kind in CRANE_JIBS:
+        size, way = next(made for deck, made in CRANE_JIBS[kind].items() if abs(deck - bottom) < 1e-6)
     mx, mz = (x0 + x1) * 0.5, (z0 + z1) * 0.5
     parts = GEAR_PARTS.get(kind, {}).get(size)
     if kind in ROUND_GEAR:
@@ -248,6 +263,15 @@ def gear(bid, kind, x0, x1, z0, z1, bottom):
         if parts is None:
             cylinder(bid, cx, cz, r, bottom, bottom + size[1], kind)
         footprint = (cx - r, cx + r, cz - r, cz + r)
+    elif kind in DRAWN_BY:
+        # Along her, its origin where the part drawn stands on the box's middle, on the
+        # grain; turned half round (DeckGear.half_turn()) where it points aft.
+        _part, _round, dx0, dx1, _y0, _y1, dz0, dz1 = next(p for p in parts if p[0] == DRAWN_BY[kind])
+        if way < 0:
+            dx0, dx1, dz0, dz1 = -dx1, -dx0, -dz1, -dz0
+        along_x = True
+        cx, cz = q(mx - (dx1 - dx0) / 2) - dx0, q(mz - (dz1 - dz0) / 2) - dz0
+        footprint = (cx - size[0] / 2, cx + size[0] / 2, cz - size[2] / 2, cz + size[2] / 2)
     else:
         sx, sz = (size[0], size[2]) if along_x else (size[2], size[0])
         gx, gz = q(mx - sx / 2), q(mz - sz / 2)
@@ -257,8 +281,10 @@ def gear(bid, kind, x0, x1, z0, z1, bottom):
         footprint = (gx, gx + sx, gz, gz + sz)
     for k, (part, round_, px0, px1, py0, py1, pz0, pz1) in enumerate(parts or []):
         # Along her, or standing across her turned a quarter (DeckGear.turn()): its x
-        # along her -z, its z along her +x.
-        if along_x:
+        # along her -z, its z along her +x; or along her the other way about.
+        if along_x and way < 0:
+            wx0, wx1, wz0, wz1 = cx - px1, cx - px0, cz - pz1, cz - pz0
+        elif along_x:
             wx0, wx1, wz0, wz1 = cx + px0, cx + px1, cz + pz0, cz + pz1
         else:
             wx0, wx1, wz0, wz1 = cx + pz0, cx + pz1, cz - px1, cz - px0
@@ -1863,6 +1889,26 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
             box("%s_%s" % (sid, side), *sides, floor, high)
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.raised):
         box("%s_raised_%d" % (prefix, k), x0, x1, z0, z1, floor, floor + top - 2 * T)
+
+# Her electric cranes stowed (#381, the owner's ruling of 2026-11-06): each jib lowered to
+# lie level along her on a crutch post under its head, pointing the way Plate III's
+# elevation draws its pair's jib (each pair is one crane there, the port one hidden behind
+# the starboard). By the deck a pair stands on, the size it is made at (GEAR_PARTS,
+# DeckGear.PARTS) and the way its jib points, 1 forward and -1 aft:
+# - the poop's forward, over her poop's front to its post on the after well forward of the
+#   poop's ladders (the plate's 9.3 m jib, 9.25 m);
+# - the after well's aft, beside its hatches, its post short of the poop cranes' posts
+#   (the plate's 9.5 m jib cut to her wells' 6.875 m);
+# - A deck's aft, past A deck's after end to its post on B deck's promenade (the plate's
+#   7.0 m);
+# - the forward well's forward, beside its hatches, its post short of the forecastle's
+#   ladders (the plate's 7.35 m cut to her wells' 6.875 m).
+CRANE_JIBS = {"electric crane": {
+    POOP: ((10.75, 2.5, 1.5), 1),
+    0.0: ((8.375, 2.5, 1.5), -1),
+    A_DECK: ((8.5, 2.5, 1.5), -1),
+    WELL_DECK: ((8.375, 2.5, 1.5), 1),
+}}
 
 plan_layer("boat", BOAT_PLAN, BOAT, BOAT + HOUSE_TOP)
 for name, x0, x1, z0, z1 in BOAT_PLAN.houses:

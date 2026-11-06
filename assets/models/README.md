@@ -131,7 +131,7 @@ A prop placed a hundred times is parsed once.
 | `settee` | `FurnitureDressing.seat`, a room's seat `SETTEE_DEPTH` deep or deeper | hero | 476 |
 | `capstan_162`, `capstan_137`, `capstan_112` | `DeckFurniture.gear` (`DeckGear.draw`), a warping capstan by its bed's diameter (`DeckFurniture.GEAR`) | hero | 1496 each |
 | `cable_holder` | `DeckFurniture.gear`, a cable holder on her forecastle head, her cable led to its forward face | hero | 1344 |
-| `electric_crane` | `DeckFurniture.gear`, an electric crane's pedestal and machinery house | hero | 1282 |
+| `electric_crane_688`, `electric_crane_925`, `electric_crane_700` | `DeckFurniture.gear`, an electric crane's pedestal and machinery house, its jib stowed on its crutch post: her wells', her poop's and A deck's, by its jib's length | hero | 1480 each |
 | `steam_windlass`, `steam_winch` | `DeckFurniture.gear`, her forecastle's steam windlass and steam winch | hero | 1476, 1374 |
 | `electric_winch_100`, `electric_winch_188`, `electric_winch_156`, `electric_winch_231` | `DeckFurniture.gear`, an enclosed electric winch by its length (`GEAR`) | furniture | 320 each |
 | `docking_wheel` | `DeckFurniture.gear`, the docking bridge's steering standard | hero | 894 |
@@ -367,14 +367,16 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     The body is painted `upholstery`, the cushions `linen` and the feet and rail `teak`,
     each swapped for its room's (`FurnitureDressing._coverings`): leather in the smoking
     room, wicker under cushions in the café and the reception room, velvet elsewhere.
-  - `capstan_NNN`, `cable_holder`, `electric_crane`, `steam_windlass`, `steam_winch`,
+  - `capstan_NNN`, `cable_holder`, `electric_crane_NNN`, `steam_windlass`, `steam_winch`,
     `electric_winch_NNN`, `docking_wheel`: her deck gear (`DeckFurniture.GEAR`), on the deck
     under the middle of its footprint, x along its longer side, z across; its box over all
-    its kind's size (`DeckGear.envelope()`). A piece is made of parts (`DeckGear.PARTS`),
+    its kind's size (`DeckGear.envelope_of()`). A piece is made of parts (`DeckGear.PARTS`),
     each a blocker of its own, and every face of its model stands inside one of them and
     fills each as art-lint holds any blocker: a box's sides and its flat top, a round's
     side round its axis and its top over it. A piece standing across her is turned a
-    quarter, its x to port and its z forward (`DeckGear.turn()`). A capstan is NNN
+    quarter, its x to port and its z forward (`DeckGear.turn()`), and one standing the
+    other way about half round (`DeckGear.half_turn()`), as its parts lie in her data
+    (`DeckGear.stance()`). A capstan is NNN
     hundredths of a metre across its bed, its barrel a round of its own on the bed, its
     eight whelps on art-lint's rays; a winch is NNN hundredths of a metre along its shaft.
     A barrel on a shaft lying along the deck fills no part, so the electric winches are
@@ -386,8 +388,16 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     lies at a ray's height. A ray down an edge between slanted faces can miss both and
     find nothing: the steam winch's cylinders, first drawn edge on, did. The cable
     holder's cable comes in under its plate at the mouth in its forward face, where
-    `ShipFittings` leads it, and wraps half round the wildcat. The crane is its pedestal and its machinery house, its jib's heel
-    pin forward: no envelope is declared for a jib (#381). The wheel stand's wheel lies in
+    `ShipFittings` leads it, and wraps half round the wildcat. A crane (#381) is its
+    pedestal, its machinery house, and its jib stowed level along +x from the house's
+    fore face, NNN hundredths of a metre long, on its crutch post under its head; the
+    model's origin is the middle of all that, its pedestal toward −x. The jib is a plated
+    box girder filling its part, its top flush with the house's roof, its stiffeners
+    inked lines in its sides clear of art-lint's rays, its heel pin and head sheave dark
+    in its machine-painted ends. The post is a round shaft a little inside its part, on
+    an octagonal foot plate and under an octagonal dark saddle, both inside it; where the
+    crane's deck ends under its jib (the poop's, A deck's) the post stands on the deck
+    below, `DeckGear.DROPS` under the crane's. The wheel stand's wheel lies in
     a recess in its after face, the helmsman aft of it. Bolt heads stand on flanges below
     a part's top, never proud of it. All modelled in Blender through its MCP, their
     `.blend`s the source.
