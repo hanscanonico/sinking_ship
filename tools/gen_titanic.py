@@ -2526,11 +2526,33 @@ DOUBLE_BOTTOMS = [
 TT_HOLES = []
 ORLOP_ROOF_END = 93.75  # short of where a body climbing the spirals puts its head (orlop.py)
 MANHOLE = (0.9, 2.0)  # across its stair and along it
+# The floor a manhole leaves beside it in its room, one side or the other: a body and a hand
+# (#360's 0.9 m clear). A passage through her coal is the way through it, and a hole railed
+# round (#499) across one shuts it; one in a door's mouth holds a body out of the room, or
+# pushes it out through the door as it comes to the head (#501).
+MANHOLE_PAST = 0.9
 DB_Z = {rid: fit(x0, x1, KEEL, 0.2 if rid.startswith("db_hold_1") else 0.3) for rid, _n, x0, x1 in DOUBLE_BOTTOMS}
 
+# The mouth of each door in the tank top's walls, as head_clear keeps a flight's head out of
+# one, and of each end of a passage through her coal, open its width onto the room past it.
+TT_MOUTHS = [(at - 0.85, at + 0.85, along - 0.6, along + 0.6) if axis == 0 else (along - 0.6, along + 0.6, at - 0.85, at + 0.85)
+             for axis, at, _w0, _w1, _kind, doors in TT_PLAN.walls for along in doors]
+TT_MOUTHS += [(at - 0.85, at + 0.85, r[3], r[4]) for r in TT_PLAN.rooms if r[0].startswith("passage, tank top") for at in r[1:3]]
+
+def leaves_way(x0, x1, z0, z1, along_x):
+    """Whether a manhole's stair over x0..x1, z0..z1 stands, with its lead off each end, out
+    of every door's mouth (TT_MOUTHS) and leaves MANHOLE_PAST of its room's floor beside it,
+    across the stair, on one side or the other."""
+    a0, a1, b0, b1 = (x0 - FLIGHT_LEAD, x1 + FLIGHT_LEAD, z0, z1) if along_x else (x0, x1, z0 - FLIGHT_LEAD, z1 + FLIGHT_LEAD)
+    if any(m[0] < a1 and m[1] > a0 and m[2] < b1 and m[3] > b0 for m in TT_MOUTHS):
+        return False
+    r = next(r for r in TT_PLAN.rooms if r[1] <= x0 and x1 <= r[2] and r[3] <= z0 and z1 <= r[4])
+    lo, hi, a, b = (r[3], r[4], z0, z1) if along_x else (r[1], r[2], x0, x1)
+    return a - lo >= MANHOLE_PAST or hi - b >= MANHOLE_PAST
+
 def manhole(sid, x0, x1, half, order):
-    """A stair down from the tank top over x0..x1 where its floor is clear: whether. Along her
-    or, in a firing aisle too short for that, across her."""
+    """A stair down from the tank top over x0..x1 where its floor is clear and leaves a way past
+    it (leaves_way): whether. Along her or, in a firing aisle too short for that, across her."""
     lead = FLIGHT_LEAD
     run = MANHOLE[1] + (0.25 if x0 == BX["L"] else 0.0)
     top = tt_floor((x0 + x1) * 0.5)
@@ -2541,12 +2563,14 @@ def manhole(sid, x0, x1, half, order):
     for x in xs:
         for z in zs:
             if (tt_clear(x - lead, x + run + lead, z - 0.1, z + MANHOLE[0] + 0.1)
-                    and x - lead >= x0 + 0.1 and x + run + lead <= x1 - 0.1 and -half <= z and z + MANHOLE[0] <= half):
+                    and x - lead >= x0 + 0.1 and x + run + lead <= x1 - 0.1 and -half <= z and z + MANHOLE[0] <= half
+                    and leaves_way(x, x + run, z, z + MANHOLE[0], True)):
                 stair(sid, x + run, x, z, z + MANHOLE[0], KEEL, top, TT_HOLES)
                 TT_BOXES.append((x - 0.5, x + run + 0.5, z - 0.5, z + MANHOLE[0] + 0.5))
                 return True
             if (tt_clear(x - 0.1, x + MANHOLE[0] + 0.1, z - lead, z + run + lead)
-                    and x + MANHOLE[0] <= x1 - 0.1 and -half <= z - lead and z + run + lead <= half):
+                    and x + MANHOLE[0] <= x1 - 0.1 and -half <= z - lead and z + run + lead <= half
+                    and leaves_way(x, x + MANHOLE[0], z, z + run, False)):
                 stair_z(sid, z + run, z, x, x + MANHOLE[0], KEEL, top, TT_HOLES)
                 TT_BOXES.append((x - 0.5, x + MANHOLE[0] + 0.5, z - 0.5, z + run + 0.5))
                 return True
