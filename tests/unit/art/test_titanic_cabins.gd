@@ -12,8 +12,8 @@ const CELLS: Array[float] = [0.2, 0.05]
 ## fold. Moves only with the plates' rooms or the rule.
 const PINNED := {
 	"first-class": [331, 658, 111],
-	"second-class": [183, 490, 128],
-	"third-class": [279, 490, 513],
+	"second-class": [184, 490, 132],
+	"third-class": [285, 466, 563],
 	"none": [6, 14, 7],
 }
 

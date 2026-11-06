@@ -1070,6 +1070,8 @@ def run_on(flight, floors):
     flight = (name, lo, hi, z0, z1, rises, lower, upper) if along_x else (name, x0, x1, lo, hi, rises, lower, upper)
     return flight, height(lower, foot_end), height(upper, head_end)
 
+FLIGHT_HOLES = {}  # each flight's id: the hole it leaves in the deck over it, or None
+
 for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OUTLINE, G_OUTLINE, ORLOP_OUTLINE,
              LOWER_OUTLINE):
     floors = dict(PLAN_DECKS)
@@ -1096,6 +1098,14 @@ for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OU
         else:
             ends = (z0, z1) if rises == "starboard" else (z1, z0)
             stair_z(sid, ends[0], ends[1], x0, x1, low, high, into)
+        # C deck whole over No. 1's trunk (hold_1_d, #399): a crew's stair up from D deck
+        # forward of her bridge deck's front, rising aft, run on over its foot past bulkhead
+        # B (c.py), has C deck cut only aft of B, its foot under the deck with headroom (est.;
+        # once cut on to its foot, C deck stood open over D deck's passage forward of B into
+        # no cell, #318).
+        if upper == "c" and lower == "d" and rises == "aft" and x0 < BX["B"] < x1:
+            into[-1] = (into[-1][0], BX["B"]) + into[-1][2:]
+        FLIGHT_HOLES[sid] = into[-1] if upper in holes else None
         if plan is F_OUTLINE and waited is not None and f_waited(flight):
             F_WAITED.extend(into[waited:])
         if plan is G_OUTLINE and name != "hold ladder":
@@ -3815,10 +3825,12 @@ for name, fx0, fx1, fz0, fz1, high, _low in stairs + stairs_z:
     # manholes into her double bottoms are their own (below).
     if name.startswith(("stokehold_", "space_")):
         continue
+    # (Over the hole it leaves in the deck, where it leaves one.)
+    fx0, fx1, fz0, fz1 = FLIGHT_HOLES.get(name) or (fx0, fx1, fz0, fz1)
     xm, zm = (fx0 + fx1) * 0.5, (fz0 + fz1) * 0.5
     above = cell_at(xm, high + 0.01, zm)
-    # Each cell under the flight, its middle's first: crew's stair 8 from D deck's after
-    # cell on into D deck forward's (#318) opened only over the first, C deck open over both.
+    # Each cell under the hole, its middle's first: a flight over a house's end, or over
+    # two of her boiler rooms' cells, opens into each.
     belows = []
     for px, pz in [(xm, zm)] + [(fx0 + 0.01, zm), (fx1 - 0.01, zm), (xm, fz0 + 0.01), (xm, fz1 - 0.01)]:
         c = cell_at(px, high - 0.01, pz)
