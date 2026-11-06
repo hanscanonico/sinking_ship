@@ -789,6 +789,16 @@ func ceiling_of(cell: int) -> float:
 	return _ceiling[cell]
 
 
+## Every cell's ceiling (ceiling_of) and every opening's sill (sill_of), by index, at
+## the attitude it stands turned to: what a loop over them all reads (SinkFailures).
+func ceilings() -> PackedFloat64Array:
+	return _ceiling
+
+
+func sills() -> PackedFloat64Array:
+	return _bottom
+
+
 ## The water [param cell] holds full, at any attitude, in m³.
 func capacity_of(cell: int) -> float:
 	return _capacity[cell]

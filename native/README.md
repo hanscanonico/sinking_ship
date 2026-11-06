@@ -4,7 +4,8 @@ The hottest loops of the bots and of the sinking bake in C++, giving the same an
 the GDScript they stand in for, bit for bit: the walk-graph search (`ai/walk_search.gd`),
 the bots' reads of the water (`core/still_points.gd`, `ai/walk_graph.gd`,
 `ai/bot_refuge.gd`), the bake's solves for a held head and its sweep of the openings
-(`core/sinking/sink_stepper.gd`, #411), the floating furniture's contacts: where her
+(`core/sinking/sink_stepper.gd`, #411), her lift and her water's load as she moves
+(`core/sinking/ship_motion.gd`, #411), the floating furniture's contacts: where her
 props stand (`core/prop_stands.gd`), what holds a circle back
 (`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`) and the
 cargo's contact passes (`Hazards._move`, `core/hazards.gd`), and the dressed ship's face
@@ -15,7 +16,7 @@ into batches (`scenes/art/ship_mesh.gd`, `scenes/art/indoor_grid.gd`, #411).
 
 - `src/` — the extension's sources: `walk_search_native.{h,cpp}` (`NativeWalkGraph`,
   `NativeWalkSearch`), `water_native.{h,cpp}` (`NativeWater`), `sink_native.{h,cpp}`
-  (`NativeSink`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
+  (`NativeSink`), `motion_native.{h,cpp}` (`NativeMotion`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
   `NativeCrates`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `register_types.cpp` (the entry, `sinking_native_init`).
 - `SConstruct` — the build, over godot-cpp's; `build_profile.json` — the engine
@@ -77,7 +78,9 @@ null unless `ClassDB.class_exists("NativeWalkGraph")`. A `WalkSearch` given one 
 every question to a `NativeWalkSearch`. Otherwise it answers itself. Each
 `SinkStepper` asks `SinkNative.made()` for its loops the same way, null without a
 `NativeSink`: the stepper keeps every state and hands the extension her layout once and
-what its loops read at each turn and step. `ContactsNative.loaded()` decides the same
+what its loops read at each turn and step. Each `ShipMotion` makes a `NativeMotion` the
+same way and hands it her sections, and her cells' boxes the first time it loads them;
+its memo of the last lift stays GDScript's. `ContactsNative.loaded()` decides the same
 for the contacts as each `PropStands`, `Surfaces` and `Hazards` is made: a `PropStands`
 keeps its props on a `NativeStands`' grid, a `Surfaces` mirrors her surfaces, railings,
 doors and fallen funnels into a `NativeSurfaces` the first time it is asked and tells it
@@ -102,7 +105,8 @@ the same sinking and the same art.
 - Floating-point contraction is off (`-ffp-contract=off`; MSVC `/fp:precise`), for
   godot-cpp's objects as for ours.
 - `tests/unit/ai/test_walk_search_native.gd`, `tests/unit/ai/test_water_native.gd`,
-  `tests/unit/core/test_sink_native.gd`, `tests/unit/core/test_contacts_native.gd` and
-  `tests/unit/art/test_ship_mesh_native.gd` ask both sides the same questions and fail
-  on any difference. CI sets `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load
-  fails too — on Linux across the suite, on macOS (arm64) for those five scripts.
+  `tests/unit/core/test_sink_native.gd`, `tests/unit/core/test_motion_native.gd`,
+  `tests/unit/core/test_contacts_native.gd` and `tests/unit/art/test_ship_mesh_native.gd`
+  ask both sides the same questions and fail on any difference. CI sets
+  `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load fails too — on Linux
+  across the suite, on macOS (arm64) for those six scripts.
