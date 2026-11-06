@@ -98,7 +98,7 @@ if wait_for "[ -e '$WORK/fifo.start' ]"; then
 		fail "the third waiter did not say 2 wait ahead of it: $(cat "$WORK/fifo.3.err")"
 	touch "$WORK/fifo.release"
 	wait "$holder"
-	wait_for "[ \$(wc -l <'$WORK/fifo.order' 2>/dev/null || echo 0) -ge 3 ]" ||
+	wait_for "[ -s '$WORK/fifo.order' ] && [ \$(wc -l <'$WORK/fifo.order') -ge 3 ]" ||
 		fail "three queued waiters did not all run"
 	wait "${waiters[@]}"
 	order=$(paste -sd' ' - <"$WORK/fifo.order" 2>/dev/null)

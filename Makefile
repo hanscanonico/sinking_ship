@@ -337,7 +337,9 @@ bench:
 # draw calls — its unaccounted rest with it (FrameProbe). Its client only watches, so it
 # never predicts: its reconcile is the restore of each snapshot.
 # Rules live in tools/fps.sh. Not part of verify: it needs a display, and the machine to
-# itself — it takes the window lock itself, as capture does.
+# itself — it takes the window lock itself, as capture does, and bounds its game as
+# capture does: FPS_LIMIT seconds, the load limit, SKIP and SECONDS and 120 more by
+# default, and stopped at once on a compile failure or one script error over and over.
 fps:
 	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
 		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(SKIP),--skip=$(SKIP)) \
