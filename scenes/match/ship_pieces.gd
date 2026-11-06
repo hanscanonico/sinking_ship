@@ -47,6 +47,16 @@ static func leaves_of(schedule: SinkSchedule) -> PackedInt32Array:
 	return schedule.timeline().pieces_at(INF)
 
 
+## The place in leaves_of of the piece [param schedule]'s sinking ends in that the point
+## [param x] along her lies on — 0, the ship's own node's, for a hull that never breaks.
+static func leaf_at(schedule: SinkSchedule, x: float) -> int:
+	var leaves := leaves_of(schedule)
+	for at in range(leaves.size() - 1, 0, -1):
+		if x >= schedule.span_of(leaves[at]).x:
+			return at
+	return 0
+
+
 ## Draws every piece of [param sim]'s ship past the first, which [param ship] — its node
 ## — [param art] and [param greybox] draw: dressed as [param art] is, each stretch past the
 ## first one of [param stretches] (stretches_of), or as the greybox while [param greybox]
