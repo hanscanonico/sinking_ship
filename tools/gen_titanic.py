@@ -991,7 +991,8 @@ STAIR = 1.4   # a stair's width (est.)
 
 def stair(sid, x_low, x_high, z0, z1, low, high, deck_holes):
     """A stair along x from low at x_low to high at x_high, z0 to z1 wide; the hole it
-    leaves in the deck above is added to deck_holes, its railings laid with the deck."""
+    leaves in the deck above is added to deck_holes, railed round once every deck is laid
+    (rail_holes)."""
     lo, hi = min(x_low, x_high), max(x_low, x_high)
     rising = x_high > x_low
     ramp(sid, lo, hi, z0, z1, 0, low if rising else high, high if rising else low)
@@ -1010,32 +1011,6 @@ def stair_z(sid, z_low, z_high, x0, x1, low, high, deck_holes):
     ramp(sid, x0, x1, lo, hi, 1, low if rising else high, high if rising else low)
     deck_holes.append((x0, x1, lo, hi))
     stairs_z.append((sid, x0, x1, lo, hi, high, z_low))
-
-def hole_rails_z(plats, sid):
-    """Railings round a stair along z's hole on the deck above: its two sides and its low end."""
-    for name, x0, x1, lo, hi, _high, z_low in [s for s in stairs_z if s[0] == sid]:
-        closed = lo if z_low == lo else hi
-        for tag, a, b in [("a", (x0, lo), (x0, hi)), ("f", (x1, lo), (x1, hi)), ("e", (x0, closed), (x1, closed))]:
-            on = edge_platform(plats, a, b)
-            if on is not None:
-                railing("%s_%s" % (name, tag), on, a, b)
-
-def hole_rails(plats, sid):
-    """Railings round a stair's hole on the deck above: its two sides and its low end."""
-    for name, lo, hi, z0, z1, high, x_low in [s for s in stairs if s[0] == sid]:
-        open_end = hi if x_low == lo else lo
-        # (Round the hole as the deck is cut: short of its foot, where the deck stays whole
-        # over it, its closed end where the cut ends.)
-        lo, hi = (FLIGHT_HOLES.get(name) or (lo, hi))[:2]
-        closed = lo if open_end == hi else hi
-        for tag, a, b in [("p", (lo, z0), (hi, z0)), ("s", (lo, z1), (hi, z1)), ("e", (closed, z0), (closed, z1))]:
-            # Not across the treads of a flight up from this deck, its foot over the hole.
-            if any(min(r[5], r[6]) == high and r[0] < max(a[0], b[0]) + 1e-6 and r[1] > min(a[0], b[0]) - 1e-6
-                   and r[2] < max(a[1], b[1]) + 1e-6 and r[3] > min(a[1], b[1]) - 1e-6 for r in ramp_geo):
-                continue
-            on = edge_platform(plats, a, b)
-            if on is not None:
-                railing("%s_%s" % (name, tag), on, a, b)
 
 def edge_platform(plats, a, b):
     for index in plats:
@@ -1253,7 +1228,7 @@ SALOON_Z = 13.0  # the half breadth of the stokeholds' F deck (est.)
 # flight's last HEAD_RUN, where a body on it would put its head through, so a flight no
 # wider than a body opens one short hole in a traced room's floor, not one its whole length.
 HEAD_RUN = 2.25
-F_HOLES = []  # (the flight's id, the hole, the hole's closed end along its axis)
+F_HOLES = []  # (the flight's id, the hole)
 F_WELLS = holes["f"]  # the traced flights' wells in it
 
 def f_head(xa, xb, run, z0, z1, plan=None, wells=None, cut=None):
@@ -1288,13 +1263,13 @@ def up_to_f(sid, xa, xb, run, z0, z1, low):
     x_low, x_high = found
     stair(sid, x_low, x_high, z0, z1, low, F_DECK, [])
     a = x_high - HEAD_RUN if x_high > x_low else x_high + HEAD_RUN
-    F_HOLES.append((sid, (min(a, x_high), max(a, x_high), z0, z1), a, 0))
+    F_HOLES.append((sid, (min(a, x_high), max(a, x_high), z0, z1)))
     return True
 
 def up_to_f_z(sid, z_low, z_high, x0, x1, low):
     stair_z(sid, z_low, z_high, x0, x1, low, F_DECK, [])
     a = z_high - HEAD_RUN if z_high > z_low else z_high + HEAD_RUN
-    F_HOLES.append((sid, (x0, x1, min(a, z_high), max(a, z_high)), a, 2))
+    F_HOLES.append((sid, (x0, x1, min(a, z_high), max(a, z_high))))
 
 # Down off her open decks, two of each, port and starboard: A deck's forward end onto the
 # forward well (est.); the forecastle's and the poop's from their wells, where C deck's
@@ -1908,17 +1883,6 @@ for k, (sign, x0, x1) in enumerate(C_LINED):
     c_gaps.append((2, sign * z, x0, x1))
     box("c_lining_%d" % k, x0, x1, *sorted((sign * z, sign * (z - 0.1))), 0.0, top_at(x0))
 outline_rails("c", C_PIECES, c_deck, c_gaps)
-DECKS_AT = {BOAT: boat, A_DECK: a_deck, B_DECK: b_deck, 0.0: c_deck + well, D_DECK: d_deck,
-            E_DECK: e_deck, F_DECK: f_deck}
-# (C and D decks forward, where her sheer steps them.)
-DECKS_AT.update({h: c_deck + well for _at, h in C_SHEER})
-DECKS_AT.update({h: d_deck for _at, h in D_SHEER})
-# Each flight's hole railed round on the deck it comes up to, but her open decks' flights',
-# which leave none (OPEN_DECK_FLIGHTS, by name: the prefixes once here caught her after grand
-# staircase's flights onto A and B decks, #486).
-for name, _lo, _hi, _z0, _z1, high, _x_low in list(stairs):
-    if high in DECKS_AT and name not in OPEN_DECK_FLIGHTS:
-        hole_rails(DECKS_AT[high], name)
 
 # --- Boarding ladders (SH5), one down each side of both well decks, where a body shoved
 # over her rail comes down: a swimmer climbs back aboard there, ten metres up her side
@@ -2270,13 +2234,11 @@ def up_to_g(sid, xa, xb, run, z0, z1, low):
     head_flight(sid, found[0], found[1], z0, z1, low)
     return True
 
-def head_flight(sid, x_low, x_high, z0, z1, low, wall_at=None):
-    """A flight with its head in G deck; wall_at, where the hole stops at a wall, unrailed."""
+def head_flight(sid, x_low, x_high, z0, z1, low):
+    """A flight with its head in G deck, the deck cut over its last HEAD_RUN."""
     stair(sid, x_low, x_high, z0, z1, low, G_DECK, [])
     a = x_high - HEAD_RUN if x_high > x_low else x_high + HEAD_RUN
-    if wall_at is not None:
-        a = wall_at
-    G_HOLES.append((sid, (min(a, x_high), max(a, x_high), z0, z1), None if wall_at is not None else a, 0))
+    G_HOLES.append((sid, (min(a, x_high), max(a, x_high), z0, z1)))
 
 # --- Furniture: the boxes standing on her rooms' floors, after every other blocker so
 # none of theirs moves. Each is drawn inside its box (FurnitureDressing): tables 0.75 m
@@ -2664,10 +2626,10 @@ for at in ends_db:
 for k, r in enumerate(r for r in TT_OUTLINE.rooms if r[0] == "passage, tank top" or (r[0] == "firemen's passage" and r[1] < 90.0)):
     x1 = min(r[2], ORLOP_ROOF_END)
     box("passage_roof_%d" % k, r[1], x1, r[3], r[4], PASSAGE_TOP, PASSAGE_TOP + 2 * T)
-# Her floors: the tank top, the orlop, the lower orlop, their stairs' holes railed.
-tt_decks = [i for k, (x0, x1, z0, z1) in enumerate(snap_ends(TT_PIECES, TT_HOLES))
-            for i in deck("tt_%d" % k, "engine room floor" if BX["L"] <= x0 and x1 <= BX["K"] else "tank top", x0, x1, z0, z1,
-                          tt_floor((x0 + x1) * 0.5), TT_HOLES)]
+# Her floors: the tank top, the orlop, the lower orlop.
+for k, (x0, x1, z0, z1) in enumerate(snap_ends(TT_PIECES, TT_HOLES)):
+    deck("tt_%d" % k, "engine room floor" if BX["L"] <= x0 and x1 <= BX["K"] else "tank top", x0, x1, z0, z1,
+         tt_floor((x0 + x1) * 0.5), TT_HOLES)
 for k, (x0, x1, z0, z1) in enumerate(snap_ends(ORLOP_PIECES, holes["orlop"])):
     deck("orlop_%d" % k, "orlop deck", x0, x1, z0, z1, orlop_at(x0 + 0.01), holes["orlop"])
 for k, (x0, x1, z0, z1) in enumerate(ORLOP_PLAN.decks[1:2]):
@@ -2677,35 +2639,11 @@ _n, co2_x0, co2_x1, co2_z0, co2_z1, *_rest = next(f for f in ORLOP_OUTLINE.stair
 platform("co2_landing", "orlop deck", co2_x1, co2_x1 + 1.0625, co2_z0, co2_z1, ORLOP)
 for k, (x0, x1, z0, z1) in enumerate(snap_ends(LOWER_PIECES, holes["lower_orlop"])):
     deck("lower_orlop_%d" % k, "lower orlop deck", x0, x1, z0, z1, LOWER_ORLOP, holes["lower_orlop"])
-for name, x0, x1, z0, z1, _high, _low in stairs:
-    if name.startswith("space_db"):
-        hole_rails(tt_decks, name)
-for name, x0, x1, z0, z1, _high, _low in stairs_z:
-    if name.startswith("space_db"):
-        hole_rails_z(tt_decks, name)
 
-# F deck cut over the last of each flight up to it from under it, three sides of each hole
-# railed (up_to_f).
-f_deck = split(f_deck, "f_late", "F deck", F_DECK, [hole for _sid, hole, _closed, _axis in F_HOLES])
-for sid, (hx0, hx1, hz0, hz1), closed, axis in F_HOLES:
-    sides = ([("p", (hx0, hz0), (hx1, hz0)), ("s", (hx0, hz1), (hx1, hz1)), ("e", (closed, hz0), (closed, hz1))] if axis == 0
-             else [("a", (hx0, hz0), (hx0, hz1)), ("f", (hx1, hz0), (hx1, hz1)), ("e", (hx0, closed), (hx1, closed))])
-    for tag, a, b in sides:
-        on = edge_platform(f_deck, a, b)
-        if on is not None:
-            railing("%s_%s" % (sid, tag), on, a, b)
-
-# G deck likewise (up_to_g).
-g_deck = split(g_deck, "g_late", "G deck", G_DECK, [hole for _sid, hole, _closed, _axis in G_HOLES])
-for sid, (hx0, hx1, hz0, hz1), closed, axis in G_HOLES:
-    sides = ([("p", (hx0, hz0), (hx1, hz0)), ("s", (hx0, hz1), (hx1, hz1)), ("e", (closed, hz0), (closed, hz1))] if axis == 0
-             else [("a", (hx0, hz0), (hx0, hz1)), ("f", (hx1, hz0), (hx1, hz1)), ("e", (hx0, closed), (hx1, closed))])
-    for tag, a, b in sides:
-        if tag == "e" and closed is None:
-            continue
-        on = edge_platform(g_deck, a, b)
-        if on is not None:
-            railing("%s_%s" % (sid, tag), on, a, b)
+# F deck cut over the last of each flight up to it from under it (up_to_f), and G deck
+# likewise (up_to_g).
+f_deck = split(f_deck, "f_late", "F deck", F_DECK, [hole for _sid, hole in F_HOLES])
+g_deck = split(g_deck, "g_late", "G deck", G_DECK, [hole for _sid, hole in G_HOLES])
 
 # Every wall a flight comes down over cut to the flight's underside there, and every lintel
 # it comes down through, the deck it lands on drawn whole by the plates under it (est.):
@@ -3364,6 +3302,134 @@ _problems = [problem for candidate in ROOM_PIECES for problem in piece_problems(
 assert not _problems, "\n".join(_problems)
 for bid, x0, x1, z0, z1, floor, top in ROOM_PIECES:
     box(bid, x0, x1, z0, z1, floor, top)
+
+# --- Every flight's hole railed round (#486, #489), once her decks, her flights and what
+# stands on them are all laid, as the plates draw a rail or a balustrade round an open
+# stairwell: on the deck at its head, along either side of it and across its closed end —
+# its low end, or the edge of the deck kept whole over its foot (FLIGHT_HOLES, HEAD_RUN) —
+# wherever a piece of that deck stands outside the hole and none inside it, a railing on
+# each piece along it (a railing runs along one platform's edge, ShipRailing). Its high end
+# stays open, where a body walks onto it, and so does what a flight up from that deck has
+# its foot over, and what is railed already. Where something LINING tall stands within LINED
+# of the edge — a wall, a casing, a lift's shaft, lockers, a boat stowed by it — the plate
+# draws that and no rail, and no body reaches the edge past it. A flight up past a deck's
+# end, as her open decks' are (OPEN_DECK_FLIGHTS), leaves no hole: no piece of that deck
+# stands beside it. One rising less than a body steps leaves none a body falls into.
+# Where something stands across the well within a body's breadth past the edge, and half
+# a railing's either side of its line (WELL_CLEAR) — the hole's far side, the hole being
+# narrower than that, or another flight standing in it higher than a step, its foot within
+# a body's height of that deck — a span broken open there would let a body through only
+# into what stands across, drawn (art-lint's open spans): such an edge is railed in spans
+# shorter than a body is broad (BREADTH), none of which, broken, lets one through.
+HOLE_RISE = rule("step_height")
+LINED = 0.1
+LINING = 1.0
+RAIL_LEAST = 0.05  # a stretch shorter than this is no way through for anybody
+BREADTH = 2 * rule("body_radius")
+RAIL_HALF = 0.05  # half a railing's breadth: its cap rail (ship_art's RAIL_WIDTH, 0.09) either side of its line
+WELL_CLEAR = BREADTH + RAIL_HALF
+
+def without(spans, cuts):
+    """The stretches [(from, to)] with every cut [(from, to)] taken out of them."""
+    out = []
+    for a, b in spans:
+        for c0, c1 in sorted(cuts):
+            if c1 > a and c0 < b:
+                if c0 > a:
+                    out.append((a, c0))
+                a = max(a, c1)
+        if a < b:
+            out.append((a, b))
+    return out
+
+def across_along(g, fixed):
+    """A box's (x0, x1, z0, z1, ...) ranges across and along a line x = c (fixed 0) or z = c
+    (fixed 2)."""
+    return (g[0:2], g[2:4]) if fixed == 0 else (g[2:4], g[0:2])
+
+def hole_edges(rx0, rx1, rz0, rz1, axis, start, end):
+    """A flight's hole's edges but its high end, each (tag, fixed: 0 for a line x = at, 2 for
+    z = at, at, from, to along the line, the side of it its deck stands on: -1 or 1)."""
+    top, rising = max(start, end), end > start
+    side = 2 if axis == 0 else 0  # her sides' lines: z = const for a flight along x
+    across, along = across_along((rx0, rx1, rz0, rz1), side)
+    low, high = along if rising else along[::-1]
+    sign = 1 if rising else -1
+    # Its closed end: the far edge of a piece of the deck reaching over its foot, else its low end.
+    closed = low
+    for p in plat_geo:
+        p_across, p_along = across_along(p, side)
+        near = p_along[1] if rising else p_along[0]
+        if (abs(p[4] - top) < 1e-6 and p_across[0] < across[1] - 1e-6 and p_across[1] > across[0] + 1e-6
+                and sign * (near - low) > 1e-6 and sign * (high - near) > 1e-6 and sign * (near - closed) > 0):
+            closed = near
+    tags = ("p", "s") if axis == 0 else ("a", "f")
+    return [(tags[0], side, across[0], *along, -1), (tags[1], side, across[1], *along, 1),
+            ("e", 2 - side, closed, *across, -sign)]
+
+def crowded(k, tag, fixed, at, out, a, b, top):
+    """Whether something stands across the well within WELL_CLEAR past flight k's hole's
+    edge tag, the line fixed/at from a to b with its deck on side out, at top: the hole's
+    far side, a side's well narrower than that, or another flight standing in the well
+    there higher than a step, its foot within a body's height of that deck."""
+    near, far = sorted((at, at - out * WELL_CLEAR))
+    width, _along = across_along(ramp_geo[k], fixed)
+    if tag != "e" and width[1] - width[0] < WELL_CLEAR - 1e-6:
+        return True
+    for j, r in enumerate(ramp_geo):
+        r_across, r_along = across_along(r, fixed)
+        c0, c1, l0, l1 = max(r_across[0], near), min(r_across[1], far), max(r_along[0], a), min(r_along[1], b)
+        if j == k or c0 >= c1 or l0 >= l1 or min(r[5], r[6]) >= top + BODY_HEIGHT:
+            continue
+        # The highest its treads stand over that stretch of the well: at an end of it along its rise.
+        lo, hi = (c0, c1) if (0 if r[4] == 0 else 2) == fixed else (l0, l1)
+        r_lo, r_hi = (r[0], r[1]) if r[4] == 0 else (r[2], r[3])
+        if max(r[5] + (r[6] - r[5]) * (v - r_lo) / (r_hi - r_lo) for v in (lo, hi)) > top + HOLE_RISE:
+            return True
+    return False
+
+def rail_holes():
+    for k, (rx0, rx1, rz0, rz1, axis, start, end) in enumerate(list(ramp_geo)):
+        top = max(start, end)
+        if top - min(start, end) < HOLE_RISE:
+            continue
+        rid = ramps[k][len("Ramp_"):]
+        lining = [b for b in block_geo if b[6] and b[4] <= top + 0.01 and b[5] >= top + LINING]
+        for tag, fixed, at, lo, hi, out in hole_edges(rx0, rx1, rz0, rz1, axis, start, end):
+            outside, cuts = [], []
+            for index, p in enumerate(plat_geo):
+                if abs(p[4] - top) >= 1e-6:
+                    continue
+                p_across, p_along = across_along(p, fixed)
+                if abs(p_across[1 if out < 0 else 0] - at) < 1e-6:
+                    outside += [(index, s) for s in without([p_along], [(-1e9, lo), (hi, 1e9)])]
+                elif p_across[0] < at - out * 1e-3 < p_across[1]:
+                    cuts.append(p_along)  # her deck on inside it: no hole there
+            for r in ramp_geo:
+                r_across, r_along = across_along(r, fixed)
+                if abs(min(r[5], r[6]) - top) < 1e-6 and r_across[0] - 1e-6 <= at <= r_across[1] + 1e-6:
+                    cuts.append(r_along)  # a flight up from this deck, its foot over the edge
+            for b in lining:
+                b_across, b_along = across_along(b, fixed)
+                if b_across[0] - LINED <= at <= b_across[1] + LINED:
+                    cuts.append(b_along)
+            for on, a, b in rail_geo:
+                ends = sorted((a, b))
+                if abs(plat_geo[on][4] - top) < 1e-6 and all(abs(e[fixed // 2] - at) < 1e-6 for e in ends):
+                    cuts.append((ends[0][1 - fixed // 2], ends[1][1 - fixed // 2]))  # railed already
+            spans = [(index, s) for index, stretch in outside for s in without([stretch], cuts)
+                     if s[1] - s[0] >= RAIL_LEAST]
+            for n, (index, (a, b)) in enumerate(spans):
+                name = "%s_%s%s" % (rid, tag, n if len(spans) > 1 else "")
+                if b - a < BREADTH or not crowded(k, tag, fixed, at, out, a, b, top):
+                    pieces = [(name, a, b)]
+                else:
+                    m = int((b - a) // BREADTH) + 1
+                    pieces = [("%s_%d" % (name, i), a + (b - a) * i / m, a + (b - a) * (i + 1) / m) for i in range(m)]
+                for piece, p0, p1 in pieces:
+                    railing(piece, index, *([(at, p0), (at, p1)] if fixed == 0 else [(p0, at), (p1, at)]))
+
+rail_holes()
 
 
 # The seats a match on her takes (§SH34): four to sixteen; more is SH21.

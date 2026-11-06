@@ -245,12 +245,8 @@ PackedFloat64Array NativeSink::heights(const PackedFloat64Array &p_water) const 
 	return found;
 }
 
-void NativeSink::shared(const PackedFloat64Array &p_shares) {
-	take(shares_, p_shares);
-}
-
-// SinkAir.begin's pockets, and ShippedWater.begin's edges: p_surface is the crest, the
-// trough and the world's up in the ship's axes.
+// SinkAir.begin's pockets, and ShippedWater.begin's edges with each well's lowest end:
+// p_surface is the crest, the trough and the world's up in the ship's axes.
 void NativeSink::began(const PackedInt32Array &p_pocket, const PackedFloat64Array &p_air,
 		const PackedInt32Array &p_members_from, const PackedInt32Array &p_members_count,
 		const PackedInt32Array &p_members, const PackedByteArray &p_holding, const PackedByteArray &p_alone,
@@ -269,6 +265,14 @@ void NativeSink::began(const PackedInt32Array &p_pocket, const PackedFloat64Arra
 	for (size_t end = 0; end < edge_heights_.size(); end++) {
 		const size_t at = end * 3;
 		edge_heights_[end] = up[0] * ends_[at] + up[1] * ends_[at + 1] + up[2] * ends_[at + 2];
+	}
+	lowest_.assign(edges_from_.size() - 1, INF);
+	for (size_t well = 0; well + 1 < edges_from_.size(); well++) {
+		double lowest = INF;
+		for (int32_t end = edges_from_[well] * 2; end < edges_from_[well + 1] * 2; end++) {
+			lowest = min_f(lowest, edge_heights_[end]);
+		}
+		lowest_[well] = lowest;
 	}
 }
 
@@ -1119,7 +1123,11 @@ void NativeSink::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("turned", "up"), &NativeSink::turned);
 	ClassDB::bind_method(D_METHOD("upward"), &NativeSink::upward);
 	ClassDB::bind_method(D_METHOD("heights", "water"), &NativeSink::heights);
-	ClassDB::bind_method(D_METHOD("shared", "shares"), &NativeSink::shared);
+	ClassDB::bind_method(D_METHOD("shut_times", "shut_time"), &NativeSink::shut_times);
+	ClassDB::bind_method(D_METHOD("shares", "since", "opened"), &NativeSink::shares);
+	ClassDB::bind_method(D_METHOD("watched", "index", "first", "second", "shut_time", "leak", "collapse",
+								 "leak_share", "toward"),
+			&NativeSink::watched);
 	ClassDB::bind_method(D_METHOD("began", "pocket", "air", "members_from", "members_count", "members", "holding",
 								 "alone", "surface"),
 			&NativeSink::began);
@@ -1131,6 +1139,13 @@ void NativeSink::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("newton", "group", "water", "heads", "held", "sea", "seconds"), &NativeSink::newton);
 	ClassDB::bind_method(D_METHOD("sweep", "reverse", "heads", "water", "held", "sea", "seconds", "sea_given"),
 			&NativeSink::sweep);
+	ClassDB::bind_method(D_METHOD("stiff", "heads", "water", "held", "holding", "widest", "sea", "per_metre"),
+			&NativeSink::stiff);
+	ClassDB::bind_method(D_METHOD("across", "heads", "water", "sea", "ceilings", "sills", "pocket", "air",
+								 "members_from", "members_count", "members"),
+			&NativeSink::across);
+	ClassDB::bind_method(D_METHOD("failed", "across", "opened", "seconds"), &NativeSink::failed);
+	ClassDB::bind_method(D_METHOD("failure_gaps", "across"), &NativeSink::failure_gaps);
 	ClassDB::bind_method(D_METHOD("volume", "cell", "height"), &NativeSink::volume);
 	ClassDB::bind_method(D_METHOD("height", "cell", "water"), &NativeSink::height);
 	ClassDB::bind_method(D_METHOD("common_level", "a", "b", "breaks", "total"), &NativeSink::common_level);
