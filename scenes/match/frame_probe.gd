@@ -14,16 +14,23 @@ extends Node
 ## once a second, lines starting "frame split", for tools/fps.sh to show the last.
 ##
 ## The display scripts are timed node by node from outside, nothing in the nodes
-## themselves: every node in the tree whose script has a _process is handed a Lap, an
-## internal first child at its priority — so it processes right after it, and none of
-## the node's get_children sees it — which books the time since the last lap to the
-## node's class. A class's line is so its _process, and any engine-processed node run
-## between it and the timed script before it; the probe's own work and whatever
-## processes after the last timed script are no node's.
+## themselves: every node in the tree whose script has a _process is watched, and one
+## that is processing is handed a Lap, an internal first child at its priority — so it
+## processes right after it, and none of the node's get_children sees it — which books
+## the time since the last lap to the node's class. A class's line is so its _process,
+## and any engine-processed node run between it and the timed script before it; the
+## probe's own work and whatever processes after the last timed script are no node's.
+## A watched node that is not processing costs nothing — no Lap, or its Lap idle with
+## it — and its class still has its line: the probe checks SWEEP_PER_FRAME watched
+## nodes a frame, round the list, and turns each one's Lap on or off as the node's own
+## processing is.
 
 const FIRST := -(1 << 30)
 const LAST := 1 << 30
 const REPORT_EVERY_US := 1000000
+## How many watched nodes a frame's sweep checks for processing turned on or off: the
+## Titanic's ~2,700 in about 21 frames.
+const SWEEP_PER_FRAME := 128
 
 var split := FrameSplit.new()
 ## Whether a match is playing: only its frames are kept, from the one after it starts
@@ -52,6 +59,15 @@ var _physics_frames := 0
 var _lap := 0
 ## Whether the match started in the open frame: one not kept.
 var _starting := false
+## The nodes watched — those with a _process script, in the tree — each with its
+## class's name, its Lap (null until it first processes) and its instance id, side by
+## side; untyped, as a node may be freed before the sweep comes round to it.
+var _watched: Array = []
+var _named: Array[StringName] = []
+var _laps: Array = []
+var _ids: Array[int] = []
+var _watching := {}
+var _sweep_at := 0
 
 
 ## Keeps the frames from [param skip_seconds] of the run on.
@@ -81,6 +97,17 @@ func _exit_tree() -> void:
 	get_tree().node_added.disconnect(_on_node_added)
 	get_tree().process_frame.disconnect(_on_process_frame)
 	get_tree().physics_frame.disconnect(_on_physics_frame)
+	# Its Laps go with it: none is left booking to a probe that is gone.
+	for lap_node: Variant in _laps:
+		if is_instance_valid(lap_node):
+			(lap_node as Node).set_process(false)
+			(lap_node as Node).queue_free()
+	_watched.clear()
+	_named.clear()
+	_laps.clear()
+	_ids.clear()
+	_watching.clear()
+	_sweep_at = 0
 
 
 ## Books the time since the last lap to [param node_class]'s _process.
@@ -105,14 +132,12 @@ func _on_node_added(node: Node) -> void:
 		_watch.call_deferred(node)
 
 
-## Hands [param node] — whatever it is by now — its Lap, once.
+## Watches [param node] — whatever it is by now — once, its class named in the split.
 func _watch(node: Variant) -> void:
 	if not is_instance_valid(node):
 		return
 	var watched := node as Node
-	if not watched.is_inside_tree():
-		return
-	if watched.get_child_count(true) > 0 and watched.get_child(0, true) is Lap:
+	if not watched.is_inside_tree() or _watching.has(watched.get_instance_id()):
 		return
 	var script := watched.get_script() as Script
 	var named := script.get_global_name()
@@ -120,11 +145,66 @@ func _watch(node: Variant) -> void:
 		named = StringName(script.resource_path.get_file().get_basename())
 	if named.is_empty():
 		named = StringName(watched.name)
-	var lap_node := Lap.new()
-	lap_node.probe = self
-	lap_node.node_class = named
-	lap_node.process_priority = watched.process_priority
-	watched.add_child(lap_node, false, Node.INTERNAL_MODE_FRONT)
+	split.name_node(named)
+	# Its own Lap, if the node is back in the tree: another probe's is left to go.
+	var lap_node: Lap = null
+	if watched.get_child_count(true) > 0 and watched.get_child(0, true) is Lap:
+		var first := watched.get_child(0, true) as Lap
+		if is_instance_valid(first.probe) and first.probe == self:
+			lap_node = first
+	_watching[watched.get_instance_id()] = true
+	_watched.append(watched)
+	_named.append(named)
+	_laps.append(lap_node)
+	_ids.append(watched.get_instance_id())
+	_sync(_watched.size() - 1)
+
+
+## Checks the next [param count] watched nodes, round the list: a Lap for each one
+## processing, its Lap idle for each one not, and nodes freed or gone from the tree
+## let go.
+func sweep(count: int) -> void:
+	for _i in mini(count, _watched.size()):
+		if _sweep_at >= _watched.size():
+			_sweep_at = 0
+		if _sync(_sweep_at):
+			_sweep_at += 1
+
+
+## Gives the watched node at [param at] a Lap that processes as it does: false when
+## the node is gone and the last one watched took its place.
+func _sync(at: int) -> bool:
+	var node: Variant = _watched[at]
+	if not is_instance_valid(node) or not (node as Node).is_inside_tree():
+		_let_go(at)
+		return false
+	var watched := node as Node
+	var lap_node: Variant = _laps[at]
+	var processing := watched.is_processing()
+	if lap_node == null:
+		if processing:
+			var added := Lap.new()
+			added.probe = self
+			added.node_class = _named[at]
+			added.process_priority = watched.process_priority
+			watched.add_child(added, false, Node.INTERNAL_MODE_FRONT)
+			_laps[at] = added
+	elif (lap_node as Lap).is_processing() != processing:
+		(lap_node as Lap).set_process(processing)
+	return true
+
+
+func _let_go(at: int) -> void:
+	_watching.erase(_ids[at])
+	var last := _watched.size() - 1
+	_watched[at] = _watched[last]
+	_named[at] = _named[last]
+	_laps[at] = _laps[last]
+	_ids[at] = _ids[last]
+	_watched.resize(last)
+	_named.resize(last)
+	_laps.resize(last)
+	_ids.resize(last)
 
 
 func _on_pre_draw() -> void:
@@ -152,6 +232,7 @@ func _process(_delta: float) -> void:
 	if now - _reported >= REPORT_EVERY_US and split.frames() > 0:
 		_reported = now
 		print("\n".join(split.report()))
+	sweep(SWEEP_PER_FRAME)
 	_lap = Time.get_ticks_usec()
 
 
