@@ -1543,9 +1543,53 @@ G_CUTS = sorted({round((BX["M"] if letter == "M" else line_of(letter)) * 128) / 
                  for letter, _x, _deck, _feet in BULKHEADS if letter != "MN"})
 # (E's view draws no line for J to B and A, and reads good to 1 m between K and B: its walls
 # take a bulkhead's line from further.)
-E_PLAN = plates.load("e", side=held_to(E_PIECES), ends=EF_CUTS, reach=0.6, lead=D_LEAD)
-F_PLAN = plates.load("f", side=held_to(F_PIECES), ends=EF_CUTS, reach=D_REACH, lead=D_LEAD)
-G_PLAN = plates.load("g", side=held_to(G_PIECES), ends=G_CUTS, reach=D_REACH, lead=D_LEAD)
+E_REACH = 0.6
+
+def efg_plans(cuts=()):
+    """E, F and G decks' plans, their rooms held to the lines her cells part them along, and
+    to cuts too."""
+    return (plates.load("e", side=held_to(E_PIECES), ends=sorted(set(EF_CUTS) | set(cuts)), reach=E_REACH,
+                        lead=D_LEAD),
+            plates.load("f", side=held_to(F_PIECES), ends=sorted(set(EF_CUTS) | set(cuts)), reach=D_REACH,
+                        lead=D_LEAD),
+            plates.load("g", side=held_to(G_PIECES), ends=sorted(set(G_CUTS) | set(cuts)), reach=D_REACH,
+                        lead=D_LEAD))
+
+# Her forward hatches' trunks (#399): her plates draw Nos. 1 and 2 and the bunker hatch each
+# enclosed from G deck up to its cover on D deck — their sides on G, F and E decks (g.py,
+# f.py, e.py), their covers on D (d.py), their hatchways in the orlop open down to the holds
+# under them (orlop.py), and none on G: each trunk's foot open to the hold under it. Each a
+# cell of its own, the box her decks' traces of it share: they read it within 0.8 m of each
+# other, G's and F's within 0.3 m. Its ends where G and F share it, but where E's view (good
+# to a metre only) draws it further in than E's rooms can be held to that (E_REACH), there
+# (No. 1's after end: the passage E draws aft of it stops 0.7 m forward of G's and F's). Her
+# 'tween's cell parted round it along her at its ends, each deck's rooms over those lines
+# split along them as along her bulkheads' (EF_CUTS), held to them where within reach, a
+# body's lead deep each side. No. 1's alone so far: the lines No. 2's and the bunker hatch's
+# ends lay across her cut her third-class cabins and cross passages there into pieces too
+# short for a berth or a door (#399's follow-up); they stay open into their 'tweens (est.),
+# as Nos. 4 to 6 aft, from G up to C, do.
+TRUNKED = ("No. 1 hatch",)
+# Each, the hold under it and the cells over that it stands up through.
+TRUNK_IN = {"No. 1 hatch": ("hold_1", ["hold_1_tween"]), "No. 2 hatch": ("hold_2", ["hold_2_tween"]),
+            "bunker hatch": ("hold_3", ["hold_3_tween", "hold_3_upper"])}
+
+def trunks_of(e, f, g):
+    """Each trunked hatch's box (x0, x1, z0, z1) as decks e, f and g draw it."""
+    out = {}
+    for what in TRUNKED:
+        (ex0, ex1, ez0, ez1), (fx0, fx1, fz0, fz1), (gx0, gx1, gz0, gz1) = [
+            next(s[1:5] for s in plan.solids if s[0] == what) for plan in (e, f, g)]
+        x0, x1 = max(fx0, gx0), min(fx1, gx1)
+        x0, x1 = ex0 if ex0 > x0 + E_REACH else x0, ex1 if ex1 < x1 - E_REACH else x1
+        out[what] = (x0, x1, max(ez0, fz0, gz0), min(ez1, fz1, gz1))
+    return out
+
+TRUNKS = trunks_of(*efg_plans())
+TRUNK_CUTS = sorted({x for t in TRUNKS.values() for x in t[:2]} - set(EF_CUTS))
+E_PLAN, F_PLAN, G_PLAN = efg_plans(TRUNK_CUTS)
+assert trunks_of(E_PLAN, F_PLAN, G_PLAN) == TRUNKS, ("a trunk moved with the lines its ends lay",
+                                                     trunks_of(E_PLAN, F_PLAN, G_PLAN), TRUNKS)
 
 def on_floor(plan, pieces):
     """A plan's solids that stand on its floor: over her boiler rooms G deck's casings and
@@ -1969,8 +2013,9 @@ def named_pieces(rooms, cuts, place, main):
     along every line of cuts it runs over, where her cells part under a room the plate
     draws whole; and a name the plate gives rooms in more than one place kept in one —
     main, its deck's main place, where it stands there, else where most of its floor is
-    — and told apart in every other by where it stands there, place(x)'s words it does
-    not already say. A name a deck laid before has is told apart everywhere."""
+    — and told apart in every other by where it stands there, place's words it does
+    not already say (place(x, z), where its middle stands). A name a deck laid before has
+    is told apart everywhere."""
     pieces = []
     for name, x0, x1, z0, z1 in rooms:
         lines = [x0] + [c for c in cuts if x0 + 1e-6 < c < x1 - 1e-6] + [x1]
@@ -1978,7 +2023,7 @@ def named_pieces(rooms, cuts, place, main):
     taken = {r[5] for r in room_geo}
     floor_area = {}
     for name, x0, x1, z0, z1 in pieces:
-        where = place((x0 + x1) * 0.5)
+        where = place((x0 + x1) * 0.5, (z0 + z1) * 0.5)
         floor_area[(name, where)] = floor_area.get((name, where), 0.0) + (x1 - x0) * (z1 - z0)
     home = {}
     for (name, where), _area in sorted(floor_area.items(), key=lambda item: -item[1]):
@@ -1986,7 +2031,7 @@ def named_pieces(rooms, cuts, place, main):
             home.setdefault(name, main if (name, main) in floor_area else where)
     out = []
     for name, x0, x1, z0, z1 in pieces:
-        where = place((x0 + x1) * 0.5)
+        where = place((x0 + x1) * 0.5, (z0 + z1) * 0.5)
         if home.get(name) != where:
             said = name.split(", ")
             name = ", ".join([name] + [w for w in where if w not in said])
@@ -1996,13 +2041,13 @@ def named_pieces(rooms, cuts, place, main):
                 name = name.replace("%s deck, forward" % level, "%s deck forward" % level)
         out.append((name, x0, x1, z0, z1))
     held = {}
-    for name, x0, x1, _z0, _z1 in out:
-        held.setdefault(name, set()).add(place((x0 + x1) * 0.5))
+    for name, x0, x1, z0, z1 in out:
+        held.setdefault(name, set()).add(place((x0 + x1) * 0.5, (z0 + z1) * 0.5))
     twice = {name: sorted(w) for name, w in held.items() if len(w) > 1}
     assert not twice and not taken & set(held), ("a name in two places", twice, sorted(taken & set(held)))
     return out
 
-def c_place(x):
+def c_place(x, _z=0.0):
     """Where on C deck ship x stands, as her cells part it: under her poop; in the house
     round her after entrance's after end on her after well; under her bridge deck, her
     main place; under her forecastle, or under its head forward of its step."""
@@ -2014,7 +2059,7 @@ def c_place(x):
         return ("C deck",)
     return ("forecastle",) if x < FCSL_STEP else ("forecastle head",)
 
-def d_place(x):
+def d_place(x, _z=0.0):
     """Where on D deck ship x stands, between the lines her cells part along (D_CUTS):
     from bulkhead M to her bridge deck's front, her main place; aft of it, aft of the
     bulkhead forward of it; forward of it, forward of the bulkhead aft of it, or aft of
@@ -2044,20 +2089,39 @@ for k, (w0, w1) in enumerate(covered_z + [(riser_half, riser_half)]):
         box("d_riser_%d" % k, RISER[0] - T, RISER[0] + T, at_z, w0, RISER[1], RISER[2])
     at_z = max(at_z, w1)
 
+def trunk_place(level, x, z):
+    """Where by her hatch's trunk (TRUNKS) ship (x, z) stands on deck level, as her cells part
+    the 'tween round it (part_round): beside it, to port or starboard; past its ends, aft or
+    forward, in the 'tween's shorter stretch there; else None. (Short enough for the place
+    plate's two lines with a room's name: a second trunk would name its hatch.)"""
+    for t0, t1, w0, _w1 in TRUNKS.values():
+        aft, fore = max(c for c in EF_CUTS if c <= t0 + 1e-6), min(c for c in EF_CUTS if c >= t1 - 1e-6)
+        if t0 < x < t1:
+            return ("%s deck" % level, "port" if z < w0 else "starboard")
+        if aft < x < t0 and t0 - aft < fore - t1:
+            return ("%s deck" % level, "aft")
+        if t1 < x < fore and fore - t1 <= t0 - aft:
+            return ("%s deck" % level, "forward")
+    return None
+
 def ef_place(level, cuts=None):
-    """Where on a deck under D ship x stands: each stretch between two bulkheads its cell."""
+    """Where on a deck under D ship x stands: each stretch between two bulkheads its cell,
+    and by a hatch's trunk the piece of it there (trunk_place)."""
     letter = LINE_LETTER
     cuts = cuts or EF_CUTS
 
-    def place(x):
+    def place(x, z=0.0):
+        by_trunk = trunk_place(level, x, z)
+        if by_trunk:
+            return by_trunk
         ahead = [c for c in cuts if c > x]
         if ahead:
             return ("%s deck" % level, "aft of %s" % letter[round(ahead[0], 4)])
         return ("%s deck" % level, "forward of %s" % letter[round(cuts[-1], 4)])
     return place
 
-plan_layer("e", E_PLAN, E_DECK, lambda x: d_at(x, True), [at for at, _h in D_STEPS], parted_at=EF_CUTS,
-           place=ef_place("E"))
+plan_layer("e", E_PLAN, E_DECK, lambda x: d_at(x, True), [at for at, _h in D_STEPS],
+           parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("E"))
 # And where she steps up aft (D_SHEER_AFT), at N: across her from the deck forward up
 # to the one aft, wherever nothing on the line stands from the one to the other already (a
 # wall on it, E deck's under the deck aft), in the doorways too, a step a body walks up.
@@ -2071,8 +2135,8 @@ for line, high in D_SHEER_AFT:
         if w0 - at_z > 0.005:
             box("d_riser_%s_%d" % (LINE_LETTER[round(line, 4)].lower(), k), line - T, line + T, at_z, w0, low, high)
         at_z = max(at_z, w1)
-plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=EF_CUTS, place=ef_place("F"))
-plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=G_CUTS, place=ef_place("G", G_CUTS))
+plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("F"))
+plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=sorted(G_CUTS + TRUNK_CUTS), place=ef_place("G", G_CUTS))
 # The pocket abaft D the racquet court's stair comes down in, past its door through D.
 room("g_pocket", "passage, G deck, abaft D", G_POCKET[1], round(BX["D"] * 128) / 128, G_POCKET[3], G_POCKET[4], G_DECK)
 assert not NO_ROOM, "no room for a door: %s" % NO_ROOM
@@ -3517,6 +3581,39 @@ for hold in ("hold_2", "hold_3"):
 # No. 3's 'tween runs aft under her bridge deck, where D deck stays flat: the space over it
 # forward of her bridge deck's front, under her stepped D deck, a cell of its own.
 cell("hold_3_upper", B_RUN[1], BX["C"], D_DECK, d_at(B_RUN[1] + 0.01), -HALF, HALF, "ACCOMMODATION")
+# Her forward hatches' trunks (TRUNKS): each a cell from G deck up to its cover, nobody's, as
+# empty as a void; the cells it stands up through parted round it (trunk_place's pieces), the
+# longer stretch past its ends keeping the cell's name, the shorter and its beside pieces each
+# told by its place (hold_1_aft_tween, hold_1_port_tween…), joined OPEN where they meet.
+TRUNK_PARTS = {}  # each parted cell's name: its pieces' names
+
+def part_round(name, what):
+    """Cell name parted round what's trunk: the trunk's footprint left out of it."""
+    t0, t1, w0, w1 = TRUNKS[what]
+    k, c = next((k, c) for k, c in enumerate(CELLS) if c[0] == name)
+    _n, x0, x1, y0, y1, z0, z1, kind, perm = c
+    t0, t1 = max(t0, x0), min(t1, x1)
+    aft, fore = t0 - x0, x1 - t1
+    tagged = (lambda tag: name.replace("_tween", "_%s_tween" % tag) if name.endswith("_tween")
+              else "%s_%s" % (name, tag))
+    pieces = []
+    if aft > 1e-3:
+        pieces.append([name if aft >= fore else tagged("aft"), x0, t0, y0, y1, z0, z1, kind, perm])
+    pieces += [[tagged("port"), t0, t1, y0, y1, z0, round(w0, 4), kind, perm],
+               [tagged("starboard"), t0, t1, y0, y1, round(w1, 4), z1, kind, perm]]
+    if fore > 1e-3:
+        pieces.append([name if fore > aft else tagged("fore"), t1, x1, y0, y1, z0, z1, kind, perm])
+    CELLS[k:k + 1] = pieces
+    TRUNK_PARTS[name] = [p[0] for p in pieces]
+
+for what in TRUNKED:
+    through_cells = TRUNK_IN[what][1]
+    top = next(c for c in CELLS if c[0] == through_cells[-1])[4]
+    t0, t1, w0, w1 = TRUNKS[what]
+    box_x = next(c for c in CELLS if c[0] == through_cells[0])[1:3]
+    for name in through_cells:
+        part_round(name, what)
+    cell(slug(what) + "_trunk", max(t0, box_x[0]), min(t1, box_x[1]), G_DECK, top, w0, w1, "VOID")
 # The firemen's passage as Plate V's tank top draws it: wide at its after end, through boiler
 # room 6's forward bunker, and at its forward end, round the spirals; joined OPEN through D.
 cell("firemens_passage", BX["D"], PASSAGE_FWD_X, TANK_TOP, ORLOP_FWD, PASSAGE_Z[0], PASSAGE_Z[1], "ACCOMMODATION")
@@ -3923,15 +4020,35 @@ def open_face(name, a, b, x):
 
 open_face("open_d_deck", piece("d_deck", B_RUN[1] - 0.01), "d_deck_forward", B_RUN[1])
 open_face("open_forecastle", "forecastle", "forecastle_head", FCSL_STEP)
-UPPER_3 = cell_box("hold_3_upper")
-opening("open_hold_3_upper", "OPEN", "hold_3_tween", "hold_3_upper", ((UPPER_3[0] + UPPER_3[1]) * 0.5, D_DECK, 0.0),
-        (UPPER_3[1] - UPPER_3[0], 0, min(UPPER_3[5], cell_box("hold_3_tween")[5]) * 2), starts="OPEN")
 
-# Over each watertight wall that stops short of the deck, the gap water spills over.
+def open_between(name, a, b):
+    """An OPEN over all the face cells a and b share, if they share one."""
+    ba, bb = cell_box(a), cell_box(b)
+    lo = [max(ba[2 * i], bb[2 * i]) for i in range(3)]
+    hi = [min(ba[2 * i + 1], bb[2 * i + 1]) for i in range(3)]
+    flat = [i for i in range(3) if abs(hi[i] - lo[i]) < 1e-6]
+    if len(flat) != 1 or any(hi[i] - lo[i] < 1e-3 for i in range(3) if i != flat[0]):
+        return
+    opening(name, "OPEN", a, b, tuple((lo[i] + hi[i]) * 0.5 for i in range(3)),
+            tuple(0 if i == flat[0] else hi[i] - lo[i] for i in range(3)), starts="OPEN")
+
+# The pieces her hatches' trunks part her 'tweens into (part_round), each one space with the
+# pieces it meets: across her at the trunk's ends, along her beside it, and No. 3's 'tween up
+# into the space over it under her stepped D deck.
+open_between("open_hold_3_upper", "hold_3_tween", "hold_3_upper")
+for family in [[p for name in TRUNK_IN[what][1] for p in TRUNK_PARTS[name]] for what in TRUNKED]:
+    for i, a in enumerate(family):
+        for b in family[i + 1:]:
+            if (a, b) != ("hold_3_tween", "hold_3_upper"):
+                open_between("open_face_%s_%s" % (a, b), a, b)
+
+# Over each watertight wall that stops short of the deck, the gap water spills over — but
+# into a hatch's trunk, whose side stands on over it (No. 2's on C).
 for letter, *_rest in BULKHEADS:
     x, _bottom, top = bulkhead_bands(letter)[-1]
-    for a in [c for c in CELLS if abs(c[2] - x) < 1e-6 and c[4] > top + 1e-6]:
-        for b in [c for c in CELLS if abs(c[1] - x) < 1e-6 and c[4] > top + 1e-6]:
+    spilling = [c for c in CELLS if c[4] > top + 1e-6 and not c[0].endswith("_hatch_trunk")]
+    for a in [c for c in spilling if abs(c[2] - x) < 1e-6]:
+        for b in [c for c in spilling if abs(c[1] - x) < 1e-6]:
             z0, z1 = max(a[5], b[5]), min(a[6], b[6])
             y0, y1 = max(top, a[3], b[3]), min(a[4], b[4])
             if z1 > z0 + 1e-6 and y1 > y0 + 1e-6:
@@ -3940,19 +4057,25 @@ for letter, *_rest in BULKHEADS:
 
 # Up through her decks (BOT: "All the decks had large openings or hatchways in each
 # compartment, so that water could rise freely through them"), est. sizes: the holds'
-# hatchways 4 m square through G deck, 2 m above; each boiler room's fiddley and casing
-# 3 m square over its stokehold, a stair 2 m square through each deck over it; the
-# engine rooms' casings over their engines; the stairs her layout cuts, each where it is.
+# hatchways 4 m square through G deck; each boiler room's fiddley and casing 3 m square over
+# its stokehold, a stair 2 m square through each deck over it; the engine rooms' casings over
+# their engines; the stairs her layout cuts, each where it is. A hold whose hatch is trunked
+# (TRUNKED) opens up into its trunk instead, through G deck, as wide as the trunk.
 AIR_PIPE = 0.008  # a tank's 100 mm air pipe (est., as the steamer's)
 for c in CELLS:
     if c[0].startswith("db_") or c[0].endswith("_tank"):
         through("pipe_" + c[0], "VENT", (c[1] + c[2]) * 0.5, max(-5.0, c[5] * 0.5), 0.09, 0.09, c[0], area=AIR_PIPE,
                 starts="OPEN")
+TRUNKED_HOLDS = [TRUNK_IN[what][0] for what in TRUNKED]
+for what in TRUNKED:
+    t = cell_box(slug(what) + "_trunk")
+    opening("hatchway_" + slug(what), "OPEN", TRUNK_IN[what][0], slug(what) + "_trunk",
+            ((t[0] + t[1]) * 0.5, G_DECK, (t[4] + t[5]) * 0.5), (t[1] - t[0], 0, t[5] - t[4]), starts="OPEN")
 WIDE = 4.0
-for name, x, z, size, kind in [
-    ("forepeak", 120.0, 0.0, 1.0, "STAIRWELL"), ("forepeak_d", 118.0, 0.0, 1.0, "STAIRWELL"),
+for name, x, z, size, kind in [h for h in [
     ("hold_1", 108.8, 0.0, WIDE, "STAIRWELL"), ("hold_2", 94.0, 0.0, WIDE, "STAIRWELL"),
-    ("hold_3", 72.6, -6.0, 2.0, "STAIRWELL"),
+    ("hold_3", 72.6, -6.0, 2.0, "STAIRWELL")] if h[0] not in TRUNKED_HOLDS] + [
+    ("forepeak", 120.0, 0.0, 1.0, "STAIRWELL"), ("forepeak_d", 118.0, 0.0, 1.0, "STAIRWELL"),
     ("boiler_room_6_tween", 62.0, 4.0, 2.0, "STAIRWELL"),
     ("engine_room_tween", -38.0, 4.0, 2.0, "STAIRWELL"), ("turbine_room_tween", -57.0, 4.0, 2.0, "STAIRWELL"),
     ("electric_room", -78.0, 0.0, 2.0, "STAIRWELL"), ("electric_room_tween", -78.0, 0.0, 2.0, "STAIRWELL"),
@@ -3967,13 +4090,17 @@ for name, x, z, size, kind in [
     through("stair_" + name, kind, x, z, size, size, name, starts="OPEN")
 # Her forward cargo hatches shut where her plates draw them shut (#399, the owner's ruling
 # of 2026-11-03): the covers on D deck of Nos. 1 and 2 and the bunker hatch (D_PLAN, "a hop
-# up"), each over the 'tween under it; No. 1's trunk is enclosed through C deck under her
-# forecastle (C_PLAN), so no way leads from D deck's space there into it. Est., no source
-# for their strength: each weeps 0.05 m² under 0.3 m of water and gives way under 1 m, as
-# her wells' covers, and breathes through a 100 mm air pipe.
+# up"), each over the trunk under it (TRUNKS), as much of it as the trunk's top holds; No.
+# 1's trunk is enclosed through C deck under her forecastle (C_PLAN), so no way leads from D
+# deck's space there into it. Est., no source for their strength: each weeps 0.05 m² under
+# 0.3 m of water and gives way under 1 m, as her wells' covers, and breathes through a 100 mm
+# air pipe.
 for what, below in [("No. 1 hatch", "hold_1_tween"), ("No. 2 hatch", "hold_2_tween"), ("bunker hatch", "hold_3_upper")]:
+    below = slug(what) + "_trunk" if what in TRUNKED else below
+    t = cell_box(below)
     for _w, x0, x1, z0, z1, _h in [p for p in D_PLAN.solids if p[0] == what]:
         name = "cover_" + slug(what) + ("" if abs(z0 + z1) < 0.5 else "_port" if z0 + z1 < 0 else "_starboard")
+        x0, x1, z0, z1 = max(x0, t[0]), min(x1, t[1]), max(z0, t[4]), min(z1, t[5])
         through(name, "HATCH", (x0 + x1) * 0.5, (z0 + z1) * 0.5, x1 - x0, z1 - z0, below, starts="SHUT",
                 leak_head=0.3, collapse_head=1.0, leak_area=0.05)
         through("pipe_" + name, "VENT", (x0 + x1) * 0.5, (z0 + z1) * 0.5, 0.09, 0.09, below, area=AIR_PIPE,
@@ -4022,8 +4149,10 @@ for name, fx0, fx1, fz0, fz1, high, _low in stairs + stairs_z:
     # The boiler rooms' flights to F deck: the fiddley/casing openings already stand for
     # these shafts. The stairs of the spaces made in her old voids (#148): the hatchways,
     # the holds' open tops and the passage's stair opening stand for theirs, and the
-    # manholes into her double bottoms are their own (below).
-    if name.startswith(("stokehold_", "space_")):
+    # manholes into her double bottoms are their own (below). But up through G deck out of
+    # a hold whose hatchway is trunked (TRUNKED): each its own hole, where over that hold.
+    up_out_of_hold = name.startswith("space_") and abs(high - G_DECK) < 1e-6
+    if name.startswith(("stokehold_", "space_")) and not up_out_of_hold:
         continue
     # (Over the hole it leaves in the deck, where it leaves one.)
     fx0, fx1, fz0, fz1 = FLIGHT_HOLES.get(name) or (fx0, fx1, fz0, fz1)
@@ -4036,6 +4165,8 @@ for name, fx0, fx1, fz0, fz1, high, _low in stairs + stairs_z:
             pair = (cell_at(px, high - 0.01, pz), cell_at(px, high + 0.01, pz))
             if pair[0] is not None and pair[0] != pair[1] and pair not in pairs:
                 pairs.append(pair)
+    if up_out_of_hold:
+        pairs = [pair for pair in pairs if pair[0] in TRUNKED_HOLDS]
     for k, (below, above) in enumerate(pairs):
         # Over the part of the hole both cells hold: one coming down past a house's end
         # into the next cell's (B deck's second-class staircase's well) opens only there.
