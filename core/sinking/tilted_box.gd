@@ -52,6 +52,25 @@ var _slope: float
 var _up := PackedFloat64Array([NAN, NAN, NAN])
 var _asked := NAN
 var _answer := NAN
+## The turning it follows (follow), or null; and how many turns of it it had caught up
+## with when last turned.
+var _turning: Turning
+var _seen := -1
+
+
+## An up many boxes follow, turned once for all of them: each box catches up with it
+## when next asked anything the attitude moves (SinkStepper with the extension, whose
+## loops turn her cells themselves) — the same box, to the last bit, as one turned there.
+class Turning:
+	extends RefCounted
+	## The world's up in the ship's axes, and how many times it has turned.
+	var up := PackedFloat64Array([0.0, 1.0, 0.0])
+	var count := 0
+
+	## Turns it to [param to].
+	func turn(to: PackedFloat64Array) -> void:
+		up = to
+		count += 1
 
 
 ## The box from [param low] to [param high] holding [param capacity] m³ of water, with
@@ -76,9 +95,24 @@ static func of(cell: FloodCell, sea: SeaPhysics) -> TiltedBox:
 	return TiltedBox.new(cell.low, cell.high, capacity, area * sea.full_surface, cell.sideways)
 
 
+## Follows [param turning] from now on: turned wherever it is turned, once next asked —
+## or wherever turn() turns it since.
+func follow(turning: Turning) -> void:
+	_turning = turning
+	_seen = -1
+
+
+## Turned to where the turning it follows stands, if that has turned since.
+func _catch_up() -> void:
+	var up := _turning.up
+	turn(up[0], up[1], up[2])
+
+
 ## Turns the box to the attitude where the world's up is ([param up_x], [param up_y],
 ## [param up_z]) in the ship's axes, a unit vector.
 func turn(up_x: float, up_y: float, up_z: float) -> void:
+	if _turning != null:
+		_seen = _turning.count
 	# Turned there already: as it stands, to the last bit — a 0 to the same side of 0.
 	if up_x == _up[0] and up_y == _up[1] and up_z == _up[2]:
 		if (
@@ -149,10 +183,14 @@ func frame() -> PackedFloat64Array:
 
 ## The height of its lowest and of its highest corner.
 func bottom() -> float:
+	if _turning != null and _seen != _turning.count:
+		_catch_up()
 	return _bottom
 
 
 func top() -> float:
+	if _turning != null and _seen != _turning.count:
+		_catch_up()
 	return _top
 
 
@@ -174,6 +212,8 @@ func sideways() -> float:
 ## The water under a surface at [param height], in m³: over its ceiling, its capacity
 ## and the thin surface's.
 func volume(height: float) -> float:
+	if _turning != null and _seen != _turning.count:
+		_catch_up()
 	if height <= _bottom:
 		return 0.0
 	if height >= _top:
@@ -184,6 +224,8 @@ func volume(height: float) -> float:
 ## The height its surface stands at holding [param water] m³: worked out again only for
 ## other water, or once it has turned.
 func height(water: float) -> float:
+	if _turning != null and _seen != _turning.count:
+		_catch_up()
 	if water != _asked:
 		_asked = water
 		_answer = _height(water)
@@ -241,6 +283,8 @@ func _height(water: float) -> float:
 ## the water leans across it, to first order. A full box's is its middle. Athwartships,
 ## its way from the box's middle counts at the box's sideways share.
 func centre(height: float) -> PackedFloat64Array:
+	if _turning != null and _seen != _turning.count:
+		_catch_up()
 	var along := PackedFloat64Array([0.5, 0.5, 0.5])
 	var t := height - _bottom - _shift
 	if height > _bottom and height < _top and t > 0.0:

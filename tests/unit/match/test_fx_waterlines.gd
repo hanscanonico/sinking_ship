@@ -22,13 +22,16 @@ func test_the_waterlines_are_those_of_asking_every_deck() -> void:
 			var platform := layout.platforms[index]
 			var area := platform.area
 			var low := pose.world_height(Vector3(area.position.x, platform.height, area.position.y))
-			if platform.name in pose.collapsed or not planner._crossing(platform, pose, low):
+			if (
+				platform.name in pose.collapsed
+				or not planner._waterline._crossing(platform, pose, low)
+			):
 				continue
-			var ends := planner._line.duplicate()
+			var ends := planner._waterline._line.duplicate()
 			for run: Vector2 in DeckWetness.out_on_deck_along(layout, index, ends[0], ends[1]):
 				expected.append(ends[0].lerp(ends[1], run.x))
 		var cues: Array[FxCue] = []
-		planner._waterlines(then, pose, tick, false, cues)
+		planner._waterline.plan(then, pose, tick, false, cues)
 		var found := PackedVector3Array()
 		for cue in FxProbe.of(cues, FxCue.Kind.WASH):
 			found.append(cue.position)

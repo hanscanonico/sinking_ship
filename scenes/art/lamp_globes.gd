@@ -117,15 +117,33 @@ func faces() -> PackedVector3Array:
 func draw_lamp(
 	slot: int, lamp_transform: Transform3D, shown: bool, glow: float, emergency: bool
 ) -> void:
-	var multi := _multis[slot]
-	var placed := lamp_transform * _parts[slot] if shown else HIDDEN
-	if _placed[slot] != placed:
-		_placed[slot] = placed
-		multi.set_instance_transform(_instances[slot], placed)
+	place(slot, lamp_transform, shown)
 	var lit := Color(glow, 1.0 if emergency else 0.0, 0.0, 0.0)
 	if _glows[slot] != lit:
 		_glows[slot] = lit
-		multi.set_instance_custom_data(_instances[slot], lit)
+		_multis[slot].set_instance_custom_data(_instances[slot], lit)
+
+
+## Draws [param slot]'s lamp hung as [param lamp_transform] has it under her, hidden
+## unless [param shown], glowing as draw_lamp last had it.
+func place(slot: int, lamp_transform: Transform3D, shown: bool) -> void:
+	var placed := lamp_transform * _parts[slot] if shown else HIDDEN
+	if _placed[slot] != placed:
+		_placed[slot] = placed
+		_multis[slot].set_instance_transform(_instances[slot], placed)
+
+
+## Places each of [param slots]' lamps as place would, hung as [param transforms] has it
+## and shown as [param shown] (1) has it: LampSwing's frame of them, at once.
+func place_all(
+	slots: PackedInt32Array, transforms: Array[Transform3D], shown: PackedByteArray
+) -> void:
+	for index in slots.size():
+		var slot := slots[index]
+		var placed := transforms[index] * _parts[slot] if shown[index] == 1 else HIDDEN
+		if _placed[slot] != placed:
+			_placed[slot] = placed
+			_multis[slot].set_instance_transform(_instances[slot], placed)
 
 
 ## The model [param part] draws, each surface in the shader that draws its material among
