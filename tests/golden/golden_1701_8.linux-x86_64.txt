@@ -4,19 +4,29 @@ must 2 thrown · 1 bakes · drawn
 00:17.1 forepeak flooding
 00:20.0 High jump aboard · spot 19
 00:20.9 hold_bilge flooding
-00:43.9 seat 7 out · cold · place 8
-00:47.3 seat 6 out · cold · place 7
+00:23.2 seat 2 out · cold · place 8
+01:10.1 railing 6 broke
+01:10.8 prop 3 lost
+01:14.0 seat 0 out · cold · place 6
+01:14.0 seat 5 out · cold · place 6
 01:16.5 Steady aboard · spot 10
-01:20.8 seat 5 out · cold · place 6
+01:22.3 seat 6 out · cold · place 5
 01:31.2 hold flooding
-01:36.0 seat 3 out · cold · place 5
 01:46.0 hold_bilge lamps drowned
-01:49.2 seat 1 out · cold · place 4
-01:59.3 seat 0 out · cold · place 3
+01:51.9 seat 1 out · cold · place 4
 02:10.4 hold_bilge full
 02:11.2 hold_wing_p flooding
-02:37.7 seat 2 out · cold · place 2
-winner seat 4 at 02:37.7 · digest 757536d7d9daef8d
-sinking at the end of the match: physics 0:05:59 (on the paced clock, Q20) · seen 41% · sea 0.87 m up her · trim +5.4° · list +5.3° · hold_bilge full · hold 1.12 m · hold_wing_p 0.31 m · hold_wing_s 4.68 m · forepeak 2.70 m
+02:45.6 panel_bulkhead_hold_engine_bilge_s_hold_wing_s gave way
+02:45.9 engine_bilge_s flooding
+02:46.7 engine_bilge_s lamps drowned
+02:47.1 engine_room flooding
+02:47.4 engine_bilge_s full
+02:51.0 railing 13 broke
+02:51.4 prop 1 lost
+02:52.4 prop 0 lost
+02:52.5 seat 7 out · cold · place 3
+03:01.1 seat 3 out · cold · place 2
+winner seat 4 at 03:01.1 · digest 7ee920f08b63a6fb
+sinking at the end of the match: physics 0:07:32 (on the paced clock, Q20) · seen 52% · sea 1.06 m up her · trim +6.1° · list +9.3° · engine_bilge_s full · engine_room 0.87 m · hold_bilge 5.13 m · hold 1.56 m · hold_wing_p 0.49 m · hold_wing_s 5.31 m · forepeak 3.54 m
 not played: gone at 0:14:38 · trim +87.6° · list -17.9° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x -5.5 m, hogging

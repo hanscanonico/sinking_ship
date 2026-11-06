@@ -76,3 +76,59 @@ func test_walking_off_the_deck_falls_into_the_sea() -> void:
 	)
 	assert_eq([events[0].tick, events[0].seat], [fell_at, 0])
 	assert_eq(events[1].seat, 0)
+
+
+## The steamer's bridge, a deck standing over her boat deck with no railing round it.
+func _steamer_bridge() -> Rect2:
+	var layout := SimFixtures.steamer()
+	return layout.platforms[SimFixtures.platform_named(layout, &"bridge")].area
+
+
+## A body falling past the steamer's bridge's aft edge, its feet a little under the deck,
+## flying forward into it: held off the edge from outside, its circle against it, every
+## tick on — never let in over it with its middle and pushed back out (#472) — and down
+## to the boat deck.
+func test_a_body_falling_into_a_deck_edge_is_held_off_it() -> void:
+	var rules := SimFixtures.rules()
+	var layout := SimFixtures.steamer()
+	var edge := _steamer_bridge().position.x
+	var deck := layout.platforms[SimFixtures.platform_named(layout, &"bridge")].height
+	var below := layout.platforms[SimFixtures.platform_named(layout, &"boat deck")].height
+	var sim := SimFixtures.sim(1, null, layout)
+	var start := Vector3(edge - 0.6, deck - rules.step_height * 0.4, 0.0)
+	SimFixtures.fly(sim, 0, start, Vector3(2.0, 0.0, 0.0))
+	var x := start.x
+	for tick in 30:
+		SimFixtures.step(sim)
+		var body := sim.state.seats[0]
+		assert_gte(body.pos.x, x, "tick %d: on forward, never back out" % tick)
+		assert_lte(body.pos.x, edge - rules.body_radius + 1e-4, "tick %d: off the edge" % tick)
+		x = body.pos.x
+	var body := sim.state.seats[0]
+	assert_eq(body.body, PlayerState.Body.GROUNDED, "landed")
+	assert_almost_eq(body.pos.y, below, 0.0001, "on the boat deck, not up on the bridge")
+	assert_almost_eq(body.pos.x, edge - rules.body_radius, 0.0001, "against its edge")
+
+
+## A body dropping straight down past the steamer's bridge's aft edge, its middle off it and
+## its circle over it, its feet a little under the deck: pushed out of the edge, only ever
+## away from the deck, down to the boat deck (#472).
+func test_a_body_dropping_past_a_deck_edge_moves_only_away_from_it() -> void:
+	var rules := SimFixtures.rules()
+	var layout := SimFixtures.steamer()
+	var edge := _steamer_bridge().position.x
+	var deck := layout.platforms[SimFixtures.platform_named(layout, &"bridge")].height
+	var below := layout.platforms[SimFixtures.platform_named(layout, &"boat deck")].height
+	var sim := SimFixtures.sim(1, null, layout)
+	var start := Vector3(edge - rules.body_radius * 0.5, deck - rules.step_height * 0.4, 0.0)
+	SimFixtures.fly(sim, 0, start, Vector3.ZERO)
+	var x := start.x
+	for tick in 30:
+		SimFixtures.step(sim)
+		var body := sim.state.seats[0]
+		assert_lte(body.pos.x, x, "tick %d: out of the edge, never into it" % tick)
+		x = body.pos.x
+	var body := sim.state.seats[0]
+	assert_eq(body.body, PlayerState.Body.GROUNDED, "landed")
+	assert_almost_eq(body.pos.y, below, 0.0001, "on the boat deck under it")
+	assert_almost_eq(body.pos.x, edge - rules.body_radius, 0.0001, "clear of the bridge")
