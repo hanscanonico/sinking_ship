@@ -1575,7 +1575,10 @@ def section_outline(x, houses=True):
     heights = {top - (top - low) * math.sin(math.pi * 0.5 * i / SIDE_POINTS) for i in range(SIDE_POINTS + 1)}
     heights |= {y for y in low_nodes(x)[0] if low < y < top}
     for y in sorted(heights, reverse=True):
-        side.append((breadth(x, min(max(y, low + 1e-6), top)), y))
+        # (Off her keel her side closes to her centre line at her lowest point, as her
+        # forefoot's V and her run do: no flat there as wide as bottom() looks for.)
+        if y > low or low <= KEEL:
+            side.append((breadth(x, min(max(y, low + 1e-6), top)), y))
     side.reverse()
     points = [(0.0, low)] + side
     # Over the houses standing on her shell's top here, if she has any: A deck's over B

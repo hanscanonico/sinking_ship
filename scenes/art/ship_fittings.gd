@@ -670,6 +670,11 @@ static func openings_of(pane: Array, glass: Array[ShipOpening], near: float) -> 
 	var into: Vector3 = pane[2]
 	var kind := ShipOpening.Kind.PORTHOLE if pane[3] else ShipOpening.Kind.WINDOW
 	var across := 0 if absf(into.x) > absf(into.z) else 2
+	# A porthole in her shell faces across her, however far her shell turns aft round her
+	# counter — the Titanic's last ports aft, her shell's normal there more along her than
+	# across once her sections follow her lines (#318).
+	if pane[3] and not is_zero_approx(into.z):
+		across = 2
 	var along := 2 - across
 	var fits := PackedInt32Array()
 	var nearest := INF
