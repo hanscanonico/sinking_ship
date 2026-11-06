@@ -67,6 +67,13 @@ var _lines: Array[PackedFloat32Array] = []
 var _runs := {}
 var _glazed_runs := {}
 var _floor_boxes := {}
+## Per room, its _highest_ceiling(), worked out the first time it is asked.
+var _highest := {}
+## The highest of her rooms' floors, and whether any of them is named a wheelhouse
+## (_top_room_floor, _has_wheelhouse); worked out once.
+var _top_floor := -INF
+var _wheelhouse := false
+var _tops_gathered := false
 
 
 func _init(ship: ShipLayout) -> void:
@@ -127,6 +134,8 @@ func outdoors(point: Vector3, boxes: Array[AABB] = []) -> bool:
 ## A height over which [param room]'s ceiling never stands, with room to spare: over
 ## its open height, every deck and every hatch near enough to roof it.
 func _highest_ceiling(room: ShipRoom) -> float:
+	if _highest.has(room):
+		return _highest[room]
 	var top := room.floor_height + OPEN_ROOM_HEIGHT
 	var reach := room.area.grow(ROOF_REACH)
 	for index: int in _platforms_near(reach):
@@ -138,6 +147,7 @@ func _highest_ceiling(room: ShipRoom) -> float:
 		var footprint := Rect2(Vector2(opening.centre.x, opening.centre.z) - size * 0.5, size)
 		if footprint.intersects(reach, true):
 			top = maxf(top, opening.centre.y)
+	_highest[room] = top
 	return top
 
 
@@ -304,7 +314,8 @@ func deck_under(point: Vector2, height: float) -> float:
 
 ## Whether some lower platform lies under [param platform]: it roofs it, on beams.
 func stands_over_a_platform(platform: ShipPlatform) -> bool:
-	for other: ShipPlatform in layout.platforms:
+	for index: int in _platforms_near(platform.area):
+		var other := layout.platforms[index]
 		if other.height < platform.height and other.area.intersects(platform.area):
 			return true
 	return false
@@ -412,6 +423,27 @@ func under_a_ramp(point: Vector2, height: float) -> bool:
 		if ramp.contains(point.x, point.y) and ramp.height_at(point.x, point.y) > height - 0.5:
 			return true
 	return false
+
+
+## The highest floor any of her rooms stands on; -INF with none.
+func _top_room_floor() -> float:
+	_gather_tops()
+	return _top_floor
+
+
+## Whether one of her rooms is named a wheelhouse.
+func _has_wheelhouse() -> bool:
+	_gather_tops()
+	return _wheelhouse
+
+
+func _gather_tops() -> void:
+	if _tops_gathered:
+		return
+	_tops_gathered = true
+	for room: ShipRoom in layout.rooms:
+		_top_floor = maxf(_top_floor, room.floor_height)
+		_wheelhouse = _wheelhouse or String(room.name).to_lower().contains("wheelhouse")
 
 
 ## Every room edge, deck edge and floor height, per axis x, y, z: where a face may be
@@ -656,6 +688,10 @@ func short_of_ceiling(blocker: ShipBlocker) -> Array[Vector3]:
 		var high := minf(box.end[axis], area.end[axis])
 		if high - low < SLIVER:
 			continue
+		# No ceiling of the room stands over the wall's top: it stands short of none (most
+		# walls reach the deck over them).
+		if _highest_ceiling(room) <= blocker.top + SLIVER:
+			continue
 		# Toward the room across the wall: just inside its face, and past the wall.
 		var way := signf(area.get_center()[1 - axis] - line)
 		var face := clampf(
@@ -666,9 +702,12 @@ func short_of_ceiling(blocker: ShipBlocker) -> Array[Vector3]:
 		for index in cuts.size() - 1:
 			var middle := (cuts[index] + cuts[index + 1]) * 0.5
 			var inside := _across(axis, middle, face)
-			var top := minf(
-				ceiling(room, inside.x, inside.y), _floor_over(room, inside, blocker.top)
-			)
+			# The lower of the ceiling and the floor over: no floor is looked for where the
+			# ceiling alone stands no higher than the wall.
+			var top := ceiling(room, inside.x, inside.y)
+			if top <= blocker.top + SLIVER:
+				continue
+			top = minf(top, _floor_over(room, inside, blocker.top))
 			if top <= blocker.top + SLIVER:
 				continue
 			var height := (blocker.top + top) * 0.5
