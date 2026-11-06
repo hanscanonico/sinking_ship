@@ -712,6 +712,21 @@ func _quit() -> void:
 # after them, never before: its task may wait on the pool's threads they hold. And the
 # bots of a match left mid-beat finish deciding it (BotsAhead).
 func _exit_tree() -> void:
+	_see_threads_through()
+
+
+# A Game freed never having entered the tree, as a test's is, sees them through as it is
+# freed: left, a ship given up frees her nodes on her thread, outside the tree, as GUT's
+# orphan counter walks them, and the run crashes (#493). One that left the tree finds
+# nothing left to see through.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		_see_threads_through()
+
+
+## Every ship being dressed on a thread finished, her own let go first; then the match
+## being served, and the bots' beats under way (_exit_tree's note).
+func _see_threads_through() -> void:
 	if _dressing != null:
 		_dressing.drop()
 		_dressing = null
