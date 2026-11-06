@@ -105,12 +105,12 @@ func test_a_pose_that_turns_her_wakes_the_lamps_asleep() -> void:
 	var main := ShipPower.Power.MAIN
 	art.show_power(_pose(main))
 	for lamp: ShipLamp in lamps:
-		lamp.set_process(false)
+		lamp.sleep()
 	art.show_power(_pose(main))
 	for lamp: ShipLamp in lamps:
-		assert_false(lamp.is_processing(), "%s: a new pose as she was, asleep" % lamp.name)
+		assert_false(lamp.awake(), "%s: a new pose as she was, asleep" % lamp.name)
 	var turned := _pose(main)
 	turned.transform.basis = Basis(Vector3.FORWARD, 0.05)
 	art.show_power(turned)
 	for lamp: ShipLamp in lamps:
-		assert_true(lamp.is_processing(), "%s: woken as she turns" % lamp.name)
+		assert_true(lamp.awake(), "%s: woken as she turns" % lamp.name)

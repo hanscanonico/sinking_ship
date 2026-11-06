@@ -59,6 +59,13 @@ func add_node(node_class: StringName, us: int) -> void:
 	_nodes_open[node_class] = _nodes_open.get(node_class, 0) + us
 
 
+## Gives [param node_class] its line, at nothing until its nodes process: a class
+## whose nodes are idle is still reported.
+func name_node(node_class: StringName) -> void:
+	if not _node_sums.has(node_class):
+		_node_sums[node_class] = 0
+
+
 ## Keeps the open frame, [param frame_us] long, and opens the next.
 func close(frame_us: int) -> void:
 	add(&"frame", frame_us)

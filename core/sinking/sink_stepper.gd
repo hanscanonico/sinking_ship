@@ -67,12 +67,12 @@ var _area := PackedFloat64Array()
 var _capacity := PackedFloat64Array()
 ## The rotation her cells and openings were last turned to.
 var _turned := PackedFloat64Array()
-## Per opening water can pass, in her openings' order then the gash's: its name and
-## kind, its sides (a hole in a floor's first side is the one under it), whether it is
-## a hole in a floor, its middle and its half extents along x, y and z, the area water
-## passes through, and the seconds it takes to shut from the hit — 0 for one that stays
-## as it is; and at the attitude last turned to, its bottom and top, and its width (a
-## wall's: its area over its height) or area (a floor's).
+## Per opening water can pass, as SinkOpenings compiled them: its name and kind, its
+## sides (a hole in a floor's first side is the one under it), whether it is a hole in a
+## floor, its middle and its half extents along x, y and z, the area water passes
+## through, and the seconds it takes to shut from the hit — 0 for one that stays as it
+## is; and at the attitude last turned to, its bottom and top, and its width (a wall's:
+## its area over its height) or area (a floor's).
 var _names: Array[StringName] = []
 var _kinds := PackedInt32Array()
 var _first := PackedInt32Array()
@@ -124,8 +124,11 @@ var _g: float
 var _discharge: float
 ## The laws an opening passes water by.
 var _law: OpeningFlow
-## Where the game's extension is loaded, the solves and the sweep natively; else null.
+## Where the game's extension is loaded, the solves, the sweep and the turn natively, her
+## cells' boxes following the turn (TiltedBox.Turning) for what the GDScript asks of
+## them; else null.
 var _native: SinkNative
+var _turning: TiltedBox.Turning
 
 
 ## The physics of [param structure] after a hit that did [param damage] — its gash, the
@@ -156,14 +159,27 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	openings.append_array(damage.openings)
 	if sea.failures:
 		_failures = SinkFailures.new(structure, damage, sea, _motion, _air)
+	var compiled := SinkOpenings.new()
 	for opening: ShipOpening in openings:
 		if opening.starts == ShipOpening.Start.SHUT and not opening.name in damage.left_open:
 			continue
-		_compile(structure, opening, damage)
+		compiled.add(structure, opening, damage, _air, _failures)
 	if _failures != null:
 		# Shut until they fail: after every other opening, so those keep their order.
 		for opening: ShipOpening in SinkFailures.shut(structure, damage):
-			_compile(structure, opening, damage, true)
+			compiled.add(structure, opening, damage, _air, _failures, true)
+	_names = compiled.names
+	_kinds = compiled.kinds
+	_first = compiled.first
+	_second = compiled.second
+	_in_floor = compiled.in_floor
+	_middle = compiled.middle
+	_half = compiled.half
+	_flow_area = compiled.flow_area
+	_shut_time = compiled.shut_time
+	_bottom.resize(_names.size())
+	_top.resize(_names.size())
+	_size.resize(_names.size())
 	_touching.resize(_boxes.size())
 	_widest.resize(_boxes.size())
 	_opened.resize(_names.size())
@@ -173,8 +189,12 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	_flow_solve.resize(_names.size() * 2)
 	_flow_last.resize(_names.size())
 	_shares.resize(_names.size())
-	var compiled := [_first, _second, _in_floor, _middle, _half, _flow_area]
-	_native = SinkNative.made(compiled, _boxes, _capacity, _air, _shipped, sea)
+	var native_openings := [_first, _second, _in_floor, _middle, _half, _flow_area]
+	_native = SinkNative.made(native_openings, _boxes, _capacity, _air, _shipped, sea)
+	if _native != null:
+		_turning = TiltedBox.Turning.new()
+		for box: TiltedBox in _boxes:
+			box.follow(_turning)
 	_touch(_opened)
 	_air.close(_touching)
 	_held.resize(_boxes.size())
@@ -291,12 +311,19 @@ func step(state: FloodState, seconds: float) -> FloodState:
 		var ceilings := _ceiling.duplicate()
 		_motion.move(state, next, _boxes, seconds)
 		_turn(next.rotation)
-		for cell in _boxes.size():
-			if full_held[cell] == 1:
-				# Its push rides with its ceiling as she turns.
-				next.heads[cell] += _ceiling[cell] - ceilings[cell]
-			else:
-				next.heads[cell] = _boxes[cell].height(next.water[cell])
+		if _native != null:
+			var found := _native.heights(next.water)
+			for cell: int in held:
+				if full_held[cell] == 1:
+					found[cell] = next.heads[cell] + (_ceiling[cell] - ceilings[cell])
+			next.heads = found
+		else:
+			for cell in _boxes.size():
+				if full_held[cell] == 1:
+					# Its push rides with its ceiling as she turns.
+					next.heads[cell] += _ceiling[cell] - ceilings[cell]
+				else:
+					next.heads[cell] = _boxes[cell].height(next.water[cell])
 	_air.settle(next)
 	if _failures != null:
 		_failures.follow(state, next, seconds, self)
@@ -351,6 +378,9 @@ func _turn(rotation: PackedFloat64Array) -> void:
 		return
 	_turned = rotation.duplicate()
 	var up := Attitude.up(rotation)
+	if _native != null:
+		_turn_natively(up)
+		return
 	for cell in _boxes.size():
 		var box := _boxes[cell]
 		box.turn(up[0], up[1], up[2])
@@ -372,8 +402,23 @@ func _turn(rotation: PackedFloat64Array) -> void:
 			_bottom[index] = middle - reach
 			_top[index] = middle + reach
 			_size[index] = _flow_area[index] / (reach * 2.0)
-	if _native != null:
-		_native.turned(up)
+
+
+## _turn in the extension: the arrays it turns, every opening's air (SinkAir.turned), and
+## her cells' boxes, each once next asked.
+func _turn_natively(up: PackedFloat64Array) -> void:
+	var found := _native.turned(up)
+	var cells := _boxes.size()
+	var count := _names.size()
+	_floor = found.slice(0, cells)
+	_ceiling = found.slice(cells, cells * 2)
+	_area = found.slice(cells * 2, cells * 3)
+	var at := cells * 3
+	_bottom = found.slice(at, at + count)
+	_top = found.slice(at + count, at + count * 2)
+	_size = found.slice(at + count * 2, at + count * 3)
+	_air.turned_all(found.slice(at + count * 3, at + count * 4), _native.upward())
+	_turning.turn(up)
 
 
 ## Each cell's openings water can pass — every one but those shut until they fail and
@@ -881,72 +926,6 @@ static func open_share(shut_time: float, seconds: float, opened := 0.0) -> float
 	if shut_time == 0.0:
 		return 1.0
 	return maxf(clampf(1.0 - seconds / shut_time, 0.0, 1.0), opened)
-
-
-## Adds [param opening] of [param structure] to the openings water can pass — one
-## [param shut] until it fails, with the failures stage on — watched for failing once it
-## can fail and is shut, or is a door the ship shuts and did not jam (SinkFailures).
-func _compile(
-	structure: ShipStructure, opening: ShipOpening, damage: HitDamage, shut := false
-) -> void:
-	var sides := PackedInt32Array()
-	for place: StringName in opening.joins:
-		sides.append(
-			(
-				structure.cell_named(place)
-				if not place in [ShipOpening.SEA, ShipOpening.SKY]
-				else OUTSIDE
-			)
-		)
-	var floor_hole := opening.facing() == 1
-	if floor_hole:
-		# The side under the hole first: a cell whose middle stands below it.
-		var first_under := _under(structure, sides[0], opening.centre.y)
-		if not first_under:
-			sides = PackedInt32Array([sides[1], sides[0]])
-	for axis in 3:
-		_middle.append(opening.centre[axis])
-		_half.append(opening.size[axis] * 0.5)
-	_flow_area.append(opening.flow_area())
-	_bottom.append(0.0)
-	_top.append(0.0)
-	_size.append(0.0)
-	_names.append(opening.name)
-	_kinds.append(opening.kind)
-	_first.append(sides[0])
-	_second.append(sides[1])
-	_in_floor.append(1 if floor_hole else 0)
-	var shuts := opening.shuts_at_hit and not opening.name in damage.jammed
-	var shut_time := -1.0 if shut else (opening.shut_time if shuts else 0.0)
-	_shut_time.append(shut_time)
-	var axis := opening.facing()
-	var facing := _side(structure, sides, axis, opening) if axis >= 0 else 0.0
-	_air.add_opening(sides[0], sides[1], shut_time, axis, facing)
-	if _failures != null and opening.can_fail() and shut_time != 0.0:
-		_failures.watch(_names.size() - 1, opening, Vector2i(sides[0], sides[1]), shut_time)
-
-
-## Which way along ship [param axis] the first of [param sides] lies from
-## [param opening]'s plane: 1 or -1, by where its cell's middle stands — or, for the sea
-## or the sky, the way the cell on the other side does not.
-static func _side(
-	structure: ShipStructure, sides: PackedInt32Array, axis: int, opening: ShipOpening
-) -> float:
-	var plane: float = opening.centre[axis]
-	if sides[0] != OUTSIDE:
-		var cell := structure.cells[sides[0]]
-		return 1.0 if (float(cell.low[axis]) + cell.high[axis]) * 0.5 > plane else -1.0
-	var other := structure.cells[sides[1]]
-	return -1.0 if (float(other.low[axis]) + other.high[axis]) * 0.5 > plane else 1.0
-
-
-## Whether [param side] lies under a hole in a floor at [param height]: a cell whose
-## middle is below it; the outside is under a hole only when a cell is over it.
-static func _under(structure: ShipStructure, side: int, height: float) -> bool:
-	if side == OUTSIDE:
-		return false
-	var cell := structure.cells[side]
-	return (cell.low.y + cell.high.y) * 0.5 < height
 
 
 ## The water that passes opening [param index] in [param seconds] from [param since]

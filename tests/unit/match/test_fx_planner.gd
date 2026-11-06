@@ -767,7 +767,7 @@ func test_a_deck_passed_over_clear_of_the_sea_has_no_line_across_it() -> void:
 			var area := platform.area
 			var low := pose.world_height(Vector3(area.position.x, platform.height, area.position.y))
 			var rise := absf(basis.x.y * area.size.x) + absf(basis.z.y * area.size.y)
-			var across := planner._crossing(platform, pose, low)
+			var across := planner._waterline._crossing(platform, pose, low)
 			crossed += 1 if across else 0
 			if absf(low) > rise + FxPlanner.CLEAR_OF_SEA:
 				passed += 1

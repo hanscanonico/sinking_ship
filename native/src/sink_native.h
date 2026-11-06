@@ -30,7 +30,10 @@ public:
 	void wells(const PackedInt32Array &p_well_of, const PackedInt32Array &p_edges_from,
 			const PackedFloat64Array &p_ends, const PackedFloat64Array &p_lengths, double p_rate);
 	void touched(const PackedInt32Array &p_from, const PackedInt32Array &p_touching);
-	void turned(const PackedFloat64Array &p_up);
+	void faces(const PackedInt32Array &p_axis, const PackedFloat64Array &p_facing);
+	PackedFloat64Array turned(const PackedFloat64Array &p_up);
+	PackedInt32Array upward() const;
+	PackedFloat64Array heights(const PackedFloat64Array &p_water) const;
 	void shared(const PackedFloat64Array &p_shares);
 	void began(const PackedInt32Array &p_pocket, const PackedFloat64Array &p_air,
 			const PackedInt32Array &p_members_from, const PackedInt32Array &p_members_count,
@@ -103,6 +106,11 @@ private:
 	std::vector<double> opening_bottom_;
 	std::vector<double> opening_top_;
 	std::vector<double> opening_size_;
+	// Per opening, SinkAir's: the ship axis it is flat across, or -1, and which way along
+	// it its first side lies; and at the attitude last turned to, the way air passes it.
+	std::vector<int32_t> axis_;
+	std::vector<double> facing_;
+	PackedInt32Array upward_;
 	// In the step begun: each opening's share open; each cell's pocket, held water and
 	// whether its push is its own; each pocket's air and cells, by its first cell; and
 	// the push each pocket was last worked out at, with the heads it was worked from.

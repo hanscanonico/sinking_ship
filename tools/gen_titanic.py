@@ -931,6 +931,9 @@ def hole_rails(plats, sid):
     """Railings round a stair's hole on the deck above: its two sides and its low end."""
     for name, lo, hi, z0, z1, high, x_low in [s for s in stairs if s[0] == sid]:
         open_end = hi if x_low == lo else lo
+        # (Round the hole as the deck is cut: short of its foot, where the deck stays whole
+        # over it, its closed end where the cut ends.)
+        lo, hi = (FLIGHT_HOLES.get(name) or (lo, hi))[:2]
         closed = lo if open_end == hi else hi
         for tag, a, b in [("p", (lo, z0), (hi, z0)), ("s", (lo, z1), (hi, z1)), ("e", (closed, z0), (closed, z1))]:
             # Not across the treads of a flight up from this deck, its foot over the hole.
@@ -1110,6 +1113,8 @@ def run_on(flight, floors):
     flight = (name, lo, hi, z0, z1, rises, lower, upper) if along_x else (name, x0, x1, lo, hi, rises, lower, upper)
     return flight, height(lower, foot_end), height(upper, head_end)
 
+FLIGHT_HOLES = {}  # each flight's id: the hole it leaves in the deck over it, or None
+
 for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OUTLINE, G_OUTLINE, ORLOP_OUTLINE,
              LOWER_OUTLINE):
     floors = dict(PLAN_DECKS)
@@ -1136,6 +1141,14 @@ for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OU
         else:
             ends = (z0, z1) if rises == "starboard" else (z1, z0)
             stair_z(sid, ends[0], ends[1], x0, x1, low, high, into)
+        # C deck whole over No. 1's trunk (hold_1_d, #399): a crew's stair up from D deck
+        # forward of her bridge deck's front, rising aft, run on over its foot past bulkhead
+        # B (c.py), has C deck cut only aft of B, its foot under the deck with headroom (est.;
+        # cut on to its foot, C deck stood open over the trunk, a way into it from her
+        # forecastle, #483).
+        if upper == "c" and lower == "d" and rises == "aft" and x0 < BX["B"] < x1:
+            into[-1] = (into[-1][0], BX["B"]) + into[-1][2:]
+        FLIGHT_HOLES[sid] = into[-1] if upper in holes else None
         if plan is F_OUTLINE and waited is not None and f_waited(flight):
             F_WAITED.extend(into[waited:])
         if plan is G_OUTLINE and name != "hold ladder":
@@ -1195,6 +1208,7 @@ def up_to_f_z(sid, z_low, z_high, x0, x1, low):
 # view draws their ladders against their fronts (Plate IV px 9130-9190 and 1630-1700),
 # run on to stairs a body climbs. (A deck's after end comes down onto B deck's by its own
 # ladders, A_PLAN's; B deck's ends onto her wells by theirs, B_PLAN's.)
+OPEN_DECK_FLIGHTS = []  # their ids: each leaves no hole, a deck's end over it
 SIDE_LANE = (10.2, 10.2 + STAIR)  # outboard of A deck's house
 FCSL_LANES = [(-5.5625, -4.1625), (5.3125, 6.7125)]
 POOP_LANES = [(-7.3125, -5.9125), (6.1875, 7.5875)]
@@ -1203,6 +1217,7 @@ for k, (side, sign) in enumerate([("p", -1), ("s", 1)]):
     stair("a_fwd_" + side, A_RUN[1] + 7.0, A_RUN[1], lane[0], lane[1], c_at(A_RUN[1] + 7.0), A_DECK, [])
     stair("forecastle_" + side, FCSL_FROM - 5.8, FCSL_FROM, *FCSL_LANES[k], c_at(FCSL_FROM - 5.8), FCSL[0], [])
     stair("poop_" + side, POOP_TO + 5.5, POOP_TO, *POOP_LANES[k], 0.0, POOP, [])
+    OPEN_DECK_FLIGHTS.extend(prefix + side for prefix in ("a_fwd_", "forecastle_", "poop_"))
 
 def rail_line(rid, plats, axis, at, a, b, gaps=()):
     """Railings along the line where x (axis 0) or z (axis 2) is at, from a to b along
@@ -1462,15 +1477,16 @@ def on_floor(plan, pieces):
 
 on_floor(G_PLAN, G_PIECES)
 h3_floor = (HOLD3[0] + 0.3, HOLD3[1] - 0.3)
-def tapered(pid, name, x0, x1, h, strip, margin):
+def tapered(pid, name, x0, x1, h, strip, margin, half=None):
     """A deck from x0 to x1 at h in strips about strip long, each as wide as her hull
-    lets it be: [(platform, x0, x1, half width)]."""
+    lets it be (fit(), or half(a, b) for the strip from a to b): [(platform, x0, x1, half
+    width)]."""
     count = max(1, round(abs(x1 - x0) / strip))
     made = []
     for k in range(count):
         a, b = lerp(x0, x1, k / count), lerp(x0, x1, (k + 1) / count)
         a, b = min(a, b), max(a, b)
-        w = fit(a, b, h, margin)
+        w = fit(a, b, h, margin) if half is None else half(a, b)
         made.append((platform("%s_%d" % (pid, k), name, round(a, 4), round(b, 4), -w, w, h), round(a, 4), round(b, 4), w))
     return made
 
@@ -1499,8 +1515,53 @@ FC1 = tapered("fcsl", "forecastle", FCSL_FROM, FC_RAMP[0], FCSL[0], 4.0, 0.05)
 # as the step it meets (her hull narrowing forward of it): no corner of the step's head
 # open past the deck.
 FC_HEAD_STEP = 0.5
+# Forty sections (§SH34), lofted between her ends, her bulkheads and the ends of her
+# superstructure, none standing for more than the longest stretch that makes forty of
+# them.
+SECTION_COUNT = 40
+FRAME_BREAKS = sorted({round(v, 4) for v in [X_AFT, X_FORE, FCSL_FROM, FCSL_STEP, POOP_TO, B_RUN[0], B_RUN[1],
+                                             B_HOUSE[0], B_HOUSE[1]] + [UPPER["M"] if b[0] == "M" else b[1] for b in BULKHEADS]})
+
+def section_spans(longest):
+    return sum(math.ceil((b - a) / longest - 1e-9) for a, b in zip(FRAME_BREAKS, FRAME_BREAKS[1:]))
+
+SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 100) >= SECTION_COUNT)
+# Her forecastle head forward of that to her stem as Plate IV draws her side (forecastle.py's
+# SIDE), never past her shell: her sections' (HullSection, ShipStructure.half_breadth),
+# each its middle's breadth, lerped between their middles and closing onto her stem past
+# the last (#469). Her plate draws her 0.3-0.6 m fuller than her shell there (est., her lines
+# over E deck), so her shell holds the deck in. In strips FC_HEAD_STRIP long, each as wide
+# as both let it be at its forward end, so it narrows as she does; to where it stands
+# FC_HEAD_LEAST wide either side of her centre line, a few tenths short of her stem.
+FCSL_PLAN = plates.load("forecastle")
+FC_HEAD_STRIP = 0.5
+FC_HEAD_LEAST = 0.15
+FC_HEAD_MARGIN = 0.05
+HEAD_BREAKS = sorted({b for b in FRAME_BREAKS if b > FC_RAMP[1] + 1e-6} | {FC_RAMP[1]})
+HEAD_MIDDLES = [a + (b - a) * (k + 0.5) / n for a, b in zip(HEAD_BREAKS, HEAD_BREAKS[1:])
+                for n in [math.ceil((b - a) / SECTION_MAX - 1e-9)] for k in range(n)]
+
+def head_shell(x):
+    """Her shell's half breadth at x on her forecastle head, as her sections stand it."""
+    reach = [breadth(m, FCSL[1]) for m in HEAD_MIDDLES]
+    if x <= HEAD_MIDDLES[0]:
+        return reach[0]
+    if x >= HEAD_MIDDLES[-1]:
+        return max(reach[-1] * (X_FORE - x) / (X_FORE - HEAD_MIDDLES[-1]), 0.0)
+    k = next(k for k in range(len(HEAD_MIDDLES) - 1) if x <= HEAD_MIDDLES[k + 1])
+    return lerp(reach[k], reach[k + 1], (x - HEAD_MIDDLES[k]) / (HEAD_MIDDLES[k + 1] - HEAD_MIDDLES[k]))
+
+def head_half(a, b):
+    """The half breadth the forecastle head may take from a to b: the least of her plate's
+    side and her shell's there, less FC_HEAD_MARGIN, to the nearest 5 cm."""
+    least = min(min(station(FCSL_PLAN.side, x), head_shell(x)) for x in (a + 0.01, (a + b) * 0.5, b - 0.01))
+    return math.floor((least - FC_HEAD_MARGIN) * 20) / 20
+
+FC_HEAD_END = next(e / 16 for e in range(int(X_FORE * 16), 0, -1)
+                   if head_shell(e / 16) - FC_HEAD_MARGIN >= FC_HEAD_LEAST)
 FC2 = (tapered("fcsl_head_step", "forecastle", FC_RAMP[1], FC_RAMP[1] + FC_HEAD_STEP, FCSL[1], FC_HEAD_STEP, 0.05)
-       + tapered("fcsl_head", "forecastle", FC_RAMP[1] + FC_HEAD_STEP, 128.0, FCSL[1], 3.0, 0.05))
+       + tapered("fcsl_head", "forecastle", FC_RAMP[1] + FC_HEAD_STEP, FC_HEAD_END, FCSL[1], FC_HEAD_STRIP,
+                 FC_HEAD_MARGIN, head_half))
 fc1 = [s[0] for s in FC1]
 fc2 = [s[0] for s in FC2]
 FC1W = FC1[0][3]
@@ -1767,7 +1828,6 @@ for k, x in enumerate(FUNNELS):
 # mainmast, its after face where the forecastle's plan draws its ring's, hard on the steam
 # windlass's forward face (Plate IV px 9346, FCSL_PLAN). The plan's ring is 0.75 m across:
 # a mast that slight would stand 0.25 m further aft.
-FCSL_PLAN = plates.load("forecastle")
 FOREMAST = 0.6
 cylinder("foremast", q(plates.kept(FCSL_PLAN.view.x(9346)) + FOREMAST), 0.0, FOREMAST, FCSL[0], FCSL[0] + 40.0)
 # The mainmast, up through A deck's after end and B deck's after second-class entrance,
@@ -3163,17 +3223,6 @@ def simplified(outline, tolerance):
     return ([start] + keep(start, outline[split], first) + [outline[split]]
             + keep(outline[split], start, second))
 
-# Forty sections (§SH34), lofted between her ends, her bulkheads and the ends of her
-# superstructure, none standing for more than the longest stretch that makes forty of
-# them.
-SECTION_COUNT = 40
-FRAME_BREAKS = sorted({round(v, 4) for v in [X_AFT, X_FORE, FCSL_FROM, FCSL_STEP, POOP_TO, B_RUN[0], B_RUN[1],
-                                             B_HOUSE[0], B_HOUSE[1]] + [UPPER["M"] if b[0] == "M" else b[1] for b in BULKHEADS]})
-
-def section_spans(longest):
-    return sum(math.ceil((b - a) / longest - 1e-9) for a, b in zip(FRAME_BREAKS, FRAME_BREAKS[1:]))
-
-SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 100) >= SECTION_COUNT)
 # Every house's ends among them too, however near another break, so each is lofted to
 # its ends: a house no section's middle stood in would be a cell with no room in her,
 # and a section's outline holds a house all along it — one running past the house's end
@@ -3204,6 +3253,32 @@ for (lo, hi), (s0, s1) in zip(zip(SECTION_ENDS, SECTION_ENDS[1:]),
     x = ((lo - s0) + (hi - s1)) // 2 / 10000
     sections.append((x, (hi - s1 - lo + s0) / 10000, section_outline(x)))
 assert len(sections) >= SECTION_COUNT, len(sections)
+# Her forecastle head was laid within these sections' shell, read off their middles before
+# they were cut (head_shell()): within it at each strip's corners, their outlines as cut.
+HEAD_CUT_AT = [x for x, _l, _o in sections if x > FC_RAMP[1]]
+assert len(HEAD_MIDDLES) == len(HEAD_CUT_AT) and all(abs(m - x) < 1e-3 for m, x in zip(HEAD_MIDDLES, HEAD_CUT_AT)), HEAD_MIDDLES
+
+def cut_reach(outline, y):
+    """How far out a section's outline reaches at height y."""
+    reach = 0.0
+    for i, p in enumerate(outline):
+        r = outline[(i + 1) % len(outline)]
+        if (p[1] - y) * (r[1] - y) <= 0 and p[1] != r[1]:
+            reach = max(reach, p[0] + (y - p[1]) / (r[1] - p[1]) * (r[0] - p[0]))
+    return reach
+
+HEAD_CUT = [(x, cut_reach(o, FCSL[1] - 1e-4)) for x, _l, o in sections if x > FC_RAMP[1]]
+for _index, a, b, w in FC2[1:]:
+    for x in (a, b):
+        k = next((k for k in range(len(HEAD_CUT) - 1) if x <= HEAD_CUT[k + 1][0]), None)
+        if x <= HEAD_CUT[0][0]:
+            shell = HEAD_CUT[0][1]
+        elif k is None:
+            shell = HEAD_CUT[-1][1] * (X_FORE - x) / (X_FORE - HEAD_CUT[-1][0])
+        else:
+            (x0, r0), (x1, r1) = HEAD_CUT[k], HEAD_CUT[k + 1]
+            shell = lerp(r0, r1, (x - x0) / (x1 - x0))
+        assert w <= shell + 1e-6, ("her forecastle head inside her shell", a, b, w, shell)
 
 def clip(polygon, axis, value, keep_below):
     """Sutherland–Hodgman: the part of polygon (z, y) on one side of the line where
@@ -3834,8 +3909,12 @@ for k in range(6, 0, -1):
 for name in ("engine_room", "turbine_room"):
     b = cell_box(name)
     through("casing_" + name, "STAIRWELL", (b[0] + b[1]) * 0.5, 0.0, (b[1] - b[0]) * 0.5, 6.0, name, starts="OPEN")
-for name, x0, x1, z0, z1, high, _x_low in stairs:
-    if name.startswith(("boat_aft", "a_aft", "b_aft", "a_fwd", "forecastle_", "poop_")):
+# Each flight up through a deck between two of her cells, along her or across her (#483):
+# one rising across her, as C deck's crew's ladder under her forecastle, once left its hole
+# with no opening, and her after grand staircase's, their names starting as her open decks'
+# flights' once did, were taken for theirs.
+for name, fx0, fx1, fz0, fz1, high, _low in stairs + stairs_z:
+    if name in OPEN_DECK_FLIGHTS:
         continue
     # The boiler rooms' flights to F deck: the fiddley/casing openings already stand for
     # these shafts. The stairs of the spaces made in her old voids (#148): the hatchways,
@@ -3843,17 +3922,29 @@ for name, x0, x1, z0, z1, high, _x_low in stairs:
     # manholes into her double bottoms are their own (below).
     if name.startswith(("stokehold_", "space_")):
         continue
-    xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
-    below = cell_at(xm, high - 0.01, zm)
-    above = cell_at(xm, high + 0.01, zm)
-    if below != above and below is not None:
-        # Over the part of the flight both cells hold: one coming down past a house's end
+    # (Over the hole it leaves in the deck, where it leaves one.)
+    fx0, fx1, fz0, fz1 = FLIGHT_HOLES.get(name) or (fx0, fx1, fz0, fz1)
+    # Each pair of cells the hole parts, its middle's first: a flight over a house's end, or
+    # over two of her boiler rooms' cells, opens into each.
+    pairs = []
+    for u in (0.5, 0.01, 0.25, 0.75, 0.99):
+        for v in (0.5, 0.01, 0.25, 0.75, 0.99):
+            px, pz = fx0 + (fx1 - fx0) * u, fz0 + (fz1 - fz0) * v
+            pair = (cell_at(px, high - 0.01, pz), cell_at(px, high + 0.01, pz))
+            if pair[0] is not None and pair[0] != pair[1] and pair not in pairs:
+                pairs.append(pair)
+    for k, (below, above) in enumerate(pairs):
+        # Over the part of the hole both cells hold: one coming down past a house's end
         # into the next cell's (B deck's second-class staircase's well) opens only there.
+        x0, x1, z0, z1 = fx0, fx1, fz0, fz1
         for c in [below] + ([above] if above is not None else []):
             bx0, bx1, _y0, _y1, bz0, bz1 = cell_box(c)
             x0, x1, z0, z1 = max(x0, bx0), min(x1, bx1), max(z0, bz0), min(z1, bz1)
+        if x1 - x0 < 1e-3 or z1 - z0 < 1e-3:
+            continue
         xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
-        opening("stair_%s" % name, "STAIRWELL", below, above, (xm, high, zm), (x1 - x0, 0, z1 - z0), starts="OPEN")
+        opening("stair_%s%s" % (name, "_%s" % below if k else ""), "STAIRWELL", below, above, (xm, high, zm),
+                (x1 - x0, 0, z1 - z0), starts="OPEN")
 # The manholes down into her double bottoms (#148), each over its stair in the tank top:
 # bolted shut, a body going through one opening it as a doorway's door is opened; shut to the
 # water, each never weeps nor gives way.
