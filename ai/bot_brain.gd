@@ -121,6 +121,7 @@ var _up := -1
 var _surfaces: Surfaces
 var _walk_graph: WalkGraph
 var _footing: BotFooting
+var _stair: BotStair
 ## Whom it goes at, and the drop behind its target.
 var _targeting: BotTargeting
 var _rng: RandomNumberGenerator
@@ -314,6 +315,7 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_walk_graph = _floors.graph(up, pose)
 	_surfaces = _walk_graph.surfaces()
 	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
+	_stair = BotStair.new(_walk_graph, _rules, _profile)
 	_reckoning.stand_on(_footing, _surfaces)
 	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph, _plays_for)
 	_swim = BotSwim.new(_walk_graph, _rules, _profile)
@@ -762,6 +764,12 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 	# it: on one — as it sees itself or reckons — with the way on back across it, off it
 	# first by its end in the leg's zone.
 	var leg := _legs[0]
+	var on_stair := _stair.heading(leg, me["surface"], _edge_from)
+	if on_stair != Vector2.ZERO:
+		# Onto and along a narrow stair's middle, by where its walks have taken it (BotStair).
+		steer.move = on_stair
+		steer.heedless = true
+		return true
 	var stair: int = me["surface"] if _surfaces.is_ramp(me["surface"]) else my_surface
 	var on_its_own := leg.ramp != WalkGraph.NONE and stair == _surfaces.ramp_surface(leg.ramp)
 	if _surfaces.is_ramp(stair) and not on_its_own:
@@ -809,7 +817,7 @@ func _keep_off_edges(
 	if not _edges_near:
 		return
 	var my_surface: int = me["surface"]
-	var stair_ahead := _stair_ahead(my_surface, now_pos, pose)
+	var stair_ahead := _stair.ahead(_legs, my_surface, now_pos, pose)
 	var heed_drops := not steer.heedless
 	var dangers := _footing.dangers(now_pos, my_surface, pose, mark, stair_ahead, heed_drops)
 	if _edge_also != now_pos:
@@ -1040,21 +1048,6 @@ func _approach(my_pos: Vector3, target_pos: Vector3, pose: ShipPose) -> Vector3:
 	if (my_pos - target_pos).dot(uphill) >= 0.0:
 		return target_pos
 	return target_pos + uphill * (_rules.body_radius * 2.0 + _rules.shove_reach)
-
-
-## The way along the ramp the bot stands on — seen there, and still there at
-## [param my_pos] — when its route runs down it off a deck giving way, else zero:
-## fleeing, the stair's far end is the way off, not an edge to back away from.
-func _stair_ahead(my_surface: int, my_pos: Vector3, pose: ShipPose) -> Vector2:
-	if (
-		_legs.is_empty()
-		or _legs[0].ramp == WalkGraph.NONE
-		or my_surface != _surfaces.ramp_surface(_legs[0].ramp)
-		or _surfaces.under(my_pos, _rules.step_height) != my_surface
-		or not _walk_graph.doomed(_legs[0].from_zone, pose)
-	):
-		return Vector2.ZERO
-	return _legs[0].along
 
 
 ## Turns [param steer]'s walk out of the path of a crate seen sliding at the bot, and
