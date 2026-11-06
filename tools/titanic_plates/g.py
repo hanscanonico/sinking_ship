@@ -313,13 +313,17 @@ ROOMS = [
     ("two-berth third-class room, G deck", 9149.3, 2430.6, 9232.2, 2490),
     ("four-berth third-class room, G deck", 9149.3, 2490, 9232.2, 2598.5),
     # Starboard: a cross passage, the ladder's landing, two six-berth rooms, an
-    # eight-berth room along her side, a short passage to her side and two rooms beyond.
-    ("passage, G deck", 8722.1, 2434.5, 9118, 2478.5),
+    # eight-berth room along her side, a short passage to her side and two rooms beyond. The
+    # cross passage in three, as F deck's passage along the hatch over it: the landing
+    # across her from the hatch's side to the eight-berth room, astride No. 2 hatch's
+    # trunk's forward line, one space with the cross passage there.
+    ("passage, G deck", 8722.1, 2434.5, 8886, 2478.5),
+    ("passage, G deck", 8886, 2434.5, 8958.5, 2594),
+    ("passage, G deck", 8958.5, 2434.5, 9118, 2478.5),
     ("passage, G deck", 8958.5, 2478.5, 9065, 2530.5),
     ("six-berth third-class room, G deck", 8722.1, 2478.5, 8808, 2594),
     ("six-berth third-class room, G deck", 8808, 2478.5, 8886, 2594),
     ("eight-berth third-class room, G deck", 8722.1, 2594, 8914.5, 2676),
-    ("passage, G deck", 8886, 2478.5, 8958.5, 2594),
     ("passage, G deck", 8914.5, 2594, 8958.5, 2653),
     ("six-berth third-class room, G deck", 8958.5, 2530.5, 9065, 2637.5),
     ("four-berth third-class room, G deck", 9065, 2478.5, 9118, 2621.5),
@@ -497,8 +501,8 @@ OPEN = [
     # The 26 rooms' (est.) passages: the short passages into the cross passages, the
     # passages either side of the block, the ladder's landing, the passages to starboard.
     (8916, 2140, 8954, 2146), (9108, 2140, 9146, 2146), (8927, 2190, 8965, 2196), (9121, 2190, 9146, 2196),
-    (8927, 2431, 8965, 2437), (9115, 2437, 9121, 2475), (8961, 2475, 9062, 2481), (8889, 2475, 8955, 2481),
-    (8917, 2591, 8955, 2597),
+    (8927, 2431, 8965, 2437), (9115, 2437, 9121, 2475), (8961, 2475, 9062, 2481),
+    (8917, 2591, 8955, 2597), (8883, 2434.5, 8889, 2478.5), (8955.5, 2434.5, 8961.5, 2478.5),
     # The firemen's quarters' steps.
     (9577, 2128, 9583, 2212), (9717, 2160, 9723, 2267), (9525, 2385, 9531, 2505), (9577, 2273, 9583, 2485),
     (9717, 2273, 9723, 2448),
@@ -565,6 +569,11 @@ NUDGES = [
     (0, -38.625, -38.0, -10.6, -8.6),
     (2, 8.0625, 7.9375, -93.2, -91.0),  # the four-berth room's, off its passage's end
     (2, 5.9375, 5.75, 92.5, 95.1),  # the six-berth room's, F deck's ladder's foot beside it
+    # The rooms (est.) forward of No. 2 hatch's trunk, whose forward line (91.4375, held)
+    # leaves the passages abaft them under a door's width (1.0 and 0.94 m): on the line F
+    # deck's rooms over them stand on, a passage's width (WAY_LEAST) forward of it.
+    (0, 92.4375, 92.5625, 3.3, 7.6),
+    (0, 92.375, 92.5625, -7.7, -4.1),
 ]
 DOOR_MOVES = [
     ((-45.9375, -10.6875), (-47.75, -10.625)),  # the brine tank room's, clear of F deck's stair
@@ -582,7 +591,7 @@ DOOR_MOVES = [
 # The pieces of Ls her side leaves narrower than a body, or past one (each room whole without).
 MADE_SOLID = [(-91.3, -9.4), (-90.0, -9.5), (-98.6, -7.5), (-98.6, 7.7)]
 # F deck's ladder's foot, in the passage beside its own:
-OPENED = [(92.4275, 92.4475, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -6.5), (91.25, 92.4375, 5.74, 5.76)]
+OPENED = [(92.5525, 92.5725, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -6.5), (91.4375, 92.5625, 5.74, 5.76)]
 # The stub's join her side leaves no stub for (OPENED has its way):
 SHUT = [(91.84, 7.55)]
 STAIR_MOVES = [

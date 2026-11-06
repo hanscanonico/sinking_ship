@@ -1581,13 +1581,19 @@ def efg_plans(cuts=()):
 # other, G's and F's within 0.3 m. Its ends where G and F share it, but where E's view (good
 # to a metre only) draws it further in than E's rooms can be held to that (E_REACH), there
 # (No. 1's after end: the passage E draws aft of it stops 0.7 m forward of G's and F's). Her
-# 'tween's cell parted round it along her at its ends, each deck's rooms over those lines
-# split along them as along her bulkheads' (EF_CUTS), held to them where within reach, a
-# body's lead deep each side. No. 1's alone so far: the lines No. 2's and the bunker hatch's
-# ends lay across her cut her third-class cabins and cross passages there into pieces too
-# short for a berth or a door (#399's follow-up); they stay open into their 'tweens (est.),
-# as Nos. 4 to 6 aft, from G up to C, do.
-TRUNKED = ("No. 1 hatch",)
+# 'tween's cell parted round it (part_round) where her decks draw walls to part it along:
+# - across her at its ends (Nos. 1 and 2), each deck's rooms over those lines split along
+#   them as along her bulkheads' (EF_CUTS), held to them where within reach, a body's lead
+#   deep each side;
+# - or along her at its sides (the bunker hatch, #503), where F's and G's rooms beside it
+#   run on past its ends (F's eight- and six-berth rooms and the passage between them
+#   astride its after end, G's baggage store astride both), but every deck's rooms and
+#   passages along her keep to its sides' lines from bulkhead D to C: G's racquet court
+#   and baggage store, F's passages along the court and the rooms by C, E's (e.py) once
+#   held to F's and G's.
+# Nos. 4 to 6 aft, from G up to C, stay open into their 'tweens (est.).
+TRUNKED = ("No. 1 hatch", "No. 2 hatch", "bunker hatch")
+ALONG = ("bunker hatch",)
 # Each, the hold under it and the cells over that it stands up through.
 TRUNK_IN = {"No. 1 hatch": ("hold_1", ["hold_1_tween"]), "No. 2 hatch": ("hold_2", ["hold_2_tween"]),
             "bunker hatch": ("hold_3", ["hold_3_tween", "hold_3_upper"])}
@@ -1604,7 +1610,19 @@ def trunks_of(e, f, g):
     return out
 
 TRUNKS = trunks_of(*efg_plans())
-TRUNK_CUTS = sorted({x for t in TRUNKS.values() for x in t[:2]} - set(EF_CUTS))
+TRUNK_CUTS = sorted({x for what, t in TRUNKS.items() if what not in ALONG for x in t[:2]} - set(EF_CUTS))
+
+def along_lines():
+    """The lines along her her cells part along round each trunk parted so (ALONG), as
+    (z, from x, to x): its sides', from the bulkhead aft of it to the one forward of it."""
+    out = []
+    for what in ALONG:
+        t0, t1, w0, w1 = TRUNKS[what]
+        aft, fore = max(c for c in EF_CUTS if c <= t0 + 1e-6), min(c for c in EF_CUTS if c >= t1 - 1e-6)
+        out += [(w0, aft, fore), (w1, aft, fore)]
+    return out
+
+TRUNK_ALONG = along_lines()
 E_PLAN, F_PLAN, G_PLAN = efg_plans(TRUNK_CUTS)
 assert trunks_of(E_PLAN, F_PLAN, G_PLAN) == TRUNKS, ("a trunk moved with the lines its ends lay",
                                                      trunks_of(E_PLAN, F_PLAN, G_PLAN), TRUNKS)
@@ -1826,12 +1844,12 @@ DOOR_LEAST = 1.0   # the layout lint's least door
 NO_ROOM = []  # (deck, axis, at, along, room, wall from, wall to): a door its wall has no room for
 
 def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None, main=None, water=True, wall_top=None,
-               sill=None):
+               sill=None, parted_along=()):
     """A traced deck's rooms, walls, doors and solid blocks, from floor to ceiling: a
     height, or the height of the deck over ship x, ceiling(x), which changes only at
     breaks — a wall along her under two decks is laid in a piece under each. Given
-    place, its rooms as her cells hold them: split along parted_at, named for where
-    they stand (named_pieces). floor may be a height over ship x too; water false, its doors
+    place, its rooms as her cells hold them: split along parted_at, and along each line
+    along her of parted_along (z, from x, to x), named for where they stand (named_pieces). floor may be a height over ship x too; water false, its doors
     are the ship's to open to her water (none of the doorways'). wall_top, a wall along her
     at z over ship x its top, where it isn't the deck's over it. sill, a wall across her at x
     its doorways' floor, where it isn't the wall's (on a step, the higher deck's)."""
@@ -1847,6 +1865,13 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
         tops = (lambda x: wall_top(at_now[0], x)) if wall_top else over
         return [(p, q, tops((p + q) * 0.5)) for p, q in zip(cuts, cuts[1:])]
 
+    def part_lines(axis, at):
+        """The lines her cells part along that the wall (axis, at) runs over: across her
+        for a wall along her, along her for a wall across her within their stretch."""
+        if axis != 0:
+            return parted_at
+        return [z for z, lo, hi in parted_along if lo - 1e-6 <= at <= hi + 1e-6]
+
     def door_room(axis, at, a, b, along):
         """The stretch of the wall (axis, at) from a to b a door at along may take: up to the
         nearest wall meeting it either side, clear of that wall's thickness (none past a
@@ -1861,7 +1886,7 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
                 low = max(low, w[1] + half)
             else:
                 high = min(high, w[1] - half)
-        for c in parted_at if axis != 0 else ():
+        for c in part_lines(axis, at):
             if a < c < b:
                 if c <= along:
                     low = max(low, c)
@@ -1880,7 +1905,7 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
                             high = min(high, c)
         return low + 0.01, high - 0.01
 
-    rooms = plan.rooms if place is None else named_pieces(plan.rooms, parted_at, place, main)
+    rooms = plan.rooms if place is None else named_pieces(plan.rooms, parted_at, place, main, parted_along)
     rooms = [r for r in rooms if not any(r[1] < x < r[2] and r[3] < z < r[4] for x, z in plan.not_rooms)]
     for k, (name, x0, x1, z0, z1) in enumerate(rooms):
         room("%s_%d_%s" % (prefix, k, slug(name)), name, x0, x1, z0, z1, level((x0 + x1) * 0.5))
@@ -1891,9 +1916,9 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
         cuts = []
         for along in sorted(doors):
             low, high = door_room(axis, at, a, b, along)
-            if high - low < DOOR_LEAST and axis != 0:
+            if high - low < DOOR_LEAST:
                 # Over a line her cells part along, the room a door takes is beyond it.
-                for c in parted_at:
+                for c in part_lines(axis, at):
                     if abs(c - along) < 0.5 and a < c < b:
                         beyond = door_room(axis, at, a, b, c + (0.01 if along < c else -0.01))
                         if beyond[1] - beyond[0] >= DOOR_LEAST:
@@ -2036,10 +2061,11 @@ def c_over(x):
     assert x >= FCSL_FROM - 1e-6, "no deck over C deck at x %.3f: a wall on her open wells" % x
     return FCSL[0] if x < FC_RAMP[1] else FCSL[1]
 
-def named_pieces(rooms, cuts, place, main):
+def named_pieces(rooms, cuts, place, main, along=()):
     """A traced deck's rooms as her cells hold them, as her structure's lint asks — each
     room in one cell, and each name in one (FloodCell.rooms names a cell's): each split
-    along every line of cuts it runs over, where her cells part under a room the plate
+    along every line of cuts it runs over, and every line along her of along (z, from x,
+    to x) within whose stretch it stands, where her cells part under a room the plate
     draws whole; and a name the plate gives rooms in more than one place kept in one —
     main, its deck's main place, where it stands there, else where most of its floor is
     — and told apart in every other by where it stands there, place's words it does
@@ -2048,7 +2074,10 @@ def named_pieces(rooms, cuts, place, main):
     pieces = []
     for name, x0, x1, z0, z1 in rooms:
         lines = [x0] + [c for c in cuts if x0 + 1e-6 < c < x1 - 1e-6] + [x1]
-        pieces += [(name, a, b, z0, z1) for a, b in zip(lines, lines[1:])]
+        for a, b in zip(lines, lines[1:]):
+            sides = [z0] + sorted(z for z, lo, hi in along if lo - 1e-6 <= a and b <= hi + 1e-6
+                                  and z0 + 1e-6 < z < z1 - 1e-6) + [z1]
+            pieces += [(name, a, b, p, q) for p, q in zip(sides, sides[1:])]
     taken = {r[5] for r in room_geo}
     floor_area = {}
     for name, x0, x1, z0, z1 in pieces:
@@ -2058,17 +2087,35 @@ def named_pieces(rooms, cuts, place, main):
     for (name, where), _area in sorted(floor_area.items(), key=lambda item: -item[1]):
         if name not in taken:
             home.setdefault(name, main if (name, main) in floor_area else where)
-    out = []
+
+    def told(name, where):
+        said = name.split(", ")
+        name = ", ".join([name] + [w for w in where if w not in said])
+        # (Short enough for the place plate's two lines: FirstPersonHud.place_lines — G deck's
+        # too where a trunk's piece's word follows.)
+        for level in "DEF" if len(where) < 3 else "DEFG":
+            name = name.replace("%s deck, aft" % level, "%s deck aft" % level)
+            name = name.replace("%s deck, forward" % level, "%s deck forward" % level)
+        return name
+
+    # A place of three words (a deck, its stretch and a piece of a trunk's 'tween in it) told
+    # by its first and last alone where no other place of the name is told so: the two
+    # lines' room (the stretch's words are the longest).
+    names = {}
     for name, x0, x1, z0, z1 in pieces:
         where = place((x0 + x1) * 0.5, (z0 + z1) * 0.5)
-        if home.get(name) != where:
-            said = name.split(", ")
-            name = ", ".join([name] + [w for w in where if w not in said])
-            # (Short enough for the place plate's two lines: FirstPersonHud.place_lines.)
-            for level in "DEF":
-                name = name.replace("%s deck, aft" % level, "%s deck aft" % level)
-                name = name.replace("%s deck, forward" % level, "%s deck forward" % level)
-        out.append((name, x0, x1, z0, z1))
+        if home.get(name) == where:
+            names[(name, where)] = [name]
+        else:
+            names[(name, where)] = ([told(name, where[:1] + where[2:])] if len(where) > 2 else []) + [told(name, where)]
+    rivals = {}
+    for said in names.values():
+        for name in said:
+            rivals[name] = rivals.get(name, 0) + 1
+    out = []
+    for name, x0, x1, z0, z1 in pieces:
+        said = names[(name, place((x0 + x1) * 0.5, (z0 + z1) * 0.5))]
+        out.append((next((n for n in said if rivals[n] == 1), said[-1]), x0, x1, z0, z1))
     held = {}
     for name, x0, x1, z0, z1 in out:
         held.setdefault(name, set()).add(place((x0 + x1) * 0.5, (z0 + z1) * 0.5))
@@ -2118,39 +2165,49 @@ for k, (w0, w1) in enumerate(covered_z + [(riser_half, riser_half)]):
         box("d_riser_%d" % k, RISER[0] - T, RISER[0] + T, at_z, w0, RISER[1], RISER[2])
     at_z = max(at_z, w1)
 
-def trunk_place(level, x, z):
-    """Where by her hatch's trunk (TRUNKS) ship (x, z) stands on deck level, as her cells part
-    the 'tween round it (part_round): beside it, to port or starboard; past its ends, aft or
-    forward, in the 'tween's shorter stretch there; else None. (Short enough for the place
-    plate's two lines with a room's name: a second trunk would name its hatch.)"""
-    for t0, t1, w0, _w1 in TRUNKS.values():
+def trunk_piece(x, z):
+    """The piece of a 'tween her cells part round a hatch's trunk (TRUNKS, part_round) ship
+    (x, z) stands in, as (the hatch, its tag), the tag None in the piece that keeps the
+    'tween's name; else None. Parted across her: beside it, to port or starboard; past its
+    ends, aft or forward, in the 'tween's shorter stretch there. Parted along her (ALONG):
+    to port of it, or between its sides' lines aft or forward of it; to starboard of it the
+    'tween's own (the side whose rooms' names are the longest: FirstPersonHud.place_lines)."""
+    for what, (t0, t1, w0, w1) in TRUNKS.items():
         aft, fore = max(c for c in EF_CUTS if c <= t0 + 1e-6), min(c for c in EF_CUTS if c >= t1 - 1e-6)
+        if not aft < x < fore:
+            continue
+        if what in ALONG:
+            return what, "port" if z < w0 else None if z > w1 else "aft" if x < t0 else "forward"
         if t0 < x < t1:
-            return ("%s deck" % level, "port" if z < w0 else "starboard")
-        if aft < x < t0 and t0 - aft < fore - t1:
-            return ("%s deck" % level, "aft")
-        if t1 < x < fore and fore - t1 <= t0 - aft:
-            return ("%s deck" % level, "forward")
+            return what, "port" if z < w0 else "starboard"
+        if x < t0:
+            return what, "aft" if t0 - aft < fore - t1 else None
+        return what, "forward" if fore - t1 <= t0 - aft else None
     return None
 
 def ef_place(level, cuts=None):
     """Where on a deck under D ship x stands: each stretch between two bulkheads its cell,
-    and by a hatch's trunk the piece of it there (trunk_place)."""
+    and by a hatch's trunk the piece of it there (trunk_piece): by No. 1's, its side alone,
+    by the others', its side after its stretch. (Short enough for the place plate's two
+    lines with a room's name.)"""
     letter = LINE_LETTER
     cuts = cuts or EF_CUTS
 
     def place(x, z=0.0):
-        by_trunk = trunk_place(level, x, z)
-        if by_trunk:
-            return by_trunk
         ahead = [c for c in cuts if c > x]
         if ahead:
-            return ("%s deck" % level, "aft of %s" % letter[round(ahead[0], 4)])
-        return ("%s deck" % level, "forward of %s" % letter[round(cuts[-1], 4)])
+            where = ("%s deck" % level, "aft of %s" % letter[round(ahead[0], 4)])
+        else:
+            where = ("%s deck" % level, "forward of %s" % letter[round(cuts[-1], 4)])
+        by_trunk = trunk_piece(x, z)
+        if by_trunk and by_trunk[1]:
+            what, tag = by_trunk
+            return ("%s deck" % level, tag) if what == "No. 1 hatch" else where + (tag,)
+        return where
     return place
 
 plan_layer("e", E_PLAN, E_DECK, lambda x: d_at(x, True), [at for at, _h in D_STEPS],
-           parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("E"))
+           parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("E"), parted_along=TRUNK_ALONG)
 # And where she steps up aft (D_SHEER_AFT), at N: across her from the deck forward up
 # to the one aft, wherever nothing on the line stands from the one to the other already (a
 # wall on it, E deck's under the deck aft), in the doorways too, a step a body walks up.
@@ -2164,8 +2221,10 @@ for line, high in D_SHEER_AFT:
         if w0 - at_z > 0.005:
             box("d_riser_%s_%d" % (LINE_LETTER[round(line, 4)].lower(), k), line - T, line + T, at_z, w0, low, high)
         at_z = max(at_z, w1)
-plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("F"))
-plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=sorted(G_CUTS + TRUNK_CUTS), place=ef_place("G", G_CUTS))
+plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("F"),
+           parted_along=TRUNK_ALONG)
+plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=sorted(G_CUTS + TRUNK_CUTS), place=ef_place("G", G_CUTS),
+           parted_along=TRUNK_ALONG)
 # The pocket abaft D the racquet court's stair comes down in, past its door through D.
 room("g_pocket", "passage, G deck, abaft D", G_POCKET[1], round(BX["D"] * 128) / 128, G_POCKET[3], G_POCKET[4], G_DECK)
 assert not NO_ROOM, "no room for a door: %s" % NO_ROOM
@@ -3715,13 +3774,14 @@ for hold in ("hold_2", "hold_3"):
 # forward of her bridge deck's front, under her stepped D deck, a cell of its own.
 cell("hold_3_upper", B_RUN[1], BX["C"], D_DECK, d_at(B_RUN[1] + 0.01), -HALF, HALF, "ACCOMMODATION")
 # Her forward hatches' trunks (TRUNKS): each a cell from G deck up to its cover, nobody's, as
-# empty as a void; the cells it stands up through parted round it (trunk_place's pieces), the
+# empty as a void; the cells it stands up through parted round it (trunk_piece's pieces), the
 # longer stretch past its ends keeping the cell's name, the shorter and its beside pieces each
 # told by its place (hold_1_aft_tween, hold_1_port_tween…), joined OPEN where they meet.
 TRUNK_PARTS = {}  # each parted cell's name: its pieces' names
 
 def part_round(name, what):
-    """Cell name parted round what's trunk: the trunk's footprint left out of it."""
+    """Cell name parted round what's trunk: the trunk's footprint left out of it, across her
+    at its ends, or along her at its sides (ALONG), as trunk_piece reads the pieces."""
     t0, t1, w0, w1 = TRUNKS[what]
     k, c = next((k, c) for k, c in enumerate(CELLS) if c[0] == name)
     _n, x0, x1, y0, y1, z0, z1, kind, perm = c
@@ -3729,11 +3789,21 @@ def part_round(name, what):
     aft, fore = t0 - x0, x1 - t1
     tagged = (lambda tag: name.replace("_tween", "_%s_tween" % tag) if name.endswith("_tween")
               else "%s_%s" % (name, tag))
+    w0, w1 = round(w0, 4), round(w1, 4)
     pieces = []
+    if what in ALONG:
+        pieces += [[tagged("port"), x0, x1, y0, y1, z0, w0, kind, perm], [name, x0, x1, y0, y1, w1, z1, kind, perm]]
+        if aft > 1e-3:
+            pieces.append([tagged("aft"), x0, t0, y0, y1, w0, w1, kind, perm])
+        if fore > 1e-3:
+            pieces.append([tagged("fore"), t1, x1, y0, y1, w0, w1, kind, perm])
+        CELLS[k:k + 1] = pieces
+        TRUNK_PARTS[name] = [p[0] for p in pieces]
+        return
     if aft > 1e-3:
         pieces.append([name if aft >= fore else tagged("aft"), x0, t0, y0, y1, z0, z1, kind, perm])
-    pieces += [[tagged("port"), t0, t1, y0, y1, z0, round(w0, 4), kind, perm],
-               [tagged("starboard"), t0, t1, y0, y1, round(w1, 4), z1, kind, perm]]
+    pieces += [[tagged("port"), t0, t1, y0, y1, z0, w0, kind, perm],
+               [tagged("starboard"), t0, t1, y0, y1, w1, z1, kind, perm]]
     if fore > 1e-3:
         pieces.append([name if fore > aft else tagged("fore"), t1, x1, y0, y1, z0, z1, kind, perm])
     CELLS[k:k + 1] = pieces

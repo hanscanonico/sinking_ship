@@ -603,12 +603,18 @@ ROOMS = [
     # Starboard: the passage along the hatch; two six-berth rooms and an eight-berth;
     # the third-class ladderway's room (BOT: the forward well's starboard ladderway "led
     # to E deck and continued to F deck as a double ladder and to G deck as a single
-    # ladder"), a two-berth room beside it; the passages to her side.
-    ("passage, F deck", 8733.25, 1118, 9129.5, 1153.5),
+    # ladder"), a two-berth room beside it; the passages to her side. The passage along the
+    # hatch in three: to the second six-berth room's forward wall; across her from the hatch's
+    # side to the eight-berth room, one with the passage the plate opens off it between that
+    # room and the ladderway (8896.5-8967.5 px), astride No. 2 hatch's trunk's forward line
+    # (px 8932), so its two pieces open into each other across their whole width; and on
+    # past the ladderway.
+    ("passage, F deck", 8733.25, 1118, 8896.5, 1153.5),
+    ("passage, F deck", 8896.5, 1118, 8967.5, 1281.5),
+    ("passage, F deck", 8967.5, 1118, 9129.5, 1153.5),
     ("six-berth third-class room, F deck", 8733.25, 1153.5, 8818.5, 1281.5),
     ("six-berth third-class room, F deck", 8818.5, 1153.5, 8896.5, 1281.5),
     ("eight-berth third-class room, F deck", 8733.25, 1281.5, 8933, 1386),
-    ("passage, F deck", 8896.5, 1153.5, 8967.5, 1281.5),
     ("passage, F deck", 8933, 1281.5, 8967.5, 1358),
     ("third-class ladderway, F deck", 8967.5, 1153.5, 9074.5, 1272.5),
     ("two-berth third-class room, F deck", 8967.5, 1272.5, 9074.5, 1344),
@@ -992,7 +998,8 @@ OPEN = [
     # firemen's quarters' steps.
     (8930.5, 819, 8961.5, 831), (8965, 837, 8977, 871), (9123.5, 837, 9135.5, 871),
     (8936, 869, 8965, 881),
-    (8936, 1112, 8965, 1124), (8900.5, 1147.5, 8963.5, 1159.5), (8980, 1147.5, 9065, 1159.5),
+    (8936, 1112, 8965, 1124), (8890.5, 1118, 8902.5, 1153.5), (8961.5, 1118, 8973.5, 1153.5),
+    (8980, 1147.5, 9065, 1159.5),
     (9078, 1147.5, 9126, 1159.5), (9123.5, 1122, 9135.5, 1150), (8937, 1275.5, 8963.5, 1287.5),
     (9068.5, 1160, 9080.5, 1268),
     (9530.5, 780, 9542.5, 905), (9644, 810, 9656, 1160), (9762, 840, 9774, 1130),
@@ -1069,6 +1076,10 @@ STAIRS = [
 
 # Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
 NUDGES = [
+    # The lines forward of No. 2 hatch's trunk, where its passage along it in three (ROOMS)
+    # snaps them a grain on: held where they stood whole.
+    (0, 92.625, 92.5625, -10.0, 10.0),
+    (2, 4.1875, 4.25, 92.5, 96.6),
     (0, -21.375, -21.875, -8.875, -6.0),  # the stewards' wall at the head of E's ladder, not under its treads
     # The cross passages and vestibule the plate draws over where P's line stands (it draws
     # no P here), aft of it, so no way through parts in two under a door's width.

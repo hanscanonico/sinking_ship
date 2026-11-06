@@ -471,9 +471,12 @@ ROOMS = [
     ("ladderway, E deck", 7502.3, 4505, 7679.5, 4580.5),
     ("ash place, E deck", 7655, 4281.5, 7759.5, 4505),
     ("bathroom, E deck", 7679.5, 4505, 7759.5, 4580.5),
-    # The working passage on to the forward cross passage.
+    # The working passage on to the forward cross passage, in two at bulkhead D's line (px
+    # 8249, held to it): forward of it, in No. 3 hold's 'tween, its side on the bunker
+    # hatch's line (NUDGES).
     ("passage, E deck", 5420, 4589, 5487, 4696.5),
-    ("passage, E deck", 5487, 4585, 8424, 4688),
+    ("passage, E deck", 5487, 4585, 8249, 4688),
+    ("passage, E deck", 8249, 4585, 8424, 4688),
     # Amidships, second class: a linen room (L), the ladies' lavatory round its W.C.s and
     # its baths, the ladderway (BOT: "at the centre line in the middle of the length of the
     # ship direct access was obtained to the third class dining rooms on the deck below by
@@ -623,7 +626,9 @@ ROOMS = [
     ("bathroom, E deck", 8073, 4838, 8140, 4898.5),
     ("bathroom, E deck", 8073, 4898.5, 8168, 4969.5),
     ("passage, E deck", 8073, 4969.5, 8168, 5007),
-    ("three-berth stateroom, E deck", 8140, 4682, 8279, 4776),
+    # (In two at bulkhead D's line, as the working passage beside it.)
+    ("three-berth stateroom, E deck", 8140, 4682, 8249, 4776),
+    ("three-berth stateroom, E deck", 8249, 4682, 8279, 4776),
     ("four-berth stateroom, E deck", 8140, 4776, 8279, 4876),
     ("passage, E deck", 8279, 4682, 8313.5, 4913.5),
     ("three-berth stateroom, E deck", 8313.5, 4682, 8424, 4790),
@@ -704,8 +709,14 @@ ROOMS = [
     ("passage, E deck", 9205.5, 4798, 9243.5, 4916.5),
     ("passage, E deck", 9243.5, 4798, 9292.5, 4817),
     ("four-berth third-class room, E deck", 9243.5, 4817, 9340.5, 4916.5),
-    ("passage, E deck", 8596, 4914, 9300, 4964),
-    ("passage, E deck", 8996, 4964, 9300, 5064),
+    # The passage along the hatches in three: by the bunker hatch to No. 2's after end (C's
+    # line, where F and G draw it); by No. 2 to the men's lavatory's forward wall; and
+    # forward of that, one with the passage the plate opens off it there all along (8996-9300
+    # px), so No. 2's trunk's forward line parts it into two pieces that open into each other
+    # across their whole width, not through a stretch narrower than a door.
+    ("passage, E deck", 8596, 4914, 8836, 4964),
+    ("passage, E deck", 8836, 4914, 8996, 4964),
+    ("passage, E deck", 8996, 4914, 9300, 5064),
     ("four-berth third-class room, E deck", 9061, 5064, 9177, 5178.5),
     ("passage, E deck", 9177, 5064, 9300, 5153.5),
     # Starboard: the ladderway where D deck's after starboard ladders come down (d.py), a bar
@@ -1114,8 +1125,15 @@ OPEN = [
     (8526.5, 4673.5, 8596, 4685.5), (8727.5, 4666, 8757.5, 4678), (9028, 4703, 9205.5, 4715),
     (9028, 4783.5, 9061.5, 4795.5), (9292.5, 4703, 9340.5, 4715), (9237.5, 4798, 9249.5, 4817),
     (9286.5, 4798, 9298.5, 4817), (8590, 4914, 8602, 4964), (8727.5, 4908, 8757.5, 4920),
-    (9028, 4908, 9061.5, 4920), (9205.5, 4910.5, 9243.5, 4922.5), (8996, 4958, 9300, 4970),
+    (9028, 4908, 9061.5, 4920), (9205.5, 4910.5, 9243.5, 4922.5),
     (9177, 5058, 9300, 5070), (8518, 4966.5, 8530, 5084), (8524, 4960.5, 8596, 4972.5),
+    # The working passage's two pieces and the stateroom's beside it; the passage along the
+    # hatches' three.
+    (8243, 4585, 8255, 4688), (8243, 4682, 8255, 4776), (8830, 4914, 8842, 4964), (8990, 4914, 9002, 4964),
+    # The men's lavatory, one room round its corner as the plate draws it (no wall between
+    # its two pieces): its wider piece's door, in its corner on the passage (px 9022), has no
+    # stretch beside No. 2 hatch's trunk's forward line (91.4375, its end held to it).
+    (8899, 5063, 8996, 5075),
     # Forward of bulkhead B: the landing into the passages round No. 1 hatch, those
     # passages into each other; the trimmers' rooms' two pieces each.
     (9488, 4872, 9500, 4912), (9614, 4872, 9626, 4912), (9620, 4788, 9656, 4800),
@@ -1251,6 +1269,25 @@ NUDGES = [
     (0, 66.0, 66.4375, 1.2, 5.7),  # the gentlemen's lavatory's way to its baths, likewise
     (2, -10.1875, -10.3125, 60.6, 65.3),  # the boatswain and mate's door
     (0, 90.8125, 90.625, 4.6, 7.4),  # the men's lavatory's door
+    # The bunker hatch's trunk, which her cells part round along her (gen_titanic.py's ALONG,
+    # #503), as F and G draw it: its sides at -3.0625 and 3.1875 m, its ends at 79.9375 and
+    # 83.3125. This view reads its sides at -2.94 and 3.25 (px 4679.5, 4914) and the lines of
+    # the stateroom block aft of it, which its port side runs on from, at -2.94 and 3.19 (px
+    # 4682, 4913.5), snapped to -3.125, 3.4375 and 3.25 on the passages along them; its ends
+    # at px 8596 and 8727.5, 0.12 m forward of F's and G's, good to a metre here (X). Held
+    # to F's and G's lines up to C's line, with the rooms between the hatches: its starboard
+    # side's from the block's after end, its port side's (the working passage's, which runs
+    # on aft) from bulkhead D's line, where the passage parts; No. 2 hatch's side forward of
+    # C stays this view's, her cells parting round it across her. (The
+    # passage along the hatches in three, its lines snap a grain further out than they did
+    # whole: forward of C, and the passages' lines beside them, held where they stood.)
+    (2, -3.125, -3.0625, 70.9, 86.2),
+    (2, 3.25, 3.1875, 68.6, 75.4),
+    (2, 3.4375, 3.1875, 75.5, 86.2),
+    (2, 3.4375, 3.375, 86.2, 114.0),
+    (2, 4.625, 4.6875, 75.0, 91.0),
+    (0, 80.0625, 79.9375, -3.2, 3.4),
+    (0, 83.4375, 83.3125, -3.2, 3.4),
     # Her stern passage to starboard, the only way into the three rooms off it (#414): the
     # plate draws it 32 px (0.83 m) wide over P's line, widened to WAY_LEAST, then held aft
     # to P's line (EF_CUTS) and left 0.79 m clear. Its forward side moves forward so it keeps
