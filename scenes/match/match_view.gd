@@ -408,6 +408,19 @@ func lying_to_world(point: Vector3) -> Transform3D:
 	return piece_to_world(ShipPieces.leaf_at(_schedule, point.x))
 
 
+## The place in ShipPieces.leaves_of of the piece of her the world point [param world] lies
+## on as she is drawn now: the first whose space puts it on that piece (ShipPieces.leaf_at)
+## — 0, the ship's own node's, while she is whole, or for a point on none of them.
+func leaf_holding(world: Vector3) -> int:
+	if not _broken:
+		return 0
+	for at in _bonus_pieces.size():
+		var point := piece_to_world(at).affine_inverse() * world
+		if ShipPieces.leaf_at(_schedule, point.x) == at:
+			return at
+	return 0
+
+
 func _on_corrected(by: Vector3) -> void:
 	_smoother.absorb(by)
 
