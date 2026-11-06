@@ -2,31 +2,86 @@ hit 00:16.2 · starboard · x 4.7…15.9 m · 1.936 m²
 must 2 thrown · 1 bakes · drawn
 00:16.3 hold_wing_s flooding
 00:17.1 forepeak flooding
+00:18.4 seat 0 out · cold · place 8
 00:20.0 High jump aboard · spot 19
+00:20.8 railing 3 broke
 00:20.9 hold_bilge flooding
-00:23.2 seat 2 out · cold · place 8
-01:10.1 railing 6 broke
-01:10.8 prop 3 lost
-01:14.0 seat 0 out · cold · place 6
-01:14.0 seat 5 out · cold · place 6
+00:25.5 seat 7 out · cold · place 7
 01:16.5 Steady aboard · spot 10
-01:22.3 seat 6 out · cold · place 5
+01:19.9 seat 6 takes Steady · spot 10
 01:31.2 hold flooding
+01:41.7 seat 4 out · cold · place 6
 01:46.0 hold_bilge lamps drowned
-01:51.9 seat 1 out · cold · place 4
+01:51.9 seat 2 out · cold · place 5
+01:57.7 Strong arms aboard · spot 11
+02:06.0 seat 1 takes Strong arms · spot 11
 02:10.4 hold_bilge full
 02:11.2 hold_wing_p flooding
+02:40.2 seat 1 out · cold · place 4
 02:45.6 panel_bulkhead_hold_engine_bilge_s_hold_wing_s gave way
 02:45.9 engine_bilge_s flooding
 02:46.7 engine_bilge_s lamps drowned
 02:47.1 engine_room flooding
 02:47.4 engine_bilge_s full
-02:51.0 railing 13 broke
-02:51.4 prop 1 lost
+02:50.8 railing 13 broke
+02:51.3 prop 1 lost
 02:52.4 prop 0 lost
-02:52.5 seat 7 out · cold · place 3
-03:01.1 seat 3 out · cold · place 2
-winner seat 4 at 03:01.1 · digest 7ee920f08b63a6fb
-sinking at the end of the match: physics 0:07:32 (on the paced clock, Q20) · seen 52% · sea 1.06 m up her · trim +6.1° · list +9.3° · engine_bilge_s full · engine_room 0.87 m · hold_bilge 5.13 m · hold 1.56 m · hold_wing_p 0.49 m · hold_wing_s 5.31 m · forepeak 3.54 m
+02:54.4 Strong arms aboard · spot 23
+03:11.8 High jump lost · spot 19
+03:24.3 seat 5 grabs prop 4
+03:25.0 hold_wing_s lamps drowned
+03:45.1 engine_bilge_p flooding
+03:49.6 Double life aboard · spot 8
+03:52.2 Strong arms lost · spot 23
+04:01.3 water through over_bulkhead_hold_to_hold_wing_s
+04:24.2 Sure footing aboard · spot 21
+04:24.6 water through stair_hold_sky
+05:11.4 hold_fwd_top flooding
+05:18.8 prop 2 afloat
+05:20.9 hold lamps drowned
+05:21.6 water through over_bulkhead_hold_to_hold
+05:30.3 hold_wing_s full
+05:33.9 prop 3 afloat
+05:50.1 saloon flooding
+05:50.1 port boats useless
+05:57.5 prop 2 lost
+05:58.7 generator stopped
+05:58.7 prop 3 lost
+06:01.7 air trapped in hold_fwd_top
+06:01.7 funnel creaking
+06:05.2 hatch_hold leaking
+06:10.8 deckhouse_hall flooding
+06:39.5 funnel falling
+06:46.4 railing 10 broke
+06:46.4 railing 75 broke
+06:46.4 railing 77 broke
+06:52.0 deckhouse_cabins flooding
+06:58.8 panel_collision_hold_forepeak gave way
+06:59.2 hatch_hold gave way
+06:59.2 door_hold_fwd_top_p leaking
+06:59.2 door_hold_fwd_top_s leaking
+06:59.8 lurch coming · heel +4°
+07:01.7 air let out of hold_fwd_top
+07:01.7 door_hold_fwd_top_p gave way
+07:01.7 door_hold_fwd_top_s gave way
+07:02.2 the plunge
+07:03.9 forepeak lamps drowned
+07:06.5 air trapped in forepeak
+07:06.5 lurched · heel +4°
+07:06.5 port_hold_wing_p_p6 leaking
+07:06.9 panel_hold_side_p_hold_wing_p_hold_bilge leaking
+07:09.9 port_hold_wing_p_p5 leaking
+07:11.0 hold_fwd_top full
+07:11.3 panel_hold_side_p_hold_wing_p_hold leaking
+07:11.6 panel_collision_hold_wing_p_forepeak gave way
+07:12.0 hold full
+07:14.8 port_hold_wing_p_p4 leaking
+07:16.8 air let out of forepeak
+07:17.0 forepeak full
+07:18.3 seat 3 out · cold · place 3
+07:18.7 port_hold_wing_p_p3 leaking
+07:18.8 seat 6 out · cold · place 2
+winner seat 5 at 07:18.8 · digest b3ef7384b91d9e74
+sinking at the end of the match: physics 0:14:02 (on the paced clock, Q20) · seen 96% · sea 4.18 m up her · trim +24.7° · list +30.1° · engine_bilge_p 2.46 m · engine_bilge_s full · engine_room 6.87 m · hold_bilge full · hold full · hold_wing_p 4.16 m · hold_wing_s full · hold_fwd_top full · forepeak full · deckhouse_cabins 0.51 m · deckhouse_hall 1.94 m · saloon 3.19 m
 not played: gone at 0:14:38 · trim +87.6° · list -17.9° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x -5.5 m, hogging

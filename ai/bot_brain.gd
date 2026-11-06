@@ -63,10 +63,12 @@ extends RefCounted
 ## presses only once its view shows its last press, so what it sees of itself is never
 ## from before it. A bot that has stood still for two thinks while walking, with nobody
 ## at hand moving to be holding it back, steps aside — or, on an open deck making for a
-## stair, goes round through the rooms beside it. Its stream also rolls, mistake_rate
-## times a second, a lapse: mistake_seconds walking a heading of its choosing, neither
-## bracing nor holding its shove for a line-up — still off the water, and off open drops
-## too (and out of a crate's path) unless it is one of its profile's heedless lapses.
+## stair, goes round through the rooms beside it; and in a zone whose floor a straight walk
+## to its next portal would not get across, it goes round by the floor (BotFloorWay). Its
+## stream also rolls, mistake_rate times a second, a lapse: mistake_seconds walking a
+## heading of its choosing, neither bracing nor holding its shove for a line-up — still off
+## the water, and off open drops too (and out of a crate's path) unless it is one of its
+## profile's heedless lapses.
 ## Holding a ring it braces at nothing, and swims as far as its slower cold lets it; a
 ## tier that steals charges a seat for the ring in its hands, the charge that knocks it
 ## loose (#273). With a spare meter unspent (Double life, #307) it swims as far as that
@@ -122,6 +124,7 @@ var _surfaces: Surfaces
 var _walk_graph: WalkGraph
 var _footing: BotFooting
 var _stair: BotStair
+var _floor_way: BotFloorWay
 ## Whom it goes at, and the drop behind its target.
 var _targeting: BotTargeting
 var _rng: RandomNumberGenerator
@@ -316,6 +319,7 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_surfaces = _walk_graph.surfaces()
 	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
 	_stair = BotStair.new(_walk_graph, _rules, _profile)
+	_floor_way = BotFloorWay.new(_walk_graph, _rules, _profile.think_period)
 	_reckoning.stand_on(_footing, _surfaces)
 	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph, _plays_for)
 	_swim = BotSwim.new(_walk_graph, _rules, _profile)
@@ -422,7 +426,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 				low < _profile.climb_margin_m
 				or (
 					under >= _profile.refuge_from
-					and _going_under(_walk_graph.route_in(found, refuge), pose, feet)
+					and _refuges.going_under(_walk_graph.route_in(found, refuge), pose, feet)
 				)
 			)
 		)
@@ -745,7 +749,8 @@ func _ride(
 	_hunt(steer, me, mark, now_pos, pose)
 
 
-## Toward the next point on the route, round what stands in the way; false when there
+## Toward the next point on the route — round by the floor where a walk straight there
+## would not get through (BotFloorWay) — round what stands in the way; false when there
 ## is no portal left to go through.
 func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> bool:
 	# The route is followed from where the bot's seen velocity has carried it: a
@@ -759,11 +764,12 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 	var waypoint := _waypoint(now_pos, my_surface, now_zone, pose)
 	if waypoint.is_empty():
 		return false
-	var wish := Vector2(waypoint[0].x - now_pos.x, waypoint[0].z - now_pos.z).normalized()
+	var leg := _legs[0]
+	var aim := _floor_way.toward(now_pos, my_surface, leg, waypoint[0])
+	var wish := Vector2(aim.x - now_pos.x, aim.z - now_pos.z).normalized()
 	# Down a stair the route does not take is into another zone, whose route is back up
 	# it: on one — as it sees itself or reckons — with the way on back across it, off it
 	# first by its end in the leg's zone.
-	var leg := _legs[0]
 	var on_stair := _stair.heading(leg, me["surface"], _edge_from)
 	if on_stair != Vector2.ZERO:
 		# Onto and along a narrow stair's middle, by where its walks have taken it (BotStair).
@@ -1001,8 +1007,9 @@ func _slipping(me: Dictionary, mark: Dictionary, now_pos: Vector3, pose: ShipPos
 
 
 ## The next point on the way to the goal: past the portals already gone through, or
-## by a fresh route when the bot has strayed off the one it had; none when there is
-## no portal left to go through.
+## by a fresh route when the bot has strayed off the one it had — not on the way round
+## by the floor it follows to the next portal, through whatever zones that way crosses;
+## none when there is no portal left to go through.
 func _waypoint(
 	my_pos: Vector3, my_surface: int, my_zone: int, pose: ShipPose
 ) -> PackedVector3Array:
@@ -1016,25 +1023,14 @@ func _waypoint(
 		if my_zone == leg.to_zone:
 			_legs.pop_front()
 			continue
+		if _floor_way.holds(leg, my_pos):
+			break
 		_legs = _walk_graph.route(my_pos, my_surface, _goal, pose, _wading)
 		_replans += 1
 		break
 	if _legs.is_empty():
 		return PackedVector3Array()
 	return PackedVector3Array([_walk_graph.toward(_legs[0], my_pos, my_surface)])
-
-
-## Whether a portal on [param legs] has an end lower than [param below] — how high
-## above its water under [param pose] the bot's feet stand — and within
-## refuge_margin_m of its own water: the way dips toward the water and will be under
-## before the bot is through. A way along its own floor is that floor's to answer for.
-func _going_under(legs: Array[WalkGraph.Portal], pose: ShipPose, below: float) -> bool:
-	for leg: WalkGraph.Portal in legs:
-		for end: Vector3 in [leg.entry, leg.exit]:
-			var height := pose.above_water(end)
-			if height < below and height < _profile.refuge_margin_m:
-				return true
-	return false
 
 
 ## Where to walk to reach [param target_pos]: straight at it, except past the
