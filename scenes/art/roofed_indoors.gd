@@ -94,6 +94,25 @@ func outdoors_over(
 	return shows
 
 
+## What holds() reads, for the extension (ShipMesh.judge_by): weather_floor(), her
+## sections' x and length in turn and their outlines, in order, and her platforms' areas
+## and heights.
+func shape() -> Array:
+	var sections := PackedFloat64Array()
+	var outlines: Array[PackedVector2Array] = []
+	if _layout.structure != null:
+		for section: HullSection in _layout.structure.sections:
+			if section != null:
+				sections.append_array([section.x, section.length])
+				outlines.append(section.outline)
+	var areas: Array[Rect2] = []
+	var heights := PackedFloat64Array()
+	for platform: ShipPlatform in _layout.platforms:
+		areas.append(platform.area)
+		heights.append(platform.height)
+	return [_floor, sections, outlines, areas, heights]
+
+
 func _weather_floor() -> float:
 	if _layout.structure == null:
 		return -INF

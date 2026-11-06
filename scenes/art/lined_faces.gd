@@ -8,6 +8,10 @@ extends RefCounted
 ## never at the edge between two rooms that line it alike.
 
 var _dressing: RoomDressing
+## The dressing's linings in the extension (ArtNative), which a mesh drawn by it cuts
+## its faces by; null where it is not loaded, made the first time it is asked.
+var _native: Object
+var _native_tried := false
 
 
 func _init(dressing: RoomDressing) -> void:
@@ -70,6 +74,21 @@ func face(
 	foot: float,
 	head: float
 ) -> void:
+	if mesh.native() != null and _native_lining() != null:
+		mesh.native().lined_face(
+			origin,
+			u,
+			v,
+			paint.finish,
+			paint.colour,
+			paint.finish_in,
+			paint.colour_in,
+			part,
+			foot,
+			head,
+			_native
+		)
+		return
 	var normal := u.cross(v).normalized()
 	var narrow := minf(u.length(), v.length()) < ShipMesh.NARROW
 	var box := AABB(origin, Vector3.ZERO).expand(origin + u + v).grow(ShipMesh.PROBE)
@@ -119,6 +138,15 @@ func _lining(
 	var middle := origin + u * (u_cuts[i] + u_cuts[i + 1]) * 0.5
 	middle += v * (v_cuts[j] + v_cuts[j + 1]) * 0.5
 	return _dressing.lining(middle + u.cross(v).normalized() * ShipMesh.PROBE, part)
+
+
+## The dressing's linings as a NativeLining, over her grid's: null where the extension
+## is not loaded.
+func _native_lining() -> Object:
+	if not _native_tried:
+		_native_tried = true
+		_native = _dressing.native_lining()
+	return _native
 
 
 ## No lines to cut at but the chunk lines (ShipMesh.splits()).
