@@ -112,6 +112,7 @@ public:
 	void felled(const PackedVector3Array &p_bases, const PackedFloat64Array &p_sizes, const PackedVector2Array &p_along);
 	void masked(const PackedByteArray &p_gone, const PackedByteArray &p_rail_gone);
 	void topped(const PackedFloat64Array &p_tops);
+	void lidded(const PackedByteArray &p_lids);
 
 	PackedFloat64Array obstacle_contacts(const Vector3 &p_ship_point, double p_radius, double p_body_height,
 			double p_step, int64_t p_except_prop, double p_crawl_height, double p_crawl_reach) const;
@@ -124,6 +125,8 @@ public:
 	void rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, std::vector<ContactHit> &r_found) const;
 	void airborne_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
 			double p_body_height, double p_railing_height, std::vector<ContactHit> &r_found) const;
+	int64_t landing(const Vector3 &p_ship_point, int64_t p_except_prop) const;
+	double ceiling(const Vector3 &p_ship_point, double p_clearance) const;
 	NativeStands *stands() const { return stands_.ptr(); }
 
 protected:
@@ -148,6 +151,8 @@ private:
 	std::vector<double> ramp_end_;
 	ContactGrid grid_;
 	Ref<NativeStands> stands_;
+	// Per prop, 1 where its top is a lid a body may stand on (PropStands.lids).
+	std::vector<uint8_t> lids_;
 	// Per railing: its ends, its normal onto its platform, its platform and whether it is
 	// gone; per platform its railings.
 	std::vector<Vector2> rail_from_;
@@ -175,6 +180,7 @@ private:
 	double height_at(int32_t p_surface, double p_x, double p_z) const;
 	double ramp_height(int32_t p_surface, double p_x, double p_z) const;
 	bool contains(int32_t p_surface, double p_x, double p_z) const;
+	bool holds(int32_t p_surface, double p_x, double p_z) const;
 	int32_t highest_ship(const Vector3 &p_ship_point) const;
 	int32_t stair_under(const Vector2 &p_point, double p_feet, double p_step) const;
 	double along(int32_t p_stair, const Vector2 &p_at, double p_feet) const;

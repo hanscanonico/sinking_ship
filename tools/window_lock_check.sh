@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 #
 # `make guard-check`, its second half: tools/window_lock.sh serialises two runs,
+# hands the window to three queued waiters in the order they came, saying how many
+# wait ahead of each, lets a waiter killed in the queue hold up no one, lets the lock
+# go once a holder is stopped past its bound (tools/engine_guard.sh's limit, and
+# tools/fps.sh's FPS_LIMIT through it),
 # lets a waiter through at once when the holder is killed with SIGKILL, has a
 # waiter name its holder but never a PID taken again, has a waiter out of
 # WINDOW_LOCK_WAIT give up without running its command, says a holder is gone when
@@ -72,6 +76,103 @@ if wait_for "[ -e '$WORK/a.start' ]"; then
 	[[ -e "$WORK/b.ok" ]] || fail "the second run started before the first ended"
 else
 	fail "the first run never started"
+fi
+
+# Three waiters queued behind a holder take the window in the order they came, each
+# saying how many wait ahead of it, whatever order the kernel would have woken them in.
+tools/window_lock.sh bash -c "touch '$WORK/fifo.start'; until [ -e '$WORK/fifo.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/fifo.start' ]"; then
+	waiters=()
+	for k in 1 2 3; do
+		tools/window_lock.sh bash -c "echo $k >>'$WORK/fifo.order'" 2>"$WORK/fifo.$k.err" &
+		PIDS+=($!)
+		waiters+=($!)
+		wait_for "grep -q 'waiting for another game window' '$WORK/fifo.$k.err'" ||
+			fail "waiter $k of three never said it was waiting"
+	done
+	grep -q '; 1 ahead of it in the queue' "$WORK/fifo.2.err" ||
+		fail "the second waiter did not say 1 waits ahead of it: $(cat "$WORK/fifo.2.err")"
+	grep -q '; 2 ahead of it in the queue' "$WORK/fifo.3.err" ||
+		fail "the third waiter did not say 2 wait ahead of it: $(cat "$WORK/fifo.3.err")"
+	touch "$WORK/fifo.release"
+	wait "$holder"
+	wait_for "[ -s '$WORK/fifo.order' ] && [ \$(wc -l <'$WORK/fifo.order') -ge 3 ]" ||
+		fail "three queued waiters did not all run"
+	wait "${waiters[@]}"
+	order=$(paste -sd' ' - <"$WORK/fifo.order" 2>/dev/null)
+	[[ "$order" == "1 2 3" ]] || fail "three queued waiters ran as '$order', not in the order they came, '1 2 3'"
+else
+	fail "the holder for three queued waiters never started"
+fi
+
+# A waiter that dies while queued — killed with SIGKILL, its ticket left behind — holds
+# up no one: the waiter behind it runs once the holder is done, and the dead one never.
+tools/window_lock.sh bash -c "touch '$WORK/d.start'; until [ -e '$WORK/d.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/d.start' ]"; then
+	tools/window_lock.sh touch "$WORK/d.dead.ran" 2>"$WORK/d.dead.err" &
+	PIDS+=($!)
+	dead=$!
+	wait_for "grep -q 'waiting for another game window' '$WORK/d.dead.err'" ||
+		fail "the waiter to be killed never said it was waiting"
+	tools/window_lock.sh touch "$WORK/d.next.ran" 2>"$WORK/d.next.err" &
+	PIDS+=($!)
+	next=$!
+	wait_for "grep -q 'waiting for another game window' '$WORK/d.next.err'" ||
+		fail "the waiter behind the one to be killed never said it was waiting"
+	kill -9 "$dead"
+	wait "$dead" 2>/dev/null
+	touch "$WORK/d.release"
+	wait "$holder"
+	wait_for "[ -e '$WORK/d.next.ran' ]" || fail "a waiter killed in the queue held up the one behind it"
+	wait "$next"
+	[[ -e "$WORK/d.dead.ran" ]] && fail "a waiter killed in the queue still ran its command"
+	[[ -n "$(ls "$WINDOW_LOCK.queue" 2>/dev/null | grep -v '^counter$')" ]] &&
+		fail "tickets were left in the queue: $(ls "$WINDOW_LOCK.queue")"
+else
+	fail "the holder for the waiter killed in the queue never started"
+fi
+
+# A holder stopped past its bound: the guard's limit, as make capture sets it, ends the
+# engine, says so, and lets the lock go to the next waiter.
+ENGINE_GUARD_LIMIT=2 ENGINE_GUARD_WATCH_EVERY=1 tools/window_lock.sh tools/engine_guard.sh \
+	bash -c "touch '$WORK/l.start'; exec sleep 600" >/dev/null 2>"$WORK/l.err" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/l.start' ]"; then
+	WINDOW_LOCK_WAIT=$DEADLINE tools/window_lock.sh touch "$WORK/l.ran" 2>/dev/null &
+	PIDS+=($!)
+	waiter=$!
+	wait_for "[ -e '$WORK/l.ran' ]" || fail "a holder past its 2 s bound kept the lock"
+	wait "$holder"
+	status=$?
+	((status == 124)) || fail "a holder stopped past its bound exited $status, not 124"
+	grep -q 'ran past its 2 s limit' "$WORK/l.err" ||
+		fail "a holder stopped past its bound never said why: $(cat "$WORK/l.err")"
+	wait "$waiter"
+else
+	fail "the holder to be bounded never started"
+fi
+
+# fps bounds its game too: FPS_LIMIT stops a stand-in that would sleep on, and the run
+# fails saying why.
+printf '#!/usr/bin/env bash\nexec sleep 600\n' >"$WORK/godot_hangs"
+chmod +x "$WORK/godot_hangs"
+(
+	FPS_LIMIT=2 ENGINE_GUARD_WATCH_EVERY=1 GODOT="$WORK/godot_hangs" tools/fps.sh --seconds=5 \
+		>/dev/null 2>"$WORK/fl.err"
+	echo $? >"$WORK/fl.status"
+) &
+PIDS+=($!)
+if wait_for "[ -s '$WORK/fl.status' ]"; then
+	[[ "$(cat "$WORK/fl.status")" == 1 ]] || fail "fps past FPS_LIMIT exited $(cat "$WORK/fl.status"), not 1"
+	grep -q 'ran past its 2 s limit' "$WORK/fl.err" ||
+		fail "fps past FPS_LIMIT never said why: $(cat "$WORK/fl.err")"
+else
+	fail "fps with FPS_LIMIT=2 was still running after ${DEADLINE}s"
 fi
 
 # A holder killed with SIGKILL: the kernel drops its lock, and the waiter goes on.

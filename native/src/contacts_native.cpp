@@ -159,6 +159,7 @@ thread_local std::vector<int32_t> near_inner;
 thread_local std::vector<int32_t> near_props;
 thread_local std::vector<ContactHit> contacts_found;
 thread_local std::vector<ContactHit> rails_found;
+thread_local std::vector<int32_t> landing_found;
 } // namespace
 
 // --- SpatialIndex ---
@@ -477,6 +478,10 @@ void NativeSurfaces::topped(const PackedFloat64Array &p_tops) {
 	take_all(tops_, p_tops);
 }
 
+void NativeSurfaces::lidded(const PackedByteArray &p_lids) {
+	take_all(lids_, p_lids);
+}
+
 // ShipRamp.height_at.
 double NativeSurfaces::ramp_height(int32_t p_surface, double p_x, double p_z) const {
 	const int32_t ramp = p_surface - first_ramp_;
@@ -505,6 +510,82 @@ bool NativeSurfaces::contains(int32_t p_surface, double p_x, double p_z) const {
 	const Vector2 end = position + area_size_[p_surface];
 	return p_x >= double(position.x) && p_x <= double(end.x) && p_z >= double(position.y) &&
 			p_z <= double(end.y);
+}
+
+// Surfaces._contains, for any surface of hers: a round blocker's top by its circle.
+bool NativeSurfaces::holds(int32_t p_surface, double p_x, double p_z) const {
+	if (p_surface >= first_top_ && round_[p_surface - first_top_] == 1) {
+		const int32_t blocker = p_surface - first_top_;
+		return double(Vector2(p_x, p_z).distance_to(centres_[blocker])) <= radii_[blocker];
+	}
+	return contains(p_surface, p_x, p_z);
+}
+
+// Surfaces.landing: _highest_at_or_below over every surface, the crates' lids after hers
+// in number order (_with_lids), never p_except_prop's.
+int64_t NativeSurfaces::landing(const Vector3 &p_ship_point, int64_t p_except_prop) const {
+	std::vector<int32_t> &near = landing_found;
+	const double x = double(p_ship_point.x);
+	const double z = double(p_ship_point.z);
+	const double height_y = double(p_ship_point.y);
+	const Vector2 at(p_ship_point.x, p_ship_point.z);
+	grid_.near(at, at, -INF, height_y, near);
+	const size_t ships = near.size();
+	std::vector<int32_t> &props = near_props;
+	stands_->near_into(x, z, 0.0, int32_t(p_except_prop), props);
+	for (int32_t prop : props) {
+		if (lids_[prop] == 0) {
+			continue;
+		}
+		// PropStands.covers.
+		const Vector3 &foot = stands_->foot(prop);
+		if (double(Vector2(real_t(x - double(foot.x)), real_t(z - double(foot.z))).length()) <=
+				stands_->radius(prop)) {
+			near.push_back(first_lid_ + prop);
+		}
+	}
+	int32_t best = NONE;
+	double best_height = -INF;
+	for (size_t index = 0; index < near.size(); index++) {
+		const int32_t surface = near[index];
+		double height;
+		if (index >= ships) {
+			// A lid: covered, as asked above; PropStands.top.
+			const int32_t prop = surface - first_lid_;
+			height = double(stands_->foot(prop).y) + stands_->height(prop);
+		} else {
+			if (gone_[surface] == 1 || !holds(surface, x, z)) {
+				continue;
+			}
+			height = height_at(surface, x, z);
+		}
+		if (height <= height_y && height > best_height) {
+			best = surface;
+			best_height = height;
+		}
+	}
+	return best;
+}
+
+// Surfaces.ceiling: the lowest underside (_underside) more than p_clearance over the feet.
+double NativeSurfaces::ceiling(const Vector3 &p_ship_point, double p_clearance) const {
+	std::vector<int32_t> &near = landing_found;
+	const double x = double(p_ship_point.x);
+	const double z = double(p_ship_point.z);
+	const double over = double(p_ship_point.y) + p_clearance;
+	const Vector2 at(p_ship_point.x, p_ship_point.z);
+	grid_.near(at, at, over, INF, near);
+	double lowest = INF;
+	for (int32_t surface : near) {
+		if (gone_[surface] == 1 || !holds(surface, x, z)) {
+			continue;
+		}
+		const double underside = surface >= first_ramp_ ? bottoms_[surface] : tops_[surface];
+		if (underside > over) {
+			lowest = min_f(lowest, underside);
+		}
+	}
+	return lowest;
 }
 
 // Surfaces._highest_at_or_below(p_ship_point, _first_top): her platforms and ramps.
@@ -857,6 +938,9 @@ void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("felled", "bases", "sizes", "along"), &NativeSurfaces::felled);
 	ClassDB::bind_method(D_METHOD("masked", "gone", "rail_gone"), &NativeSurfaces::masked);
 	ClassDB::bind_method(D_METHOD("topped", "tops"), &NativeSurfaces::topped);
+	ClassDB::bind_method(D_METHOD("lidded", "lids"), &NativeSurfaces::lidded);
+	ClassDB::bind_method(D_METHOD("landing", "ship_point", "except_prop"), &NativeSurfaces::landing);
+	ClassDB::bind_method(D_METHOD("ceiling", "ship_point", "clearance"), &NativeSurfaces::ceiling);
 	ClassDB::bind_method(D_METHOD("obstacle_contacts", "ship_point", "radius", "body_height", "step", "except_prop",
 								 "crawl_height", "crawl_reach"),
 			&NativeSurfaces::obstacle_contacts);

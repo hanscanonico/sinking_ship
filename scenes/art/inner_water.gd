@@ -166,7 +166,7 @@ var _flow_names: Array[StringName] = []
 var _flow_at := PackedInt32Array()
 ## Per opening, the world levels of its two sides' water last drawn: a side reaching
 ## its top blows its air out.
-var _last_heads: Array[Vector2] = []
+var _last_heads := PackedVector2Array()
 ## The openings whose pours may show between the two poses last shown, worked out once
 ## for that pair — once a tick — rather than every frame (_find_wet).
 var _wet := PackedInt32Array()
@@ -185,9 +185,9 @@ var _next_burst := 0
 ## drawn, -1 for none.
 var _leaks: Array[MeshInstance3D] = []
 var _airs := PackedFloat64Array()
-## Per cell, the glow its water was last given; and the light cast up into the pocket
-## an eye is in.
-var _glows := PackedFloat32Array()
+## Per cell, the glow its water was last given — in doubles, so a glow given is one kept,
+## not given again every frame — and the light cast up into the pocket an eye is in.
+var _glows := PackedFloat64Array()
 var _pocket_light: OmniLight3D
 ## Per cell, how hard its water churns as it climbs, 0…1, eased tick by tick; and the
 ## pose it was last worked out to.
@@ -196,6 +196,12 @@ var _inflow_now: ShipPose
 ## Per cell, its water's world height as last drawn; a pour's two sides' (_show_pour).
 var _levels := PackedFloat64Array()
 var _heights := PackedFloat64Array([0.0, 0.0])
+## Her loops over every cell and opening in the extension (#410), or null where they run
+## here: the same water drawn either way (test_water_fx_native). Chosen before setup.
+var native: InnerWaterNative = InnerWaterNative.made()
+## Per opening, 1 once it has a pour; and those still to have one.
+var _made := PackedByteArray()
+var _unmade := PackedInt32Array()
 
 
 ## Draws the water in [param structure], round [param rooms] where her cells poke out
@@ -246,6 +252,8 @@ func setup(
 		_stacks.append([cell, box, _surface(box, false)])
 	_stacks_shown.resize(_stack_cells.size())
 	_stacks_shown.fill(0)
+	if native != null:
+		native.lay_out(_boxes, _surfaces, _stacks, _stack_cells, _cell_stacks, _stack_bounds)
 	_leaves.clear()
 	_leaf_widths.clear()
 	if not paints.is_empty():
@@ -269,6 +277,8 @@ func setup(
 	_reaches.clear()
 	_slots.clear()
 	_drawn.clear()
+	_made.clear()
+	_unmade.clear()
 	_wet.clear()
 	_wet_then = null
 	_wet_now = null
@@ -279,8 +289,11 @@ func setup(
 		_pours.append(null)
 		_crossings.append(null)
 		_landings.append(null)
+		_made.append(0)
 		if _shut[_pours.size() - 1] == 0:
 			_pour_for(_pours.size() - 1)
+		else:
+			_unmade.append(_pours.size() - 1)
 		_last_heads.append(Vector2(-INF, -INF))
 		for place: StringName in opening.joins:
 			var cell := structure.cell_named(place)
@@ -357,26 +370,38 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	var to_ship := _ship.affine_inverse()
 	if _slot != -1:
 		RenderingServer.global_shader_parameter_set(TO_SHIP[_slot], Projection(to_ship))
-	_levels.resize(_surfaces.size())
-	for cell in _surfaces.size():
-		var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
-		_levels[cell] = level
-		if _surfaces[cell] != null:
-			_show_surface(_surfaces[cell], _boxes[cell], level, to_ship)
-	for at in _stack_cells.size():
-		var level := _levels[_stack_cells[at]]
-		if (
-			_stacks_shown[at] == 0
-			and not _may_show(level, CellSurface.reach(_ship, _stack_bounds[at]))
-		):
-			continue
-		var shown := 0
-		for index: int in _cell_stacks[at]:
-			var stack: Array = _stacks[index]
-			var surface: MeshInstance3D = stack[2]
-			_show_surface(surface, stack[1], level, to_ship)
-			shown += 1 if surface.visible else 0
-		_stacks_shown[at] = shown
+	if _asks_natively(then, now):
+		_levels = native.levels_between(then, now, alpha)
+		var first := maxf(SinkTimeline.FIRST_WATER, CLEAR_OF_FLOOR)
+		var found: Array = native.surfaces(_levels, _ship, first, _stacks_shown)
+		for each: int in found[0]:
+			var cell := each >> 1
+			_place(_surfaces[cell], _boxes[cell], _levels[cell], each & 1 == 1, to_ship)
+		for each: int in found[1]:
+			var stack: Array = _stacks[each >> 1]
+			_place(stack[2], stack[1], _levels[stack[0]], each & 1 == 1, to_ship)
+		_stacks_shown = found[2]
+	else:
+		_levels.resize(_surfaces.size())
+		for cell in _surfaces.size():
+			var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
+			_levels[cell] = level
+			if _surfaces[cell] != null:
+				_show_surface(_surfaces[cell], _boxes[cell], level, to_ship)
+		for at in _stack_cells.size():
+			var level := _levels[_stack_cells[at]]
+			if (
+				_stacks_shown[at] == 0
+				and not _may_show(level, CellSurface.reach(_ship, _stack_bounds[at]))
+			):
+				continue
+			var shown := 0
+			for index: int in _cell_stacks[at]:
+				var stack: Array = _stacks[index]
+				var surface: MeshInstance3D = stack[2]
+				_show_surface(surface, stack[1], level, to_ship)
+				shown += 1 if surface.visible else 0
+			_stacks_shown[at] = shown
 	if now != _inflow_now:
 		_show_inflows(then, now)
 	for door: StringName in _leaves:
@@ -399,6 +424,15 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			_bursts[burst].position = _at_height(_burst_at[burst], level)
 
 
+## Whether the loops over [param then] and [param now], both of every cell, go native.
+func _asks_natively(then: ShipPose, now: ShipPose) -> bool:
+	return (
+		native != null
+		and then.levels.size() == _surfaces.size()
+		and now.levels.size() == _surfaces.size()
+	)
+
+
 ## The openings whose pours may show between [param then] and [param now] — every frame
 ## draws only those — and those whose air may burst out between them. Each one shut
 ## until it fails is given its pour once the pose has it open; one never drawn pouring is
@@ -413,6 +447,9 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 func _find_wet(then: ShipPose, now: ShipPose, levels: PackedFloat64Array) -> void:
 	_wet_then = then
 	_wet_now = now
+	if _asks_natively(then, now):
+		native.find_wet(self, then, now, levels)
+		return
 	_wet.clear()
 	# Each cell's water at either pose, and now, the sea's 0 in the last slot (_slots).
 	var sea := _surfaces.size()
@@ -505,6 +542,7 @@ func _hide_pour(index: int) -> void:
 func _pour_for(index: int) -> void:
 	var opening := _passages[index]
 	_pours[index] = _pour()
+	_made[index] = 1
 	if opening.facing() == 1 or opening.kind == ShipOpening.Kind.PORTHOLE:
 		_crossings[index] = _pour()
 	_landings[index] = _froth()
@@ -545,7 +583,14 @@ func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
 ## Shows [param surface], drawn in [param box], at world height [param level] while it
 ## stands between the box's lowest corner and its highest as she leans, else hides it.
 func _show_surface(surface: MeshInstance3D, box: AABB, level: float, to_ship: Transform3D) -> void:
-	var showing := shows(level, CellSurface.reach(_ship, box))
+	_place(surface, box, level, shows(level, CellSurface.reach(_ship, box)), to_ship)
+
+
+## Shows [param surface], drawn in [param box], at world height [param level] where
+## [param showing], else hides it.
+func _place(
+	surface: MeshInstance3D, box: AABB, level: float, showing: bool, to_ship: Transform3D
+) -> void:
 	if surface.visible != showing:
 		surface.visible = showing
 		surface.top_level = not showing
