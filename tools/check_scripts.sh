@@ -251,6 +251,18 @@ if (($# == 0)); then
 		fi
 	fi
 
+	# A ship is dressed on a worker thread (ShipDressing) while the main thread draws, and
+	# a Font's own measures and draws shape through that font's one shared cache, which no
+	# lock guards: from both threads at once it was left corrupt, and the engine said so
+	# as it quit (#455). Dressing code under scenes/art/ measures its letters with
+	# SignText, in a buffer of its own.
+	font_cache="$(grep -rnE '\.(get_string_size|get_multiline_string_size|get_char_size|draw_string|draw_multiline_string|draw_char)(_outline)?\(' scenes/art --include='*.gd' || true)"
+	if [[ -n "$font_cache" ]]; then
+		echo "check: scenes/art/ is dressed on a thread — measure letters with SignText, never through a Font's shared cache" >&2
+		printf '%s\n' "$font_cache" >&2
+		failed=$((failed + 1))
+	fi
+
 	# A PR's before/after images ride on its branch, never main: committed under
 	# docs/pr/<branch>/, linked by that commit's SHA, and removed in the next commit
 	# (.claude/agents/implementer.md). The PR's head ref keeps the commit, so the links

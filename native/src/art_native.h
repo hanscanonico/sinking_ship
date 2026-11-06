@@ -266,6 +266,8 @@ private:
 	std::vector<double> _platform_heights;
 	std::map<std::pair<int64_t, int64_t>, std::vector<int32_t>> _platform_squares;
 	bool _holds(const Vector3 &p_point) const;
+	double _reach(size_t p_section, double p_y, int64_t p_side) const;
+	double _half_breadth(double p_x, double p_y, int64_t p_side) const;
 	std::vector<Batch> _batches;
 	std::map<Place, int64_t> _placed;
 	bool _last_outdoors = true;
