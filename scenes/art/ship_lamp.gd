@@ -18,7 +18,8 @@ extends Node3D
 ## fire is set in a wall, unswung, and throws its light out of the wall alone, never
 ## through it, wavering as a fire does. Each is one light, so a mesh still meets few
 ## enough. A lamp with nothing left to change — done fading, steady, hanging still —
-## sleeps until a change of its own, or ShipArt as she turns, wakes it.
+## sleeps until a change of its own, or ShipArt as she turns, wakes it. ShipArt's lamps
+## do not process as nodes: its LampSwing steps them all in one loop (carried_by).
 
 ## Told as [member burning] changes (LampSight counts the lamps burning by it).
 signal burning_changed
@@ -77,7 +78,7 @@ var burning := true:
 	set(value):
 		if value != burning:
 			burning = value
-			wake()
+			_unsettle()
 			burning_changed.emit()
 ## What powers its cell now (ShipPower.Power), and for a fire whether the water in its
 ## cell has reached it; ShipArt sets both from the pose.
@@ -85,26 +86,26 @@ var power: int = ShipPower.Power.MAIN:
 	set(value):
 		if value != power:
 			power = value
-			wake()
+			_unsettle()
 var drowned := false:
 	set(value):
 		if value != drowned:
 			drowned = value
-			wake()
+			_unsettle()
 ## Whether the lamp lights its room whatever eye draws the frame: the observer's
 ## cut-away, which looks down into every room at once.
 var everywhere := false:
 	set(value):
 		if value != everywhere:
 			everywhere = value
-			wake()
+			_unsettle()
 ## Whether the eye that draws the frame wants the lamp lighting its room (ShipArt
 ## chooses): it fades up toward lit while it does, and down while it does not.
 var wanted := true:
 	set(value):
 		if value != wanted:
 			wanted = value
-			wake()
+			_unsettle()
 
 var _kind := Kind.PENDANT
 ## How far the lamp has faded up (0…1) toward lighting its room.
@@ -128,6 +129,13 @@ var _glass: StandardMaterial3D
 ## so each is set only as it changes.
 var _shown := -1.0
 var _energy := -1.0
+## Whether its light has nothing left to change until something it shows does: done
+## fading, steady and, for a fire, out — so a frame of it only swings it (LampSwing).
+var _settled := false
+## The LampSwing that steps it, and its slot there: null and -1 for a lamp processing
+## as a node of its own.
+var _carrier: LampSwing
+var _slot := -1
 ## Its model's node, drawn under it (_draw) until LampGlobes takes it: then the globes
 ## that draw it, and its slot in them.
 var _part: MeshInstance3D
@@ -284,7 +292,62 @@ static func _unlit_outdoors(light: Light3D) -> void:
 ## her and as the deck it hangs from falls, so no turn goes unseen, and the lamp's own
 ## setters on every change.
 func wake() -> void:
-	set_process(true)
+	if _carrier != null:
+		_carrier.wake(_slot)
+	else:
+		set_process(true)
+
+
+## Stops it until it is woken, as hanging still does.
+func sleep() -> void:
+	if _carrier != null:
+		_carrier.sleep(_slot)
+	else:
+		set_process(false)
+
+
+## Whether it is awake (wake) rather than asleep.
+func awake() -> bool:
+	return _carrier.awake(_slot) if _carrier != null else is_processing()
+
+
+## Has [param carrier] step it from now on, as its [param slot] (LampSwing.carry),
+## rather than processing as a node of its own.
+func carried_by(carrier: LampSwing, slot: int) -> void:
+	_carrier = carrier
+	_slot = slot
+	set_process(false)
+
+
+## Whether its light has nothing left to change but as something it shows does
+## (LampSwing carries its swing then).
+func settled() -> bool:
+	return _settled
+
+
+## Its swing as LampSwing carries it: where it hangs, how it swings, its clock, the
+## seconds since its power last dropped, where it hangs from, and the globes drawing its
+## model and its slot in them.
+func swing_state() -> Array:
+	return [_hang, _swing, _clock, _since, position, _globes, _globe]
+
+
+## Takes its swing back from LampSwing: [param hang], [param swing], [param clock] and
+## [param since], as swing_state has them.
+func carry_on(hang: Vector3, swing: Vector3, clock: float, since: float) -> void:
+	_hang = hang
+	_swing = swing
+	_clock = clock
+	_since = since
+
+
+## Wakes it to show its light again: something it shows has changed.
+func _unsettle() -> void:
+	_settled = false
+	if _carrier != null:
+		_carrier.unsettle(_slot)
+	else:
+		set_process(true)
 
 
 ## What the lamp is (Kind).
@@ -311,10 +374,23 @@ func hang_in(globes: LampGlobes, slot: int) -> void:
 	_show_globe()
 
 
+func _ready() -> void:
+	# A node entering the tree processes once it has a _process; one carried does not.
+	if _carrier != null:
+		set_process(false)
+
+
 func _process(delta: float) -> void:
+	if not step(delta):
+		sleep()
+
+
+## One frame of [param delta] seconds: it swings, fades and burns as it should; false
+## once it has nothing left to change (still), and sleeps.
+func step(delta: float) -> bool:
 	var ship := get_parent_node_3d()
 	if ship == null:
-		return
+		return true
 	_clock += delta
 	var down := _hang
 	if _kind != Kind.FIRE:
@@ -348,14 +424,16 @@ func _process(delta: float) -> void:
 	if level != _shown:
 		_shown = level
 		_glass.emission_energy_multiplier = level
-	if still(_kind, _presence == target, level, _since, _swing, down - _hang):
+	_settled = _presence == target and _since >= FAILING and (_kind != Kind.FIRE or level == 0.0)
+	var resting := still(_kind, _presence == target, level, _since, _swing, down - _hang)
+	if resting:
 		_hang = down
 		_swing = Vector3.ZERO
 		if _kind != Kind.FIRE:
 			basis = Basis(Quaternion(Vector3.DOWN, _hang))
-		set_process(false)
 	if _globes != null:
 		_show_globe()
+	return not resting
 
 
 ## Hands its globes (hang_in) its pose and its glass's glow, as its model would show them.

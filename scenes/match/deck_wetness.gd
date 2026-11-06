@@ -48,6 +48,9 @@ var _whole := PackedByteArray()
 var _any := PackedByteArray()
 var _soaked := PackedByteArray()
 var _above := PackedByteArray()
+## Per tracked platform, the first column of each piece of her it lies on (cut_at), aft
+## to fore, and one past its last column: all of it the first's while she is whole.
+var _bands: Array[PackedInt32Array] = []
 
 
 ## Tracks every platform of [param layout] not named in [param falls] that stands out
@@ -73,6 +76,7 @@ func _init(layout: ShipLayout, falls: Array[StringName] = []) -> void:
 		var bytes := PackedByteArray()
 		bytes.resize(size.x * size.y)
 		_bytes.append(bytes)
+		_bands.append(PackedInt32Array([0, size.x]))
 	_any.resize(platforms.size())
 	_soaked.resize(platforms.size())
 	_above.resize(platforms.size())
@@ -180,6 +184,29 @@ static func _within(start: Vector2, way: Vector2, area: Rect2) -> Vector2:
 	return span
 
 
+## Splits every tracked platform into the pieces of her it lies on once she breaks (SH33):
+## each patch the piece its middle lies on, [param cuts] where each piece past the first
+## begins along her, aft to fore (FxPieces.leaf_along).
+func cut_at(cuts: PackedFloat64Array) -> void:
+	for slot in platforms.size():
+		var area := _layout.platforms[platforms[slot]].area
+		var size := _sizes[slot]
+		var bands := PackedInt32Array([0])
+		for cut in cuts:
+			var column := bands[bands.size() - 1]
+			while column < size.x and _on_deck(area.position.x, area.end.x, column) < cut:
+				column += 1
+			bands.append(column)
+		bands.append(size.x)
+		_bands[slot] = bands
+
+
+## Tracked platform [param slot]'s pieces (cut_at): the first column of each piece of her,
+## aft to fore, and one past its last column.
+func bands(slot: int) -> PackedInt32Array:
+	return _bands[slot]
+
+
 ## Every tracked platform's patches [param seconds] on, with the ship drawn at
 ## [param ship_to_world]: soaks what the sea reaches and dries the rest. Returns the
 ## tracked platforms, by their place in [member platforms], whose picture changed.
@@ -192,20 +219,39 @@ func update(ship_to_world: Transform3D, seconds: float) -> PackedInt32Array:
 
 
 ## Tracked platform [param slot]'s patches [param seconds] on, as update() does
-## them all; whether its picture changed.
-func update_one(slot: int, ship_to_world: Transform3D, seconds: float) -> bool:
+## them all; whether its picture changed. Once she has broken, each piece of it (cut_at)
+## stands as [param pieces] has that piece of her, by its place among them: its space to
+## [param ship_to_world]'s.
+func update_one(
+	slot: int, ship_to_world: Transform3D, seconds: float, pieces: Array[Transform3D] = []
+) -> bool:
 	var platform := _layout.platforms[platforms[slot]]
 	var area := platform.area
 	var size := _sizes[slot]
-	var basis := ship_to_world.basis
-	# The world height of the patch at (column, row) is a plane over the deck.
-	var start := basis.y.y * platform.height + ship_to_world.origin.y
-	start += basis.x.y * (area.position.x + CELL * 0.5) + basis.z.y * (area.position.y + CELL * 0.5)
-	var across := basis.x.y * CELL
-	var along := basis.z.y * CELL
-	var far := Vector2(across * (size.x - 1), along * (size.y - 1))
-	var lowest := start + minf(far.x, 0.0) + minf(far.y, 0.0)
-	var highest := start + maxf(far.x, 0.0) + maxf(far.y, 0.0)
+	var bands := _bands[slot]
+	# Per piece, the world height of the patch at (column, row) is a plane over the deck:
+	# where it starts, and how it rises across and along.
+	var planes := PackedFloat64Array()
+	var lowest := INF
+	var highest := -INF
+	for band in bands.size() - 1:
+		var ship := ship_to_world
+		if band > 0 and band < pieces.size():
+			ship = ship_to_world * pieces[band]
+		var basis := ship.basis
+		var start := basis.y.y * platform.height + ship.origin.y
+		start += (
+			basis.x.y * (area.position.x + CELL * 0.5) + basis.z.y * (area.position.y + CELL * 0.5)
+		)
+		var across := basis.x.y * CELL
+		var along := basis.z.y * CELL
+		planes.append_array([start, across, along])
+		if bands[band] >= bands[band + 1]:
+			continue
+		var first := start + across * bands[band]
+		var far := Vector2(across * (bands[band + 1] - 1 - bands[band]), along * (size.y - 1))
+		lowest = minf(lowest, first + minf(far.x, 0.0) + minf(far.y, 0.0))
+		highest = maxf(highest, first + maxf(far.x, 0.0) + maxf(far.y, 0.0))
 	_above[slot] = 1 if highest > 0.0 else 0
 	if _any[slot] == 0 and lowest > REACH:
 		return false
@@ -232,18 +278,22 @@ func update_one(slot: int, ship_to_world: Transform3D, seconds: float) -> bool:
 	var drying := seconds / DRY_SECONDS
 	var any := false
 	var moved := false
-	for row in size.y:
-		for column in size.x:
-			var patch := row * size.x + column
-			var above := start + across * column + along * row
-			var reached := above < REACH and out[patch] == 1
-			var now := 1.0 if reached else maxf(wet[patch] - drying, 0.0)
-			wet[patch] = now
-			any = any or now > 0.0
-			var level := roundi(now * LEVELS) * 255 / LEVELS
-			if bytes[patch] != level:
-				bytes[patch] = level
-				moved = true
+	for band in bands.size() - 1:
+		var start := planes[band * 3]
+		var across := planes[band * 3 + 1]
+		var along := planes[band * 3 + 2]
+		for row in size.y:
+			for column in range(bands[band], bands[band + 1]):
+				var patch := row * size.x + column
+				var above := start + across * column + along * row
+				var reached := above < REACH and out[patch] == 1
+				var now := 1.0 if reached else maxf(wet[patch] - drying, 0.0)
+				wet[patch] = now
+				any = any or now > 0.0
+				var level := roundi(now * LEVELS) * 255 / LEVELS
+				if bytes[patch] != level:
+					bytes[patch] = level
+					moved = true
 	_any[slot] = 1 if any else 0
 	if moved:
 		_pictures[slot].set_data(size.x, size.y, false, Image.FORMAT_R8, bytes)
