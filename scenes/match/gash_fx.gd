@@ -161,8 +161,9 @@ func froth(cue: FxCue, ship: Transform3D) -> void:
 
 
 ## Lets [param delta] seconds go by with the ship drawn at [param ship]: the foam
-## stays on the sea where she is and thins out as its time runs down.
-func advance(ship: Transform3D, delta: float) -> void:
+## stays on the sea where she is — by the piece of her its line starts on, once she has
+## broken ([param pieces]) — and thins out as its time runs down.
+func advance(ship: Transform3D, delta: float, pieces: FxPieces = null) -> void:
 	for index in FROTHS:
 		if not _froths[index].emitting:
 			continue
@@ -170,7 +171,8 @@ func advance(ship: Transform3D, delta: float) -> void:
 		if _froth_left[index] <= 0.0:
 			_froths[index].emitting = false
 			continue
-		_lay_froth(index, ship)
+		var own := ship * pieces.of(_froth_line[index * 2]) if pieces != null else ship
+		_lay_froth(index, own)
 
 
 ## Nothing going, and nothing asked for.

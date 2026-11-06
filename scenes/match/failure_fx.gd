@@ -22,11 +22,15 @@ var _structure: ShipStructure
 var _schedule: SinkSchedule
 ## Every opening that can give way, by name, its own and her walls' panels'.
 var _failing := {}
+## Her pose as each piece of her stands in it, once she has broken (#478), or null: what
+## gives way is seen as the piece it is on stands.
+var _pieces: PieceViews
 
 
-func _init(structure: ShipStructure, schedule: SinkSchedule) -> void:
+func _init(structure: ShipStructure, schedule: SinkSchedule, pieces: PieceViews = null) -> void:
 	_structure = structure
 	_schedule = schedule
+	_pieces = pieces
 	for opening: ShipOpening in schedule.failing():
 		_failing[opening.name] = opening
 	if structure == null:
@@ -62,6 +66,8 @@ func plan(
 func _burst(opening: ShipOpening, pose: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	if opening == null:
 		return
+	if _pieces != null:
+		pose = _pieces.at(pose, opening.centre)
 	var levels := PackedFloat64Array()
 	var middles: Array[Vector3] = []
 	for place: StringName in opening.joins:
@@ -110,6 +116,8 @@ func _landing(fall: FunnelFall, pose: ShipPose, tick: int, cues: Array[FxCue]) -
 	var splinters := FxCue.new(FxCue.Kind.SPLINTERS, tick, middle)
 	cues.append(splinters)
 	var top := foot + way * fall.fitting.height
+	if _pieces != null:
+		pose = _pieces.at(pose, top)
 	if pose.cell_at(top) == CellMap.NONE and pose.world_height(top) < LANDING_SPRAY:
 		var spray := FxCue.new(FxCue.Kind.SPRAY, tick, top)
 		spray.on_sea = true

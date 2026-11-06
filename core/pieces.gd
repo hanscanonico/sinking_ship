@@ -172,6 +172,27 @@ func piece_at(standing: PackedInt32Array, x: float) -> int:
 	return -1
 
 
+## The stretches piece_at() reads of [param standing]'s pieces, in their order: for
+## asking it of many points under one pose (piece_in).
+func walked(standing: PackedInt32Array) -> PackedVector2Array:
+	var spans := PackedVector2Array()
+	for piece: int in standing:
+		spans.append(_walked(piece))
+	return spans
+
+
+## piece_at() of [param x] among [param standing], their stretches [param spans]
+## (walked).
+static func piece_in(standing: PackedInt32Array, spans: PackedVector2Array, x: float) -> int:
+	if standing.size() == 1:
+		return standing[0]
+	for at in standing.size():
+		var span := spans[at]
+		if x >= span.x and x <= span.y:
+			return standing[at]
+	return -1
+
+
 ## The part of [param area] (x/z) on piece [param piece]: cut to the stretch a body stands
 ## on (piece_at), as the piece's layout cuts her rooms — all of it while she is whole.
 func on_piece(area: Rect2, piece: int) -> Rect2:
