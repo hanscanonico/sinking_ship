@@ -12,8 +12,9 @@ extends RefCounted
 ##   room by its doorways and stairs — and up it.
 ## - FLEE, its open deck giving way: for its refuge, down the stair off it if need be.
 ## - CLIMB_OUT, its floor — its room's lowest corner, or the open deck where it stands —
-##   within climb_margin_m of the sea, or, once refuge_from of the ship is under water,
-##   its way to its refuge dipping below its feet to within refuge_margin_m of it; and
+##   within climb_margin_m of the sea (going for a bonus, of the water in her), or, once
+##   refuge_from of the ship is under water, its way to its refuge dipping below its feet
+##   to within refuge_margin_m of it; and
 ##   its refuge elsewhere: for its refuge, until it stands there — or, while less than
 ##   refuge_from is under, on a floor a body's height above the sea. Its refuge is the
 ##   highest zone it can reach; once refuge_from is under, the highest marked down by
@@ -400,6 +401,8 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
 	_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
 	_bonus_score = _bonuses.choose(seen, me, found, _walk_graph, pose)
+	# Going for a bonus, it reads its floor as it read its way: by the water in her now.
+	var low := floor_height if _bonuses.spot == -1 else _bonuses.floor_held(my_zone, my_pos, pose)
 	var mark := view.entry(target)
 	# It climbs until it stands where it was making for — off its feet, it stands
 	# nowhere — or, the ship not yet foundering, on a floor a body's height out of the
@@ -414,7 +417,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 			my_zone != WalkGraph.NONE
 			and refuge != my_zone
 			and (
-				floor_height < _profile.climb_margin_m
+				low < _profile.climb_margin_m
 				or (
 					under >= _profile.refuge_from
 					and _going_under(_walk_graph.route_in(found, refuge), pose, feet)

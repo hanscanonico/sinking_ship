@@ -151,19 +151,39 @@ func spare(me: Dictionary) -> float:
 	return _rules.cold_meter
 
 
+## How high above the water there is in her now under [param pose] the floor under a body
+## at [param at] in [param zone] stands (ShipPose.above_water_held): a room's by its lowest
+## corner, where the water comes in first, an open deck's where the body stands. A dry room
+## on dry cells stands clear of any water, however far below the sea outside her it lies
+## (#340); a room with water in it, or in a cell under it, as far as its floor is over that.
+func floor_held(zone: int, at: Vector3, pose: ShipPose) -> float:
+	if zone < 0 or zone >= _layout.rooms.size():
+		return pose.above_water_held(at)
+	var room := _layout.rooms[zone]
+	var lowest := INF
+	for corner: Vector2 in [
+		room.area.position,
+		Vector2(room.area.end.x, room.area.position.y),
+		room.area.end,
+		Vector2(room.area.position.x, room.area.end.y)
+	]:
+		var point := Vector3(corner.x, room.floor_height, corner.y)
+		lowest = minf(lowest, pose.above_water_held(point))
+	return lowest
+
+
 ## Whether the floor of [param zone], where a bonus lies at [param at], and the lowest point
 ## of the way [param found] has to it — both ends of every portal on it, and the floor of
-## every room it enters — stand bonus_margin_m or more above the water under [param pose]:
-## the water as it stands now, never as the timeline has it next. A room's floor stands as
-## high as its lowest corner, where the water comes in first, as the bot's climb reads it.
+## every room it enters — stand bonus_margin_m or more above the water there is in her under
+## [param pose] (floor_held): the water as it stands now, never as the timeline has it next.
 func _clear(graph: WalkGraph, found: WalkSearch, zone: int, at: Vector3, pose: ShipPose) -> bool:
 	var margin := _profile.bonus_margin_m
-	if graph.floor_height(zone, at, pose) < margin:
+	if floor_held(zone, at, pose) < margin:
 		return false
 	for leg: WalkGraph.Portal in graph.route_in(found, zone):
-		if graph.is_room(leg.to_zone) and graph.lowest_above_water(leg.to_zone, pose) < margin:
+		if graph.is_room(leg.to_zone) and floor_held(leg.to_zone, Vector3(), pose) < margin:
 			return false
 		for end: Vector3 in [leg.entry, leg.exit]:
-			if pose.above_water(end) < margin:
+			if pose.above_water_held(end) < margin:
 				return false
 	return true
