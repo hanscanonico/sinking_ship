@@ -41,11 +41,16 @@ func _stem() -> float:
 	return last.x + last.length * 0.5
 
 
-## Whether a body's feet at [param x], [param z] stand on her forecastle head's deck.
+## Whether a body's feet at [param x], [param z] stand on her forecastle head's deck, or on
+## gear standing a step high on it (a capstan's bed, a cable holder's plate: DeckGear.PARTS),
+## its footing that deck.
 func _on_head(x: float, z: float) -> bool:
 	var point := Vector3(x, HEAD, z)
 	var surface := _surfaces.under(point, STEP)
-	return surface != Surfaces.NONE and is_equal_approx(_surfaces.height_at(surface, point), HEAD)
+	if surface == Surfaces.NONE:
+		return false
+	var deck := _surfaces.footing(surface)
+	return deck != Surfaces.NONE and is_equal_approx(_surfaces.height_at(deck, point), HEAD)
 
 
 ## How far out from her centre line her forecastle head's deck runs at [param x] on the
