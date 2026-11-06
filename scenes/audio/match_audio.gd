@@ -171,7 +171,7 @@ func _process(delta: float) -> void:
 	if _driver == null or not _driver.started() or camera == null:
 		return
 	_listener.global_transform = camera.global_transform
-	_keep_humming(_planner.hums(_driver.current), _view.ship_to_world())
+	_keep_humming(_planner.hums(_driver.current), _view)
 	# The sea is the world plane (D7), so the ears' height is their distance to it.
 	var above_sea := camera.global_position.y - FirstPersonCamera.eye_height_of(camera)
 	var tick: int = _driver.current["tick"]
@@ -286,10 +286,11 @@ static func _idle(voices: Array, from: int) -> int:
 
 
 ## Keeps a voice humming at each of [param hums] (CuePlanner.hums) where its bonus lies as
-## [param to_world] draws the ship now — on the room's bus, its file looping, carried as
-## its kind and gain say (SoundBank), as _play carries a cue — the same voice for as long
-## as that bonus lies there; the voice of a bonus no longer humming goes with it.
-func _keep_humming(hums: Array[AudioCue], to_world: Transform3D) -> void:
+## [param view] draws it now, on the piece of her it lies on (MatchView.lying_to_world) —
+## on the room's bus, its file looping, carried as its kind and gain say (SoundBank), as
+## _play carries a cue — the same voice for as long as that bonus lies there; the voice of
+## a bonus no longer humming goes with it.
+func _keep_humming(hums: Array[AudioCue], view: MatchView) -> void:
 	var kept: Dictionary[Vector3, AudioStreamPlayer3D] = {}
 	for hum: AudioCue in hums:
 		var voice: AudioStreamPlayer3D = _hums.get(hum.position)
@@ -305,7 +306,7 @@ func _keep_humming(hums: Array[AudioCue], to_world: Transform3D) -> void:
 		voice.unit_size = SoundBank.near(hum.kind)
 		voice.max_distance = SoundBank.far(hum.kind)
 		voice.pitch_scale = SoundBank.pitch(hum.kind)
-		voice.global_position = to_world * hum.position
+		voice.global_position = view.lying_to_world(hum.position) * hum.position
 		if SoundBank.audible() and not voice.playing:
 			voice.play()
 	for gone: AudioStreamPlayer3D in _hums.values():
@@ -320,7 +321,7 @@ func _silence() -> void:
 		voice.stop()
 	for voice: AudioStreamPlayer in _head:
 		voice.stop()
-	_keep_humming([], Transform3D.IDENTITY)
+	_keep_humming([], _view)
 
 
 ## How enclosed [param seat]'s feet are on the latest snapshot: 1 in a room, 0 on
