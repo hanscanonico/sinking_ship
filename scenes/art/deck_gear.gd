@@ -12,6 +12,8 @@ extends RefCounted
 ## The first part is the piece's foot: on the deck it stands on, named its kind and at one
 ## of its kind's sizes, the blocker the piece is drawn from (foot_of()). Each other part is
 ## a blocker of its own, named its kind and the part (part_name()), drawn as its piece is.
+## Where its foot alone cannot say how a piece stands — a crane's jib forward or aft of
+## its pedestal, and how long — its parts as her data lays them do (stance()).
 
 const BOX := ShipBlocker.Shape.BOX
 const ROUND := ShipBlocker.Shape.CYLINDER
@@ -20,8 +22,24 @@ const ROUND := ShipBlocker.Shape.CYLINDER
 ## empty), its shape and its box in the model's own space — x along the piece's longer
 ## side, y up off the deck it stands on, z across, the middle of its footprint at the
 ## origin; a round's box square about its axis. A piece standing on its side across her
-## (its longer side along her z) is turned a quarter (turn()). A model with no parts here
-## is its one envelope (envelope()). Every height est., as GEAR's are.
+## (its longer side along her z) is turned a quarter (turn()), and one standing the other
+## way about half round (half_turn()). A model with no parts here is its one envelope
+## (envelope()). Every height est., as GEAR's are.
+##
+## An electric crane (#381) is stowed: its jib lowered to lie level along its x on a
+## crutch post under its head, the way Plate III's elevation draws its pair's jib, the
+## post standing on the deck under it — past the edge of the crane's own deck, the deck
+## below (DROPS). Its jib's underside a door's height over the crane's deck (a body walks
+## under it) and its top flush with its machinery house's, so a body walks out along it;
+## its section and the post's est. Each pair's model is made for where it stands, its jib
+## the plate's length but where that would stand its post on a ladder or another crane's:
+## - electric_crane_688, her wells': 6.875 m, short of the plate's 7.35 m (the forward
+##   well's) and 9.5 m (the after well's), its post clear of the forecastle's ladders and
+##   of the poop cranes' posts;
+## - electric_crane_925, her poop's: 9.25 m (the plate's 9.3 m), over her poop's front to
+##   its post on the after well, forward of the poop's ladders;
+## - electric_crane_700, A deck's: 7.0 m (the plate's), aft past A deck's end to its post
+##   on B deck.
 const PARTS := {
 	# A warping capstan's round bed bolted to the deck, the plate's ring, and on it its
 	# barrel, whelped and waisted under its drumhead, a little over half as wide.
@@ -48,11 +66,28 @@ const PARTS := {
 		["", BOX, AABB(Vector3(-1.375, 0.0, -1.09375), Vector3(2.75, 0.25, 2.1875))],
 		["wildcat", ROUND, AABB(Vector3(-0.875, 0.25, -0.875), Vector3(1.75, 0.5, 1.75))],
 	],
-	# An electric crane's pedestal, and its machinery house over it, which slews.
-	"electric_crane":
+	# An electric crane's pedestal, its machinery house over it, which slews, its jib
+	# lowered from the house's fore face and the crutch post under its head.
+	"electric_crane_688":
 	[
-		["", ROUND, AABB(Vector3(-0.4375, 0.0, -0.4375), Vector3(0.875, 1.0, 0.875))],
-		["house", BOX, AABB(Vector3(-0.75, 1.0, -0.75), Vector3(1.5, 1.5, 1.5))],
+		["", ROUND, AABB(Vector3(-3.875, 0.0, -0.4375), Vector3(0.875, 1.0, 0.875))],
+		["house", BOX, AABB(Vector3(-4.1875, 1.0, -0.75), Vector3(1.5, 1.5, 1.5))],
+		["jib", BOX, AABB(Vector3(-2.6875, 2.125, -0.25), Vector3(6.875, 0.375, 0.5))],
+		["crutch", ROUND, AABB(Vector3(3.8125, 0.0, -0.1875), Vector3(0.375, 2.125, 0.375))],
+	],
+	"electric_crane_925":
+	[
+		["", ROUND, AABB(Vector3(-5.0625, 0.0, -0.4375), Vector3(0.875, 1.0, 0.875))],
+		["house", BOX, AABB(Vector3(-5.375, 1.0, -0.75), Vector3(1.5, 1.5, 1.5))],
+		["jib", BOX, AABB(Vector3(-3.875, 2.125, -0.25), Vector3(9.25, 0.375, 0.5))],
+		["crutch", ROUND, AABB(Vector3(5.0, -3.3125, -0.1875), Vector3(0.375, 5.4375, 0.375))],
+	],
+	"electric_crane_700":
+	[
+		["", ROUND, AABB(Vector3(-3.9375, 0.0, -0.4375), Vector3(0.875, 1.0, 0.875))],
+		["house", BOX, AABB(Vector3(-4.25, 1.0, -0.75), Vector3(1.5, 1.5, 1.5))],
+		["jib", BOX, AABB(Vector3(-2.75, 2.125, -0.25), Vector3(7.0, 0.375, 0.5))],
+		["crutch", ROUND, AABB(Vector3(3.875, -2.75, -0.1875), Vector3(0.375, 4.875, 0.375))],
 	],
 	# The steam windlass's bedplate, its two upright steam cylinders at its ends and the
 	# case of its gearing between them, its main shaft and cable lifters housed.
@@ -77,6 +112,10 @@ const PARTS := {
 		["frame", BOX, AABB(Vector3(-0.78125, 0.25, -1.125), Vector3(2.4375, 1.0, 2.25))],
 	],
 }
+## By model, how far under the deck its foot stands on a piece reaches where a part of it
+## stands past that deck's edge on the deck below: a crane's crutch post, the poop's on her
+## after well and A deck's on B deck (PARTS).
+const DROPS := {"electric_crane_925": 3.3125, "electric_crane_700": 2.75}
 ## How near a blocker stands to a part's size or place to be it, in metres.
 const NEAR := 0.001
 
@@ -91,9 +130,16 @@ static func part_name(kind: StringName, part: String) -> StringName:
 
 
 ## [param size], a size over all GEAR gives (its longer side, its height, its shorter
-## side), as a box in its model's space: on the deck, about the middle of its footprint.
-static func envelope(size: Vector3) -> AABB:
-	return AABB(Vector3(-size.x * 0.5, 0.0, -size.z * 0.5), size)
+## side), as a box in its model's space: on the deck, about the middle of its footprint —
+## and down [param drop] under it, where a part of it stands on the deck below (DROPS).
+static func envelope(size: Vector3, drop := 0.0) -> AABB:
+	return AABB(Vector3(-size.x * 0.5, -drop, -size.z * 0.5), size + Vector3.UP * drop)
+
+
+## The box over all of the model [param made], made at [param size] (GEAR's): envelope(),
+## down as far as its DROPS.
+static func envelope_of(made: String, size: Vector3) -> AABB:
+	return envelope(size, DROPS.get(made, 0.0))
 
 
 ## The parts of a piece of [param kind] made at [param size], its foot first: each its
@@ -122,23 +168,19 @@ static func is_part(blocker: ShipBlocker) -> bool:
 	return _part_names.has(blocker.name)
 
 
-## The size over all (GEAR's) of the piece [param blocker] is the foot of: its kind's size
-## whose foot it stands as; Vector3.ZERO where it is no foot of any.
+## The size over all (GEAR's) of the piece [param blocker] is the foot of: its kind's first
+## size whose foot it stands as; Vector3.ZERO where it is no foot of any. Of sizes whose
+## foot is the same, where it stands tells which (stance()).
 static func foot_of(blocker: ShipBlocker) -> Vector3:
-	if not DeckFurniture.GEAR.has(blocker.name):
-		return Vector3.ZERO
-	var standing := DeckFurniture.size_of(blocker)
-	for size: Vector3 in DeckFurniture.GEAR[blocker.name]:
-		var foot: Array = parts_of(blocker.name, size)[0]
-		if foot[1] == blocker.shape and _size(foot[2]).distance_to(standing) < NEAR:
-			return size
-	return Vector3.ZERO
+	var sizes := _sizes(blocker)
+	return sizes[0] if not sizes.is_empty() else Vector3.ZERO
 
 
 ## Where the piece [param blocker] is the foot of stands, made at [param size]: its
 ## model's space in hers, its origin on the deck at the middle of its footprint, turned a
-## quarter (turn()) where its foot's longer side lies across her.
-static func frame(blocker: ShipBlocker, size: Vector3) -> Transform3D:
+## quarter (turn()) where its foot's longer side lies across her, and from there half
+## round (half_turn()) where [param half] — a crane whose jib points aft.
+static func frame(blocker: ShipBlocker, size: Vector3, half := false) -> Transform3D:
 	var foot: AABB = parts_of(blocker.name, size)[0][2]
 	var middle := blocker.centre
 	var basis := Basis.IDENTITY
@@ -146,6 +188,8 @@ static func frame(blocker: ShipBlocker, size: Vector3) -> Transform3D:
 		middle = blocker.area.get_center()
 		if blocker.area.size.y > blocker.area.size.x:
 			basis = turn()
+	if half:
+		basis = basis * half_turn()
 	var off := basis * Vector3(foot.get_center().x, 0.0, foot.get_center().z)
 	return Transform3D(basis, Vector3(middle.x, blocker.bottom - foot.position.y, middle.y) - off)
 
@@ -156,15 +200,82 @@ static func turn() -> Basis:
 	return Basis(Vector3.FORWARD, Vector3.UP, Vector3.RIGHT)
 
 
+## The half turn a piece standing the other way about takes: its model's x along her −x
+## and its z along her −z.
+static func half_turn() -> Basis:
+	return Basis(Vector3.LEFT, Vector3.UP, Vector3.FORWARD)
+
+
+## How the piece [param blocker] is the foot of stands among [param layout]'s blockers:
+## [its size over all (GEAR's), its frame()] — of its kind's sizes whose foot it stands as,
+## turned as its foot lies or half round from there, the first whose every other part
+## [param layout] lays where that puts it: her data says which way a crane's jib points,
+## and which of her cranes it is, by where it lays the jib and its post. Its first size,
+## as its foot lies, where nothing else could be or [param layout] lays none whole;
+## [Vector3.ZERO, Transform3D.IDENTITY] where it is no foot.
+static func stance(layout: ShipLayout, blocker: ShipBlocker) -> Array:
+	var sizes := _sizes(blocker)
+	if sizes.is_empty():
+		return [Vector3.ZERO, Transform3D.IDENTITY]
+	var first := [sizes[0], frame(blocker, sizes[0])]
+	if sizes.size() == 1 and _even(blocker.name, sizes[0]):
+		return first
+	var named := _named(layout, blocker.name)
+	for size: Vector3 in sizes:
+		for half: bool in [false, true]:
+			var at := frame(blocker, size, half)
+			var parts := _placed(blocker.name, size, at)
+			if parts.slice(1).all(func(part: ShipBlocker) -> bool: return _lays(named, part)):
+				return [size, at]
+	return first
+
+
 ## The parts of the piece [param blocker] is the foot of, as the blockers her data lays
-## for them (tools/gen_titanic.py's gear()), its foot first; none where it is no foot.
-static func laid(blocker: ShipBlocker) -> Array[ShipBlocker]:
-	var found: Array[ShipBlocker] = []
-	var size := foot_of(blocker)
-	if size == Vector3.ZERO:
+## for them (tools/gen_titanic.py's gear()) where [param layout] has it stand (stance()),
+## its foot first; none where it is no foot.
+static func laid(layout: ShipLayout, blocker: ShipBlocker) -> Array[ShipBlocker]:
+	var standing := stance(layout, blocker)
+	if standing[0] == Vector3.ZERO:
+		return [] as Array[ShipBlocker]
+	return _placed(blocker.name, standing[0], standing[1])
+
+
+## The piece [param blocker] of [param layout] is the foot of, drawn into [param mesh] as
+## its model where it stands (stance()), filling each of its parts; nothing for a part of
+## a piece other than its foot, which its foot's model draws; false where [param blocker]
+## is no foot of a piece with a model, for the caller to draw as its envelope.
+static func draw(mesh: ShipMesh, layout: ShipLayout, blocker: ShipBlocker) -> bool:
+	if is_part(blocker):
+		return true
+	var standing := stance(layout, blocker)
+	if standing[0] == Vector3.ZERO:
+		return false
+	var made: String = DeckFurniture.GEAR[blocker.name][standing[0]]
+	if made.is_empty():
+		return false
+	mesh.model(ShipModel.named(made), standing[1])
+	return true
+
+
+## Every size over all (GEAR's) of [param blocker]'s kind whose foot it stands as, in
+## GEAR's order.
+static func _sizes(blocker: ShipBlocker) -> Array[Vector3]:
+	var found: Array[Vector3] = []
+	if not DeckFurniture.GEAR.has(blocker.name):
 		return found
-	var at := frame(blocker, size)
-	for part: Array in parts_of(blocker.name, size):
+	var standing := DeckFurniture.size_of(blocker)
+	for size: Vector3 in DeckFurniture.GEAR[blocker.name]:
+		var foot: Array = parts_of(blocker.name, size)[0]
+		if foot[1] == blocker.shape and _size(foot[2]).distance_to(standing) < NEAR:
+			found.append(size)
+	return found
+
+
+## The parts of a piece of [param kind] made at [param size] standing at [param at], as
+## blockers, its foot first.
+static func _placed(kind: StringName, size: Vector3, at: Transform3D) -> Array[ShipBlocker]:
+	var found: Array[ShipBlocker] = []
+	for part: Array in parts_of(kind, size):
 		var box: AABB = at * (part[2] as AABB)
 		var made := ShipBlocker.new()
 		made.name = part[0]
@@ -180,21 +291,64 @@ static func laid(blocker: ShipBlocker) -> Array[ShipBlocker]:
 	return found
 
 
-## The piece [param blocker] is the foot of, drawn into [param mesh] as its model where it
-## stands (frame()), filling each of its parts; nothing for a part of a piece other than
-## its foot, which its foot's model draws; false where [param blocker] is no foot of a
-## piece with a model, for the caller to draw as its envelope.
-static func draw(mesh: ShipMesh, blocker: ShipBlocker) -> bool:
-	if is_part(blocker):
-		return true
-	var size := foot_of(blocker)
-	if size == Vector3.ZERO:
-		return false
-	var made: String = DeckFurniture.GEAR[blocker.name][size]
-	if made.is_empty():
-		return false
-	mesh.model(ShipModel.named(made), frame(blocker, size))
+## Whether a piece of [param kind] made at [param size] is the same piece turned half
+## round: each part where another of its name and shape stood. Its foot alone tells how
+## such a piece stands.
+static func _even(kind: StringName, size: Vector3) -> bool:
+	var parts := parts_of(kind, size)
+	for part: Array in parts:
+		var box: AABB = part[2]
+		var turned := AABB(Vector3(-box.end.x, box.position.y, -box.end.z), box.size)
+		var found := parts.any(
+			func(other: Array) -> bool:
+				return (
+					other[0] == part[0]
+					and other[1] == part[1]
+					and (other[2] as AABB).position.distance_to(turned.position) < NEAR
+					and (other[2] as AABB).size.distance_to(turned.size) < NEAR
+				)
+		)
+		if not found:
+			return false
 	return true
+
+
+## [param layout]'s blockers named for a part of a piece of [param kind] other than its
+## foot, by name.
+static func _named(layout: ShipLayout, kind: StringName) -> Dictionary:
+	var wanted := {}
+	for size: Vector3 in DeckFurniture.GEAR[kind]:
+		for part: Array in parts_of(kind, size).slice(1):
+			wanted[part[0]] = true
+	var found := {}
+	for blocker: ShipBlocker in layout.blockers:
+		if wanted.has(blocker.name):
+			if not found.has(blocker.name):
+				found[blocker.name] = []
+			(found[blocker.name] as Array).append(blocker)
+	return found
+
+
+## Whether one of [param named]'s blockers (_named()) is [param part]: its name, shape,
+## heights and footprint within NEAR.
+static func _lays(named: Dictionary, part: ShipBlocker) -> bool:
+	for blocker: ShipBlocker in named.get(part.name, []):
+		if blocker.shape != part.shape:
+			continue
+		if absf(blocker.bottom - part.bottom) > NEAR or absf(blocker.top - part.top) > NEAR:
+			continue
+		if part.shape == ROUND:
+			if (
+				blocker.centre.distance_to(part.centre) <= NEAR
+				and absf(blocker.radius - part.radius) <= NEAR
+			):
+				return true
+		elif (
+			blocker.area.position.distance_to(part.area.position) <= NEAR
+			and blocker.area.size.distance_to(part.area.size) <= NEAR
+		):
+			return true
+	return false
 
 
 ## [param box]'s size as DeckFurniture.size_of() gives a blocker's: its longer side in
