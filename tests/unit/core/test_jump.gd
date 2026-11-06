@@ -392,13 +392,15 @@ func test_a_jump_landing_does_not_stagger() -> void:
 	assert_eq(sim.state.seats[0].stagger_ticks, 0)
 
 	# Off the hatch, a jump costs what stepping off would: the drop below its take-off.
+	# At a walk, short of the forecastle's ladder ahead, which a run's jump comes down on.
 	var off := _steamer_sim(1)
 	SimFixtures.place(off, 0, Vector3(5.0, 0.8, 0.0), 0.0)
-	var run := SimFixtures.frame(0, Vector2.RIGHT)
+	var walk := Vector2.RIGHT * 0.4
+	var run := SimFixtures.frame(0, walk)
 	while off.state.seats[0].pos.x < 7.2:
 		SimFixtures.step(off, {0: run})
 	var down: Array[SimEvent] = []
-	down.append_array(SimFixtures.step(off, {0: SimFixtures.frame(0, Vector2.RIGHT, JUMP)}))
+	down.append_array(SimFixtures.step(off, {0: SimFixtures.frame(0, walk, JUMP)}))
 	while off.state.seats[0].body == AIRBORNE:
 		down.append_array(SimFixtures.step(off, {0: run}))
 	var thud := _landings(down, SimEvent.Kind.LANDED)
