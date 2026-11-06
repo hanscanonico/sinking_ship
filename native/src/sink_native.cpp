@@ -33,6 +33,8 @@ constexpr double NARROW_THREE = 1e-9;
 constexpr double NARROW_TWO = 1e-8;
 constexpr double TOLERANCE = 1e-12;
 constexpr int SOLVE_STEPS = 60;
+// SinkAir's.
+constexpr double SQRT_HALF = 0.7071067811865476;
 // ShippedWater's.
 constexpr double LEVEL_STRETCH = 1e-6;
 
@@ -134,13 +136,26 @@ void NativeSink::touched(const PackedInt32Array &p_from, const PackedInt32Array 
 	take(touching_, p_touching);
 }
 
+void NativeSink::faces(const PackedInt32Array &p_axis, const PackedFloat64Array &p_facing) {
+	take(axis_, p_axis);
+	take(facing_, p_facing);
+	upward_.resize(int64_t(axis_.size()));
+}
+
 // TiltedBox.turn of every cell, then SinkStepper._turn's floors, ceilings, average
-// surfaces and openings.
-void NativeSink::turned(const PackedFloat64Array &p_up) {
+// surfaces and openings, with SinkAir.turned's: what the stepper reads of them, per
+// cell its floor, ceiling and average surface, per opening its bottom, top, width or
+// area and highest corner, each in turn.
+PackedFloat64Array NativeSink::turned(const PackedFloat64Array &p_up) {
 	const double up_x = p_up[0];
 	const double up_y = p_up[1];
 	const double up_z = p_up[2];
-	for (int64_t cell = 0; cell < cells(); cell++) {
+	const int64_t cell_count = cells();
+	const int64_t opening_count = int64_t(first_.size());
+	PackedFloat64Array found;
+	found.resize(cell_count * 3 + opening_count * 4);
+	double *out = found.ptrw();
+	for (int64_t cell = 0; cell < cell_count; cell++) {
 		const double *frame = &frames_[cell * 6];
 		const double reach_x = up_x * frame[3];
 		const double reach_y = up_y * frame[4];
@@ -184,7 +199,11 @@ void NativeSink::turned(const PackedFloat64Array &p_up) {
 			shift_[cell] = (wb + wc) * 0.5;
 		}
 		area_[cell] = capacity_[cell] / (top_[cell] - bottom_[cell]);
+		out[cell] = bottom_[cell];
+		out[cell_count + cell] = top_[cell];
+		out[cell_count * 2 + cell] = area_[cell];
 	}
+	double *opening_out = out + cell_count * 3;
 	for (size_t index = 0; index < first_.size(); index++) {
 		const size_t at = index * 3;
 		const double middle = up_x * middle_[at] + up_y * middle_[at + 1] + up_z * middle_[at + 2];
@@ -198,7 +217,32 @@ void NativeSink::turned(const PackedFloat64Array &p_up) {
 			opening_top_[index] = middle + reach;
 			opening_size_[index] = flow_area_[index] / (reach * 2.0);
 		}
+		opening_out[index] = opening_bottom_[index];
+		opening_out[opening_count + index] = opening_top_[index];
+		opening_out[opening_count * 2 + index] = opening_size_[index];
+		opening_out[opening_count * 3 + index] = middle + reach;
+		if (index < axis_.size()) {
+			const double rise = axis_[index] >= 0 ? p_up[axis_[index]] * facing_[index] : 0.0;
+			upward_.set(int64_t(index), rise > SQRT_HALF ? -1 : (rise < -SQRT_HALF ? 1 : 0));
+		}
 	}
+	return found;
+}
+
+PackedInt32Array NativeSink::upward() const {
+	return upward_;
+}
+
+// TiltedBox.height of every cell holding p_water.
+PackedFloat64Array NativeSink::heights(const PackedFloat64Array &p_water) const {
+	PackedFloat64Array found;
+	found.resize(cells());
+	double *out = found.ptrw();
+	const double *water = p_water.ptr();
+	for (int64_t cell = 0; cell < cells(); cell++) {
+		out[cell] = height(cell, water[cell]);
+	}
+	return found;
 }
 
 void NativeSink::shared(const PackedFloat64Array &p_shares) {
@@ -1071,7 +1115,10 @@ void NativeSink::_bind_methods() {
 			&NativeSink::setup);
 	ClassDB::bind_method(D_METHOD("wells", "well_of", "edges_from", "ends", "lengths", "rate"), &NativeSink::wells);
 	ClassDB::bind_method(D_METHOD("touched", "from", "touching"), &NativeSink::touched);
+	ClassDB::bind_method(D_METHOD("faces", "axis", "facing"), &NativeSink::faces);
 	ClassDB::bind_method(D_METHOD("turned", "up"), &NativeSink::turned);
+	ClassDB::bind_method(D_METHOD("upward"), &NativeSink::upward);
+	ClassDB::bind_method(D_METHOD("heights", "water"), &NativeSink::heights);
 	ClassDB::bind_method(D_METHOD("shared", "shares"), &NativeSink::shared);
 	ClassDB::bind_method(D_METHOD("began", "pocket", "air", "members_from", "members_count", "members", "holding",
 								 "alone", "surface"),
