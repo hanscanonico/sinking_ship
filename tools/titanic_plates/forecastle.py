@@ -29,7 +29,8 @@ Z = dict(centre=((9222, 960), (10682, 960)), scale=0.025773)
 GEAR = [
     # The plate's "Steam windlass" across her at the forecastle's after face, its box from
     # the face's line forward to the foremast's ring, which the plate draws hard on its
-    # forward face (px 9346-9374, tools/gen_titanic.py's foremast).
+    # forward face (px 9346-9374; tools/gen_titanic.py stands her foremast's after face
+    # there).
     ("steam windlass", 9222, 849, 9346, 1068),
     # Its "Steam winch" forward of the mast, its box up to No. 1 hatch's after coaming.
     ("steam winch", 9537, 913, 9680, 1019),
