@@ -104,6 +104,9 @@ const FLAG := Vector2(0.5, 0.32)
 ## of its end (bow_sweep()).
 const SWEEP := 2.5
 const SLIVER := ShipSpace.SLIVER
+## A face closer than this inside the skin, all over, is hidden by it (under_skin()):
+## a gap no thicker than a wall, which nobody stands in.
+const SKIN_GAP := ShipSpace.WALL_MAX
 
 var _space: ShipSpace
 var _layout: ShipLayout
@@ -212,7 +215,8 @@ func build(mesh: ShipMesh) -> void:
 
 ## The faces of [param platform]'s planking ([constant ShipMesh.SIDES]) that lie on
 ## the hull's skin — along its sheer, against a step up to a taller run, or inside an
-## end's plating — which ShipArt leaves undrawn so no two faces share a plane.
+## end's plating — or just under it (under_skin()), which ShipArt leaves undrawn so no
+## two faces share a plane.
 func hidden_faces(platform: ShipPlatform) -> int:
 	var area := platform.area
 	var middle := area.get_center()
@@ -228,7 +232,36 @@ func hidden_faces(platform: ShipPlatform) -> int:
 		var beyond := _space.envelope(x + (SLIVER if end == 1 else -SLIVER))
 		if beyond.x == INF or minf(beyond.z, beyond.w) > platform.height + SLIVER:
 			hidden |= ShipMesh.POS_X if end == 1 else ShipMesh.NEG_X
+	return hidden | under_skin(area, platform.height - ShipArt.PLANK, platform.height)
+
+
+## The sides of a box over [param area] from [param bottom] to [param top] — of
+## [constant ShipMesh.POS_Z] and [constant ShipMesh.NEG_Z] — that stand just inside the
+## hull's skin, less than SKIN_GAP in from it all over: a wall's outside against her
+## shell, which no eye ever stands between. ShipArt leaves them undrawn, for seen from
+## afar a face that near the skin ties it in depth and shows through it (#454).
+func under_skin(area: Rect2, bottom: float, top: float) -> int:
+	var hidden := 0
+	for side in 2:
+		var face := area.end.y if side == 1 else -area.position.y
+		var under := true
+		for x: float in [area.position.x + SLIVER, area.get_center().x, area.end.x - SLIVER]:
+			var head := _skin_top(x, side)
+			for y: float in [bottom + SLIVER, (bottom + top) * 0.5, top - SLIVER]:
+				var gap := breadth(x, y, side) - face
+				under = under and y <= head and gap >= 0.0 and gap < SKIN_GAP
+		if under:
+			hidden |= ShipMesh.POS_Z if side == 1 else ShipMesh.NEG_Z
 	return hidden
+
+
+## How high the skin on [param side] stands at x: the deck line the loft starts down
+## from; -INF past the decks.
+func _skin_top(x: float, side: int) -> float:
+	var shape := _shape_at(x)
+	if shape.x == INF:
+		return -INF
+	return shape.z if side == 0 else shape.w
 
 
 ## The hull's half breadth on [param side] (0 port, 1 starboard) at (x, y): how far
