@@ -140,6 +140,11 @@ var _groan_strain := 0.0
 var _decks: FloodedDecks
 var _readings: Array[Reading] = [Reading.new(), Reading.new()]
 var _next_reading := 0
+## The NativeWaterFx its walks of her cells, openings and platforms go to (#410), or null
+## where they run here: the same cues either way (test_water_fx_native); and each
+## opening's middle, as it reads them.
+var native: Object = WaterFxNative.made()
+var _opening_centres := PackedVector3Array()
 
 
 ## What a pose's water says of each cell — over its floor — and of each opening —
@@ -202,6 +207,7 @@ func _watch_structure(structure: ShipStructure) -> void:
 			continue
 		_openings.append(opening)
 		_opening_halves.append(opening.size * 0.5)
+		_opening_centres.append(opening.centre)
 		for place: StringName in opening.joins:
 			_sides.append(structure.cell_named(place))
 		_shut.append(1 if index >= openings.size() - failing.size() else 0)
@@ -559,6 +565,9 @@ func _water_coming_on(
 	var cells := _keeps_cells(pose_then) and _keeps_cells(pose_now)
 	var then := _reading(pose_then) if cells else null
 	var now := _reading(pose_now) if cells else null
+	if native != null:
+		_water_natively(cells, then, now, pose_then, pose_now, tick, cues)
+		return
 	# A slot whose water stays off, already seen off and not yet due to be heard again,
 	# is passed over: there _comes_on would change nothing and say no.
 	if cells:
@@ -597,6 +606,49 @@ func _water_coming_on(
 		cues.append(pour)
 
 
+## _water_coming_on, the extension walking every slot: the cues of those it hears coming
+## on, in its order.
+func _water_natively(
+	cells: bool,
+	then: Reading,
+	now: Reading,
+	pose_then: ShipPose,
+	pose_now: ShipPose,
+	tick: int,
+	cues: Array[AudioCue]
+) -> void:
+	var none := PackedByteArray()
+	var found: Array = native.coming_on(
+		then.over + then.pouring if cells else none,
+		now.over + now.pouring if cells else none,
+		_floors.size() if cells else -1,
+		_decks.of(pose_then),
+		_decks.of(pose_now),
+		_platform_slots,
+		_heard,
+		_off_since,
+		tick,
+		_cell_rearm,
+		_pour_rearm
+	)
+	_heard = found[0]
+	_off_since = found[1]
+	var floors := _floors.size() if cells else 0
+	var platforms := _layout.platforms.size()
+	for came: int in found[2]:
+		if came < floors:
+			_flood_at(_floors[came], tick, cues)
+		elif came < floors + platforms:
+			var platform := _layout.platforms[came - floors]
+			var middle := platform.area.get_center()
+			_flood_at(Vector3(middle.x, platform.height, middle.y), tick, cues)
+		else:
+			var pour := AudioCue.new(AudioCue.Kind.POUR, tick)
+			pour.positional = true
+			pour.position = _openings[came - floors - platforms].centre
+			cues.append(pour)
+
+
 ## What [param pose]'s water says of every cell and opening: the one kept for it, or —
 ## for a new pose — read now in place of the older of the two kept. A cell's water is
 ## over its floor when it stands SHOWS over the floor's lowest corner. An opening carries
@@ -620,6 +672,9 @@ func _reading(pose: ShipPose) -> Reading:
 	var along := absf(row.z)
 	var rise := pose.transform.origin.y
 	var levels := pose.levels
+	if native != null:
+		_read_natively(reading, pose, levels)
+		return reading
 	reading.over.resize(_floors.size())
 	for cell in _floors.size():
 		var half := _floor_halves[cell]
@@ -651,6 +706,36 @@ func _reading(pose: ShipPose) -> Reading:
 		):
 			reading.pouring[index] = 1
 	return reading
+
+
+## _reading's walk of every cell and opening, the extension's: those open of the openings
+## it finds pouring were they open.
+func _read_natively(reading: Reading, pose: ShipPose, levels: PackedFloat64Array) -> void:
+	var basis := pose.transform.basis
+	var row := PackedFloat64Array([absf(basis.x.y), absf(basis.y.y), absf(basis.z.y)])
+	# Each point's dot with the turn's row of heights, as the y of the turn alone.
+	var turned := Transform3D(basis, Vector3.ZERO)
+	var found: PackedByteArray = native.reading(
+		turned * _floors,
+		_floor_halves,
+		levels,
+		row,
+		pose.transform.origin.y,
+		_sides,
+		turned * _opening_centres,
+		_opening_halves,
+		SHOWS,
+		POURS
+	)
+	reading.over = found.slice(0, _floors.size())
+	reading.pouring = found.slice(_floors.size())
+	var index := reading.pouring.find(1)
+	while index != -1:
+		var opening := _openings[index]
+		var failed: int = pose.opened.get(opening.name, 0)
+		if failed == 0 and (_shut[index] == 1 or pose.doors_shut.get(opening.name, 0.0) >= 1.0):
+			reading.pouring[index] = 0
+		index = reading.pouring.find(1, index + 1)
 
 
 ## A flood from [param at].

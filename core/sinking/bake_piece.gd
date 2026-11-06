@@ -165,13 +165,21 @@ func events() -> Array[SinkTimeline.Event]:
 func gaps_of(at: FloodState, more := PackedFloat64Array()) -> PackedFloat64Array:
 	var gaps := PackedFloat64Array()
 	gaps.resize(_cells + _names.size())
+	# room() and the sills, the stepper's arrays read once: this runs at every step.
+	var floors := stepper.floors()
+	var ceilings := stepper.ceilings()
+	var capacities := stepper.capacities()
+	var sills := stepper.sills()
+	var water := at.water
+	var heads := at.heads
 	for cell in _cells:
-		gaps[cell] = room(cell, at.water[cell])
+		var full := capacities[cell]
+		gaps[cell] = (full - water[cell]) * (ceilings[cell] - floors[cell]) / full
 	for index in _names.size():
 		var sides := _sides[index]
-		var first := at.sea if sides.x == SinkStepper.OUTSIDE else at.heads[sides.x]
-		var second := at.sea if sides.y == SinkStepper.OUTSIDE else at.heads[sides.y]
-		gaps[_cells + index] = stepper.sill_of(index) - maxf(first, second)
+		var first := at.sea if sides.x == SinkStepper.OUTSIDE else heads[sides.x]
+		var second := at.sea if sides.y == SinkStepper.OUTSIDE else heads[sides.y]
+		gaps[_cells + index] = sills[index] - maxf(first, second)
 	if _sea.air:
 		for cell in _cells:
 			gaps.append(stepper.highest_top(cell) - at.heads[cell])

@@ -105,6 +105,11 @@ func breadth(x: float, y: float, side: int) -> float:
 	return _layout.structure.half_breadth(x, y, side * 2 - 1)
 
 
+## No head over her shell's own: over her sheer it has no breadth.
+func _skin_top(_x: float, _side: int) -> float:
+	return INF
+
+
 ## Each of [param sections]' sides, starboard then port, from her keel to her sheer,
 ## as many points up each (SIDE_POINTS, SIDE_SPACING).
 static func shell_sides(sections: Array[HullSection]) -> Array[PackedVector2Array]:

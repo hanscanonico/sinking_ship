@@ -60,6 +60,7 @@ ExtResource("7_sure"): 0.7
 })
 hysteresis = 0.15
 detour_after_s = 1.0
+narrow_stair_m = 1.0
 eye_height_m = 1.6
 hearing_m = 6.0
 memory_seconds = 3.0
