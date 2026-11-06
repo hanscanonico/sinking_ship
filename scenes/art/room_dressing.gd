@@ -848,7 +848,6 @@ static func lifebelt(mesh: ShipMesh, centre: Vector3, normal: Vector3) -> void:
 ## head, naming the room beyond as the HUD names it: an enamel plate in a brass rim
 ## in [param mesh], its letters a Label3D under [param signs].
 func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
-	var font := ThemeDB.fallback_font
 	var runs := _space.wall_runs(room)
 	for side in 4:
 		for gap: Vector2 in _gaps(room, side, runs):
@@ -856,7 +855,7 @@ func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 			if other == -1 or CargoHold.headroom(_space, room) < SIGN_HEIGHT:
 				continue
 			var text := String(_layout.rooms[other].name).capitalize()
-			var width := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, SIGN_FONT).x
+			var width := SignText.line_size(text, SIGN_FONT).x
 			var half := Vector2(width * SIGN_PIXEL * 0.5 + 0.05, 0.075)
 			var out := ShipSpace.outward(side)
 			var normal := Vector3(-out.x, 0.0, -out.y)
