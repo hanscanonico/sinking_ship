@@ -195,12 +195,28 @@ jobs:
         with:
           python-version: "3.12"
 
+      # mingw-w64 is 133 MB from the mirror, more than a slow one serves in
+      # ci_apt_install's limit (#465), so its .debs are cached: keyed on the runner
+      # image and the package list, and on a new image any older entry is restored,
+      # its .debs installed only where the image lacks that version. A miss, or a
+      # restore that will not install, takes the mirror and saves what it fetched.
+      - name: Runner image
+        id: image
+        run: echo "id=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+
+      - name: Cache mingw-w64 packages
+        uses: actions/cache@v4
+        with:
+          path: ~/mingw-debs
+          key: mingw-debs-v1-${{ steps.image.outputs.id }}-g++-mingw-w64-x86-64
+          restore-keys: mingw-debs-v1-
+
       # Bounded the same way; tools/ci_apt_install.sh retries a hung apt (#459).
       - name: Install SCons and mingw-w64
         timeout-minutes: 15
         run: |
           pip install --retries 5 --timeout 30 scons
-          tools/ci_apt_install.sh g++-mingw-w64-x86-64
+          CI_APT_DEBS=~/mingw-debs tools/ci_apt_install.sh g++-mingw-w64-x86-64
 
       - name: Cache godot-cpp
         uses: actions/cache@v4
