@@ -25,13 +25,21 @@
 # Perl's flock on descriptor $1 with operation $2, given up after $3 seconds when $3 is
 # above 0: the alarm ends a blocked flock by ending Perl (a handler of Perl's own would
 # never run, as Git Bash's runtime goes back into the flock), and the group's stderr
-# takes the shell's word on it.
+# takes the shell's word on it. Perl says "held" once it holds the lock, and only that
+# is a success: on Windows a Perl ended from outside (TerminateProcess) reads as exit 0,
+# and holds nothing (#464). It is exec'd in the substitution's place, with no
+# redirection of its own there: on Git Bash a Perl a level further down, under a
+# subshell of its own, leaves no lock behind once it ends.
 fd_lock_perl() {
+	local said status
 	{
-		perl -MFcntl=:flock -e \
+		said=$(exec perl -MFcntl=:flock -e \
 			'alarm($ARGV[2] // 0); open(my $fh, ">&=", $ARGV[0]) or exit 2;
-			exit(flock($fh, $ARGV[1]) ? 0 : 1)' "$@"
+			flock($fh, $ARGV[1]) or exit 1; $| = 1; print "held\n"; exit 0' "$@")
 	} 2>/dev/null
+	status=$?
+	((status == 0)) && [[ "$said" != held ]] && return 2
+	return "$status"
 }
 
 fd_lock_watch() {
