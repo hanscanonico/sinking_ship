@@ -400,12 +400,13 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 			RAMP_TOLERANCE
 		)
 		_costs.timed("ramp", index, since)
+	# The hull ShipArt drew her with: a wall's side under its skin is left undrawn.
+	var hull := SectionHull.of(ShipSpace.new(layout), rules.railing_height)
 	for index in layout.blockers.size():
 		if _mine("blocker", index):
 			since = Time.get_ticks_usec()
-			_check_blocker(
-				faces, cells, "%s blocker %d" % [file, index], layout.blockers[index], layout
-			)
+			var blocker := layout.blockers[index]
+			_check_blocker(faces, cells, "%s blocker %d" % [file, index], blocker, layout, hull)
 			_costs.timed("blocker", index, since)
 	for index in layout.ladders.size():
 		if _mine("ladder", index):
@@ -786,12 +787,15 @@ func _check_tops(
 ## [param blocker]'s faces against the drawn ship: rays across each side at a spread
 ## of points, onto its top, and under a lintel; each probe is a point on a face and
 ## the way out of it. A boat stowed on chocks fills its box as a boat does (BoatCheck).
+## A wall's side just under [param hull]'s skin is not drawn (ShipHull.under_skin), so
+## not probed.
 func _check_blocker(
 	faces: PackedVector3Array,
 	cells: Dictionary,
 	what: String,
 	blocker: ShipBlocker,
-	layout: ShipLayout
+	layout: ShipLayout,
+	hull: ShipHull
 ) -> void:
 	_checks += 1
 	var probes: Array[Array] = []
@@ -822,12 +826,17 @@ func _check_blocker(
 				deck = maxf(deck, platform.height)
 		if blocker.bottom > deck + 0.5:
 			probes.append([Vector3(middle.x, blocker.bottom, middle.y), Vector3.DOWN])
+		var hidden := 0
+		if space.is_wall(blocker):
+			hidden = hull.under_skin(area, blocker.bottom, blocker.top)
 		for fraction: float in [0.2, 0.5, 0.8]:
 			var x := lerpf(area.position.x, area.end.x, fraction)
 			var z := lerpf(area.position.y, area.end.y, fraction)
 			for height in heights:
-				probes.append([Vector3(x, height, area.position.y), Vector3.FORWARD])
-				probes.append([Vector3(x, height, area.end.y), Vector3.BACK])
+				if hidden & ShipMesh.NEG_Z == 0:
+					probes.append([Vector3(x, height, area.position.y), Vector3.FORWARD])
+				if hidden & ShipMesh.POS_Z == 0:
+					probes.append([Vector3(x, height, area.end.y), Vector3.BACK])
 				probes.append([Vector3(area.position.x, height, z), Vector3.LEFT])
 				probes.append([Vector3(area.end.x, height, z), Vector3.RIGHT])
 	var worst := 0.0
