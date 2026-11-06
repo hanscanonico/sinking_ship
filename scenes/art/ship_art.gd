@@ -304,7 +304,7 @@ func build_frame(
 		if mesh.kept(reach.x, reach.y):
 			_blocker(mesh, blocker, pieces, hull)
 	if rules != null:
-		DeckWorks.rig(mesh, layout, rules, span, _funnels, pieces)
+		DeckWorks.rig(mesh, layout, rules, span, _funnels, pieces, _space)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
 	_wreckage = RailingRemains.new(layout, railing_height, cap, Vector2.ONE * MID_RAIL, POST)
 	for index in layout.railings.size():
