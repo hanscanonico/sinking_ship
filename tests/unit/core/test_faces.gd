@@ -152,13 +152,12 @@ func test_door_in_a_floor_is_a_hole() -> void:
 	var step := SimFixtures.rules().step_height
 	assert_ne(walls.under(beside, step), Surfaces.NONE, "the wall holds a body beside it")
 	assert_eq(walls.under(over, step), Surfaces.NONE, "the doorway holds none")
-	# A body walking across it falls through, out of the room. (A run's stride carries
-	# a body over the doorway, onto the wall past it, a step under its feet.)
+	# A body walking across it falls through, out of the room.
 	var sim := _held(90.0, Vector3(-2.0, 1.2, 0.0))
 	SimFixtures.step(sim, {}, 2 * Ticks.RATE)
 	var body := sim.state.seats[0]
 	assert_almost_eq(body.pos.z, STARBOARD_FACE, 1e-4, "on the wall first")
-	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2(0.5, 0.0), 0, 0.0)}, Ticks.RATE)
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2(1.0, 0.0), 0, 0.0)}, Ticks.RATE)
 	assert_gt(body.pos.z, STARBOARD_FACE + 0.5, "through the doorway, under the wall")
 
 

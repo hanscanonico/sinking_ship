@@ -349,8 +349,10 @@ func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> voi
 ## Whatever stops a body — a blocker, a wall, a deck edge too high to step onto —
 ## pushes it back out in the deck plane and takes the velocity into it. It is met at
 ## the height the feet stood at before this tick's move, so a fall lands on a deck
-## in _ground rather than being pushed off its edge. A swimmer steps as a swimmer
-## does (_swim_step). A body on its feet ducks under whatever it has a floor to crawl
+## in _ground rather than being pushed off its edge. A body in the air steps onto
+## nothing: an edge over its feet holds it off from outside, rather than letting its
+## middle in over the edge and pushing it back out a tick later (#472). A swimmer steps
+## as a swimmer does (_swim_step). A body on its feet ducks under whatever it has a floor to crawl
 ## under (Surfaces.obstacle_contacts), and crawls there (height_of); a body off them is
 ## held by what its height there meets. A crate is held to as a wall is, unless the body
 ## slams into it (Hazards.slams): out of it then, it goes on at the speed the two part
@@ -376,7 +378,9 @@ func _blockers(
 		if player.body != PlayerState.Body.GROUNDED:
 			height = height_of(player)
 			crawl = INF
-		if player.body == PlayerState.Body.SWIMMING:
+		if player.body == PlayerState.Body.AIRBORNE:
+			step = 0.0
+		elif player.body == PlayerState.Body.SWIMMING:
 			step = _swim_step(feet, pose_now.water_height(feet))
 		var contacts := _surfaces.obstacle_contacts(
 			feet, _rules.body_radius, height, step, Surfaces.NONE, crawl
@@ -583,9 +587,7 @@ func _hold(player: PlayerState, contact: Surfaces.Contact) -> void:
 
 ## What each body stands on. A grounded body follows its surface up and down
 ## within step_height; past an edge deeper than that it falls. A falling body lands
-## on the highest surface it comes down onto, or one within step_height over its feet —
-## a deck edge _blockers let it step in over, so it is never pushed back out through it
-## a tick later (#472) — staggered by the drop — a jump's by
+## on the highest surface it comes down onto, staggered by the drop — a jump's by
 ## the drop below where it left, so its own height costs nothing. A swimmer's height
 ## is the water's (_water).
 func ground(
@@ -609,7 +611,7 @@ func ground(
 		if player.vel.y > 0.0:
 			continue
 		var below := _surfaces.landing(
-			Vector3(player.pos.x, feet_before[player.seat] + _rules.step_height, player.pos.z)
+			Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
 		)
 		if below == Surfaces.NONE:
 			continue

@@ -84,33 +84,35 @@ func _steamer_bridge() -> Rect2:
 	return layout.platforms[SimFixtures.platform_named(layout, &"bridge")].area
 
 
-## A body falling past the steamer's bridge's aft edge, its feet within a step under the
-## deck, flying forward over it: what it was let step into it lands on, the step a walker
-## takes up onto it — never pushed back out through the edge it came over, a tick after
-## its middle crossed (#472).
-func test_a_body_falling_in_over_a_deck_edge_within_a_step_lands_on_it() -> void:
+## A body falling past the steamer's bridge's aft edge, its feet a little under the deck,
+## flying forward into it: held off the edge from outside, its circle against it, every
+## tick on — never let in over it with its middle and pushed back out (#472) — and down
+## to the boat deck.
+func test_a_body_falling_into_a_deck_edge_is_held_off_it() -> void:
 	var rules := SimFixtures.rules()
 	var layout := SimFixtures.steamer()
 	var edge := _steamer_bridge().position.x
 	var deck := layout.platforms[SimFixtures.platform_named(layout, &"bridge")].height
+	var below := layout.platforms[SimFixtures.platform_named(layout, &"boat deck")].height
 	var sim := SimFixtures.sim(1, null, layout)
-	var start := Vector3(edge - 0.25, deck - rules.step_height * 0.4, 0.0)
+	var start := Vector3(edge - 0.6, deck - rules.step_height * 0.4, 0.0)
 	SimFixtures.fly(sim, 0, start, Vector3(2.0, 0.0, 0.0))
 	var x := start.x
-	for tick in 12:
+	for tick in 30:
 		SimFixtures.step(sim)
 		var body := sim.state.seats[0]
-		assert_gte(body.pos.x, x, "tick %d: on forward, never back through the edge" % tick)
+		assert_gte(body.pos.x, x, "tick %d: on forward, never back out" % tick)
+		assert_lte(body.pos.x, edge - rules.body_radius + 1e-4, "tick %d: off the edge" % tick)
 		x = body.pos.x
 	var body := sim.state.seats[0]
 	assert_eq(body.body, PlayerState.Body.GROUNDED, "landed")
-	assert_almost_eq(body.pos.y, deck, 0.0001, "on the bridge, not the boat deck under it")
-	assert_gt(body.pos.x, edge, "over its edge")
+	assert_almost_eq(body.pos.y, below, 0.0001, "on the boat deck, not up on the bridge")
+	assert_almost_eq(body.pos.x, edge - rules.body_radius, 0.0001, "against its edge")
 
 
 ## A body dropping straight down past the steamer's bridge's aft edge, its middle off it and
-## its circle over it, its feet within a step under the deck: pushed out of the edge as its
-## feet drop below a step, only ever away from the deck, down to the boat deck (#472).
+## its circle over it, its feet a little under the deck: pushed out of the edge, only ever
+## away from the deck, down to the boat deck (#472).
 func test_a_body_dropping_past_a_deck_edge_moves_only_away_from_it() -> void:
 	var rules := SimFixtures.rules()
 	var layout := SimFixtures.steamer()
