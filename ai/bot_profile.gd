@@ -43,6 +43,7 @@ const NON_NEGATIVE: Array[String] = [
 	"guard_range_m",
 	"ride_margin_m",
 	"detour_after_s",
+	"narrow_stair_m",
 	"hysteresis",
 	"eye_height_m",
 	"hearing_m",
@@ -121,6 +122,10 @@ const NON_NEGATIVE: Array[String] = [
 ## How long, in seconds, a bot making for a stair across an open deck goes without
 ## headway before it goes round through the rooms beside the deck.
 @export var detour_after_s: float
+## Up or down a stair no wider than this, in metres, along its route, a bot walks the
+## stair's middle and keeps off its open sides by that alone (BotStair): the easy tier's
+## wide edge margin and late reckoning would walk it off a ladder's side. 0 for none.
+@export var narrow_stair_m: float
 ## How often, per second, a bot lapses: for mistake_seconds it walks a heading of
 ## its own stream's choosing, still keeping off the water — and off open drops too,
 ## but for the share heedless_lapses of its lapses, which may take it off an unrailed
