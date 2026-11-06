@@ -100,10 +100,10 @@ const LAID := 0.2
 ## short of it.
 const HAWSE_IN := 0.8
 ## How much of the deck a hawse pipe a cable holder's cable is led to keeps outboard of it:
-## the pipe leads down and out through her bow to the anchor in her side (est.; the
-## Titanic's Plate IV draws her mouths' forward ends 2.2 m in from her side, and her shell
-## stands 0.6 m inside it there).
-const HAWSE_SIDE := 1.25
+## the pipe leads down and out through her bow to the anchor in her side: the Titanic's
+## Plate IV draws her mouths' forward ends 2.2 m in from her side, where her forecastle
+## head's deck stands 5 cm in from it (her shell on the plate's side since #318).
+const HAWSE_SIDE := 2.15
 const SPURLING_IN: Array[float] = [3.6, 3.0, 2.4, 1.8, 1.2]
 ## The gear a cable is worked by where a fore deck carries it (DeckFurniture.GEAR): a
 ## windlass drum, or cable holder, on its bedplate, the cable led down through it to the

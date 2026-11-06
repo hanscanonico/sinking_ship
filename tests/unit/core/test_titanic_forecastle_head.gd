@@ -2,7 +2,8 @@ extends GutTest
 ## The Titanic's forecastle head (#469), from her fo'c'sle step to her stem: a body walks it
 ## out to her stem along her side as Plate IV draws it, and it never stands past her shell.
 ## She was laid in 3 m strips, each as narrow as her hull at its forward end, ending 2.8 m
-## short of her stem.
+## short of her stem. Her shell there is the plate's side too, where her lines (est.) once
+## stood it 0.3-0.6 m inside it (the owner's ruling of 2026-11-06).
 
 ## Her forecastle head's deck (tools/gen_titanic.py's FCSL[1]).
 const HEAD := 4.9375
@@ -79,3 +80,16 @@ func test_her_forecastle_head_follows_her_plate_s_side_inside_her_shell() -> voi
 			)
 			assert_lte(deck, side, "inside her plate's side and her shell " + at)
 			assert_gt(deck, side - SIDE_SHORT, "out to her plate's side or her shell " + at)
+
+
+func test_her_forecastle_head_s_shell_is_her_plate_s_side() -> void:
+	var tolerance := _layout.structure.section_tolerance
+	for station: Vector2 in PLATE:
+		for way: float in [-1.0, 1.0]:
+			var shell := _layout.structure.half_breadth(station.x, HEAD - 0.001, int(way))
+			assert_almost_eq(
+				shell,
+				station.y,
+				tolerance,
+				"her shell at x %.2f, side %d, against her plate's side" % [station.x, way]
+			)

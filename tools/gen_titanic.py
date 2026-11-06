@@ -706,12 +706,12 @@ def breadth(x, y):
     """Her half breadth at (x, y): under her lowest plan, Fig. 22's bilge carried out to the
     plan's side and in to her estimated keel run, never fuller than her lines scaled to that
     side; from it up to F deck, or to E deck where F deck widened her, her plates; over that
-    her lines and her counter."""
+    her lines and her counter, and her forecastle head's flare out to Plate IV's side."""
     if y < KEEL or x >= stem_x(y) or x <= stern_x(y):
         return 0.0
     ys, zs = low_nodes(x)
     if y >= ys[-1]:
-        return lines_half(x, y)
+        return lines_half(x, y) + head_flare(x, y)
     if y >= ys[0]:
         side = fair(ys, zs, y)
         # Over her load waterline forward, never in from her lines: F deck's rooms stand.
@@ -775,6 +775,24 @@ POOP = q(B_DECK + 0.56)                    # SB-III: C's sheer at x −107…−
 # Each (from x, the deck's height forward of it).
 D_SHEER = [(B_RUN[1], -1.25)]
 C_SHEER = [(B_RUN[1], 1.5625)]
+# Her forecastle head's side as Plate IV draws it (forecastle.py's SIDE, #469), 0.3-0.6 m
+# fuller at its deck than her lines (est.) there (the owner's ruling of 2026-11-06: the plate
+# is truth). Up her forecastle's side from C deck's sheer forward, under which her plates
+# and the rooms traced off them stand as they did, her lines take the plate's excess over
+# theirs at the head in proportion, so her side flares out to the plate's at her forecastle
+# head, from the foot of the step up to it (FC_RAMP), so the step stands as wide as the
+# head it climbs to.
+FCSL_PLAN = plates.load("forecastle")
+FLARE_FOOT = C_SHEER[0][1]
+
+def head_flare(x, y):
+    """How much fuller than her lines her side stands at (x, y) up her forecastle head."""
+    if x < FC_RAMP[0] or y <= FLARE_FOOT:
+        return 0.0
+    side = station(FCSL_PLAN.side, x)
+    if side is None:
+        return 0.0
+    return max(side - lines_half(x, FCSL[1]), 0.0) * min((y - FLARE_FOOT) / (FCSL[1] - FLARE_FOOT), 1.0)
 
 def stepped(flat, steps, x, up=False):
     """A deck's height at x, flat aft of its first step, each step's height forward of it: on a
@@ -1677,11 +1695,11 @@ def section_cuts(a, b):
 # Her forecastle head forward of that to her stem as Plate IV draws her side (forecastle.py's
 # SIDE), never past her shell: her sections' (HullSection, ShipStructure.half_breadth),
 # each its middle's breadth, lerped between their middles and closing onto her stem past
-# the last (#469). Her plate draws her 0.3-0.6 m fuller than her shell there (est., her lines
-# over E deck), so her shell holds the deck in. In strips FC_HEAD_STRIP long, each as wide
+# the last (#469). Her shell there flares out to the plate's side (head_flare()), so the deck
+# takes the plate's width, her sections' lerp between their middles holding it in by a few
+# centimetres where she narrows fastest. In strips FC_HEAD_STRIP long, each as wide
 # as both let it be at its forward end, so it narrows as she does; to where it stands
 # FC_HEAD_LEAST wide either side of her centre line, a few tenths short of her stem.
-FCSL_PLAN = plates.load("forecastle")
 FC_HEAD_STRIP = 0.5
 FC_HEAD_LEAST = 0.15
 FC_HEAD_MARGIN = 0.05
