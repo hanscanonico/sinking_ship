@@ -195,6 +195,25 @@ func above_water(ship_point: Vector3) -> float:
 	return world_height(ship_point)
 
 
+## How far [param ship_point] stands above the water there is in her now, in world metres:
+## its cell's, or, while that cell holds none, the water of the first cell under it that
+## holds some — INF while every cell down to her hull is dry, the sea outside her not yet in
+## her. Outside every cell, the sea's, as above_water. What a bot weighs a room by before it
+## goes in (BotBonuses), where above_water is what is coming for the floor.
+func above_water_held(ship_point: Vector3) -> float:
+	var under := ship_point
+	var cell := cell_at(under)
+	if cell == CellMap.NONE:
+		return world_height(ship_point)
+	while cell != CellMap.NONE:
+		under.y = cells.floor_of(cell)
+		if levels[cell] > world_height(under) + CellMap.DRY:
+			return world_height(ship_point) - levels[cell]
+		under.y -= CellMap.DRY
+		cell = cells.cell_at(under)
+	return INF
+
+
 ## above_water() of a point [param height] up in the world (world_height), every height
 ## it reads found already (StillPoints): the cells under it down to the sea are
 ## [param cells_down] from [param from] to [param to] (CellMap.cells_under), and the

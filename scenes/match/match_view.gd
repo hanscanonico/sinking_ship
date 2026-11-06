@@ -11,7 +11,8 @@ extends Node3D
 ## its spot, in greybox (BonusGreybox, #307), and every seat with a bonus wearing its kind's
 ## mark (Brawler.wear_bonus). Once she has broken
 ## (SH33) a seat stands in the space of its piece, where that piece's pose has it in the
-## world. It never moves a body itself, and never reads a live PlayerState.
+## world, and a bonus lies in the space of the piece its spot is on (lying_to_world). It
+## never moves a body itself, and never reads a live PlayerState.
 
 ## The seat colours now live in ArtPalette; this name stays for code outside the art.
 const SEAT_COLOURS: Array[Color] = ArtPalette.SEAT_COLOURS
@@ -59,6 +60,9 @@ var _layout: ShipLayout
 ## seat with one wears: none in a match without bonuses.
 var _bonus_greybox: BonusGreybox
 var _bonus_kinds: Array[BonusKind] = []
+## Once she breaks, per piece she ends in, where its space is drawn in the ship's own
+## node's (BonusGreybox.show_bonuses); none while she is drawn whole.
+var _bonus_pieces: Array[Transform3D] = []
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
 ## The seat this player plays: drawn where its prediction has it, but for a
@@ -148,7 +152,8 @@ func setup(
 		_bonus_greybox = BonusGreybox.new()
 		_bonus_greybox.name = "Bonuses"
 		_ship.add_child(_bonus_greybox)
-	_bonus_greybox.setup(ship, sim.config.bonus_rules)
+	_bonus_greybox.setup(ship, sim.config.bonus_rules, _schedule)
+	_bonus_pieces.resize(leaves.size())
 	_bonus_kinds.clear()
 	if sim.config.bonus_rules != null:
 		_bonus_kinds.assign(sim.config.bonus_rules.kinds)
@@ -396,6 +401,26 @@ func piece_to_world(at: int) -> Transform3D:
 	return piece_node(at).global_transform
 
 
+## Where something lying at [param point] of her ship space — a bonus at its spot — is
+## drawn: the space of the piece she ends in that it lies on (ShipPieces.leaf_at) to the
+## world; ship_to_world while she is whole.
+func lying_to_world(point: Vector3) -> Transform3D:
+	return piece_to_world(ShipPieces.leaf_at(_schedule, point.x))
+
+
+## The place in ShipPieces.leaves_of of the piece of her the world point [param world] lies
+## on as she is drawn now: the first whose space puts it on that piece (ShipPieces.leaf_at)
+## — 0, the ship's own node's, while she is whole, or for a point on none of them.
+func leaf_holding(world: Vector3) -> int:
+	if not _broken:
+		return 0
+	for at in _bonus_pieces.size():
+		var point := piece_to_world(at).affine_inverse() * world
+		if ShipPieces.leaf_at(_schedule, point.x) == at:
+			return at
+	return 0
+
+
 func _on_corrected(by: Vector3) -> void:
 	_smoother.absorb(by)
 
@@ -420,7 +445,11 @@ func _process(delta: float) -> void:
 		lerpf(previous["tick"], current["tick"], alpha), current["railing_hp"], pose_then, alpha
 	)
 	_show_props(previous, current, alpha)
-	_bonus_greybox.show_bonuses(current)
+	if _broken:
+		var root := _ship.global_transform.affine_inverse()
+		for at in _bonus_pieces.size():
+			_bonus_pieces[at] = root * piece_to_world(at)
+	_bonus_greybox.show_bonuses(current, _bonus_pieces)
 	var seats_then: Array = previous["seats"]
 	var seats_now: Array = current["seats"]
 	var carried := {}

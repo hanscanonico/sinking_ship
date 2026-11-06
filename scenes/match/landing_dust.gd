@@ -4,7 +4,8 @@ extends Node3D
 ## event at the feet its snapshot puts there (D5), and a bigger one for a harder
 ## landing. Never under the seat whose eyes the view is in, as MatchView draws no
 ## body there (D14). And a burst of splinters from the middle of a railing span as
-## it breaks (RailingBroke, SH10). Presentation only (D12): it moves nothing.
+## it breaks (RailingBroke, SH10). Once she has broken (SH33), each on the piece of her it
+## comes from (#460). Presentation only (D12): it moves nothing.
 
 const COLOUR := Color(0.78, 0.74, 0.66, 0.55)
 const GRAINS := 14
@@ -47,12 +48,13 @@ func _on_stepped(events: Array[SimEvent]) -> void:
 			var middle := config.ship.railing_middle(
 				event.railing, config.rules.railing_height * 0.5
 			)
-			var puff := _puff(_view.ship_to_world() * middle, SPLINTER_STAGGER)
+			var puff := _puff(_view.lying_to_world(middle) * middle, SPLINTER_STAGGER)
 			puff.color = SPLINTER
 		if event.kind != SimEvent.Kind.LANDED or event.seat == _view.eye_seat():
 			continue
 		var feet: Vector3 = _driver.current["seats"][event.seat]["pos"]
-		_puff(_view.ship_to_world() * feet, event.stagger_ticks)
+		var world := _view.global_transform * _view.seat_to_world(event.seat)
+		_puff(world * feet, event.stagger_ticks)
 
 
 func _puff(at: Vector3, stagger_ticks: int) -> CPUParticles3D:

@@ -666,10 +666,25 @@ func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 		# gear room's capstan gear with it.
 		var own := [Kind.ENGINE, Kind.HOLD, Kind.DINING, Kind.BATH]
 		if _kinds[index] not in own + [Kind.SHAFT, Kind.LOCKER]:
-			FurnitureDressing.build(mesh, room, _space.furniture(room))
+			furnish(mesh, _space, room)
 		var signed := [Kind.ENGINE, Kind.BOILER, Kind.HOLD, Kind.PASSAGE, Kind.FIRST_CORRIDOR]
 		if _kinds[index] in signed:
 			_signs(mesh, signs, room)
+
+
+## [param room]'s furniture on [param space] (ShipSpace.furniture()), into [param mesh]:
+## a box over one of her structure's hatch openings in its floor (DeckFurniture.
+## is_hatch_cover) is the hatch's cover, battened under its tarpaulin as on her open decks
+## (DeckWorks.hatch) — the Titanic's D deck covers under her forward well —; every other
+## piece is FurnitureDressing's.
+static func furnish(mesh: ShipMesh, space: ShipSpace, room: ShipRoom) -> void:
+	var pieces: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in space.furniture(room):
+		if DeckFurniture.is_hatch_cover(space.layout, blocker):
+			DeckWorks.hatch(mesh, blocker.area, blocker.bottom, blocker.top)
+		else:
+			pieces.append(blocker)
+	FurnitureDressing.build(mesh, room, pieces)
 
 
 ## The next lower-deck cabin, [param room] with [param glass]: _cabin() numbered on
