@@ -14439,8 +14439,8 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_foremast" type="CSGCylinder3D" parent="Blockers" unique_id=707817604]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.75, 24.3125, 0)
-radius = 0.6
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.5, 24.3125, 0)
+radius = 0.375
 height = 40.0
 sides = 16
 material = SubResource("StandardMaterial3D_jiew5")

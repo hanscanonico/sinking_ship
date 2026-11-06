@@ -1763,12 +1763,11 @@ for k, (x0, x1, _z0, half) in enumerate([p for p in A_PIECES if p[1] > SCREEN_RU
             *sorted((sign * half, sign * (half - 2 * T))), A_DECK, BOAT)
 for k, x in enumerate(FUNNELS):
     cylinder("funnel_%d" % (k + 1), x, 0.0, FUNNEL_RADIUS, FUNNEL_FOOT, FUNNEL_TOP)
-# The foremast up through the forecastle, as stout as before (est., SB-III) and as her
-# mainmast, its after face where the forecastle's plan draws its ring's, hard on the steam
-# windlass's forward face (Plate IV px 9346, FCSL_PLAN). The plan's ring is 0.75 m across:
-# a mast that slight would stand 0.25 m further aft.
+# The foremast up through the forecastle, as the forecastle's plan draws its ring: 0.75 m
+# across (Plate IV px 9346-9374, FCSL_PLAN; the owner's ruling of 2026-11-06), its after
+# face hard on the steam windlass's forward face.
 FCSL_PLAN = plates.load("forecastle")
-FOREMAST = 0.6
+FOREMAST = 0.375
 cylinder("foremast", q(plates.kept(FCSL_PLAN.view.x(9346)) + FOREMAST), 0.0, FOREMAST, FCSL[0], FCSL[0] + 40.0)
 # The mainmast, up through A deck's after end and B deck's after second-class entrance,
 # where A deck's plan draws its circle (Plate III px 2385). B deck's plan draws its own
