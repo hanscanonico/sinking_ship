@@ -6,6 +6,9 @@
 // The stepper keeps the state: it hands over her cells' and openings' layout once, and
 // at each turn, step and change of what is open what the loops read, and every call
 // takes the heads, water and held cells it works on and gives back what it found.
+// Around the solves (sink_step_native.cpp): each opening's share open (_share_out), the
+// cells a step holds stiff (_hold_stiff), and SinkFailures' heads across each opening
+// that can fail, what gives way at them and how far each stands from it.
 
 #pragma once
 
@@ -34,7 +37,12 @@ public:
 	PackedFloat64Array turned(const PackedFloat64Array &p_up);
 	PackedInt32Array upward() const;
 	PackedFloat64Array heights(const PackedFloat64Array &p_water) const;
-	void shared(const PackedFloat64Array &p_shares);
+	void shut_times(const PackedFloat64Array &p_shut_time);
+	PackedFloat64Array shares(double p_since, const PackedFloat64Array &p_opened);
+	void watched(const PackedInt32Array &p_index, const PackedInt32Array &p_first,
+			const PackedInt32Array &p_second, const PackedFloat64Array &p_shut_time,
+			const PackedFloat64Array &p_leak, const PackedFloat64Array &p_collapse,
+			const PackedFloat64Array &p_leak_share, const PackedInt32Array &p_toward);
 	void began(const PackedInt32Array &p_pocket, const PackedFloat64Array &p_air,
 			const PackedInt32Array &p_members_from, const PackedInt32Array &p_members_count,
 			const PackedInt32Array &p_members, const PackedByteArray &p_holding,
@@ -51,6 +59,17 @@ public:
 	PackedFloat64Array sweep(bool p_reverse, const PackedFloat64Array &p_heads,
 			const PackedFloat64Array &p_water, const PackedByteArray &p_held, double p_sea,
 			double p_seconds, double p_sea_given);
+	PackedInt32Array stiff(const PackedFloat64Array &p_heads, const PackedFloat64Array &p_water,
+			const PackedByteArray &p_held, const PackedByteArray &p_holding,
+			const PackedFloat64Array &p_widest, double p_sea, double p_per_metre) const;
+	PackedFloat64Array across(const PackedFloat64Array &p_heads, const PackedFloat64Array &p_water,
+			double p_sea, const PackedFloat64Array &p_ceilings, const PackedFloat64Array &p_sills,
+			const PackedInt32Array &p_pocket, const PackedFloat64Array &p_air,
+			const PackedInt32Array &p_members_from, const PackedInt32Array &p_members_count,
+			const PackedInt32Array &p_members) const;
+	PackedFloat64Array failed(const PackedFloat64Array &p_across, const PackedFloat64Array &p_opened,
+			double p_seconds) const;
+	PackedFloat64Array failure_gaps(const PackedFloat64Array &p_across) const;
 
 	double volume(int64_t p_cell, double p_height) const;
 	double height(int64_t p_cell, double p_water) const;
@@ -92,6 +111,21 @@ private:
 	double ship_rate_ = 0.0;
 	double crest_ = 0.0;
 	double trough_ = 0.0;
+	// At the step begun, per well its edges' lowest end (ShippedWater.ships).
+	std::vector<double> lowest_;
+	// Per opening, the seconds the ship takes to shut it (SinkStepper.open_share).
+	std::vector<double> shut_time_;
+	// SinkFailures' watched openings, in its order: each one's index among the openings,
+	// its sides, the seconds the ship takes to shut it, the heads it leaks and gives way
+	// at, its leak's share of its area, and the side a hinged door opens toward.
+	std::vector<int32_t> watched_index_;
+	std::vector<int32_t> watched_first_;
+	std::vector<int32_t> watched_second_;
+	std::vector<double> watched_shut_;
+	std::vector<double> leak_;
+	std::vector<double> collapse_;
+	std::vector<double> leak_share_;
+	std::vector<int32_t> toward_;
 	// At the attitude last turned to (TiltedBox.turn, SinkStepper._turn): per cell its
 	// lowest and highest corner, shift, widths a ≥ b ≥ c, spreads counted and average
 	// surface; per opening its bottom, top and width or area.
@@ -144,6 +178,7 @@ private:
 	double levelling(int32_t p_up, int32_t p_down, const double *p_heads, double p_sill, double p_lifted) const;
 	double ship_into(int64_t p_cell, double p_level) const;
 	double ship_highest(int64_t p_cell) const;
+	double gives_way_gap(int64_t p_watched, double p_across) const;
 	double surplus_of(int64_t p_cell, double p_at, double p_water, double *p_heads);
 	double balance(int64_t p_cell, double p_water, double *p_heads);
 	bool solve_together(const std::vector<int32_t> &p_held, const double *p_water, double *p_heads);
