@@ -76,6 +76,8 @@ var _placed: Array[Transform3D] = []
 ## Follows the ship as drawn: the rents lie in it.
 var _hull: Node3D
 var _rents: Array[MeshInstance3D] = []
+## Per rent, where it lies in her, ship-local.
+var _torn: Array[Transform3D] = []
 var _next_rent := 0
 
 
@@ -103,6 +105,7 @@ func _init() -> void:
 	_sources.fill(-1)
 	_left.resize(JETS + BOILS + WELLS)
 	_placed.resize(JETS + BOILS + WELLS)
+	_torn.resize(RENTS)
 	_hull = Node3D.new()
 	_hull.name = "Rents"
 	add_child(_hull)
@@ -209,7 +212,8 @@ func play(cue: FxCue, ship: Transform3D, camera: Camera3D) -> void:
 
 ## Lays the rent [param cue] tells of in her plating, there from now on.
 func rent(cue: FxCue) -> void:
-	var rent := _rents[_next_rent]
+	var index := _next_rent
+	var rent := _rents[index]
 	_next_rent = (_next_rent + 1) % RENTS
 	var along := cue.end - cue.position
 	var up := Vector3(0.0, cue.radius * 2.0, 0.0)
@@ -217,14 +221,20 @@ func rent(cue: FxCue) -> void:
 	if along.cross(up).dot(cue.toward) < 0.0:
 		along = -along
 	var facing := along.cross(up).normalized()
-	rent.transform = Transform3D(Basis(along, up, facing), (cue.position + cue.end) * 0.5)
+	_torn[index] = Transform3D(Basis(along, up, facing), (cue.position + cue.end) * 0.5)
+	rent.transform = _torn[index]
 	rent.visible = true
 
 
 ## Lets [param delta] seconds go by with the ship drawn at [param ship]: what is
-## going stays where it is in her, and stops once nothing has kept it up for HOLD.
-func advance(ship: Transform3D, delta: float) -> void:
+## going stays where it is in her — in the piece of her it is in, once she has broken
+## ([param pieces]) — and stops once nothing has kept it up for HOLD.
+func advance(ship: Transform3D, delta: float, pieces: FxPieces = null) -> void:
 	_hull.transform = ship
+	if pieces != null:
+		for index in RENTS:
+			if _rents[index].visible:
+				_rents[index].transform = pieces.of(_torn[index].origin) * _torn[index]
 	var all := emitters()
 	for slot in all.size():
 		if not all[slot].emitting:
@@ -234,7 +244,8 @@ func advance(ship: Transform3D, delta: float) -> void:
 			all[slot].emitting = false
 			_sources[slot] = -1
 			continue
-		all[slot].global_transform = ship * _placed[slot]
+		var own := ship * pieces.of(_placed[slot].origin) if pieces != null else ship
+		all[slot].global_transform = own * _placed[slot]
 
 
 ## Nothing going, nothing torn, and nothing asked for.
