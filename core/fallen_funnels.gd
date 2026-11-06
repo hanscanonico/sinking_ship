@@ -68,6 +68,20 @@ func top_of(blocker: int, top: float) -> float:
 	return top
 
 
+## The funnels lying down as the extension takes them (ContactsNative): each one's foot,
+## its radius and height, and the way it fell.
+func native_down() -> Array:
+	var bases := PackedVector3Array()
+	var sizes := PackedFloat64Array()
+	var along := PackedVector2Array()
+	for fall: FunnelFall in _down:
+		bases.append(fall.fitting.base)
+		sizes.append(fall.fitting.radius)
+		sizes.append(fall.fitting.height)
+		along.append(fall.along)
+	return [bases, sizes, along]
+
+
 ## What the funnels lying down hold back a circle of [param radius] at [param point]
 ## (x/z) with its feet able to step to [param reach_up] and its head at [param head]:
 ## per one it reaches, out of its strip by the least way.
