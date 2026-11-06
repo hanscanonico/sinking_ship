@@ -128,18 +128,34 @@ func test_a_jump_does_not_clear_a_railing() -> void:
 func test_a_jump_reaches_the_hatch_top() -> void:
 	var rules := _rules()
 	# The steamer's hatch is 0.8 m high, x 4…8 on the main deck: a walk is stopped
-	# at its side, and a jump taken a stride short of it lands on top.
+	# at its side, and so is a jump taken a stride short of it — in the air a body steps
+	# onto nothing, so the side holds it off until its feet clear it (#472) — but one
+	# taken from further back clears the side and lands on top — a hatch as high on the
+	# flat deck, as a run-up aft of the steamer's passes under her boat deck.
 	var walked := _steamer_sim(1)
 	SimFixtures.place(walked, 0, Vector3(2.0, 0.0, 0.0), 0.0)
 	SimFixtures.step(walked, {0: SimFixtures.frame(0, Vector2.RIGHT)}, Ticks.RATE)
 	assert_almost_eq(walked.state.seats[0].pos.x, 4.0 - rules.body_radius, 0.001, "held")
 	assert_eq(walked.state.seats[0].pos.y, 0.0)
 
-	var sim := _steamer_sim(1)
-	SimFixtures.place(sim, 0, Vector3(2.0, 0.0, 0.0), 0.0)
 	var run := SimFixtures.frame(0, Vector2.RIGHT)
+	var short := _steamer_sim(1)
+	SimFixtures.place(short, 0, Vector3(2.0, 0.0, 0.0), 0.0)
+	while short.state.seats[0].pos.x < 3.0:
+		SimFixtures.step(short, {0: run})
+	_fly(short, 0, run)
+	assert_eq(short.state.seats[0].pos.y, 0.0, "a stride short: held off, back on the deck")
+
+	var layout := SimFixtures.deck().duplicate()
+	var hatch := ShipBlocker.new()
+	hatch.area = Rect2(4.0, -1.0, 4.0, 2.0)
+	hatch.top = 0.8
+	var blockers: Array[ShipBlocker] = [hatch]
+	layout.blockers = blockers
+	var sim := SimFixtures.sim(1, null, layout)
+	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, 0.0), 0.0)
 	var player := sim.state.seats[0]
-	while player.pos.x < 3.0:
+	while player.pos.x < 2.0:
 		SimFixtures.step(sim, {0: run})
 	_fly(sim, 0, run)
 	assert_eq(player.body, GROUNDED)
@@ -392,13 +408,15 @@ func test_a_jump_landing_does_not_stagger() -> void:
 	assert_eq(sim.state.seats[0].stagger_ticks, 0)
 
 	# Off the hatch, a jump costs what stepping off would: the drop below its take-off.
+	# At a walk, short of the forecastle's ladder ahead, which a run's jump comes down on.
 	var off := _steamer_sim(1)
 	SimFixtures.place(off, 0, Vector3(5.0, 0.8, 0.0), 0.0)
-	var run := SimFixtures.frame(0, Vector2.RIGHT)
+	var walk := Vector2.RIGHT * 0.4
+	var run := SimFixtures.frame(0, walk)
 	while off.state.seats[0].pos.x < 7.2:
 		SimFixtures.step(off, {0: run})
 	var down: Array[SimEvent] = []
-	down.append_array(SimFixtures.step(off, {0: SimFixtures.frame(0, Vector2.RIGHT, JUMP)}))
+	down.append_array(SimFixtures.step(off, {0: SimFixtures.frame(0, walk, JUMP)}))
 	while off.state.seats[0].body == AIRBORNE:
 		down.append_array(SimFixtures.step(off, {0: run}))
 	var thud := _landings(down, SimEvent.Kind.LANDED)

@@ -20,7 +20,11 @@ func _layout(ship: String) -> ShipLayout:
 
 ## Where each liner's masts and funnels stand along her: the small Titanic's where her
 ## old plan put them, the Titanic's where her plates draw them (#360, her foremast #381).
-const MASTS := {"small_titanic": [96.0, -92.5], "titanic": [95.75, -88.625]}
+const MASTS := {"small_titanic": [96.0, -92.5], "titanic": [95.5, -88.625]}
+## The masts a plate draws the size of, each as round as it is drawn: the Titanic's
+## foremast Plate IV's ring, 0.75 m across (#381). Every other mast is as stout as a
+## small funnel, so it is a mast by her structure, not by its girth.
+const DRAWN := {"titanic": {95.5: 0.375}}
 const FUNNELS := {
 	"small_titanic": [50.2, 13.9, -22.4, -57.9],
 	"titanic": [54.38, 18.29, -18.76, -55.43],
@@ -33,7 +37,11 @@ func test_the_liner_s_masts_are_masts_however_stout() -> void:
 		for x: float in MASTS[ship]:
 			var mast := _cylinder(layout, Vector2(x, 0.0))
 			assert_not_null(mast, "%s: a mast at %.2f" % [ship, x])
-			assert_gte(mast.radius, ShipArt.FUNNEL_FROM, "as stout as a small funnel")
+			var drawn: Dictionary = DRAWN.get(ship, {})
+			if drawn.has(x):
+				assert_almost_eq(mast.radius, drawn[x], 0.0001, "%s: as drawn" % ship)
+			else:
+				assert_gte(mast.radius, ShipArt.FUNNEL_FROM, "as stout as a small funnel")
 			assert_false(ShipArt.is_funnel(layout, mast), "%s: the mast at %.2f" % [ship, x])
 
 

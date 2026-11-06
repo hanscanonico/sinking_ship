@@ -184,9 +184,12 @@ const NON_NEGATIVE: Array[String] = [
 ## the easy tier only near and well clear of it, the hard one deeper, later and farther. A
 ## bot climbs out of any floor nearer the sea than climb_margin_m, so its bonus margin is
 ## never less (problems). What a bonus of each kind is worth to it is bonus_worth's; a kind
-## the table leaves out is worth nothing to it, and it never goes for one.
+## the table leaves out is worth nothing to it, and it never goes for one. bonus_range_m is
+## its range on a hull bonus_range_hull_m long or shorter; on a longer one it grows with her
+## length (bonus_range).
 @export var bonus_weight: float
 @export var bonus_range_m: float
+@export var bonus_range_hull_m: float
 @export var bonus_walk_share: float
 @export var bonus_margin_m: float
 @export var bonus_worth: Dictionary[BonusKind, float] = {}
@@ -247,6 +250,14 @@ func for_ship(zones: int) -> BotProfile:
 	return big
 
 
+## Its bonus range on a hull [param hull_length] metres long (ShipStructure.length):
+## bonus_range_m on one no longer than bonus_range_hull_m — the steamer's, which the ranges
+## were weighed on — and in proportion to her length on a longer one, so that a bot on the
+## Titanic goes as far through her, for her size, as one on the steamer does (#340).
+func bonus_range(hull_length: float) -> float:
+	return bonus_range_m * maxf(1.0, hull_length / bonus_range_hull_m)
+
+
 func problems() -> PackedStringArray:
 	var found := PackedStringArray()
 	if reaction_ticks < 0:
@@ -265,6 +276,8 @@ func problems() -> PackedStringArray:
 		found.append("bot: hunt_at_seats must not be negative")
 	if bonus_range_m <= 0.0:
 		found.append("bot: bonus_range_m must be positive")
+	if bonus_range_hull_m <= 0.0:
+		found.append("bot: bonus_range_hull_m must be positive")
 	if bonus_margin_m < climb_margin_m:
 		found.append("bot: bonus_margin_m must be at least climb_margin_m")
 	for kind: BonusKind in bonus_worth:

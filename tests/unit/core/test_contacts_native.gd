@@ -5,9 +5,10 @@ extends GutTest
 ## touching, a slab over a crawlway, ramps up and down either way, a spent railing and
 ## crates touching, stacked on lids and astride the grids' cells — and on her real ships,
 ## their doors half shut and a funnel down, every obstacle, railing and airborne-railing
-## contact and every crate near a point, asked at corners, edges and a hair either side
-## of them, at ±0 and from heights a step either side of every surface — and where a
-## falling body lands there and its ceiling; then matches stepped tick by tick, one
+## contact — a body's on its feet and in the air, stepping onto nothing — and every crate
+## near a point, asked at corners, edges and a hair either side of them, at ±0 and from
+## heights a step either side of every surface and a hair and half a step under it — and
+## where a falling body lands there and its ceiling; then matches stepped tick by tick, one
 ## natively and one in GDScript, their snapshots byte for byte — a saloon's tables and
 ## chairs afloat as she settles and heels, and the steamer's crates sliding hard into
 ## railings that break. Where the extension is not loaded there is nothing to hold it
@@ -204,6 +205,8 @@ func _ask_all(
 		for shape: Vector2 in shapes:
 			var except := _rng.randi_range(-1, props.size() - 1)
 			_obstacles(native, reference, point, shape, rules.step_height, except, INF, -1.0)
+			# A body in the air, which steps onto nothing (#472).
+			_obstacles(native, reference, point, shape, Movement.AIR_STEP, -1, INF, -1.0)
 			_obstacles(
 				native, reference, point, shape, rules.step_height, -1, rules.crawl_height, -1.0
 			)
@@ -323,7 +326,13 @@ func _round_surface(surfaces: Surfaces, surface: int, points: Array[Vector3]) ->
 	var low := surfaces._bottoms[surface]
 	var step := SimFixtures.rules().step_height
 	var heights: Array[float] = [
-		height, height - step, height - step + 1e-6, height - step - 1e-6, height + 0.3
+		height,
+		height - step,
+		height - step + 1e-6,
+		height - step - 1e-6,
+		height + 0.3,
+		height - 1e-6,
+		height - step * 0.5,
 	]
 	if is_finite(low):
 		heights.append_array([low, low - 0.5])

@@ -67,6 +67,16 @@ func section_at(x: float) -> HullSection:
 	return null
 
 
+## Her length overall, in metres: from her first section's after end to her last's fore
+## end; 0 for a hull with no sections.
+func length() -> float:
+	var count := sections.size()
+	if count == 0:
+		return 0.0
+	var last := sections[count - 1]
+	return last.x + last.length * 0.5 - (sections[0].x - sections[0].length * 0.5)
+
+
 ## Her shell's half breadth at (x, y) on the side [param way] points to — 1 for
 ## starboard, -1 for port: the shell between the two sections whose middles stand
 ## either side of x, closing onto her stem past her last section's middle; 0 past her

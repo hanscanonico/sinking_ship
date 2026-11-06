@@ -129,6 +129,12 @@ A prop placed a hundred times is parsed once.
 | `deck_bench` | `DeckFurniture.bench`, a short box seat on an open deck | furniture | 238 |
 | `armchair` | `FurnitureDressing.seat`, a room's seat no larger either way than `ARMCHAIR_SIDE` | furniture | 376 |
 | `settee` | `FurnitureDressing.seat`, a room's seat `SETTEE_DEPTH` deep or deeper | hero | 476 |
+| `capstan_162`, `capstan_137`, `capstan_112` | `DeckFurniture.gear` (`DeckGear.draw`), a warping capstan by its bed's diameter (`DeckFurniture.GEAR`) | hero | 1496 each |
+| `cable_holder` | `DeckFurniture.gear`, a cable holder on her forecastle head, her cable led to its forward face | hero | 1344 |
+| `electric_crane` | `DeckFurniture.gear`, an electric crane's pedestal and machinery house | hero | 1282 |
+| `steam_windlass`, `steam_winch` | `DeckFurniture.gear`, her forecastle's steam windlass and steam winch | hero | 1476, 1374 |
+| `electric_winch_100`, `electric_winch_188`, `electric_winch_156`, `electric_winch_231` | `DeckFurniture.gear`, an enclosed electric winch by its length (`GEAR`) | furniture | 320 each |
+| `docking_wheel` | `DeckFurniture.gear`, the docking bridge's steering standard | hero | 894 |
 | `iceberg_tabular` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2914 |
 | `iceberg_drydock` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2930 |
 | `iceberg_wedge` | `IcebergPlanner`, one berg a match, drawn by `Iceberg` | world | 2912 |
@@ -361,6 +367,30 @@ count as many times as it is placed. Each model belongs to a class with a ceilin
     The body is painted `upholstery`, the cushions `linen` and the feet and rail `teak`,
     each swapped for its room's (`FurnitureDressing._coverings`): leather in the smoking
     room, wicker under cushions in the café and the reception room, velvet elsewhere.
+  - `capstan_NNN`, `cable_holder`, `electric_crane`, `steam_windlass`, `steam_winch`,
+    `electric_winch_NNN`, `docking_wheel`: her deck gear (`DeckFurniture.GEAR`), on the deck
+    under the middle of its footprint, x along its longer side, z across; its box over all
+    its kind's size (`DeckGear.envelope()`). A piece is made of parts (`DeckGear.PARTS`),
+    each a blocker of its own, and every face of its model stands inside one of them and
+    fills each as art-lint holds any blocker: a box's sides and its flat top, a round's
+    side round its axis and its top over it. A piece standing across her is turned a
+    quarter, its x to port and its z forward (`DeckGear.turn()`). A capstan is NNN
+    hundredths of a metre across its bed, its barrel a round of its own on the bed, its
+    eight whelps on art-lint's rays; a winch is NNN hundredths of a metre along its shaft.
+    A barrel on a shaft lying along the deck fills no part, so the electric winches are
+    enclosed, each filling its one box, and the steam windlass and winch house theirs in
+    their cases; the steam cylinders, the cable holder's wildcat and the crane's pedestal
+    stand upright as rounds of their own. Where art-lint's eight rays meet a round's
+    side they meet a face's middle, never an edge: the faces there are a multiple of
+    eight round, turned half a face, and no ring of the profile, nor a face's middle,
+    lies at a ray's height. A ray down an edge between slanted faces can miss both and
+    find nothing: the steam winch's cylinders, first drawn edge on, did. The cable
+    holder's cable comes in under its plate at the mouth in its forward face, where
+    `ShipFittings` leads it, and wraps half round the wildcat. The crane is its pedestal and its machinery house, its jib's heel
+    pin forward: no envelope is declared for a jib (#381). The wheel stand's wheel lies in
+    a recess in its after face, the helmsman aft of it. Bolt heads stand on flanges below
+    a part's top, never proud of it. All modelled in Blender through its MCP, their
+    `.blend`s the source.
 - **Paints.** One material per paint, named exactly after a `ShipPaints` entry
   (`white`, `teak`, `canvas`, `rope`, `dark`, `steel`, `brass`…). The material's
   name is all the game reads: the colour comes from the paint and the ship shader's

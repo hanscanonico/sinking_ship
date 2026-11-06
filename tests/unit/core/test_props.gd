@@ -663,14 +663,15 @@ func test_a_crate_draft_as_tall_as_a_crate_is_refused() -> void:
 	assert_true(rules.problems().has("brawl rules: crate_float_pull must be positive"))
 
 
-## A run-up at three metres a second and a jump from 1.3 m short lands on a still
-## crate's lid; once the crate slides off under it, the brawler drops to the deck.
+## A run-up at three metres a second and a jump from 1.6 m short lands on a still
+## crate's lid — from nearer, its side holds the brawler off until its feet clear the lid
+## too late (#472); once the crate slides off under it, the brawler drops to the deck.
 func test_a_brawler_jumps_onto_a_still_crate_and_drops_off_a_sliding_one() -> void:
 	var rules := _rules()
 	var crate_def := _steamer_crate()
 	assert_lt(crate_def.height, rules.jump_height, "a jump clears a crate's lid")
 	var sim := _one_crate(1, Vector3.ZERO)
-	SimFixtures.place(sim, 0, Vector3(-1.3, 0.0, 0.0))
+	SimFixtures.place(sim, 0, Vector3(-1.6, 0.0, 0.0))
 	var player := sim.state.seats[0]
 	player.vel = Vector3(3.0, 0.0, 0.0)
 	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2(0.6, 0.0), JUMP)})

@@ -129,6 +129,18 @@ func _rows() -> Dictionary:
 		"armchair":
 		["furniture", _fills_the_seat_s_box.bind(FurnitureDressing.ARMCHAIR, "armchair")],
 		"settee": ["hero", _fills_the_seat_s_box.bind(FurnitureDressing.SETTEE, "settee")],
+		"capstan_162": ["hero", _fills_its_gear_envelope.bind("capstan_162")],
+		"capstan_137": ["hero", _fills_its_gear_envelope.bind("capstan_137")],
+		"capstan_112": ["hero", _fills_its_gear_envelope.bind("capstan_112")],
+		"cable_holder": ["hero", _fills_its_gear_envelope.bind("cable_holder")],
+		"electric_crane": ["hero", _fills_its_gear_envelope.bind("electric_crane")],
+		"steam_windlass": ["hero", _fills_its_gear_envelope.bind("steam_windlass")],
+		"steam_winch": ["hero", _fills_its_gear_envelope.bind("steam_winch")],
+		"electric_winch_100": ["furniture", _fills_its_gear_envelope.bind("electric_winch_100")],
+		"electric_winch_188": ["furniture", _fills_its_gear_envelope.bind("electric_winch_188")],
+		"electric_winch_156": ["furniture", _fills_its_gear_envelope.bind("electric_winch_156")],
+		"electric_winch_231": ["furniture", _fills_its_gear_envelope.bind("electric_winch_231")],
+		"docking_wheel": ["hero", _fills_its_gear_envelope.bind("docking_wheel")],
 		"iceberg_tabular": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_drydock": [WORLD, _stands_to_the_iceberg_planner_s_measure],
 		"iceberg_wedge": [WORLD, _stands_to_the_iceberg_planner_s_measure],
@@ -369,6 +381,20 @@ func _fills_the_bench_s_box_its_back_under_a_step(box: AABB) -> void:
 	assert_lt(
 		DeckFurniture.ARM_RISE, DeckFurniture.BENCH_RISE, "deck bench: its arms under its back"
 	)
+
+
+## A piece of her deck gear's model [param model] (DeckFurniture.GEAR): from the deck under
+## the middle of its footprint, its envelope over all, its longer side along x. Where it is
+## placed, art-lint holds it to fill each of its parts (DeckGear.PARTS), and
+## test_deck_furniture.gd holds it inside them.
+func _fills_its_gear_envelope(box: AABB, model: String) -> void:
+	var wanted := AABB()
+	for kind: StringName in DeckFurniture.GEAR:
+		for size: Vector3 in DeckFurniture.GEAR[kind]:
+			if DeckFurniture.GEAR[kind][size] == model:
+				wanted = DeckGear.envelope(size)
+	assert_ne(wanted.size, Vector3.ZERO, "GEAR names %s" % model)
+	_fills_its_box(box, wanted, model)
 
 
 ## A room's seat (FurnitureDressing.ARMCHAIR_MODEL, SETTEE_MODEL): from the floor under the
