@@ -2,8 +2,10 @@ class_name SinkNative
 extends RefCounted
 ## SinkStepper's hottest loops in the game's extension (native/, #411): its solves for a
 ## held head, alone (_balanced) or together (_newton), and its sweep of the openings,
-## with every flow, surplus, volume and height they ask, worked by a NativeSink to the
-## same answers bit for bit (test_sink_native). The stepper keeps every state: this
+## with every flow, surplus, volume and height they ask, and around them each opening's
+## share open, the cells a step holds stiff and her failures' heads across what can give
+## way (SinkFailures), worked by a NativeSink to the same answers bit for bit
+## (test_sink_native, test_sink_native_stages). The stepper keeps every state: this
 ## hands the extension her layout once, and what its loops read at each turn, step and
 ## change of what is open, and unpacks what they give back. None where the extension is
 ## not loaded — the web, a checkout that never ran make native — and the stepper's
@@ -19,7 +21,8 @@ func _init(sink: Object) -> void:
 
 
 ## The extension's loops for a stepper whose compiled [param openings] are its first and
-## second sides, holes in a floor, middles, half extents and flow areas, over cells in
+## second sides, holes in a floor, middles, half extents, flow areas and the seconds
+## the ship takes to shut each (SinkStepper.open_share), over cells in
 ## [param boxes] holding [param capacity], with [param air] and wells [param shipped]
 ## under [param sea]; null where the extension is not loaded.
 static func made(
@@ -55,6 +58,7 @@ static func made(
 	native._sink.wells(wells[0], wells[1], wells[2], wells[3], wells[4])
 	var faces := air.faces()
 	native._sink.faces(faces[0], faces[1])
+	native._sink.shut_times(openings[6])
 	native._openings = openings[0].size()
 	native._cells = boxes.size()
 	return native
@@ -94,9 +98,63 @@ func heights(water: PackedFloat64Array) -> PackedFloat64Array:
 	return _sink.heights(water)
 
 
-## Each opening's share open in the step under way.
-func shared(shares: PackedFloat64Array) -> void:
-	_sink.shared(shares)
+## Each opening's share open [param since] seconds after the hit, none less than
+## [param opened] (SinkStepper._share_out): kept for the step's flows, and given.
+func shares(since: float, opened: PackedFloat64Array) -> PackedFloat64Array:
+	return _sink.shares(since, opened)
+
+
+## [param failures]' watched openings (SinkFailures.watch), once all are.
+func watched(failures: Array) -> void:
+	_sink.callv(&"watched", failures)
+
+
+## The cells a step holds stiff, before its groups (SinkStepper._hold_stiff): those found,
+## in order, then the full ones beside them; [param held] as the step finds it.
+func stiff(
+	heads: PackedFloat64Array,
+	water: PackedFloat64Array,
+	held: PackedByteArray,
+	holding: PackedByteArray,
+	widest: PackedFloat64Array,
+	sea: float,
+	per_metre: float
+) -> PackedInt32Array:
+	return _sink.stiff(heads, water, held, holding, widest, sea, per_metre)
+
+
+## The head across every watched opening of [param state] (SinkFailures._heads_across),
+## [param ceilings] and [param sills] the stepper's, the pockets [param air]'s.
+func across(
+	state: FloodState, ceilings: PackedFloat64Array, sills: PackedFloat64Array, air: SinkAir
+) -> PackedFloat64Array:
+	var pockets := air.pockets()
+	return _sink.across(
+		state.heads,
+		state.water,
+		state.sea,
+		ceilings,
+		sills,
+		pockets[0],
+		pockets[1],
+		pockets[2],
+		pockets[3],
+		pockets[4]
+	)
+
+
+## [param opened] with what gives way or leaks at [param heads] across the watched
+## openings [param seconds] after the hit (SinkFailures.follow).
+func failed(
+	heads: PackedFloat64Array, opened: PackedFloat64Array, seconds: float
+) -> PackedFloat64Array:
+	return _sink.failed(heads, opened, seconds)
+
+
+## Per watched opening its leak's gap and its giving way's at [param heads] across it
+## (SinkFailures.gaps).
+func failure_gaps(heads: PackedFloat64Array) -> PackedFloat64Array:
+	return _sink.failure_gaps(heads)
 
 
 ## The step begun: [param air]'s pockets and [param shipped]'s wells' edges.

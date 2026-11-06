@@ -145,6 +145,13 @@ func watches(index: int) -> bool:
 	return index in _index
 
 
+## Every watched opening (watch) as the extension takes them (SinkNative.watched): their
+## indices, first and second sides, shut times, leak and collapse heads, leak shares and
+## the sides they open toward.
+func watched() -> Array:
+	return [_index, _first, _second, _shut_time, _leak, _collapse, _leak_share, _toward]
+
+
 ## Fills [param state], at the hit, with nothing given way: her funnels standing, her
 ## generator running and her lights on, her bending measured.
 func start(state: FloodState) -> void:
@@ -175,6 +182,18 @@ func follow(state: FloodState, next: FloodState, seconds: float, stepper: SinkSt
 		next.sea_given -= amount
 		next.heads[cell] = stepper.head(cell, next.water[cell])
 	var heads := _heads_across(next, stepper)
+	var native := stepper.native()
+	if native != null:
+		next.opened = native.failed(heads, next.opened, next.seconds)
+	else:
+		_fail(next, heads)
+	_funnels.follow(next)
+	_power.follow(state, next, seconds)
+
+
+## Fails into [param next] each watched opening shut that its head across,
+## [param heads], brings to its giving way or its leak (follow).
+func _fail(next: FloodState, heads: PackedFloat64Array) -> void:
 	var opened := next.opened
 	for watched in _index.size():
 		var index := _index[watched]
@@ -193,8 +212,6 @@ func follow(state: FloodState, next: FloodState, seconds: float, stepper: SinkSt
 			and _leak[watched] - absf(across) <= REACHED
 		):
 			next.opened[index] = _leak_share[watched]
-	_funnels.follow(next)
-	_power.follow(state, next, seconds)
 
 
 ## How far under each threshold [param state] stands — per opening that can fail its
@@ -203,15 +220,23 @@ func follow(state: FloodState, next: FloodState, seconds: float, stepper: SinkSt
 ## step where it is first passed; INF for none to come. Her lamps are none of these:
 ## they never move the physics, so no step lands on them (ShipPower.lamp_gaps).
 func gaps(state: FloodState, stepper: SinkStepper) -> PackedFloat64Array:
-	var found := PackedFloat64Array()
 	var heads := _heads_across(state, stepper)
+	var native := stepper.native()
+	var found := native.failure_gaps(heads) if native != null else _opening_gaps(heads)
+	found.append_array(_funnels.gaps(state))
+	found.append_array(_power.gaps(state))
+	return found
+
+
+## Per watched opening, how far under its leak and its giving way [param heads] across
+## it stand (gaps).
+func _opening_gaps(heads: PackedFloat64Array) -> PackedFloat64Array:
+	var found := PackedFloat64Array()
 	for watched in _index.size():
 		var across := absf(heads[watched])
 		var leaks := _leak[watched] > 0.0 and _leak_share[watched] > 0.0
 		found.append(_leak[watched] - across if leaks else INF)
 		found.append(_gives_way_gap(watched, heads[watched]))
-	found.append_array(_funnels.gaps(state))
-	found.append_array(_power.gaps(state))
 	return found
 
 
@@ -238,6 +263,10 @@ func _heads_across(state: FloodState, stepper: SinkStepper) -> PackedFloat64Arra
 	if state == _across_state:
 		return _across
 	_across_state = state
+	var native := stepper.native()
+	if native != null:
+		_across = native.across(state, stepper.ceilings(), stepper.sills(), _air)
+		return _across
 	_across.resize(_index.size())
 	# The head each side truly pushes with: the sea's, or a cell's own but over its
 	# ceiling no higher than the surface drives it — past that it is only water over its

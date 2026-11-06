@@ -4,7 +4,9 @@ The hottest loops of the bots and of the sinking bake in C++, giving the same an
 the GDScript they stand in for, bit for bit: the walk-graph search (`ai/walk_search.gd`),
 the bots' reads of the water (`core/still_points.gd`, `ai/walk_graph.gd`,
 `ai/bot_refuge.gd`), the bake's solves for a held head and its sweep of the openings
-(`core/sinking/sink_stepper.gd`, #411), her lift and her water's load as she moves
+(`core/sinking/sink_stepper.gd`, #411), and around them each opening's share open, the
+cells a step holds stiff and her failures' heads across what can give way
+(`core/sinking/sink_failures.gd`, #411), her lift and her water's load as she moves
 (`core/sinking/ship_motion.gd`, #411), the floating furniture's contacts: where her
 props stand (`core/prop_stands.gd`), what holds a circle back
 (`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`) and the
@@ -18,7 +20,7 @@ water's effects' walks of her cells, openings and decks (`scenes/art/inner_water
 
 - `src/` — the extension's sources: `walk_search_native.{h,cpp}` (`NativeWalkGraph`,
   `NativeWalkSearch`), `water_native.{h,cpp}` (`NativeWater`), `sink_native.{h,cpp}`
-  (`NativeSink`), `motion_native.{h,cpp}` (`NativeMotion`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
+  and `sink_step_native.cpp` (`NativeSink`), `motion_native.{h,cpp}` (`NativeMotion`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
   `NativeCrates`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `register_types.cpp`
   (the entry, `sinking_native_init`).
@@ -50,7 +52,7 @@ an artifact of the run:
 - `native (linux)` — `native-linux`, the `.so` the ten test shards load
   (`SINKING_NATIVE_REQUIRED=1`).
 - `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
-  runner, where the seven cross-check scripts run against it: arm64 is where a compiler
+  runner, where the eight cross-check scripts run against it: arm64 is where a compiler
   contracts `a * b + c` by default, so a difference from the engine's own GDScript
   arithmetic would show there first.
 - `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with
@@ -81,7 +83,8 @@ null unless `ClassDB.class_exists("NativeWalkGraph")`. A `WalkSearch` given one 
 every question to a `NativeWalkSearch`. Otherwise it answers itself. Each
 `SinkStepper` asks `SinkNative.made()` for its loops the same way, null without a
 `NativeSink`: the stepper keeps every state and hands the extension her layout once and
-what its loops read at each turn and step. Each `ShipMotion` makes a `NativeMotion` the
+what its loops read at each turn and step; its `SinkFailures` asks it for the same
+`SinkNative` (`native()`) for the heads across what can give way. Each `ShipMotion` makes a `NativeMotion` the
 same way and hands it her sections, and her cells' boxes the first time it loads them;
 its memo of the last lift stays GDScript's. `ContactsNative.loaded()` decides the same
 for the contacts as each `PropStands`, `Surfaces` and `Hazards` is made: a `PropStands`
@@ -108,9 +111,9 @@ the same sinking and the same art.
 - Floating-point contraction is off (`-ffp-contract=off`; MSVC `/fp:precise`), for
   godot-cpp's objects as for ours.
 - `tests/unit/ai/test_walk_search_native.gd`, `tests/unit/ai/test_water_native.gd`,
-  `tests/unit/core/test_sink_native.gd`, `tests/unit/core/test_motion_native.gd`,
-  `tests/unit/core/test_contacts_native.gd`, `tests/unit/art/test_ship_mesh_native.gd` and
-  `tests/unit/match/test_water_fx_native.gd`
+  `tests/unit/core/test_sink_native.gd`, `tests/unit/core/test_sink_native_stages.gd`,
+  `tests/unit/core/test_motion_native.gd`, `tests/unit/core/test_contacts_native.gd`,
+  `tests/unit/art/test_ship_mesh_native.gd` and `tests/unit/match/test_water_fx_native.gd`
   ask both sides the same questions and fail on any difference. CI sets
   `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load fails too — on Linux
-  across the suite, on macOS (arm64) for those seven scripts.
+  across the suite, on macOS (arm64) for those eight scripts.

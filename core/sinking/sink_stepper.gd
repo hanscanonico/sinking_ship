@@ -189,9 +189,11 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	_flow_solve.resize(_names.size() * 2)
 	_flow_last.resize(_names.size())
 	_shares.resize(_names.size())
-	var native_openings := [_first, _second, _in_floor, _middle, _half, _flow_area]
+	var native_openings := [_first, _second, _in_floor, _middle, _half, _flow_area, _shut_time]
 	_native = SinkNative.made(native_openings, _boxes, _capacity, _air, _shipped, sea)
 	if _native != null:
+		if _failures != null:
+			_native.watched(_failures.watched())
 		_turning = TiltedBox.Turning.new()
 		for box: TiltedBox in _boxes:
 			box.follow(_turning)
@@ -468,6 +470,33 @@ func _hold_stiff(
 	var per_metre := _discharge * sqrt(2.0 * _g * STIFF_HEAD) * seconds
 	if state.seconds != _shares_at:
 		_share_out(state.seconds)
+	if _native != null:
+		held = _native.stiff(heads, state.water, _held, _holding, _widest, sea, per_metre)
+		for cell: int in held:
+			_held[cell] = 1
+	else:
+		held = _stiff(state, heads, sea, per_metre)
+	for group: PackedInt32Array in _groups(held, heads):
+		if group.size() == 1:
+			heads[group[0]] = _balanced(
+				group[0], state.water[group[0]], heads, sea, state.seconds, seconds
+			)
+		elif not _solve_together(group, state, heads, sea, seconds):
+			_release(group, state, heads, sea, seconds)
+	var kept := PackedInt32Array()
+	for cell: int in held:
+		if _held[cell] == 1:
+			kept.append(cell)
+	return kept
+
+
+## The cells [param state]'s step holds stiff, before its groups (_hold_stiff), each
+## marked in _held: those found in her cells' order, then every full cell beside a held
+## one; [param per_metre] what a metre of opening passes in the step at STIFF_HEAD.
+func _stiff(
+	state: FloodState, heads: PackedFloat64Array, sea: float, per_metre: float
+) -> PackedInt32Array:
+	var held := PackedInt32Array()
 	for cell in _area.size():
 		var room := minf(_area[cell] * STIFF_HEAD, _capacity[cell] - state.water[cell])
 		var trapped := _air.holds(cell)
@@ -507,18 +536,7 @@ func _hold_stiff(
 				continue
 			held.append(other)
 			_held[other] = 1
-	for group: PackedInt32Array in _groups(held, heads):
-		if group.size() == 1:
-			heads[group[0]] = _balanced(
-				group[0], state.water[group[0]], heads, sea, state.seconds, seconds
-			)
-		elif not _solve_together(group, state, heads, sea, seconds):
-			_release(group, state, heads, sea, seconds)
-	var kept := PackedInt32Array()
-	for cell: int in held:
-		if _held[cell] == 1:
-			kept.append(cell)
-	return kept
+	return held
 
 
 ## Lets go of [param group], whose solve together did not close: each cell's head where
@@ -877,6 +895,11 @@ func failures() -> SinkFailures:
 	return _failures
 
 
+## Her loops in the extension, or null where they run in GDScript (SinkNative).
+func native() -> SinkNative:
+	return _native
+
+
 ## Whether [param state]'s hull rests on the bottom (Seabed); never without the
 ## attitude stage.
 func grounded(state: FloodState) -> bool:
@@ -1030,10 +1053,11 @@ func _transfer(
 ## _transfer reads it.
 func _share_out(since: float) -> void:
 	_shares_at = since
+	if _native != null:
+		_shares = _native.shares(since, _opened)
+		return
 	for index in _names.size():
 		_shares[index] = open_share(_shut_time[index], since, _opened[index])
-	if _native != null:
-		_native.shared(_shares)
 
 
 ## The most that can pass from [param up] to [param down] over an edge at
