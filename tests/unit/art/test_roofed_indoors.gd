@@ -48,6 +48,24 @@ func test_her_covered_promenades_and_the_sea_stay_weather() -> void:
 		assert_true(_roofed.outdoors(point, NO_BOXES), "%s: still weather" % at[0])
 
 
+func test_her_shell_outside_her_skin_stays_weather_where_she_narrows() -> void:
+	# Each face of her shell is judged at a probe just off its outside (ShipMesh.PROBE):
+	# where she narrows to her stem a section's outline stands wider than her skin, and
+	# her starboard bow went black where it was read instead (#475).
+	var structure := _space.layout.structure
+	var held := PackedStringArray()
+	for x in range(-130, 131):
+		for y in range(-12, 0):
+			for side: int in [1, -1]:
+				var breadth := structure.half_breadth(x, y, side)
+				if breadth <= 0.0:
+					continue
+				var probe := Vector3(x, y, (breadth + ShipMesh.PROBE) * side)
+				if _roofed.holds(probe):
+					held.append(str(probe))
+	assert_eq(held, PackedStringArray(), "no probe off her shell painted indoors")
+
+
 func test_a_ship_with_no_structure_is_painted_as_her_rooms_say() -> void:
 	var flat := ShipSpace.new(load(SimFixtures.FLAT_DECK))
 	var roofed := RoofedIndoors.new(flat)

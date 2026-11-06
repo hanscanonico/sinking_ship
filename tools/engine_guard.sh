@@ -37,8 +37,21 @@
 # too, and the engine then runs to its end, as before. A guard run by hand, outside make,
 # has no watchdog: a shell that backgrounds it and ends is no sign it is unwanted.
 # ENGINE_GUARD_WATCH_PID names the one process to watch instead, ENGINE_GUARD_ARMED a
-# file touched once the watch is set (both for the checks); ENGINE_GUARD_WATCH=0 runs no
-# watchdog.
+# file touched once the watch is set (both for the checks); ENGINE_GUARD_WATCH=0 watches
+# no requester.
+#
+# A game window holds the one window lock (tools/window_lock.sh) for as long as it runs,
+# so `make capture` and `make fps` bound it (#464), through the same watchdog:
+# ENGINE_GUARD_LIMIT=SECONDS stops the engine, and what it started, once it has run that
+# long, saying so, and the guard exits 124. ENGINE_GUARD_EARLY=1 stops it the moment its
+# output shows it cannot run as it should rather than once it has exited: a line with
+# "Parse Error:" or "Compile Error:" in it — scripts that failed to compile, a stale
+# class cache among the likely causes, which it names when the errors name a type or an
+# identifier it could not find — or one SCRIPT ERROR: line ENGINE_GUARD_REPEATS times
+# (100), a script failing frame after frame; the guard then exits 1. A stopped run's
+# errors are scanned as any run's. ENGINE_GUARD_SCAN=0 skips that scan, for a caller that
+# judges the run by its own rules (make fps): the exit status is then the command's, or
+# the stop's.
 
 set -uo pipefail
 
@@ -47,12 +60,22 @@ if (($# == 0)); then
 	exit 1
 fi
 
+LIMIT="${ENGINE_GUARD_LIMIT:-0}"
+EARLY="${ENGINE_GUARD_EARLY:-0}"
+REPEATS="${ENGINE_GUARD_REPEATS:-100}"
+if ! [[ "$LIMIT" =~ ^[0-9]+$ && "$REPEATS" =~ ^[0-9]+$ ]] || ((REPEATS == 0)); then
+	echo "engine_guard: ENGINE_GUARD_LIMIT and ENGINE_GUARD_REPEATS are whole numbers," \
+		"not '$LIMIT' and '$REPEATS'" >&2
+	exit 2
+fi
+
 WORK="$(mktemp -d)"
 OUT="$WORK/out"
 ERR="$WORK/err"
 STATUS="$WORK/status"
 ENGINE="$WORK/engine"
 WATCH_NOTE="$WORK/watch"
+STOPPED="$WORK/stopped"
 WATCHDOG=""
 trap '[[ -n "$WATCHDOG" ]] && kill "$WATCHDOG" 2>/dev/null; rm -rf "$WORK"' EXIT
 
@@ -132,10 +155,40 @@ stop_engine() {
 	kill -0 "$1" 2>/dev/null && kill -KILL "$1" 2>/dev/null
 }
 
+# Why the engine's output says it cannot run as it should, as the note's lines, or
+# nothing (ENGINE_GUARD_EARLY): the first line naming a Parse Error or a Compile Error,
+# with a word on a stale import when one names a type or an identifier not found, or a
+# SCRIPT ERROR: line seen REPEATS times.
+early_reason() {
+	sed $'s/\033\[[0-9;]*m//g; s/\r$//' "$OUT" "$ERR" 2>/dev/null |
+		awk -v repeats="$REPEATS" '
+			/^\[godot_ai/ { next }
+			/(Parse|Compile) Error:/ {
+				if (first == "") first = $0
+				if ($0 ~ /Could not find (type|base class)|not declared in the current scope|Could not resolve/)
+					missing = 1
+				next
+			}
+			first == "" && /^[[:space:]]*SCRIPT ERROR:/ && ++seen[$0] >= repeats && repeated == "" {
+				repeated = $0
+			}
+			END {
+				if (first != "") {
+					sub(/^[[:space:]]+/, "", first)
+					print "its scripts failed to compile: " first
+					if (missing)
+						print "engine_guard: stale import? run make import (the errors name a type or an identifier not found)"
+				} else if (repeated != "") {
+					sub(/^[[:space:]]+/, "", repeated)
+					print "it printed one script error " repeats " times: " repeated
+				}
+			}'
+}
+
 # On descriptors of its own, so a reader of the guard's output never waits on it: the
 # note it leaves is printed by the guard, when the guard is still there to print it.
 watchdog() {
-	local engine gone nap=""
+	local engine gone reason started="" nap=""
 	trap '[[ -n "$nap" ]] && kill "$nap" 2>/dev/null; exit 0' TERM
 	while :; do
 		sleep "${ENGINE_GUARD_WATCH_EVERY:-5}" &
@@ -146,13 +199,34 @@ watchdog() {
 		{ read -r engine <"$ENGINE"; } 2>/dev/null
 		[[ -n "$engine" ]] || continue
 		kill -0 "$engine" 2>/dev/null || return 0
-		gone="$(first_gone)" || continue
-		echo "engine_guard: $gone is gone: stopping its engine (PID $engine)" >"$WATCH_NOTE"
-		stop_engine "$engine"
-		return 0
+		[[ -n "$started" ]] || started=$SECONDS
+		if ((${#watch[@]})) && gone="$(first_gone)"; then
+			echo "engine_guard: $gone is gone: stopping its engine (PID $engine)" >"$WATCH_NOTE"
+			stop_engine "$engine"
+			return 0
+		fi
+		if ((EARLY)); then
+			reason="$(early_reason)"
+			if [[ -n "$reason" ]]; then
+				{
+					echo "engine_guard: stopping the engine (PID $engine): $(head -n 1 <<<"$reason")"
+					tail -n +2 <<<"$reason"
+				} >"$WATCH_NOTE"
+				echo early >"$STOPPED"
+				stop_engine "$engine"
+				return 0
+			fi
+		fi
+		if ((LIMIT > 0 && SECONDS - started >= LIMIT)); then
+			echo "engine_guard: the engine (PID $engine) ran past its ${LIMIT} s limit" \
+				"(ENGINE_GUARD_LIMIT): stopping it" >"$WATCH_NOTE"
+			echo limit >"$STOPPED"
+			stop_engine "$engine"
+			return 0
+		fi
 	done
 }
-if ((${#watch[@]})); then
+if ((${#watch[@]} || LIMIT > 0 || EARLY)); then
 	watchdog </dev/null >/dev/null 2>&1 &
 	WATCHDOG=$!
 fi
@@ -182,6 +256,12 @@ fi
 
 status="$(cat "$STATUS" 2>/dev/null)"
 status="${status:-1}"
+stopped="$(cat "$STOPPED" 2>/dev/null)"
+case "$stopped" in
+limit) status=124 ;;
+early) status=1 ;;
+esac
+[[ "${ENGINE_GUARD_SCAN-1}" == 0 ]] && exit "$status"
 
 exit_leaks='^[[:space:]]*ERROR: ([0-9]+ shaders of type [A-Za-z0-9_]+ were never freed|[A-Za-z ]+ with GL ID of [0-9]+: leaked [0-9]+ bytes\.?)[[:space:]]*$'
 

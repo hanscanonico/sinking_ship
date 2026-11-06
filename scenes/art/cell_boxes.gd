@@ -21,6 +21,9 @@ const SHELL_IN := 1e-3
 ## room's corner where its own is no multiple of a power of two — on her side, on a
 ## bulkhead's line (the Titanic's C and D decks).
 const MEET := 1e-4
+## How far her shell may lean out or in over a band of a room's box held inside it
+## (_bands), held to its narrowest at the band's top or bottom.
+const LEAN := 0.05
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
@@ -57,17 +60,57 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 ## reach past [param structure]'s shell — rooms stacked down her run, the lower the
 ## narrower (the steamer's aft peak, #148): each of its rooms in boxes of its own, from
 ## its floor up to the floor of the one over each part of it or the cell's top (_under),
-## the first in boxes(), and out to the bulkheads it shares (_to_bulkheads); each as
-## [cell, box].
+## the first in boxes(), and out to the bulkheads it shares (_to_bulkheads), then what
+## her shell's narrowest over each leaves out of it and its stairwells (_room_boxes),
+## less what the cell's other boxes hold (_less); each as [cell, box].
 static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 	var found := []
 	for index in structure.cells.size():
 		var cell := structure.cells[index]
 		if cell.shape >= WHOLE or cell.rooms.is_empty() or cell.kind == FloodCell.Kind.OPEN_WELL:
 			continue
-		var drawn := _room_boxes(structure, cell, rooms)
+		var rest: Array[AABB] = []
+		var drawn := _room_boxes(structure, cell, rooms, rest)
+		var kept: Array[AABB] = [_to_bulkheads(structure, cell, drawn, 0)]
 		for at in range(1, drawn.size()):
-			found.append([index, _to_bulkheads(structure, cell, drawn, at)])
+			kept.append(_to_bulkheads(structure, cell, drawn, at))
+			found.append([index, kept[-1]])
+		for box: AABB in rest:
+			for part: AABB in _less(box, kept):
+				kept.append(part)
+				found.append([index, part])
+	return found
+
+
+## What of [param box] none of [param others] holds, but a hair (MEET), in boxes: so no
+## two of a cell's boxes draw its water over each other.
+static func _less(box: AABB, others: Array[AABB]) -> Array[AABB]:
+	var left: Array[AABB] = [box]
+	for other: AABB in others:
+		var held := other.grow(-MEET)
+		var rest: Array[AABB] = []
+		for part: AABB in left:
+			if not held.intersects(part):
+				rest.append(part)
+				continue
+			var low := part.position
+			var high := part.end
+			for axis in 3:
+				if other.position[axis] > low[axis]:
+					var end := high
+					end[axis] = other.position[axis]
+					rest.append(AABB(low, end - low))
+					low[axis] = other.position[axis]
+				if other.end[axis] < high[axis]:
+					var start := low
+					start[axis] = other.end[axis]
+					rest.append(AABB(start, high - start))
+					high[axis] = other.end[axis]
+		left = rest
+	var found: Array[AABB] = []
+	for part: AABB in left:
+		if _kept(part) and part.size.y > 2.0 * MEET:
+			found.append(part)
 	return found
 
 
@@ -123,9 +166,12 @@ static func _gains(structure: ShipStructure, drawn: Array[AABB], at: int, gained
 ## sections' rounded ends can have it touch (the Titanic's C deck at her B deck's after
 ## end) — else per room, stacked, a box for each part of it up to the floor of the room
 ## over it there or the cell's top (_under), each held inside her shell — none her
-## shell closes to nothing — the one up to the cell's top — the largest such — first.
+## shell closes to nothing — the one up to the cell's top — the largest such — first;
+## and into [param rest], for those, what they leave out inside her shell (_wings) and
+## the cell's stairwells no room of its stands over (_stairwells), as they are: none
+## carried out to a bulkhead, none in the way of a box that is.
 static func _room_boxes(
-	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom]
+	structure: ShipStructure, cell: FloodCell, rooms: Array[ShipRoom], rest: Array[AABB] = []
 ) -> Array[AABB]:
 	var round := _round_rooms(cell, rooms)
 	var own: Array[ShipRoom] = []
@@ -135,14 +181,28 @@ static func _room_boxes(
 	if own.size() < 2 or _within(structure, round, SHELL_NEAR):
 		return [round]
 	var found: Array[AABB] = []
+	var wings: Array[AABB] = []
 	for room: ShipRoom in own:
 		for part: Array in _under(room, own, cell.high.y):
 			var area: Rect2 = part[0]
 			var top: float = part[1]
 			var low := Vector3(area.position.x, room.floor_height, area.position.y)
-			var box := _held(structure, AABB(low, Vector3(area.end.x, top, area.end.y) - low))
-			if box.size.x > 2.0 * MEET and box.size.z > 2.0 * MEET:
+			var whole := AABB(low, Vector3(area.end.x, top, area.end.y) - low)
+			var box := _held(structure, whole)
+			if _kept(box):
 				found.append(box)
+			else:
+				box = AABB()
+			wings.append_array(_wings(structure, whole, box))
+	for area: Rect2 in _stairwells(structure, cell, own):
+		var low := Vector3(area.position.x, cell.low.y, area.position.y)
+		var whole := AABB(low, Vector3(area.end.x, cell.high.y, area.end.y) - low)
+		var box := _held(structure, whole)
+		if _kept(box):
+			wings.append(box)
+		else:
+			box = AABB()
+		wings.append_array(_wings(structure, whole, box))
 	if found.is_empty():
 		return [round]
 	found.sort_custom(
@@ -151,6 +211,138 @@ static func _room_boxes(
 				return a.end.y > b.end.y
 			return a.get_volume() > b.get_volume()
 	)
+	rest.append_array(wings)
+	return found
+
+
+## Whether [param box] holds more than a hair across (MEET).
+static func _kept(box: AABB) -> bool:
+	return box.size.x > 2.0 * MEET and box.size.z > 2.0 * MEET
+
+
+## The parts of [param whole], a room's part, its box [param box] (_held) leaves out
+## inside [param structure]'s shell: [param whole] held per section it stands in and
+## band by band up it (_bands), less [param box] — where the room spans a joint to a
+## wider section (the Titanic's seamen's mess, aft of her forecastle's taper), where her
+## shell leans out over its floor (her after hold), or where it stands up past a
+## section's sheer that held its box to nothing (her windlass machinery room).
+static func _wings(structure: ShipStructure, whole: AABB, box: AABB) -> Array[AABB]:
+	var found: Array[AABB] = []
+	for section: HullSection in structure.sections:
+		var half := section.length * 0.5
+		var from := maxf(whole.position.x, section.x - half)
+		var to := minf(whole.end.x, section.x + half)
+		if to - from <= 2.0 * SHELL_NEAR:
+			continue
+		var piece := AABB(
+			Vector3(from, whole.position.y, whole.position.z),
+			Vector3(to - from, whole.size.y, whole.size.z)
+		)
+		var port: Array[AABB] = []
+		var starboard: Array[AABB] = []
+		for band: AABB in _bands(structure, section, piece):
+			if box.size == Vector3.ZERO:
+				_stack_on(port, band)
+				continue
+			if band.position.z < box.position.z - MEET:
+				var end := band.end
+				end.z = box.position.z
+				_stack_on(port, AABB(band.position, end - band.position))
+			if band.end.z > box.end.z + MEET:
+				var start := band.position
+				start.z = box.end.z
+				_stack_on(starboard, AABB(start, band.end - start))
+		found.append_array(port)
+		found.append_array(starboard)
+	return found
+
+
+## [param box] added to [param stack], boxes one on another up a band of a room
+## (_wings): merged with the last where it stands on it as wide.
+static func _stack_on(stack: Array[AABB], box: AABB) -> void:
+	if not stack.is_empty():
+		var last := stack[-1]
+		var alike := is_equal_approx(last.end.y, box.position.y)
+		alike = alike and is_equal_approx(last.position.z, box.position.z)
+		if alike and is_equal_approx(last.end.z, box.end.z):
+			stack[-1] = last.merge(box)
+			return
+	stack.append(box)
+
+
+## [param piece], the part of a room's box over [param section], held inside her shell
+## band by band up to where her outline ends: between the outline's points, where her
+## shell is straight, each held to its narrowest at its top or bottom, and cut where its
+## sides lean across [param piece]'s by more than LEAN.
+static func _bands(structure: ShipStructure, section: HullSection, piece: AABB) -> Array[AABB]:
+	var heights := PackedFloat32Array([piece.position.y])
+	var top := -INF
+	for point: Vector2 in section.outline:
+		top = maxf(top, point.y)
+		if point.y > piece.position.y + MEET and point.y < piece.end.y - MEET:
+			heights.append(point.y)
+	top = minf(top, piece.end.y)
+	heights.append(top)
+	heights.sort()
+	var found: Array[AABB] = []
+	for at in range(1, heights.size()):
+		if heights[at] - heights[at - 1] <= 2.0 * MEET or heights[at] > top:
+			continue
+		var lean := 0.0
+		for side: int in [-1, 1]:
+			var reach := -piece.position.z if side == -1 else piece.end.z
+			var below := minf(absf(section.shell_at(heights[at - 1] + SHELL_IN, side)), reach)
+			var above := minf(absf(section.shell_at(heights[at] - SHELL_IN, side)), reach)
+			if not is_nan(below) and not is_nan(above):
+				lean = maxf(lean, absf(above - below))
+		var bands := maxi(1, ceili(lean / LEAN - MEET))
+		for step in bands:
+			var bottom := lerpf(heights[at - 1], heights[at], float(step) / bands)
+			var low := Vector3(piece.position.x, bottom, piece.position.z)
+			var high := Vector3(
+				piece.end.x,
+				lerpf(heights[at - 1], heights[at], float(step + 1) / bands),
+				piece.end.z
+			)
+			var band := _held(structure, AABB(low, high - low))
+			if _kept(band):
+				found.append(band)
+	return found
+
+
+## The parts of the stairwells and open floors into [param cell] from the cell under it
+## (ShipOpening.Kind.STAIRWELL, OPEN) that none of [param own], its rooms, stands over:
+## a room under one stands up into [param cell] there, with no deck between — the
+## Titanic's crew's stairs from her D deck passages forward into her forecastle — and
+## sees up it to the cell's top.
+static func _stairwells(
+	structure: ShipStructure, cell: FloodCell, own: Array[ShipRoom]
+) -> Array[Rect2]:
+	var footprint := Rect2(
+		cell.low.x, cell.low.z, cell.high.x - cell.low.x, cell.high.z - cell.low.z
+	)
+	var found: Array[Rect2] = []
+	for opening: ShipOpening in structure.openings:
+		var up := opening.kind in [ShipOpening.Kind.STAIRWELL, ShipOpening.Kind.OPEN]
+		up = up and is_zero_approx(opening.size.y) and cell.name in opening.joins
+		if not up or not is_equal_approx(opening.centre.y, cell.low.y):
+			continue
+		var size := Vector2(opening.size.x, opening.size.z)
+		var over := Rect2(Vector2(opening.centre.x, opening.centre.z) - size * 0.5, size)
+		over = over.intersection(footprint)
+		if not over.has_area():
+			continue
+		var left: Array[Rect2] = [over]
+		for room: ShipRoom in own:
+			var rest: Array[Rect2] = []
+			for part: Rect2 in left:
+				var under := part.intersection(room.area)
+				if under.has_area():
+					rest.append_array(_around(part, under))
+				else:
+					rest.append(part)
+			left = rest
+		found.append_array(left)
 	return found
 
 
