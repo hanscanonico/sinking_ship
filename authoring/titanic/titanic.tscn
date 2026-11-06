@@ -2054,57 +2054,36 @@ metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_56_0" type="CSGBox3D" parent="Platforms" unique_id=1146989245]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.5625, 1.4625, -7.925)
-size = Vector3(1.5, 0.2, 5.85)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.33125, 1.4625, -7.925)
+size = Vector3(1.0375, 0.2, 5.85)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_56_1" type="CSGBox3D" parent="Platforms" unique_id=1582714973]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.5625, 1.4625, 0.0625)
-size = Vector3(1.5, 0.2, 8.125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.33125, 1.4625, 0.0625)
+size = Vector3(1.0375, 0.2, 8.125)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_56_2" type="CSGBox3D" parent="Platforms" unique_id=200507527]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.5625, 1.4625, 8.1125)
-size = Vector3(1.5, 0.2, 5.475)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.33125, 1.4625, 8.1125)
+size = Vector3(1.0375, 0.2, 5.475)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"C deck"
+
+[node name="Platform_c_56_3" type="CSGBox3D" parent="Platforms" unique_id=1307653999]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.081245, 1.4625, 0)
+size = Vector3(0.4625, 0.2, 21.7)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
 
 [node name="Platform_c_57_0" type="CSGBox3D" parent="Platforms" unique_id=562539642]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.46875, 1.4625, -7.85)
-size = Vector3(0.3125, 0.2, 5.7)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"C deck"
-
-[node name="Platform_c_57_1" type="CSGBox3D" parent="Platforms" unique_id=1150561210]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.46875, 1.4625, 0.0625)
-size = Vector3(0.3125, 0.2, 8.125)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"C deck"
-
-[node name="Platform_c_57_2" type="CSGBox3D" parent="Platforms" unique_id=1925954985]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.46875, 1.4625, 8.0375)
-size = Vector3(0.3125, 0.2, 5.325)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"C deck"
-
-[node name="Platform_c_57_3" type="CSGBox3D" parent="Platforms" unique_id=866685485]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.84375, 1.4625, -7.85)
-size = Vector3(0.4375, 0.2, 5.7)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"C deck"
-
-[node name="Platform_c_57_4" type="CSGBox3D" parent="Platforms" unique_id=698305027]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.84375, 1.4625, 3.35)
-size = Vector3(0.4375, 0.2, 14.7)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.6875, 1.4625, 0)
+size = Vector3(0.75, 0.2, 21.4)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"C deck"
@@ -78872,18 +78851,18 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_c_53_5"
 
 [node name="Railing_c_crew_s_stair_7_e" type="CSGBox3D" parent="Railings" unique_id=535250323]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 103.0625, 2.0625, -4.5)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 101.85, 2.0625, -4.5)
 size = Vector3(1, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_c_58_0"
+metadata/platform = &"Platform_c_56_3"
 
 [node name="Railing_c_crew_s_stair_8_e" type="CSGBox3D" parent="Railings" unique_id=2003051084]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 102.625, 2.0625, 4.75)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 101.85, 2.0625, 4.75)
 size = Vector3(1.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
-metadata/platform = &"Platform_c_57_4"
+metadata/platform = &"Platform_c_56_3"
 
 [node name="Railing_d_second_class_stairway_1_p" type="CSGBox3D" parent="Railings" unique_id=774249175]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -92.71875, -2.6875, -2.6875)
@@ -115063,6 +115042,24 @@ metadata/name = &"stair_a_second_class_staircase_2"
 metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"second_class_entrance_house", &"a_deck"])
 
+[node name="Opening_stair_a_second_class_staircase_2_b_deck" type="CSGBox3D" parent="Structure/Openings" unique_id=1093150265]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -68, 5.5, 1.875)
+size = Vector3(0.25, 0, 2)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_a_second_class_staircase_2_b_deck"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"b_deck", &"a_deck"])
+
+[node name="Opening_stair_a_after_grand_staircase_3" type="CSGBox3D" parent="Structure/Openings" unique_id=574243057]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40.2812, 5.5, -0.0938)
+size = Vector3(3.6875, 0, 4.0625)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_a_after_grand_staircase_3"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"b_deck", &"a_deck"])
+
 [node name="Opening_stair_a_grand_staircase_4" type="CSGBox3D" parent="Structure/Openings" unique_id=1300365248]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.8438, 5.5, 1.5312)
 size = Vector3(3.4375, 0, 2.8125)
@@ -115089,6 +115086,15 @@ metadata/ship = &"opening"
 metadata/name = &"stair_b_second_class_staircase_1"
 metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"c_deck", &"second_class_entrance_house"])
+
+[node name="Opening_stair_b_after_grand_staircase_5" type="CSGBox3D" parent="Structure/Openings" unique_id=658150824]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42.8125, 2.75, 2.4375)
+size = Vector3(3.375, 0, 0.875)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_b_after_grand_staircase_5"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"c_deck", &"b_deck"])
 
 [node name="Opening_stair_b_grand_staircase_6" type="CSGBox3D" parent="Structure/Openings" unique_id=1458208348]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.8125, 2.75, -1.5312)
@@ -115216,6 +115222,15 @@ metadata/name = &"stair_d_stair_7"
 metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"boiler_room_5_e", &"d_deck"])
 
+[node name="Opening_stair_d_stair_7_boiler_room_4_e" type="CSGBox3D" parent="Structure/Openings" unique_id=687674192]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.9488, -3.1875, -6.2812)
+size = Vector3(1.0225, 0, 0.9375)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_d_stair_7_boiler_room_4_e"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"boiler_room_4_e", &"d_deck"])
+
 [node name="Opening_stair_d_third_class_ladder_10" type="CSGBox3D" parent="Structure/Openings" unique_id=565882314]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.75, -1.25, -6.1562)
 size = Vector3(5.5, 0, 2.5625)
@@ -115260,6 +115275,15 @@ metadata/ship = &"opening"
 metadata/name = &"stair_e_third_class_ladderway_8"
 metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"boiler_room_2_f", &"boiler_room_2_e"])
+
+[node name="Opening_stair_e_third_class_ladderway_8_boiler_room_3_f" type="CSGBox3D" parent="Structure/Openings" unique_id=1029214370]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.0012, -5.9375, 0)
+size = Vector3(0.6225, 0, 6.125)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_e_third_class_ladderway_8_boiler_room_3_f"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"boiler_room_3_f", &"boiler_room_3_e"])
 
 [node name="Opening_stair_e_stewards_ladder_9" type="CSGBox3D" parent="Structure/Openings" unique_id=456624614]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 20.8438, -5.9375, -6.5312)
@@ -115314,6 +115338,96 @@ metadata/ship = &"opening"
 metadata/name = &"stair_g_hold_ladder_5"
 metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"after_hold_fwd_orlop", &"after_hold_fwd_tween"])
+
+[node name="Opening_stair_c_stewards_staircase_3" type="CSGBox3D" parent="Structure/Openings" unique_id=1780041715]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -25.0938, 0, 0.125)
+size = Vector3(0.9375, 0, 3.75)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_c_stewards_staircase_3"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"d_deck", &"c_deck"])
+
+[node name="Opening_stair_c_crew_s_ladder_9" type="CSGBox3D" parent="Structure/Openings" unique_id=1407192143]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.2188, 1.5625, -0.4688)
+size = Vector3(0.8125, 0, 3.6875)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_c_crew_s_ladder_9"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"d_deck_forward", &"forecastle"])
+
+[node name="Opening_stair_d_stair_3" type="CSGBox3D" parent="Structure/Openings" unique_id=187864526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -65.375, -3.1875, 1.6562)
+size = Vector3(0.75, 0, 3.3125)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_d_stair_3"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"turbine_room_tween", &"d_deck"])
+
+[node name="Opening_stair_d_stair_4" type="CSGBox3D" parent="Structure/Openings" unique_id=1963632410]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -63.4688, -3.1875, -11.125)
+size = Vector3(1.0625, 0, 3.25)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_d_stair_4"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"turbine_room_tween", &"d_deck"])
+
+[node name="Opening_stair_d_stewards_staircase_5" type="CSGBox3D" parent="Structure/Openings" unique_id=2048004821]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -26.9375, -3.1875, 0.3125)
+size = Vector3(1, 0, 3.875)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_d_stewards_staircase_5"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"boiler_room_1_e", &"d_deck"])
+
+[node name="Opening_stair_d_firemen_s_spiral_staircase_8" type="CSGBox3D" parent="Structure/Openings" unique_id=1874408814]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.8125, -1.25, -1.25)
+size = Vector3(1.125, 0, 5.5)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_d_firemen_s_spiral_staircase_8"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"hold_1_tween", &"d_deck_forward"])
+
+[node name="Opening_stair_d_firemen_s_spiral_staircase_9" type="CSGBox3D" parent="Structure/Openings" unique_id=1698923358]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103, -1.25, 1)
+size = Vector3(1, 0, 5.5)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_d_firemen_s_spiral_staircase_9"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"hold_1_tween", &"hold_1_d"])
+
+[node name="Opening_stair_e_turkish_bath_stair_11" type="CSGBox3D" parent="Structure/Openings" unique_id=1206045420]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 33.4688, -5.9375, 0.5938)
+size = Vector3(1.6875, 0, 3.0625)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_e_turkish_bath_stair_11"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"boiler_room_4_f", &"boiler_room_4_e"])
+
+[node name="Opening_stair_f_ladder_5" type="CSGBox3D" parent="Structure/Openings" unique_id=733954720]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -48.0625, -8.5625, 6.6875)
+size = Vector3(1, 0, 2.875)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_f_ladder_5"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"engine_room", &"engine_room_tween"])
+
+[node name="Opening_stair_f_racquet_court_stair_9" type="CSGBox3D" parent="Structure/Openings" unique_id=1388401199]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.1562, -8.5625, -1.375)
+size = Vector3(0.8125, 0, 3)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"stair_f_racquet_court_stair_9"
+metadata/kind = "STAIRWELL"
+metadata/joins = Array[StringName]([&"bunker_6_u", &"boiler_room_6_tween"])
 
 [node name="Opening_manhole_dbaha_a" type="CSGBox3D" parent="Structure/Openings" unique_id=930203533]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -105.5, -18.1875, -0.05)

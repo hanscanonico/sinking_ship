@@ -125,6 +125,19 @@ func turned(index: int, top: float, up: PackedFloat64Array) -> void:
 	_upward[index] = -1 if rise > SQRT_HALF else (1 if rise < -SQRT_HALF else 0)
 
 
+## Every opening turned at once, as turned would one by one: their highest corners
+## [param top] and the ways air passes them, [param upward] (SinkNative.upward).
+func turned_all(top: PackedFloat64Array, upward: PackedInt32Array) -> void:
+	_top = top
+	_upward = upward
+
+
+## Per opening, the ship axis it is flat across (or -1) and which way along it its first
+## side lies: what the extension turns the way air passes it from (SinkNative).
+func faces() -> Array:
+	return [_axis, _facing]
+
+
 ## The air of every cell of [param state], whose water is where it starts: free, or
 ## all its room's air at the atmosphere's pressure, trapped.
 func start(state: FloodState) -> void:
