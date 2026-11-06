@@ -15,6 +15,12 @@ const MAIN_DECK := Vector3(-12.0, 0.0, 3.5)
 const ASIDE := Vector3(4.0, 0.0, 4.2)
 ## Where on the flat deck a bot stands a metre in from her starboard edge.
 const EDGE_BY := Vector3(0.0, 0.0, 3.0)
+const TITANIC := "res://data/ships/titanic.tres"
+const TITANIC_SINKING := "res://data/sinking/titanic_open_sea.tres"
+## The Titanic's bonus spot in a six-berth third-class room on her G deck, aft, 11 m under
+## the middle of her steering gear room on the poop: where a bot there sets out from.
+const G_DECK_CABIN := Vector3(-120.5531, -11.0, -0.7937)
+const STEERING_GEAR := Vector3(-124.9063, 0.0, -0.0625)
 
 
 func _tier(tier: StringName) -> BotProfile:
@@ -91,6 +97,15 @@ func _spot_in(sim: MatchSim, room: StringName) -> int:
 	var layout := sim.config.ship
 	for index in layout.bonus_spots.size():
 		if layout.rooms[layout.bonus_spots[index].room].name == room:
+			return index
+	return -1
+
+
+## The index of [param sim]'s bonus spot at [param point].
+func _spot_at(sim: MatchSim, point: Vector3) -> int:
+	var spots := sim.config.ship.bonus_spots
+	for index in spots.size():
+		if spots[index].point.is_equal_approx(point):
 			return index
 	return -1
 
@@ -221,6 +236,32 @@ func test_a_bot_goes_for_a_bonus_in_a_dry_room_below_the_sea() -> void:
 	var bot := sim.state.seats[0]
 	var runner := _runner(sim, BotInputSource.new(0, _tier(&"normal"), sim.config))
 	var took := _until(runner, 20.0, func() -> bool: return bot.bonus != -1)
+	assert_true(took, "it went down and took it: at %s" % bot.pos)
+
+
+## A bot's range grows with her hull (BotProfile.bonus_range): held dry before any hit, a
+## normal bot in the Titanic's steering gear room sets out for the Double life in a six-berth
+## third-class room on her G deck below it — 11 m down, below the sea, a walk of some 55 m:
+## past the steamer's 25 m, well within her 270 m hull's — and goes down and takes it, the
+## other seats standing where they spawned.
+func test_a_bot_on_the_titanic_goes_for_a_bonus_far_below_decks() -> void:
+	var sinking: SinkScenario = load(TITANIC_SINKING).duplicate()
+	sinking.hit = null
+	sinking.explicit_hit = null
+	var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(600.0), 3, load(TITANIC), sinking)
+	var spot := _spot_at(sim, G_DECK_CABIN)
+	assert_ne(spot, -1, "a spot there")
+	SimFixtures.bring_aboard(sim, spot)
+	assert_lt(sim.pose().above_water(G_DECK_CABIN), 0.0, "her G deck is below the sea")
+	assert_eq(sim.pose().above_water_held(G_DECK_CABIN), INF, "and no water is in her")
+	var profile := _tier(&"normal")
+	SimFixtures.place(sim, 0, STEERING_GEAR, 0.0)
+	var bot := sim.state.seats[0]
+	var source := BotInputSource.new(0, profile, sim.config)
+	var runner := _runner(sim, source)
+	var going := func() -> bool: return source.brain.intent == BotBrain.Intent.TAKE_BONUS
+	assert_true(_until(runner, 1.0, going), "it sets out")
+	var took := _until(runner, 40.0, func() -> bool: return bot.bonus != -1)
 	assert_true(took, "it went down and took it: at %s" % bot.pos)
 
 

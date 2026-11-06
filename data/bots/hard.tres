@@ -55,6 +55,7 @@ buoy_range_m = 30.0
 steals = true
 bonus_weight = 1.2
 bonus_range_m = 40.0
+bonus_range_hull_m = 45.0
 bonus_walk_share = 0.5
 bonus_margin_m = 0.6
 bonus_worth = Dictionary[ExtResource("2_kind"), float]({
