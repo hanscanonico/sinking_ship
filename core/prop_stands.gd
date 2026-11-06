@@ -5,7 +5,9 @@ extends RefCounted
 ## on a grid of CELL squares over her bounds, so a question about a point looks only at
 ## the props in the cells within its reach. A saloon laid with tables and chairs costs a
 ## body's step, a bot's probe or a crate's contact no more than a hold of cargo. It holds
-## nothing it is not told: every prop gone until told where it stands.
+## nothing it is not told: every prop gone until told where it stands. Where the game's
+## extension is loaded (ContactsNative) the grid is a NativeStands, giving near() the same
+## answers bit for bit.
 
 ## How wide a cell of the grid is, in metres: a laid table and its chairs to a few cells.
 const CELL := 2.0
@@ -38,6 +40,9 @@ var _rows := 1
 var _cells: Array[PackedInt32Array] = []
 var _round := PackedInt32Array()
 var _cell_of := PackedInt32Array()
+## The grid in the extension (ContactsNative), null without it: with it, the props stand
+## on its grid alone, near() asks it, and feet and gone here are its mirror.
+var _native: Object
 
 
 ## The props of [param layout], every one gone, on a grid over [param bounds] — a point
@@ -59,6 +64,10 @@ func _init(layout: ShipLayout, bounds: Rect2) -> void:
 	_origin = bounds.position
 	_columns = maxi(1, ceili(bounds.size.x / CELL))
 	_rows = maxi(1, ceili(bounds.size.y / CELL))
+	if ContactsNative.loaded():
+		_native = ContactsNative.made(&"NativeStands")
+		_native.setup(radii, heights, _origin, _columns, _rows)
+		return
 	_cells.resize(_columns * _rows)
 	for cell in _cells.size():
 		_cells[cell] = PackedInt32Array()
@@ -67,6 +76,24 @@ func _init(layout: ShipLayout, bounds: Rect2) -> void:
 
 func count() -> int:
 	return radii.size()
+
+
+## The grid in the extension, or null.
+func native() -> Object:
+	return _native
+
+
+## Takes where the extension stands each of [param props] as its own: what its contact
+## passes stood there (NativeCrates).
+func adopt(props: PackedInt32Array) -> void:
+	var at: PackedVector3Array = _native.feet_of(props)
+	var nowhere: PackedByteArray = _native.gone_of(props)
+	for index in props.size():
+		var prop := props[index]
+		feet[prop] = at[index]
+		if nowhere[index] != gone[prop]:
+			gone[prop] = nowhere[index]
+			_standing_count += -1 if nowhere[index] == 1 else 1
 
 
 ## Stands each solid prop of [param props] loose where it has it, and none of the others —
@@ -111,6 +138,9 @@ func put(prop: int, at: Vector3) -> void:
 	if gone[prop] == 1:
 		gone[prop] = 0
 		_standing_count += 1
+	if _native != null:
+		_native.put(prop, at)
+		return
 	var cell := _cell(at.x, at.z)
 	if cell == _cell_of[prop]:
 		return
@@ -129,6 +159,9 @@ func take(prop: int) -> void:
 		return
 	gone[prop] = 1
 	_standing_count -= 1
+	if _native != null:
+		_native.take(prop)
+		return
 	_cells[_cell_of[prop]].remove_at(_cells[_cell_of[prop]].bsearch(prop))
 	_count_round(_cell_of[prop], -1)
 	_cell_of[prop] = -1
@@ -145,6 +178,8 @@ func clear() -> void:
 ## question's own rounding would find is left out — in index order; never
 ## [param except_prop].
 func near(x: float, z: float, reach: float, except_prop := -1) -> PackedInt32Array:
+	if _native != null:
+		return _native.near(x, z, reach, except_prop)
 	var found := PackedInt32Array()
 	var out := reach + _widest + SLACK
 	if out <= CELL - SLACK:

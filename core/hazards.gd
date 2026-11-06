@@ -120,6 +120,9 @@ var _least_grip := INF
 var _turn := PackedByteArray()
 var _feet_before := PackedFloat64Array()
 var _came_from := PackedVector2Array()
+## The contact passes in the extension (ContactsNative, NativeCrates), made the first
+## time they are asked for; null without it.
+var _native: Object
 
 ## How a tick takes a crate: none of its loose ones aboard, or at rest, or stepped.
 enum Turn { NONE, RESTS, STEPS }
@@ -528,6 +531,10 @@ func _move(
 		var reach := Vector2(crate.vel.x, crate.vel.z).length() * Ticks.SECONDS_PER_TICK
 		steps = maxi(steps, ceili(reach / _props[crate.prop].radius))
 	var dt := Ticks.SECONDS_PER_TICK / steps
+	# The whole ship's crates, or her first piece's, stand on its own Surfaces alone.
+	if _piece == 0 and _native_passes() != null:
+		_move_natively(state, crates, steps, dt, pose, tick, events)
+		return
 	for _step in steps:
 		var at := 0
 		while at < crates.size():
@@ -553,6 +560,76 @@ func _move(
 				at = _after(crates, at, crate)
 			if not held:
 				break
+
+
+## The NativeCrates working the contact passes, made now if not yet; null without the
+## extension, or where the Surfaces or the crates at rest do not ask it.
+func _native_passes() -> Object:
+	if _native != null:
+		return _native
+	var surfaces := _surfaces.native
+	if surfaces == null or _at_rest.native() == null:
+		return null
+	_native = ContactsNative.made(&"NativeCrates")
+	var radii := PackedFloat64Array()
+	var heights := PackedFloat64Array()
+	var masses := PackedFloat64Array()
+	var harmless := PackedByteArray()
+	for index in _props.size():
+		radii.append(_props[index].radius)
+		heights.append(_props[index].height)
+		masses.append(_props[index].mass)
+		harmless.append(1 if _kinds[index].harmless else 0)
+	var numbers := PackedFloat64Array(
+		[
+			_rules.step_height,
+			_rules.railing_height,
+			_rules.railing_break_speed,
+			_rules.crate_impact_speed,
+			_rules.crate_restitution,
+			_credit_window_ticks,
+			Movement.CONTACT_PASSES,
+		]
+	)
+	_native.setup(surfaces, _at_rest.native(), radii, heights, masses, _solid, harmless, numbers)
+	return _native
+
+
+## _move's steps of [param steps], each [param dt] long, worked by the extension: the
+## same integration and contact passes over [param crates], woken ones joining them in
+## the same order, and a crate crossing a railing hard enough to break it asking
+## damage() here, the crates as they stand by then told to Surfaces first.
+func _move_natively(
+	state: MatchState,
+	crates: Array[PropState],
+	steps: int,
+	dt: float,
+	pose: ShipPose,
+	tick: int,
+	events: Array[SimEvent]
+) -> void:
+	var order := PackedInt32Array()
+	for crate: PropState in crates:
+		order.append(crate.prop)
+	var breaks := func(railing: int, prop: int) -> bool:
+		_surfaces.stands.adopt(_native.moving())
+		return damage(state, rail(railing), _rules.crate_damage, pose, tick, events, -1, prop)
+	var moved: PackedInt32Array = _native.move(
+		state.props, order, steps, dt, tick, _turn, _feet_before, _came_from, breaks
+	)
+	var woken: PackedInt32Array = _native.woken()
+	var feet: PackedFloat64Array = _native.feet_before()
+	var came: PackedVector2Array = _native.came_from()
+	for index in woken.size():
+		var prop := woken[index]
+		_turn[prop] = Turn.STEPS
+		_feet_before[prop] = feet[index]
+		_came_from[prop] = came[index]
+	_at_rest.adopt(woken)
+	_surfaces.stands.adopt(moved)
+	crates.clear()
+	for prop: int in moved:
+		crates.append(state.props[prop])
 
 
 ## Where in [param crates] the one after [param crate] is, which stood at [param at]
