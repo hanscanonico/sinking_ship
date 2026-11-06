@@ -22,7 +22,9 @@ enum Shape { BOX, CYLINDER }
 @export var fitted: bool
 ## What it is, for the art to draw it as: the gear on her open decks by its name — a
 ## capstan, an electric winch, a crane (DeckFurniture.GEAR) —, laid at a size its kind
-## is made at; a hatch's coaming over no opening of her structure's, "hatch"
-## (DeckFurniture.HATCH); empty for a wall, a house, any other hatch and all the rest,
+## is made at, and each other part of a piece made of more than one by its kind's
+## name and its own, a crane's "electric crane house" (DeckGear.PARTS); a hatch's
+## coaming over no opening of her structure's, "hatch" (DeckFurniture.HATCH); empty
+## for a wall, a house, any other hatch and all the rest,
 ## which the art reads from its shape and where it stands. No rule reads it.
 @export var name: StringName

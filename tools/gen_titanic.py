@@ -204,23 +204,72 @@ GEAR = {
     "steam winch": [(3.8125, 1.25, 2.75)],
 }
 
+# The parts a piece of her gear is made of where it is more than its one envelope, as
+# DeckGear.PARTS declares them (tests/unit/art/test_deck_gear.gd holds every piece of the
+# fleet to them), by kind and size: its foot first, named its kind, then each part named its
+# kind and its own, a box or a round over its own box in the piece's space — x along its
+# longer side, z across, from the middle of its footprint, y up off its deck:
+# (part, round, x0, x1, y0, y1, z0, z1).
+GEAR_PARTS = {
+    "capstan": {(d, 0.9375, d): [
+        ("", True, -d / 2, d / 2, 0.0, 0.125, -d / 2, d / 2),
+        ("barrel", True, -b, b, 0.125, 0.9375, -b, b)] for d, b in [(1.625, 0.5), (1.375, 0.4375), (1.125, 0.375)]},
+    "cable holder": {(2.75, 0.75, 2.1875): [
+        ("", False, -1.375, 1.375, 0.0, 0.25, -1.09375, 1.09375),
+        ("wildcat", True, -0.875, 0.875, 0.25, 0.75, -0.875, 0.875)]},
+    "electric crane": {(1.5, 2.5, 1.5): [
+        ("", True, -0.4375, 0.4375, 0.0, 1.0, -0.4375, 0.4375),
+        ("house", False, -0.75, 0.75, 1.0, 2.5, -0.75, 0.75)]},
+    "steam windlass": {(5.625, 1.25, 3.3125): [
+        ("", False, -2.8125, 2.8125, 0.0, 0.3125, -1.65625, 1.65625),
+        ("cylinder", True, -2.5625, -1.5625, 0.3125, 1.25, -0.5, 0.5),
+        ("cylinder", True, 1.5625, 2.5625, 0.3125, 1.25, -0.5, 0.5),
+        ("gear case", False, -1.5625, 1.5625, 0.3125, 1.25, -1.40625, 1.40625)]},
+    "steam winch": {(3.8125, 1.25, 2.75): [
+        ("", False, -1.90625, 1.90625, 0.0, 0.25, -1.375, 1.375),
+        ("cylinder", True, -1.65625, -0.78125, 0.25, 1.25, 0.25, 1.125),
+        ("cylinder", True, -1.65625, -0.78125, 0.25, 1.25, -1.125, -0.25),
+        ("frame", False, -0.78125, 1.65625, 0.25, 1.25, -1.125, 1.125)]},
+}
+
 def gear(bid, kind, x0, x1, z0, z1, bottom):
     """A piece of her gear of kind where its plate draws it, x0..x1 by z0..z1 (its ink's box,
     or its place): the size of its kind nearest that box laid on its middle, its longer side
-    the way the box's is — a round piece's axis there — from bottom, on the grain; its
-    footprint (x0, x1, z0, z1)."""
+    the way the box's is — a round piece's axis there — from bottom, on the grain, as its
+    parts (GEAR_PARTS), each a blocker of its own; its footprint (x0, x1, z0, z1)."""
     along_x = x1 - x0 >= z1 - z0
     longer, shorter = (x1 - x0, z1 - z0) if along_x else (z1 - z0, x1 - x0)
     size = min(GEAR[kind], key=lambda s: abs(s[0] - longer) + abs(s[2] - shorter))
     mx, mz = (x0 + x1) * 0.5, (z0 + z1) * 0.5
+    parts = GEAR_PARTS.get(kind, {}).get(size)
     if kind in ROUND_GEAR:
         r = size[0] / 2
-        cylinder(bid, q(mx), q(mz), r, bottom, bottom + size[1], kind)
-        return q(mx) - r, q(mx) + r, q(mz) - r, q(mz) + r
-    sx, sz = (size[0], size[2]) if along_x else (size[2], size[0])
-    gx, gz = q(mx - sx / 2), q(mz - sz / 2)
-    box(bid, gx, gx + sx, gz, gz + sz, bottom, bottom + size[1], kind)
-    return gx, gx + sx, gz, gz + sz
+        cx, cz, along_x = q(mx), q(mz), True
+        if parts is None:
+            cylinder(bid, cx, cz, r, bottom, bottom + size[1], kind)
+        footprint = (cx - r, cx + r, cz - r, cz + r)
+    else:
+        sx, sz = (size[0], size[2]) if along_x else (size[2], size[0])
+        gx, gz = q(mx - sx / 2), q(mz - sz / 2)
+        if parts is None:
+            box(bid, gx, gx + sx, gz, gz + sz, bottom, bottom + size[1], kind)
+        cx, cz = gx + sx / 2, gz + sz / 2
+        footprint = (gx, gx + sx, gz, gz + sz)
+    for k, (part, round_, px0, px1, py0, py1, pz0, pz1) in enumerate(parts or []):
+        # Along her, or standing across her turned a quarter (DeckGear.turn()): its x
+        # along her -z, its z along her +x.
+        if along_x:
+            wx0, wx1, wz0, wz1 = cx + px0, cx + px1, cz + pz0, cz + pz1
+        else:
+            wx0, wx1, wz0, wz1 = cx + pz0, cx + pz1, cz - px1, cz - px0
+        name = "%s %s" % (kind, part) if part else kind
+        pid = "%s_%d_%s" % (bid, k, slug(part)) if part else bid
+        if round_:
+            assert abs((wx1 - wx0) - (wz1 - wz0)) < 1e-9, "%s's %s round" % (kind, part)
+            cylinder(pid, (wx0 + wx1) / 2, (wz0 + wz1) / 2, (wx1 - wx0) / 2, bottom + py0, bottom + py1, name)
+        else:
+            box(pid, wx0, wx1, wz0, wz1, bottom + py0, bottom + py1, name)
+    return footprint
 
 # A railing breaks span by span (SH10), as the steamer's: a run longer than
 # RAIL_SECTION is laid as touching spans of about that length.

@@ -23,9 +23,10 @@ enum Piece { HATCH, CASING, SKYLIGHT, LOCKER, POST, BOAT, BENCH, VENT, GEAR }
 ## Her deck gear, by the name its blocker carries (ShipBlocker.name): each kind made at
 ## the sizes her plates draw it, each size over all — its longer side, its height, its
 ## shorter side; a round piece's diameter, height and diameter — to the model that
-## dresses it (assets/models/NAME), "" for one drawn by code alone. A blocker so named
-## stands at one of its kind's sizes, its longer side along x or z, and is drawn to it.
-## Until a kind's model is modelled (#381), it is drawn as its envelope, plain.
+## dresses it (assets/models/NAME), "" for one drawn by code alone. A piece is its parts
+## (DeckGear.PARTS): its foot, a blocker so named, stands at one of its kind's sizes, its
+## longer side along x or z, and each other part is a blocker named for it. A piece is
+## drawn as its model at its foot, filling its parts (DeckGear.draw()).
 const GEAR := {
 	# A warping capstan's drum (Plate IV), its height est.: on her poop, and on her
 	# forecastle, the after pair and the forward pair on its head.
@@ -236,9 +237,10 @@ static func is_vent(layout: ShipLayout, blocker: ShipBlocker) -> bool:
 	)
 
 
-## Whether [param blocker] is a piece of her deck gear: its name one of GEAR's.
+## Whether [param blocker] is a piece of her deck gear, or a part of one: its name one of
+## GEAR's, or one of its kinds' parts' (DeckGear.is_part()).
 static func is_gear(blocker: ShipBlocker) -> bool:
-	return GEAR.has(blocker.name)
+	return GEAR.has(blocker.name) or DeckGear.is_part(blocker)
 
 
 ## [param blocker]'s size over all as GEAR gives a kind's: its longer side, its height
@@ -251,9 +253,11 @@ static func size_of(blocker: ShipBlocker) -> Vector3:
 	return Vector3(maxf(plan.x, plan.y), height, minf(plan.x, plan.y))
 
 
-## A piece of her gear over [param blocker] to [param top], drawn as its envelope until its
-## kind's model is modelled: a plain round or box of machinery, a stanchion a white post.
+## A piece of her gear over [param blocker] to [param top]: its kind's model at its foot,
+## filling its parts (DeckGear.draw()); a kind with none, a stanchion, a white post.
 static func gear(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
+	if DeckGear.draw(mesh, blocker):
+		return
 	var paint := ShipPaints.white if blocker.name == &"stanchion" else ShipPaints.machine
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
 		mesh.cylinder(blocker.centre, blocker.radius, blocker.bottom, top, GEAR_SEGMENTS, paint)
