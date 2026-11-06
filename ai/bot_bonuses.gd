@@ -161,16 +161,24 @@ func spare(me: Dictionary) -> float:
 ## corner, where the water comes in first, an open deck's where the body stands. A dry room
 ## on dry cells stands clear of any water, however far below the sea outside her it lies
 ## (#340); a room with water in it, or in a cell under it, as far as its floor is over that.
+## A room's corners are where a body's middle can come to, a body's radius in from the
+## middle of its walls its area runs out to: at her shell that middle lies past her cells,
+## where the sea outside her would read as water in the room (#491).
 func floor_held(zone: int, at: Vector3, pose: ShipPose) -> float:
 	if zone < 0 or zone >= _layout.rooms.size():
 		return pose.above_water_held(at)
 	var room := _layout.rooms[zone]
+	var size := room.area.size
+	var inset := Vector2(
+		minf(_rules.body_radius, size.x * 0.5), minf(_rules.body_radius, size.y * 0.5)
+	)
+	var inside := Rect2(room.area.position + inset, size - inset * 2.0)
 	var lowest := INF
 	for corner: Vector2 in [
-		room.area.position,
-		Vector2(room.area.end.x, room.area.position.y),
-		room.area.end,
-		Vector2(room.area.position.x, room.area.end.y)
+		inside.position,
+		Vector2(inside.end.x, inside.position.y),
+		inside.end,
+		Vector2(inside.position.x, inside.end.y)
 	]:
 		var point := Vector3(corner.x, room.floor_height, corner.y)
 		lowest = minf(lowest, pose.above_water_held(point))

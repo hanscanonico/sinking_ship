@@ -6,13 +6,15 @@ extends RefCounted
 ## bot saw both — times refuge_rise_s: seen, never foreseen. Nothing is extrapolated
 ## from her lean. A refuge once made for is kept through a lurch — a swing, not the way
 ## she founders — and else unless another would stand refuge_keep_m higher. And where a
-## bot below deck wades to when every dry way it has leads only to floors going under.
+## bot below deck wades to when every dry way it has leads only to floors going under, and
+## whether its way dips toward the water on the way there.
 
 var _graph: WalkGraph
 var _window: int
 var _rise_seconds: float
 var _keep: float
 var _clear_by: float
+var _margin: float
 ## Each zone's floor over its water as the bot saw it a window ago and at its latest
 ## look, and the ticks it saw them on; -1 for not yet.
 var _then := PackedFloat64Array()
@@ -29,6 +31,7 @@ func _init(graph: WalkGraph, profile: BotProfile) -> void:
 	_rise_seconds = profile.refuge_rise_s
 	_keep = profile.refuge_keep_m
 	_clear_by = profile.climb_margin_m
+	_margin = profile.refuge_margin_m
 
 
 ## The refuge for a bot whose search is [param found], seeing [param pose] as it stood
@@ -91,6 +94,19 @@ func wade_out(
 	if not trapped and not (wading and goal != zone):
 		return none
 	return _graph.wade_out(at, surface, pose, _clear_by)
+
+
+## Whether a portal on [param legs] has an end lower than [param below] — how high
+## above its water under [param pose] the bot's feet stand — and within
+## refuge_margin_m of its own water: the way dips toward the water and will be under
+## before the bot is through. A way along its own floor is that floor's to answer for.
+func going_under(legs: Array[WalkGraph.Portal], pose: ShipPose, below: float) -> bool:
+	for leg: WalkGraph.Portal in legs:
+		for end: Vector3 in [leg.entry, leg.exit]:
+			var height := pose.above_water(end)
+			if height < below and height < _margin:
+				return true
+	return false
 
 
 ## How fast the water under [param zone] has come up toward its floor over the window,

@@ -14667,8 +14667,8 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_foremast" type="CSGCylinder3D" parent="Blockers" unique_id=707817604]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.75, 24.3125, 0)
-radius = 0.6
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.5, 24.3125, 0)
+radius = 0.375
 height = 40.0
 sides = 16
 material = SubResource("StandardMaterial3D_jiew5")
@@ -78786,6 +78786,48 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_a_1_2"
 
+[node name="Railing_a_after_grand_staircase_3_p_0" type="CSGBox3D" parent="Railings" unique_id=693990015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.125, 6, -2.125)
+size = Vector3(2, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_a_3_1"
+
+[node name="Railing_a_after_grand_staircase_3_p_1" type="CSGBox3D" parent="Railings" unique_id=1004302081]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.28125, 6, -2.125)
+size = Vector3(1.6875, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_a_3_1"
+
+[node name="Railing_a_after_grand_staircase_3_s_0" type="CSGBox3D" parent="Railings" unique_id=1433264865]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -41.125, 6, 1.9375)
+size = Vector3(2, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_a_3_2"
+
+[node name="Railing_a_after_grand_staircase_3_s_1" type="CSGBox3D" parent="Railings" unique_id=322162251]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -39.28125, 6, 1.9375)
+size = Vector3(1.6875, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_a_3_2"
+
+[node name="Railing_a_after_grand_staircase_3_e_0" type="CSGBox3D" parent="Railings" unique_id=529056646]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -38.4375, 6, -1.125)
+size = Vector3(2, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_a_3_3"
+
+[node name="Railing_a_after_grand_staircase_3_e_1" type="CSGBox3D" parent="Railings" unique_id=1053957763]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -38.4375, 6, 0.90625)
+size = Vector3(2.0625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_a_3_3"
+
 [node name="Railing_a_grand_staircase_4_e" type="CSGBox3D" parent="Railings" unique_id=2008482608]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 30.125, 6, 1.53125)
 size = Vector3(2.8125, 1, 0.05)
@@ -78834,6 +78876,13 @@ size = Vector3(1.25, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_b_1_3"
+
+[node name="Railing_b_after_grand_staircase_5_e" type="CSGBox3D" parent="Railings" unique_id=12462119]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -44.5, 3.25, 2.4375)
+size = Vector3(0.875, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_b_3_0"
 
 [node name="Railing_b_grand_staircase_6_p" type="CSGBox3D" parent="Railings" unique_id=567877133]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 31.8125, 3.25, -2.9375)
@@ -98392,26 +98441,26 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"firemen\'s wash place, E deck"
 
-[node name="Room_e_515_passage_e_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=1330359787]
+[node name="Room_e_515_passage_e_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=844576183]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.59375, -4.8875, -5.3125)
 size = Vector3(1.1875, 2.1, 4.375)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"passage, E deck forward of B"
+metadata/name = &"passage, E deck aft"
 
-[node name="Room_e_516_store_e_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=1385900130]
+[node name="Room_e_516_store_e_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=451313653]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.59375, -4.8875, -3.96875)
 size = Vector3(2.0625, 2.1, 1.6875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"store, E deck forward of B"
+metadata/name = &"store, E deck aft"
 
-[node name="Room_e_517_passage_e_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=2007488563]
+[node name="Room_e_517_passage_e_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=1191916897]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.875, -4.8875, 0.125)
 size = Vector3(4.625, 2.1, 6.5)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"passage, E deck forward of B"
+metadata/name = &"passage, E deck aft"
 
 [node name="Room_e_518_firemen_s_w_c_s_e_deck" type="CSGBox3D" parent="Rooms" unique_id=1177455424]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.34375, -4.8875, 5.6125)
@@ -101381,33 +101430,33 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"four-berth third-class room, F deck aft of B"
 
-[node name="Room_f_406_firemen_s_w_c_s_f_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=2075171600]
+[node name="Room_f_406_firemen_s_w_c_s_f_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=1650939179]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.21875, -7.5125, -4.825)
 size = Vector3(3.3125, 2.1, 3.15)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"firemen\'s W.C.s, F deck forward of B"
+metadata/name = &"firemen\'s W.C.s, F deck aft"
 
-[node name="Room_f_407_passage_f_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=831890190]
+[node name="Room_f_407_passage_f_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=1716554839]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.45, -7.5125, -0.03125)
 size = Vector3(3.775, 2.1, 6.4375)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"passage, F deck forward of B"
+metadata/name = &"passage, F deck aft"
 
-[node name="Room_f_408_firemen_s_w_c_s_f_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=1962716081]
+[node name="Room_f_408_firemen_s_w_c_s_f_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=268113902]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.1875, -7.5125, 4.79375)
 size = Vector3(3.25, 2.1, 3.2125)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"firemen\'s W.C.s, F deck forward of B"
+metadata/name = &"firemen\'s W.C.s, F deck aft"
 
-[node name="Room_f_409_firemen_s_quarters_f_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=322028723]
+[node name="Room_f_409_firemen_s_quarters_f_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=1340848275]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.762505, -7.5125, -3.7875)
 size = Vector3(0.85, 2.1, 3.325)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"firemen\'s quarters, F deck forward of B"
+metadata/name = &"firemen\'s quarters, F deck aft"
 
 [node name="Room_f_410_firemen_s_quarters_f_deck_port" type="CSGBox3D" parent="Rooms" unique_id=450313684]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -7.5125, -3.7875)
@@ -101416,12 +101465,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"firemen\'s quarters, F deck, port"
 
-[node name="Room_f_411_greasers_quarters_f_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=1852968301]
+[node name="Room_f_411_greasers_quarters_f_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=487969916]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.762505, -7.5125, 3.8)
 size = Vector3(0.85, 2.1, 3.6)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"greasers\' quarters, F deck forward of B"
+metadata/name = &"greasers\' quarters, F deck aft"
 
 [node name="Room_f_412_greasers_quarters" type="CSGBox3D" parent="Rooms" unique_id=2024781378]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.34375, -7.5125, 3.8)
@@ -102697,33 +102746,33 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"four-berth third-class room, G deck, aft of B"
 
-[node name="Room_g_178_firemen_s_w_c_s_g_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=585847386]
+[node name="Room_g_178_firemen_s_w_c_s_g_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=839945591]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.45, -9.95, -4.2125)
 size = Vector3(3.775, 2.1, 1.675)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"firemen\'s W.C.s, G deck, forward of B"
+metadata/name = &"firemen\'s W.C.s, G deck, aft"
 
-[node name="Room_g_179_passage_g_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=46072095]
+[node name="Room_g_179_passage_g_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=1374297427]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.45, -9.95, -0.0625)
 size = Vector3(3.775, 2.1, 6.625)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"passage, G deck, forward of B"
+metadata/name = &"passage, G deck, aft"
 
-[node name="Room_g_180_firemen_s_wash_place_g_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=577246307]
+[node name="Room_g_180_firemen_s_wash_place_g_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=340401045]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.45, -9.95, 4.15)
 size = Vector3(3.775, 2.1, 1.8)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"firemen\'s wash place, G deck, forward of B"
+metadata/name = &"firemen\'s wash place, G deck, aft"
 
-[node name="Room_g_181_leading_firemen_s_quarters_g_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=1686250652]
+[node name="Room_g_181_leading_firemen_s_quarters_g_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=546419334]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.762505, -9.95, -2.9375)
 size = Vector3(0.85, 2.1, 2.125)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"leading firemen\'s quarters, G deck, forward of B"
+metadata/name = &"leading firemen\'s quarters, G deck, aft"
 
 [node name="Room_g_182_leading_firemen_s_quarters_g_deck_port" type="CSGBox3D" parent="Rooms" unique_id=1922011442]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -9.95, -2.9375)
@@ -102753,12 +102802,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"leading firemen\'s quarters"
 
-[node name="Room_g_186_greasers_quarters_g_deck_forward_of_b" type="CSGBox3D" parent="Rooms" unique_id=1300138900]
+[node name="Room_g_186_greasers_quarters_g_deck_aft" type="CSGBox3D" parent="Rooms" unique_id=1662981972]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.762505, -9.95, 3.1625)
 size = Vector3(0.85, 2.1, 2.075)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"greasers\' quarters, G deck, forward of B"
+metadata/name = &"greasers\' quarters, G deck, aft"
 
 [node name="Room_g_187_greasers_quarters_g_deck_starboard" type="CSGBox3D" parent="Rooms" unique_id=775237502]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -9.95, 3.1625)
@@ -107751,20 +107800,20 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.3125, -5.9375, -3.9688)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_e_514_firemen_s_wash_place_e_deck"
 
-[node name="BonusSpot_e_515_passage_e_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=498540214]
+[node name="BonusSpot_e_515_passage_e_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=1827475296]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.5938, -5.9375, -5.3125)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_515_passage_e_deck_forward_of_b"
+metadata/room = &"Room_e_515_passage_e_deck_aft"
 
-[node name="BonusSpot_e_516_store_e_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=1304716679]
+[node name="BonusSpot_e_516_store_e_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=1157654440]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.0938, -5.9375, -4.3688)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_516_store_e_deck_forward_of_b"
+metadata/room = &"Room_e_516_store_e_deck_aft"
 
-[node name="BonusSpot_e_517_passage_e_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=274634395]
+[node name="BonusSpot_e_517_passage_e_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=797217175]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.875, -5.9375, -1.225)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_e_517_passage_e_deck_forward_of_b"
+metadata/room = &"Room_e_517_passage_e_deck_aft"
 
 [node name="BonusSpot_e_518_firemen_s_w_c_s_e_deck" type="Marker3D" parent="BonusSpots" unique_id=1660536247]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.3438, -5.9375, 5.6125)
@@ -109886,35 +109935,35 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.3438, -8.5625, 6.225)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_f_405_four_berth_third_class_room_f_deck_aft_of_b"
 
-[node name="BonusSpot_f_406_firemen_s_w_c_s_f_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=473112978]
+[node name="BonusSpot_f_406_firemen_s_w_c_s_f_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=679053527]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.1688, -8.5625, -4.825)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_406_firemen_s_w_c_s_f_deck_forward_of_b"
+metadata/room = &"Room_f_406_firemen_s_w_c_s_f_deck_aft"
 
-[node name="BonusSpot_f_407_passage_f_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=1848830445]
+[node name="BonusSpot_f_407_passage_f_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=1480693604]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.05, -8.5625, -0.9313)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_407_passage_f_deck_forward_of_b"
+metadata/room = &"Room_f_407_passage_f_deck_aft"
 
-[node name="BonusSpot_f_408_firemen_s_w_c_s_f_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=1039354710]
+[node name="BonusSpot_f_408_firemen_s_w_c_s_f_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=497507204]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.1875, -8.5625, 4.7938)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_408_firemen_s_w_c_s_f_deck_forward_of_b"
+metadata/room = &"Room_f_408_firemen_s_w_c_s_f_deck_aft"
 
-[node name="BonusSpot_f_409_firemen_s_quarters_f_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=915762387]
+[node name="BonusSpot_f_409_firemen_s_quarters_f_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=64774150]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.7625, -8.5625, -3.7875)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_409_firemen_s_quarters_f_deck_forward_of_b"
+metadata/room = &"Room_f_409_firemen_s_quarters_f_deck_aft"
 
 [node name="BonusSpot_f_410_firemen_s_quarters_f_deck_port" type="Marker3D" parent="BonusSpots" unique_id=248142312]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -8.5625, -3.7875)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_f_410_firemen_s_quarters_f_deck_port"
 
-[node name="BonusSpot_f_411_greasers_quarters_f_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=1837547326]
+[node name="BonusSpot_f_411_greasers_quarters_f_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=1673924042]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.7625, -8.5625, 3.8)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_f_411_greasers_quarters_f_deck_forward_of_b"
+metadata/room = &"Room_f_411_greasers_quarters_f_deck_aft"
 
 [node name="BonusSpot_f_412_greasers_quarters" type="Marker3D" parent="BonusSpots" unique_id=1832047977]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.3438, -8.5625, 3.8)
@@ -110826,25 +110875,25 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.7812, -11, 5.5813)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_g_177_four_berth_third_class_room_g_deck_aft_of_b"
 
-[node name="BonusSpot_g_178_firemen_s_w_c_s_g_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=1940248080]
+[node name="BonusSpot_g_178_firemen_s_w_c_s_g_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=446819040]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.85, -11, -4.2125)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_g_178_firemen_s_w_c_s_g_deck_forward_of_b"
+metadata/room = &"Room_g_178_firemen_s_w_c_s_g_deck_aft"
 
-[node name="BonusSpot_g_179_passage_g_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=321913530]
+[node name="BonusSpot_g_179_passage_g_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=590577153]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.6, -11, -0.0625)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_g_179_passage_g_deck_forward_of_b"
+metadata/room = &"Room_g_179_passage_g_deck_aft"
 
-[node name="BonusSpot_g_180_firemen_s_wash_place_g_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=434654881]
+[node name="BonusSpot_g_180_firemen_s_wash_place_g_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=1852036531]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 101.85, -11, 4.15)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_g_180_firemen_s_wash_place_g_deck_forward_of_b"
+metadata/room = &"Room_g_180_firemen_s_wash_place_g_deck_aft"
 
-[node name="BonusSpot_g_181_leading_firemen_s_quarters_g_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=1783813536]
+[node name="BonusSpot_g_181_leading_firemen_s_quarters_g_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=12457541]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.7625, -11, -2.9375)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_g_181_leading_firemen_s_quarters_g_deck_forward_of_b"
+metadata/room = &"Room_g_181_leading_firemen_s_quarters_g_deck_aft"
 
 [node name="BonusSpot_g_182_leading_firemen_s_quarters_g_deck_port" type="Marker3D" parent="BonusSpots" unique_id=1414200612]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -11, -2.9375)
@@ -110866,10 +110915,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.9688, -11, -1.6)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_g_185_leading_firemen_s_quarters"
 
-[node name="BonusSpot_g_186_greasers_quarters_g_deck_forward_of_b" type="Marker3D" parent="BonusSpots" unique_id=1413717156]
+[node name="BonusSpot_g_186_greasers_quarters_g_deck_aft" type="Marker3D" parent="BonusSpots" unique_id=245403128]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.7625, -11, 3.1125)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_g_186_greasers_quarters_g_deck_forward_of_b"
+metadata/room = &"Room_g_186_greasers_quarters_g_deck_aft"
 
 [node name="BonusSpot_g_187_greasers_quarters_g_deck_starboard" type="Marker3D" parent="BonusSpots" unique_id=987113232]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -11, 3.1625)
@@ -112076,7 +112125,7 @@ metadata/ship = &"cell"
 metadata/name = &"hold_1_aft_tween"
 metadata/shape = 0.741
 metadata/sideways = 0.25
-metadata/rooms = Array[StringName]([&"firemen\'s wash place, E deck", &"firemen\'s wash place, E deck", &"passage, E deck forward of B", &"store, E deck forward of B", &"passage, E deck forward of B", &"firemen\'s W.C.s, E deck", &"firemen\'s W.C.s, F deck forward of B", &"passage, F deck forward of B", &"firemen\'s W.C.s, F deck forward of B", &"firemen\'s quarters, F deck forward of B", &"greasers\' quarters, F deck forward of B", &"firemen\'s W.C.s, G deck, forward of B", &"passage, G deck, forward of B", &"firemen\'s wash place, G deck, forward of B", &"leading firemen\'s quarters, G deck, forward of B", &"greasers\' quarters, G deck, forward of B"])
+metadata/rooms = Array[StringName]([&"firemen\'s wash place, E deck", &"firemen\'s wash place, E deck", &"passage, E deck aft", &"store, E deck aft", &"passage, E deck aft", &"firemen\'s W.C.s, E deck", &"firemen\'s W.C.s, F deck aft", &"passage, F deck aft", &"firemen\'s W.C.s, F deck aft", &"firemen\'s quarters, F deck aft", &"greasers\' quarters, F deck aft", &"firemen\'s W.C.s, G deck, aft", &"passage, G deck, aft", &"firemen\'s wash place, G deck, aft", &"leading firemen\'s quarters, G deck, aft", &"greasers\' quarters, G deck, aft"])
 metadata/leak_area = 0.000702
 
 [node name="Cell_hold_1_port_tween" type="CSGBox3D" parent="Structure/Cells" unique_id=1685418821]
