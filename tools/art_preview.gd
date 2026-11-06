@@ -41,7 +41,11 @@ func _initialize() -> void:
 	var holder := ArtGltf.flattened(art, "Ship_%s" % ship_name, span)
 	art.free()
 	var error := ArtGltf.write(holder, out)
-	var meshes := holder.get_child_count()
+	var corners := 0
+	for copy: Node in holder.get_children():
+		var mesh := (copy as MeshInstance3D).mesh
+		for surface in mesh.get_surface_count():
+			corners += mesh.surface_get_array_len(surface)
 	holder.free()
-	print("art_preview: %s, %d meshes, %s -> %s" % [ship_name, meshes, error_string(error), out])
-	quit(0 if error == OK and meshes > 0 else 1)
+	print("art_preview: %s, %d corners, %s -> %s" % [ship_name, corners, error_string(error), out])
+	quit(0 if error == OK and corners > 0 else 1)
