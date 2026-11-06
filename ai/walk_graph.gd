@@ -638,26 +638,40 @@ func steer(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> P
 ## point past it too, never back to it; beside it, the middle of its near edge, so the
 ## body turns in rather than doubling back. On the leg's ramp, the point
 ## past its far end; under it or behind its high end, out to its nearer side first, so
-## the walk to its foot runs along the stair rather than into it.
+## the walk to its foot runs along the stair rather than into it. A portal wider than a
+## body's width either side of the axis — a step the breadth of her deck, a wide opening
+## — is closed on along the body's own line rather than its axis, as far off the axis
+## as leaves a body's width to its side (_line): the middle of a deck is where her gear
+## stands (#497).
 func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 	var along := Vector3(leg.along.x, 0.0, leg.along.y)
-	var past := leg.exit + along * _lead
-	if leg.ramp != NONE and from_surface == _surfaces.ramp_surface(leg.ramp):
-		return past
 	var offset := Vector2(from_pos.x - leg.entry.x, from_pos.z - leg.entry.z)
 	var ahead := offset.dot(leg.along)
 	var aside := offset.cross(leg.along)
+	var line := _line(leg, aside)
+	var past := leg.exit + along * _lead + line
+	if leg.ramp != NONE and from_surface == _surfaces.ramp_surface(leg.ramp):
+		return past
 	var lined_up := absf(aside) <= maxf(leg.half_width - _body_radius, 0.0)
 	var through := ahead > 0.0 and absf(aside) < leg.half_width
 	if (lined_up or through) and absf(ahead) <= _lead:
 		return past
 	if ahead < 0.0:
-		return leg.entry + along * minf(ahead + _lead, 0.0)
+		return leg.entry + along * minf(ahead + _lead, 0.0) + line
 	if leg.ramp != NONE and ahead > _lead and absf(aside) < leg.half_width:
 		var side := leg.along.orthogonal() * (1.0 if aside >= 0.0 else -1.0)
 		var out := leg.entry + along * ahead
 		return out + Vector3(side.x, 0.0, side.y) * (leg.half_width + _lead)
 	return leg.entry
+
+
+## How far off [param leg]'s axis, across it, a body [param aside] of it walks through it:
+## its own line, kept a body's width inside either side — on the axis through a portal
+## two bodies wide or narrower.
+func _line(leg: Portal, aside: float) -> Vector3:
+	var room := maxf(leg.half_width - _lead, 0.0)
+	var side := leg.along.orthogonal() * clampf(aside, -room, room)
+	return Vector3(side.x, 0.0, side.y)
 
 
 ## The open decks: platforms of one height whose areas meet along an edge share
