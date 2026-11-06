@@ -1314,6 +1314,171 @@ def held_to(pieces):
         return (min(over) if over else HALF) - T
     return side
 
+def shell_top(x):
+    return A_DECK if B_HOUSE[0] <= x <= B_HOUSE[1] else top_at(x)
+
+def bottom(x):
+    """Her lowest point at x: her keel, or her forefoot or her counter over it."""
+    if breadth(x, KEEL + 1e-6) > 0.0 or breadth(x, KEEL + 0.05) > 0.0:
+        return KEEL
+    low, high = KEEL, shell_top(x)
+    for _ in range(48):
+        middle = (low + high) * 0.5
+        if breadth(x, middle) > 0.0:
+            high = middle
+        else:
+            low = middle
+    return high
+
+SIDE_POINTS = 24
+
+@functools.lru_cache(maxsize=None)
+def section_side(x):
+    """Her starboard side at x, (z, y) from her bottom up to her shell's top: a section's
+    outline's side (section_outline), before it is simplified."""
+    low, top = bottom(x), shell_top(x)
+    side = []
+    # (Every section samples her side at its plans' heights too, where it turns.)
+    heights = {top - (top - low) * math.sin(math.pi * 0.5 * i / SIDE_POINTS) for i in range(SIDE_POINTS + 1)}
+    heights |= {y for y in low_nodes(x)[0] if low < y < top}
+    for y in sorted(heights, reverse=True):
+        side.append((breadth(x, min(max(y, low + 1e-6), top)), y))
+    side.reverse()
+    return side
+
+OUTLINE_TOLERANCE = 0.02
+
+def side_least(x, low, high):
+    """The least half breadth her section at x has from low to high, its side drawn
+    straight between the heights it is laid at (section_side), less what simplifying its
+    outline may take in (OUTLINE_TOLERANCE)."""
+    side = section_side(x)
+    def at(y):
+        for (z0, y0), (z1, y1) in zip(side, side[1:]):
+            if y0 <= y <= y1:
+                return z0 if y1 == y0 else z0 + (z1 - z0) * (y - y0) / (y1 - y0)
+        return side[-1][0] if y > side[-1][1] else 0.0
+    ys = [low, high] + [y for _z, y in side if low < y < high]
+    return min(at(y) for y in ys) - OUTLINE_TOLERANCE
+
+# Forty sections (§SH34), lofted between her ends, her bulkheads and the ends of her
+# superstructure, none standing for more than the longest stretch that makes forty of
+# them.
+SECTION_COUNT = 40
+FRAME_BREAKS = sorted({round(v, 4) for v in [X_AFT, X_FORE, FCSL_FROM, FCSL_STEP, POOP_TO, B_RUN[0], B_RUN[1],
+                                             B_HOUSE[0], B_HOUSE[1]] + [UPPER["M"] if b[0] == "M" else b[1] for b in BULKHEADS]})
+
+def section_spans(longest):
+    return sum(math.ceil((b - a) / longest - 1e-9) for a, b in zip(FRAME_BREAKS, FRAME_BREAKS[1:]))
+
+SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 100) >= SECTION_COUNT)
+# (And her stepped bulkheads' other stretches, so her cells' faces stand on breaks, and her
+# forecastle head's stair's head.)
+SHELL_BREAKS = (BX["M"], UPPER["B"], FC_RAMP[1])
+
+def section_spans_between(breaks):
+    """Her sections (x, length), each from one of breaks to the next, cut into equal ones
+    none longer than SECTION_MAX, their ends shared with their neighbours', so they
+    tile her: a point on a bulkhead's line is in one of them, the one forward of it
+    (HullSection's span takes its after end, not its forward one). Each end stands one or two
+    tenths of a millimetre aft of its break, the shift that sets every section's middle on
+    the fourth decimal (the authoring scene's grain, ShipSceneBake) — so the break itself
+    is inside the section forward of it. Middles and lengths rounded apart left a tenth of a
+    millimetre between two at bulkhead P, where a doorway's middle was in neither and read
+    as the sea outside her (CellMap)."""
+    ends = []  # each section's after end, in ten-thousandths of a metre, then her stem's
+    for a, b in zip(breaks, breaks[1:]):
+        count = math.ceil((b - a) / SECTION_MAX - 1e-9)
+        ends += [round((a + (b - a) * k / count) * 10000) for k in range(count)]
+    ends.append(round(breaks[-1] * 10000))
+    nudges = [1]  # how far aft of its break each end stands, in the same units
+    for lo, hi in zip(ends, ends[1:]):
+        nudges.append(1 if (lo - nudges[-1] + hi - 1) % 2 == 0 else 2)
+    return [(((lo - s0) + (hi - s1)) // 2 / 10000, (hi - s1 - lo + s0) / 10000)
+            for (lo, hi), (s0, s1) in zip(zip(ends, ends[1:]), zip(nudges, nudges[1:]))]
+
+# Her rooms inside her shell as her sections lay it (#318). A section is her shell at its
+# middle all along it (section_outline), so at her taper its wide end stands inside her
+# lines, which her decks' strips and the rooms held to them follow: her windlass machinery
+# room stood 1.35 m past it, her steering gear room 0.35 m, the sea drawn in them. So each
+# room of C deck down to G deck is held inside the sections it stands in, from its floor to
+# the deck over it (side_least), all of it inside its walls — its outer wall's inner face on
+# her shell at most, to the centimetre — and stepped where they step (deck.py's shell), as
+# a room's end in a section by less than its wall's half is in the next (SHELL_SLIVER).
+# (Held by its wall's outer face, as her decks' strips hold it, a room her sections barely
+# narrow — her firemen's quarters by 8 cm, a four-berth room by 6 — would part, each part
+# its own berths and bonus spot, for no sea seen in it.) Her sections are laid
+# after her houses, whose ends are breaks too, so these are laid without them: none stands
+# at her ends, where her sections narrow, and every room held is checked against the
+# sections laid (SHELL_HELD).
+SHELL_LINES = sorted(set(FRAME_BREAKS) | set(SHELL_BREAKS))
+# (A room's end in a section by less than its wall's half is in the one beside it: all the
+# room inside its walls is. A section's end stands a tenth of a millimetre or two off its
+# break, a room's end on the grain, or a few centimetres off a house's end.)
+SHELL_SLIVER = T
+SHELL_HELD = []  # (plan, floor_of, top_of), checked against her sections once laid
+
+# A deck's house, between its promenades: from its aftermost room to its foremost, as far
+# out as its rooms reach either side.
+A_HOUSE = (min(r[1] for r in A_PLAN.rooms), max(r[2] for r in A_PLAN.rooms),
+           max(max(-r[3], r[4]) for r in A_PLAN.rooms))
+
+def b_house_box(house):
+    """B deck's house as its cell's box: out to its walls' outer faces, but where it meets
+    another of her houses, or her house under A deck (B_HOUSE), on the line between."""
+    _name, x0, x1, z0, z1 = house
+    def shared(at):
+        return abs(at - B_HOUSE[0]) < 1e-6 or any(
+            other is not house and (abs(other[1] - at) < 1e-6 or abs(other[2] - at) < 1e-6)
+            and other[3] < z1 and other[4] > z0 for other in B_PLAN.houses)
+    return (x0 - (0.0 if shared(x0) else T), x1 + (0.0 if shared(x1) else T), z0 - T, z1 + T)
+
+def house_cell(house):
+    _name, x0, x1, z0, z1 = house
+    def shared(axis, at):
+        return any(other is not house and (abs((o_x0 if axis == 0 else o_z0) - at) < 1e-6
+                                            or abs((o_x1 if axis == 0 else o_z1) - at) < 1e-6)
+                   and ((o_z0 < z1 and o_z1 > z0) if axis == 0 else (o_x0 < x1 and o_x1 > x0))
+                   for other in BOAT_PLAN.houses for _o, o_x0, o_x1, o_z0, o_z1 in [other])
+    return (x0 - (0.0 if shared(0, x0) else T), x1 + (0.0 if shared(0, x1) else T),
+            z0 - (0.0 if shared(2, z0) else T), z1 + (0.0 if shared(2, z1) else T), BOAT, BOAT + HOUSE_TOP)
+
+# Her houses' ends, breaks of her sections: A deck's, the boat deck's and B deck's houses'
+# (HOUSES), all but C deck's after entrance's, which C deck's plan lays (C_AFT_HOUSES);
+# C deck is held to her sections without them (SHELL_SPANS_C), and checked once they're laid.
+HOUSE_ENDS = ({round(A_HOUSE[0], 4), round(A_HOUSE[1], 4)}
+              | {round(x, 4) for house in BOAT_PLAN.houses for x in house_cell(house)[:2]}
+              | {round(x, 4) for house in B_PLAN.houses for x in b_house_box(house)[:2]})
+SHELL_SPANS_C = section_spans_between(sorted(set(SHELL_LINES) | HOUSE_ENDS))
+
+def shell_of(floor_of, top_of, spans):
+    """deck.py's shell for a plan whose floor at x is floor_of(x) under the deck top_of(x):
+    each section's stretch from x0 to x1, held to her shell there from the floor to the
+    deck over it, or to her shell's top; each step between two on the grain, on the
+    wider one's side, so the narrower holds the section's end."""
+    def shell(x0, x1):
+        steps = []
+        for sx, length in spans:
+            a, b = max(x0, sx - length * 0.5), min(x1, sx + length * 0.5)
+            if b - a < SHELL_SLIVER:
+                continue
+            low = floor_of((a + b) * 0.5)
+            high = max(min(top_of((a + b) * 0.5), shell_top(sx)), low)
+            steps.append([a, b, math.floor(side_least(sx, low, high) * 100) / 100 + T])
+        steps[0][0], steps[-1][1] = x0, x1
+        for p, r in zip(steps, steps[1:]):
+            line = (math.ceil if p[2] < r[2] else math.floor)(p[1] / plates.GRAIN) * plates.GRAIN
+            # (On a break, the line the rooms over it are split along, on the 1/128 m grain.)
+            line = next((round(v * 128) / 128 for v in SHELL_LINES if abs(v - p[1]) < 1e-3), line)
+            p[1] = r[0] = min(max(line, x0), x1)
+        return [tuple(p) for p in steps if p[1] - p[0] > 1e-6]
+    return shell
+
+def shell_held(plan, floor_of, top_of, spans):
+    """shell_of, the plan's rooms checked once her sections are laid."""
+    SHELL_HELD.append((plan, floor_of, top_of))
+    return shell_of(floor_of, top_of, spans)
+
 C_ENDS = (min(r[1] for r in C_OUTLINE.rooms) - T, max(r[2] for r in C_OUTLINE.rooms) + T)
 C_TIP = X_AFT + 0.25  # C deck's after end, her poop's (POOP_STRIPS)
 C_NOSE = max(r[2] for r in D_OUTLINE.rooms) + T  # over D deck's foremost store, shut off as her stern's tip is
@@ -1331,7 +1496,31 @@ c_deck = [i for k, (x0, x1, z0, z1) in enumerate(C_PIECES)
 # Under B deck's tapered after end, over her after well, C deck's after second-class
 # entrance's walls stand where the plate draws them, as B deck's after end's steps are est.
 B_TAIL = [p for p in B_OUTLINE.decks if p[2] is not None]
-C_PLAN = plates.load("c", side=held_to(C_PIECES), ends=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM))
+C_TAIL = min(p[0] for p in B_TAIL)
+C_PLAN = plates.load("c", side=held_to(C_PIECES), ends=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM),
+                     shell=shell_held("c", c_at, top_at, SHELL_SPANS_C))
+
+def c_aft_houses():
+    """C deck's after second-class entrance's after end, on her after well under B deck's
+    tapered end (C_PLAN): a house for each step of its rooms' outline, from C deck to B,
+    out to its walls' outer faces and on to the next step, the last to B deck's house."""
+    pieces = [p[1:5] for p in C_PLAN.rooms + [s for s in C_PLAN.solids if s[5] is None]
+              if C_TAIL - 1e-6 <= p[1] and p[2] <= B_RUN[0] + 1e-6]
+    cuts = sorted({v for p in pieces for v in p[:2]} | {B_RUN[0]})
+    steps = []
+    for a, b in zip(cuts, cuts[1:]):
+        half = max(max(-p[2], p[3]) for p in pieces if p[0] < b - 1e-6 and p[1] > a + 1e-6)
+        if steps and abs(steps[-1][2] - half) < 1e-6:
+            steps[-1][1] = b
+        else:
+            steps.append([a, b, half])
+    steps[0][0] -= T
+    return [(a, b, -(half + T), half + T, 0.0, B_DECK) for a, b, half in steps]
+
+# Her sections' breaks, C deck's after entrance's houses' ends with them: the decks under it
+# are held to her sections as she is laid.
+SECTION_BREAKS = sorted(set(SHELL_LINES) | HOUSE_ENDS | {round(x, 4) for h in c_aft_houses() for x in h[:2]})
+SHELL_SPANS = section_spans_between(SECTION_BREAKS)
 D_ENDS = (min(r[1] for r in D_OUTLINE.rooms) - T, max(r[2] for r in D_OUTLINE.rooms) + T)
 D_PIECES = sheer_strips(*D_ENDS, d_at, D_SHEER)
 d_deck = [i for k, (x0, x1, z0, z1) in enumerate(D_PIECES)
@@ -1353,7 +1542,8 @@ D_REACH = 0.4
 # (two of its radii) and a margin deep, or a body stepping through the line would stand in
 # neither (WalkGraph's doors): its end pushed out to D_LEAD from the line.
 D_LEAD = 0.85
-D_PLAN = plates.load("d", side=held_to(D_PIECES), ends=D_CUTS, reach=D_REACH, lead=D_LEAD)
+D_PLAN = plates.load("d", side=held_to(D_PIECES), ends=D_CUTS, reach=D_REACH, lead=D_LEAD,
+                     shell=shell_held("d", d_at, c_at, SHELL_SPANS))
 # E and F decks (e.py, f.py, #371, #372), from her stern to her stem, round their flights
 # down. Their rooms part where her bulkheads part her cells, as D deck's do: E and F are
 # flat (forward of her bridge deck's front, under D deck stepped up to her sheer, D_SHEER)
@@ -1409,9 +1599,12 @@ G_CUTS = sorted({round((BX["M"] if letter == "M" else line_of(letter)) * 128) / 
                  for letter, _x, _deck, _feet in BULKHEADS if letter != "MN"})
 # (E's view draws no line for J to B and A, and reads good to 1 m between K and B: its walls
 # take a bulkhead's line from further.)
-E_PLAN = plates.load("e", side=held_to(E_PIECES), ends=EF_CUTS, reach=0.6, lead=D_LEAD)
-F_PLAN = plates.load("f", side=held_to(F_PIECES), ends=EF_CUTS, reach=D_REACH, lead=D_LEAD)
-G_PLAN = plates.load("g", side=held_to(G_PIECES), ends=G_CUTS, reach=D_REACH, lead=D_LEAD)
+E_PLAN = plates.load("e", side=held_to(E_PIECES), ends=EF_CUTS, reach=0.6, lead=D_LEAD,
+                     shell=shell_held("e", lambda x: E_DECK, d_at, SHELL_SPANS))
+F_PLAN = plates.load("f", side=held_to(F_PIECES), ends=EF_CUTS, reach=D_REACH, lead=D_LEAD,
+                     shell=shell_held("f", lambda x: F_DECK, lambda x: E_DECK, SHELL_SPANS))
+G_PLAN = plates.load("g", side=held_to(G_PIECES), ends=G_CUTS, reach=D_REACH, lead=D_LEAD,
+                     shell=shell_held("g", lambda x: G_DECK, lambda x: F_DECK, SHELL_SPANS))
 
 def on_floor(plan, pieces):
     """A plan's solids that stand on its floor: over her boiler rooms G deck's casings and
@@ -1731,16 +1924,6 @@ cylinder("mainmast", plates.kept(A_PLAN.view.x(2385)), 0.0, 0.6, B_DECK, B_DECK 
 # trunk standing up to A deck's height closes it with its own top.
 plan_layer("b", B_PLAN, B_DECK, A_DECK)
 
-def b_house_box(house):
-    """B deck's house as its cell's box: out to its walls' outer faces, but where it meets
-    another of her houses, or her house under A deck (B_HOUSE), on the line between."""
-    _name, x0, x1, z0, z1 = house
-    def shared(at):
-        return abs(at - B_HOUSE[0]) < 1e-6 or any(
-            other is not house and (abs(other[1] - at) < 1e-6 or abs(other[2] - at) < 1e-6)
-            and other[3] < z1 and other[4] > z0 for other in B_PLAN.houses)
-    return (x0 - (0.0 if shared(x0) else T), x1 + (0.0 if shared(x1) else T), z0 - T, z1 + T)
-
 B_TRUNKS = [s[1:5] for s in B_PLAN.solids if s[5] is None and not any(
     r[1] < (s[1] + s[2]) / 2 < r[2] and r[3] < (s[3] + s[4]) / 2 < r[4] for r in B_PLAN.rooms)]
 for name, *house in B_PLAN.houses:
@@ -1752,8 +1935,6 @@ for name, *house in B_PLAN.houses:
 # forecastle's, under its step no higher than the step's foot —; on her wells only what
 # stands on them at its own height, her hatches, winches and cranes. D deck as Plate IV
 # draws it too (D_PLAN, #369), from her stern to her stem under C deck.
-C_TAIL = min(p[0] for p in B_TAIL)
-
 def c_over(x):
     """The height of the deck over C deck at ship x, where C deck has rooms."""
     if x <= POOP_TO + 1e-6:
@@ -2487,11 +2668,6 @@ def door_near(axis, at, a, b, floor, clear):
     return any(d[0] == axis and abs(d[1] - at) < 1e-6 and abs(d[4] - floor) < 1e-6
                and d[2] - clear < b and a < d[3] + clear for d in doorways)
 
-# A deck's house, between its promenades: from its aftermost room to its foremost, as far
-# out as its rooms reach either side.
-A_HOUSE = (min(r[1] for r in A_PLAN.rooms), max(r[2] for r in A_PLAN.rooms),
-           max(max(-r[3], r[4]) for r in A_PLAN.rooms))
-
 def house_face(x0, x1, sign):
     """The face of A deck's house on side sign along x0…x1, a room's wall or a block's
     side, from one blocker standing there over a bench's height; None for none."""
@@ -2897,34 +3073,7 @@ def arr(script, ids):
 # (BOAT_PLAN), side by side. (x0, x1, z0, z1, foot, top), each a cell of its own: out
 # to its walls' outer faces, but where two houses share a wall, whose middle their cells
 # meet on — cells never overlap.
-def house_cell(house):
-    _name, x0, x1, z0, z1 = house
-    def shared(axis, at):
-        return any(other is not house and (abs((o_x0 if axis == 0 else o_z0) - at) < 1e-6
-                                            or abs((o_x1 if axis == 0 else o_z1) - at) < 1e-6)
-                   and ((o_z0 < z1 and o_z1 > z0) if axis == 0 else (o_x0 < x1 and o_x1 > x0))
-                   for other in BOAT_PLAN.houses for _o, o_x0, o_x1, o_z0, o_z1 in [other])
-    return (x0 - (0.0 if shared(0, x0) else T), x1 + (0.0 if shared(0, x1) else T),
-            z0 - (0.0 if shared(2, z0) else T), z1 + (0.0 if shared(2, z1) else T), BOAT, BOAT + HOUSE_TOP)
-
 A_HOUSE_TOP = (A_HOUSE[0], A_HOUSE[1], -(A_HOUSE[2] + T), A_HOUSE[2] + T, A_DECK, BOAT)
-
-def c_aft_houses():
-    """C deck's after second-class entrance's after end, on her after well under B deck's
-    tapered end (C_PLAN): a house for each step of its rooms' outline, from C deck to B,
-    out to its walls' outer faces and on to the next step, the last to B deck's house."""
-    pieces = [p[1:5] for p in C_PLAN.rooms + [s for s in C_PLAN.solids if s[5] is None]
-              if C_TAIL - 1e-6 <= p[1] and p[2] <= B_RUN[0] + 1e-6]
-    cuts = sorted({v for p in pieces for v in p[:2]} | {B_RUN[0]})
-    steps = []
-    for a, b in zip(cuts, cuts[1:]):
-        half = max(max(-p[2], p[3]) for p in pieces if p[0] < b - 1e-6 and p[1] > a + 1e-6)
-        if steps and abs(steps[-1][2] - half) < 1e-6:
-            steps[-1][1] = b
-        else:
-            steps.append([a, b, half])
-    steps[0][0] -= T
-    return [(a, b, -(half + T), half + T, 0.0, B_DECK) for a, b, half in steps]
 
 C_AFT_HOUSES = c_aft_houses()
 # And B deck's second-class houses on her after promenade (B_PLAN), up to A deck; under
@@ -2933,9 +3082,6 @@ HOUSES = ([A_HOUSE_TOP] + [house_cell(house) for house in BOAT_PLAN.houses]
           + [b_house_box(house) + (B_DECK, A_DECK) for house in B_PLAN.houses] + C_AFT_HOUSES)
 HOUSE_CELLS = (["a_deck"] + [house[0] for house in BOAT_PLAN.houses] + [house[0] for house in B_PLAN.houses]
                + ["c_deck_aft" + ("" if k == 0 else "_%d" % (k + 1)) for k in range(len(C_AFT_HOUSES))])
-
-def shell_top(x):
-    return A_DECK if B_HOUSE[0] <= x <= B_HOUSE[1] else top_at(x)
 
 def stacked(x, foot):
     """The outline over x of the houses standing at foot there, starboard first, each up
@@ -2946,32 +3092,11 @@ def stacked(x, foot):
         points += [(z1, h_foot), (z1, roof)] + stacked(x, roof) + [(z0, roof), (z0, h_foot)]
     return points
 
-def bottom(x):
-    """Her lowest point at x: her keel, or her forefoot or her counter over it."""
-    if breadth(x, KEEL + 1e-6) > 0.0 or breadth(x, KEEL + 0.05) > 0.0:
-        return KEEL
-    low, high = KEEL, shell_top(x)
-    for _ in range(48):
-        middle = (low + high) * 0.5
-        if breadth(x, middle) > 0.0:
-            high = middle
-        else:
-            low = middle
-    return high
-
-SIDE_POINTS = 24
-
 def section_outline(x):
     """Everything enclosed at x, counter-clockwise in (z, y): from her keel up her
     starboard side, over her houses, down her port side."""
     low, top = bottom(x), shell_top(x)
-    side = []
-    # (Every section samples her side at its plans' heights too, where it turns.)
-    heights = {top - (top - low) * math.sin(math.pi * 0.5 * i / SIDE_POINTS) for i in range(SIDE_POINTS + 1)}
-    heights |= {y for y in low_nodes(x)[0] if low < y < top}
-    for y in sorted(heights, reverse=True):
-        side.append((breadth(x, min(max(y, low + 1e-6), top)), y))
-    side.reverse()
+    side = section_side(x)
     points = [(0.0, low)] + side
     # Over the houses standing on her shell's top here, if she has any: A deck's over B
     # deck's house and the boat deck's on it; on her after promenade, B deck's.
@@ -2985,8 +3110,6 @@ def section_outline(x):
     if outline[-1] == outline[0]:
         outline.pop()
     return simplified(outline, OUTLINE_TOLERANCE)
-
-OUTLINE_TOLERANCE = 0.02
 
 def simplified(outline, tolerance):
     """Douglas–Peucker on a closed outline, as the steamer's generator does it."""
@@ -3018,47 +3141,38 @@ def simplified(outline, tolerance):
     return ([start] + keep(start, outline[split], first) + [outline[split]]
             + keep(outline[split], start, second))
 
-# Forty sections (§SH34), lofted between her ends, her bulkheads and the ends of her
-# superstructure, none standing for more than the longest stretch that makes forty of
-# them.
-SECTION_COUNT = 40
-FRAME_BREAKS = sorted({round(v, 4) for v in [X_AFT, X_FORE, FCSL_FROM, FCSL_STEP, POOP_TO, B_RUN[0], B_RUN[1],
-                                             B_HOUSE[0], B_HOUSE[1]] + [UPPER["M"] if b[0] == "M" else b[1] for b in BULKHEADS]})
-
-def section_spans(longest):
-    return sum(math.ceil((b - a) / longest - 1e-9) for a, b in zip(FRAME_BREAKS, FRAME_BREAKS[1:]))
-
-SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 100) >= SECTION_COUNT)
 # Every house's ends among them too, however near another break, so each is lofted to
 # its ends: a house no section's middle stood in would be a cell with no room in her,
 # and a section's outline holds a house all along it — one running past the house's end
 # would enclose a slice of air no cell holds, buoyant however deep she went.
-# (And her stepped bulkheads' other stretches, so her cells' faces stand on breaks, her frames
-# otherwise as they stood.)
-SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)}
-                        | {BX["M"], UPPER["B"], FC_RAMP[1]})
-# Each section from one break to the next, its ends shared with its neighbours', so they
-# tile her: a point on a bulkhead's line is in one of them, the one forward of it
-# (HullSection's span takes its after end, not its forward one). Each end stands one or two
-# tenths of a millimetre aft of its break, the shift that sets every section's middle on
-# the fourth decimal (the authoring scene's grain, ShipSceneBake) — so the break itself
-# is inside the section forward of it. Middles and lengths rounded apart left a tenth of a
-# millimetre between two at bulkhead P, where a doorway's middle was in neither and read
-# as the sea outside her (CellMap).
-SECTION_ENDS = []  # each section's after end, in ten-thousandths of a metre, then her stem's
-for a, b in zip(SECTION_BREAKS, SECTION_BREAKS[1:]):
-    count = math.ceil((b - a) / SECTION_MAX - 1e-9)
-    SECTION_ENDS += [round((a + (b - a) * k / count) * 10000) for k in range(count)]
-SECTION_ENDS.append(round(SECTION_BREAKS[-1] * 10000))
-SECTION_NUDGES = [1]  # how far aft of its break each end stands, in the same units
-for lo, hi in zip(SECTION_ENDS, SECTION_ENDS[1:]):
-    SECTION_NUDGES.append(1 if (lo - SECTION_NUDGES[-1] + hi - 1) % 2 == 0 else 2)
-sections = []  # (x, length, outline)
-for (lo, hi), (s0, s1) in zip(zip(SECTION_ENDS, SECTION_ENDS[1:]),
-                              zip(SECTION_NUDGES, SECTION_NUDGES[1:])):
-    x = ((lo - s0) + (hi - s1)) // 2 / 10000
-    sections.append((x, (hi - s1 - lo + s0) / 10000, section_outline(x)))
+assert SECTION_BREAKS == sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)}
+                                | set(SHELL_BREAKS)), "her sections' breaks are her houses' ends"
+sections = [(x, length, section_outline(x)) for x, length in section_spans_between(SECTION_BREAKS)]  # (x, length, outline)
 assert len(sections) >= SECTION_COUNT, len(sections)
+
+def outline_half(outline, y):
+    """How far out to starboard outline (z, y) reaches at height y, or None over it."""
+    found = None
+    for p, r in zip(outline, outline[1:] + outline[:1]):
+        if p[0] >= 0.0 and r[0] >= 0.0 and p[1] != r[1] and (p[1] - y) * (r[1] - y) <= 0.0:
+            z = p[0] + (r[0] - p[0]) * (y - p[1]) / (r[1] - p[1])
+            found = z if found is None else max(found, z)
+    return found
+
+# Every room SHELL_HELD holds stands inside the sections laid, all of it inside its walls,
+# from its floor to the deck over it.
+for plan, floor_of, top_of in SHELL_HELD:
+    deck_plan = {"c": C_PLAN, "d": D_PLAN, "e": E_PLAN, "f": F_PLAN, "g": G_PLAN}[plan]
+    for name, x0, x1, z0, z1 in deck_plan.rooms:
+        for x, length, outline in sections:
+            a, b = max(x0, x - length * 0.5), min(x1, x + length * 0.5)
+            if b - a < SHELL_SLIVER:
+                continue
+            low = floor_of((a + b) * 0.5)
+            high = max(min(top_of((a + b) * 0.5), shell_top(x)), low)
+            for k in range(9):
+                half = outline_half(outline, low + (high - low) * k / 8)
+                assert half is None or max(-z0, z1) - T <= half + 1e-6, ("a room past her shell", plan, name, x, half)
 
 def clip(polygon, axis, value, keep_below):
     """Sutherland–Hodgman: the part of polygon (z, y) on one side of the line where
@@ -3689,7 +3803,10 @@ for k in range(6, 0, -1):
 for name in ("engine_room", "turbine_room"):
     b = cell_box(name)
     through("casing_" + name, "STAIRWELL", (b[0] + b[1]) * 0.5, 0.0, (b[1] - b[0]) * 0.5, 6.0, name, starts="OPEN")
-for name, x0, x1, z0, z1, high, _x_low in stairs:
+# Each flight up through a deck between two of her cells, along her or across her: C deck's
+# crew's ladder under her forecastle, rising to port, once left its hole in C deck with no
+# opening (#318).
+for name, fx0, fx1, fz0, fz1, high, _low in stairs + stairs_z:
     if name.startswith(("boat_aft", "a_aft", "b_aft", "a_fwd", "forecastle_", "poop_")):
         continue
     # The boiler rooms' flights to F deck: the fiddley/casing openings already stand for
@@ -3698,17 +3815,29 @@ for name, x0, x1, z0, z1, high, _x_low in stairs:
     # manholes into her double bottoms are their own (below).
     if name.startswith(("stokehold_", "space_")):
         continue
-    xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
-    below = cell_at(xm, high - 0.01, zm)
+    xm, zm = (fx0 + fx1) * 0.5, (fz0 + fz1) * 0.5
     above = cell_at(xm, high + 0.01, zm)
-    if below != above and below is not None:
+    # Each cell under the flight, its middle's first: crew's stair 8 from D deck's after
+    # cell on into D deck forward's (#318) opened only over the first, C deck open over both.
+    belows = []
+    for px, pz in [(xm, zm)] + [(fx0 + 0.01, zm), (fx1 - 0.01, zm), (xm, fz0 + 0.01), (xm, fz1 - 0.01)]:
+        c = cell_at(px, high - 0.01, pz)
+        if c not in belows:
+            belows.append(c)
+    for k, below in enumerate(belows):
+        if below == above or below is None:
+            continue
         # Over the part of the flight both cells hold: one coming down past a house's end
         # into the next cell's (B deck's second-class staircase's well) opens only there.
+        x0, x1, z0, z1 = fx0, fx1, fz0, fz1
         for c in [below] + ([above] if above is not None else []):
             bx0, bx1, _y0, _y1, bz0, bz1 = cell_box(c)
             x0, x1, z0, z1 = max(x0, bx0), min(x1, bx1), max(z0, bz0), min(z1, bz1)
+        if x1 - x0 < 1e-3 or z1 - z0 < 1e-3:
+            continue
         xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
-        opening("stair_%s" % name, "STAIRWELL", below, above, (xm, high, zm), (x1 - x0, 0, z1 - z0), starts="OPEN")
+        opening("stair_%s%s" % (name, "_%s" % below if k else ""), "STAIRWELL", below, above, (xm, high, zm),
+                (x1 - x0, 0, z1 - z0), starts="OPEN")
 # The manholes down into her double bottoms (#148), each over its stair in the tank top:
 # bolted shut, a body going through one opening it as a doorway's door is opened; shut to the
 # water, each never weeps nor gives way.

@@ -1090,8 +1090,10 @@ NUDGES = [
     (2, -9.25, -9.1875, -46.2, -43.2),  # the engineers' stairway's door
     (0, -46.125, -47.125, -10.3, -9.2),  # the engineers' stairway's enclosure, for its run to G deck
     (2, 9.625, 9.25, 74.5, 77.3),  # the four-berth room's door
-    (2, -7.3125, -7.1875, 86.2, 92.6),  # the eight-berth room's door
-    (2, 7.4375, 7.25, 86.2, 92.6),  # the eight-berth room's door
+    (2, -7.3125, -7.1875, 84.6, 86.25),  # the rooms abaft the eight-berth room, as its stood
+    # The eight-berth rooms' doors, off the passage beside them her sections narrow (#318).
+    (2, -7.3125, -6.8125, 86.35, 92.6),
+    (2, 7.4375, 6.8125, 86.35, 92.6),
     (0, 78.375, 78.4375, -11.0, -3.0),  # the room's door off the passage's end
     (0, -24.125, -24.3125, 6.4, 11.5),  # the bakery's door
     (0, 55.0, 55.125, 3.6, 9.5),  # the six-berth room's door

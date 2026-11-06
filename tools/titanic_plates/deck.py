@@ -69,6 +69,13 @@ DOOR_CLEAR = 1.0 + 2 * 0.03  # the lint's least door, between two partitions' fa
 # A piece's end this near a deck's end over it, in metres, is that end's (Deck's ends),
 # unless the load gives a reach of its own.
 END_REACH = 0.2
+# The least length along her a room's part her shell steps it into is laid (Deck's shell)
+# where the load gives no lead of its own: a body's lead and a margin, as a room her cells
+# split keeps either side of their line, to the grain.
+SHELL_PART = 0.875
+# The nearest a room's step to her shell comes to a door in the room's sides: past a door's
+# width (the generator's DOOR, 1.1 m), whose room a corner nearer than that cuts short.
+SHELL_DOOR = 1.125
 
 
 def _module(name):
@@ -169,9 +176,13 @@ class Deck:
     where it does; or where it parts her water into cells, so a room ends where its cell
     does. Given lead too, a room's end past one of them by less than lead is pushed out
     to lead from it: the generator splits a room the line runs through (its cells part
-    there), and each part keeps a body's step into it."""
+    there), and each part keeps a body's step into it.
 
-    def __init__(self, name, side=None, ends=(), reach=END_REACH, lead=0.0):
+    shell, when given, is her shell as her sections lay it, shell(x0, x1): the stretches
+    (a, b, half) from x0 to x1, each the half breadth a room's outer wall's middle may take
+    there. Each room is held inside it, stepped where her sections step it (_in_shell)."""
+
+    def __init__(self, name, side=None, ends=(), reach=END_REACH, lead=0.0, shell=None):
         module = _module(name)
         self.name = name
         if hasattr(module, "PARTS"):
@@ -196,6 +207,12 @@ class Deck:
         if side is not None:
             self._held(side)
         self.open = [self._shared(o) for p in parts for o in p.open] + list(getattr(module, "OPENED", ()))
+        # The joins between the parts of a room her shell steps (_in_shell): open, as an OPEN
+        # is, but no join of the plate's, so none of hers between cells; and each such
+        # room's parts, one room to its doors.
+        self.stepped, self.parted = [], []
+        if shell is not None:
+            self._in_shell(shell, lead or SHELL_PART)
         if lead:
             self._alcoves()
         self.walls = self._walls()
@@ -408,6 +425,100 @@ class Deck:
         for room in [r for r in self.rooms if r[4] - r[3] < BODY_WIDTH]:
             self._solid(room)
 
+    def _in_shell(self, shell, least):
+        """Every room inside her shell as her sections lay it, shell(x0, x1)'s stretches: a
+        room by her side follows her lines, but each of her sections is her shell at its
+        middle all along it, so at her taper its wide end stands inside her lines and a
+        room there stood past it, in the sea (#318). A room her shell is narrower over in
+        part is split where her sections step, each part held to the narrowest of them
+        over it, and the two open to each other; no part shorter than least (a body's
+        lead, as a room split along a line her cells part at keeps), a short one taking
+        the rest of its length from a wider neighbour, or joined to the one that loses
+        least."""
+        rooms = []
+        for room in self.rooms:
+            name, x0, x1, z0, z1 = room
+            runs = []
+            for a, b, half in shell(x0, x1):
+                lo, hi = max(z0, -half), min(z1, half)
+                if runs and runs[-1][2:] == [lo, hi]:
+                    runs[-1][1] = b
+                else:
+                    runs.append([a, b, lo, hi])
+            if len(runs) == 1 and runs[0][2:] == [z0, z1]:
+                rooms.append(room)
+                continue
+            while len(runs) > 1:
+                k = next((i for i, r in enumerate(runs) if r[1] - r[0] < least - 1e-6), None)
+                if k is None:
+                    break
+                r = runs[k]
+                give = least - (r[1] - r[0])
+                near = [j for j in (k - 1, k + 1) if 0 <= j < len(runs)]
+                wide = [j for j in near if runs[j][2] <= r[2] and runs[j][3] >= r[3]
+                        and runs[j][1] - runs[j][0] - give >= least + GRAIN]
+                if wide:
+                    # (Its new end on the grain, so it is least long at least.)
+                    j = wide[0]
+                    if j < k:
+                        runs[j][1] = r[0] = round(math.floor((r[1] - least) / GRAIN + 1e-6) * GRAIN, 4)
+                    else:
+                        runs[j][0] = r[1] = round(math.ceil((r[0] + least) / GRAIN - 1e-6) * GRAIN, 4)
+                    continue
+
+                def joined(j):
+                    a, b = runs[min(j, k)], runs[max(j, k)]
+                    return [a[0], b[1], max(a[2], b[2]), min(a[3], b[3])]
+
+                def lost(j):
+                    _a, _b, lo, hi = joined(j)
+                    return sum((r[1] - r[0]) * ((r[3] - r[2]) - max(min(r[3], hi) - max(r[2], lo), 0.0))
+                               for r in (runs[j], runs[k]))
+
+                j = min(near, key=lost)
+                runs[min(j, k):max(j, k) + 1] = [joined(j)]
+            # A step's line no nearer a door in the room's sides than SHELL_DOOR: moved past
+            # it into the wider part, or the door would have no room beside the corner.
+            doors = [x for x, z in self.doors if x0 < x < x1 and min(abs(z - z0), abs(z - z1)) < 0.3]
+            moved = True
+            while moved and len(runs) > 1:
+                moved = False
+                for k, (p, q) in enumerate(zip(runs, runs[1:])):
+                    near = [x for x in doors if abs(x - p[1]) < SHELL_DOOR]
+                    if not near:
+                        continue
+                    if p[2] >= q[2] and p[3] <= q[3]:
+                        line = round(math.ceil((max(near) + SHELL_DOOR) / GRAIN - 1e-6) * GRAIN, 4)
+                    else:
+                        line = round(math.floor((min(near) - SHELL_DOOR) / GRAIN + 1e-6) * GRAIN, 4)
+                    if line - p[0] >= least - 1e-6 and q[1] - line >= least - 1e-6:
+                        p[1] = q[0] = line
+                    else:
+                        runs[k:k + 2] = [[p[0], q[1], max(p[2], q[2]), min(p[3], q[3])]]
+                    moved = True
+                    break
+            merged = []
+            for r in runs:
+                if merged and merged[-1][2:] == r[2:]:
+                    merged[-1][1] = r[1]
+                else:
+                    merged.append(r)
+            self.parted.append([(name, a, b, lo, hi) for a, b, lo, hi in merged])
+            for a, b, lo, hi in merged:
+                rooms.append((name, a, b, lo, hi))
+                # A door in its end past the side it is held to moves in with it, so it
+                # still finds its wall clear of the corner (as a door in a held end does).
+                for d, (x, z) in enumerate(self.doors):
+                    if min(abs(x - a), abs(x - b)) < 0.3 and z0 < z < z1:
+                        self.doors[d] = (x, min(max(z, lo + SHELL_DOOR * 0.5), hi - SHELL_DOOR * 0.5))
+            for p, q in zip(merged, merged[1:]):
+                lo, hi = max(p[2], q[2]), min(p[3], q[3])
+                if hi - lo > 1e-6:
+                    self.stepped.append((p[1] - 0.01, p[1] + 0.01, lo, hi))
+        self.rooms = [r for r in rooms if r[4] - r[3] > 0.1]
+        for room in [r for r in self.rooms if r[4] - r[3] < BODY_WIDTH]:
+            self._solid(room)
+
     def _solid(self, room):
         """A room made a solid block to the deck over it, the doors on its edges gone."""
         self.rooms.remove(room)
@@ -525,9 +636,13 @@ class Deck:
 
         ways = [r for r in self.rooms if _passage(r[0])]
         solid_boxes = [s[1:5] for s in self.solids]
-        out = []
+        # A room her shell steps is one room to its doors: one door for all its parts, in
+        # the longest stretch any of them shares, none where one of them has a door.
+        group = {room: k for k, parts in enumerate(self.parted) for room in parts}
+        doored = {group[r] for r in self.rooms if r in group and any(on_edge(x, z, r) for x, z in self.doors)}
+        found = {}
         for room in self.rooms:
-            if _passage(room[0]) or any(on_edge(x, z, room) for x, z in self.doors):
+            if _passage(room[0]) or any(on_edge(x, z, room) for x, z in self.doors) or group.get(room) in doored:
                 continue
             best = None
             for axis, at, a, b in edges_of(room):
@@ -545,15 +660,17 @@ class Deck:
                                 mid = (lo + hi) * 0.5
                                 best = (hi - lo, (at, mid) if axis == 0 else (mid, at))
             if best is not None:
-                out.append(best[1])
-        return out
+                key = group.get(room, room)
+                if key not in found or best[0] > found[key][0]:
+                    found[key] = best
+        return [best[1] for best in found.values()]
 
     def _open_on(self, axis, at):
         """The open stretches of the line (axis, at): an OPEN rectangle drops only the wall
         it runs along — a thin one across her the wall across her it lies on — never the
         ends of the walls that run into its mouth."""
         out = []
-        for x0, x1, z0, z1 in self.open:
+        for x0, x1, z0, z1 in self.open + self.stepped:
             across = (x1 - x0) < (z1 - z0)
             if axis == 0 and across and x0 - 0.05 <= at <= x1 + 0.05:
                 out.append((z0, z1))
@@ -710,5 +827,5 @@ def _joined(walls):
     return out
 
 
-def load(name, side=None, ends=(), reach=END_REACH, lead=0.0):
-    return Deck(name, side, ends, reach, lead)
+def load(name, side=None, ends=(), reach=END_REACH, lead=0.0, shell=None):
+    return Deck(name, side, ends, reach, lead, shell)
