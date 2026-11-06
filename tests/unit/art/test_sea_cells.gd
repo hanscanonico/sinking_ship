@@ -65,10 +65,11 @@ const UNDER_HER_FORECASTLE: Array[StringName] = [&"forecastle stores"]
 ## The traced Titanic's firemen's W.C.s on D deck, under the crew's stair up into her
 ## forecastle with no room of it over the stairwell.
 const UNDER_HER_STAIRS: Array[StringName] = [&"firemen's W.C.s"]
-## The traced Titanic's rooms laid out past her shell in places, where the sea is hers
-## to draw (#318): inside it they are drawn whole — her windlass machinery room, forward
-## of her forecastle's sheer, once held to nothing.
-const PAST_HER_SHELL: Array[StringName] = [
+## The traced Titanic's rooms once laid out past her sections at her taper, each
+## section's shell taken at its middle and held all along it (#318): her sections cut
+## finer there, they stand inside them and are drawn whole — her windlass machinery room,
+## forward of her forecastle's sheer, once held to nothing.
+const PAST_HER_SECTIONS: Array[StringName] = [
 	&"steering gear room",
 	&"seamen's mess",
 	&"firemen's mess",
@@ -189,14 +190,15 @@ func test_rooms_on_her_taper_never_look_into_the_sea() -> void:
 	)
 
 
-## A room laid out past her shell in places never looks into the sea inside it: her
+## A room once laid out past her sections at her taper never looks into the sea: her
 ## windlass machinery room, aft of where her forecastle's sheer stands under its top,
-## was once held to nothing there, the sea drawn through it.
-func test_rooms_past_her_shell_never_look_into_the_sea_inside_it() -> void:
+## was once held to nothing there, the sea drawn through it; and where her sections stood
+## inside her lines, only the part of each room inside them was drawn.
+func test_rooms_once_past_her_sections_never_look_into_the_sea() -> void:
 	assert_eq(
-		_open_points(load(TITANIC), PAST_HER_SHELL, true),
+		_open_points(load(TITANIC), PAST_HER_SECTIONS),
 		[],
-		"points of her rooms inside her the sea is drawn in"
+		"points of her rooms the sea is drawn in"
 	)
 
 
@@ -212,9 +214,8 @@ func test_rooms_under_a_stairwell_never_look_up_it_into_the_sea() -> void:
 
 ## Per room of [param layout] named in [param names], the first point found of it, from
 ## its floor to whatever roofs it, inside one of her cells but in no box the sea leaves
-## out (CellBoxes.boxes and stacked) — only inside her shell, when [param inside]; every
-## one of the names a room of hers.
-func _open_points(layout: ShipLayout, names: Array[StringName], inside := false) -> Array:
+## out (CellBoxes.boxes and stacked); every one of the names a room of hers.
+func _open_points(layout: ShipLayout, names: Array[StringName]) -> Array:
 	var masked := _masked(layout)
 	var space := ShipSpace.new(layout)
 	var open := []
@@ -231,8 +232,6 @@ func _open_points(layout: ShipLayout, names: Array[StringName], inside := false)
 				var top := space.ceiling(room, x, z) - INWARD
 				for y: float in _steps(room.floor_height + INWARD, top):
 					var point := Vector3(x, y, z)
-					if inside and not _in_shell(layout.structure, point):
-						continue
 					if _in_a_cell(layout.structure, point) and not _in_any(masked, point):
 						open.append("%s at %s" % [room.name, point.snappedf(0.01)])
 						break
@@ -343,22 +342,6 @@ func _steps(from: float, to: float, step := STEP) -> Array[float]:
 		at += step
 	if to >= from:
 		found.append(to)
-	return found
-
-
-## Whether [param point] stands inside [param structure]'s shell: inside the outline of
-## each section it lies in.
-func _in_shell(structure: ShipStructure, point: Vector3) -> bool:
-	var found := false
-	for section: HullSection in structure.sections:
-		var half := section.length * 0.5
-		if point.x < section.x - half or point.x > section.x + half:
-			continue
-		var port := section.shell_at(point.y, -1)
-		var starboard := section.shell_at(point.y, 1)
-		if is_nan(port) or is_nan(starboard) or point.z < port or point.z > starboard:
-			return false
-		found = true
 	return found
 
 
