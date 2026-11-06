@@ -46,9 +46,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      # gdlint and gdformat, the `lint` and `format-check` steps.
+      # gdlint and gdformat, the `lint` and `format-check` steps. pip's own retries
+      # and read timeout outlast a flaky index; the step's timeout ends a stuck one
+      # in minutes rather than at the job's limit (#459).
       - name: Install gdtoolkit
-        run: pip install "gdtoolkit==4.*"
+        timeout-minutes: 5
+        run: pip install --retries 5 --timeout 30 "gdtoolkit==4.*"
 
       - uses: ./.github/actions/setup-godot
 
@@ -83,8 +86,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      # pip's own retries and read timeout outlast a flaky index; the step's timeout
+      # ends a stuck one in minutes rather than at the job's limit (#459).
       - name: Install SCons
-        run: pip install scons
+        timeout-minutes: 5
+        run: pip install --retries 5 --timeout 30 scons
 
       - name: Cache godot-cpp
         uses: actions/cache@v4
@@ -119,8 +125,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      # pip's own retries and read timeout outlast a flaky index; the step's timeout
+      # ends a stuck one in minutes rather than at the job's limit (#459).
       - name: Install SCons
-        run: pip install scons
+        timeout-minutes: 5
+        run: pip install --retries 5 --timeout 30 scons
 
       - name: Cache godot-cpp
         uses: actions/cache@v4
@@ -147,10 +156,11 @@ jobs:
 
       - name: Fetch Godot ${{ env.GODOT_VERSION }}
         if: steps.godot-bin.outputs.cache-hit != 'true'
+        timeout-minutes: 10
         run: |
           set -euo pipefail
           url="https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_macos.universal.zip"
-          curl -sSfL -o /tmp/godot.zip "$url"
+          curl -sSfL --retry 3 --retry-all-errors --connect-timeout 30 --max-time 180 --retry-max-time 360 -o /tmp/godot.zip "$url"
           mkdir -p bin
           unzip -q /tmp/godot.zip -d bin
 
@@ -185,11 +195,12 @@ jobs:
         with:
           python-version: "3.12"
 
+      # Bounded the same way; tools/ci_apt_install.sh retries a hung apt (#459).
       - name: Install SCons and mingw-w64
+        timeout-minutes: 15
         run: |
-          pip install scons
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends g++-mingw-w64-x86-64
+          pip install --retries 5 --timeout 30 scons
+          tools/ci_apt_install.sh g++-mingw-w64-x86-64
 
       - name: Cache godot-cpp
         uses: actions/cache@v4
