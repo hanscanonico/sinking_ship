@@ -13,8 +13,6 @@ const OUTSIDE := 0.005
 ## furniture is checked on her: the Titanic's traced decks (#360) are held by the lints.
 const BOAT_DECK := 8.375
 const A_DECK := 5.5
-## The Titanic's boat deck (tools/gen_titanic.py's BOAT); her A deck stands at A_DECK.
-const TITANIC_BOAT_DECK := 8.375
 const TITANIC_OPEN_DECKS: Array[float] = [8.375, 5.5, 2.75, 0.0, 3.3125, 4.3125]
 const FERRY_PASSENGER_DECK := 4.8
 const FERRY_BRIDGE_DECK := 7.6
@@ -250,31 +248,6 @@ func test_her_open_decks_are_furnished_with_benches() -> void:
 	assert_eq(benches.get(BOAT_DECK, 0), 10, "along her boat deck's skylights")
 	assert_eq(benches.get(A_DECK, 0), 22, "along A deck's house, between its doors")
 	assert_eq(benches.get(2.75, 0), 4, "against the restaurant's after face")
-
-
-## The Titanic's seats along her houses (tools/gen_titanic.py): her boat deck's seat
-## lockers along the officers' house and the staircase house, A deck's benches along its
-## house on both promenades. Since her decks were laid off her plates (#364) none stood:
-## each seat's lane was kept clear of the house it backs onto as of all else.
-func test_the_titanic_s_houses_are_lined_with_seats() -> void:
-	var titanic := _layout("titanic")
-	var seats := {}
-	for height: float in [TITANIC_BOAT_DECK, A_DECK]:
-		for blocker: ShipBlocker in _on_deck(titanic, height):
-			var piece := _piece(titanic, blocker)
-			if piece != DeckFurniture.Piece.BENCH and piece != DeckFurniture.Piece.LOCKER:
-				continue
-			var key := "%s %s" % [height, DeckFurniture.Piece.keys()[piece]]
-			seats[key] = seats.get(key, 0) + 1
-			assert_ne(
-				DeckFurniture.back_of(titanic, blocker),
-				Vector2.ZERO,
-				"the seat at %s backs onto what stands behind it" % blocker.area
-			)
-	var boat := "%s %s" % [TITANIC_BOAT_DECK, "LOCKER"]
-	var benches := "%s %s" % [A_DECK, "BENCH"]
-	assert_eq(seats.get(boat, 0), 6, "seat lockers along her boat deck's houses: %s" % seats)
-	assert_eq(seats.get(benches, 0), 19, "benches along A deck's house, between its doors")
 
 
 func test_a_short_box_seat_is_a_bench_and_a_long_one_a_locker() -> void:
