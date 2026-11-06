@@ -5,7 +5,9 @@ extends GutTest
 ## those states made harder — heads set on every sill, lintel, floor and ceiling and a
 ## hair either side, cells let go or held — every opening's flow, every cell's surplus,
 ## water and height and every pair's common level; her boxes turned to attitudes that
-## drop a spread or two; and linear systems with zeros, infinities and NaNs in them.
+## drop a spread or two, and what the stepper reads of every cell and opening turned
+## (SinkStepper._turn, SinkAir.turned) and every cell's height; a bake run wholly in
+## GDScript, state for state; and linear systems with zeros, infinities and NaNs in them.
 ## Where the extension is not loaded there is nothing to hold it to; CI sets
 ## SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
@@ -14,6 +16,10 @@ const SEED := 4
 ## Each ship's window of her first bake checked: the steps taken first, natively alone,
 ## and the steps checked.
 const WINDOWS := {&"steamer": Vector2i(0, 2000), &"small_titanic": Vector2i(600, 900)}
+## The ships whose cells and openings are turned both ways, and the most steps of the
+## steamer's first bake run wholly in GDScript.
+const TURNED: Array[StringName] = [&"steamer", &"small_titanic", &"titanic"]
+const BAKE_STEPS := 1500
 
 
 ## A stepper that works every solve and sweep natively and in GDScript, keeps the
@@ -325,6 +331,138 @@ func test_her_boxes_turned_hard_over_hold_alike() -> void:
 			if not Checked.same(native, reference):
 				found.append("volume at opening %d's sill, up %s" % [index, up])
 	assert_eq(found.slice(0, 12), [] as Array[String], "her boxes hold alike at every attitude")
+
+
+func test_her_turns_and_heights_come_out_alike() -> void:
+	if not _loaded():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1912
+	var found: Array[String] = []
+	var turns := 0
+	for ship: StringName in TURNED:
+		var structure := Fleet.layout(ship).structure
+		var stepper := SinkStepper.new(structure, HitDamage.new(), SeaPhysics.load_default())
+		var native: SinkNative = stepper._native
+		for up: PackedFloat64Array in _ups(rng):
+			var rotation := (
+				PackedFloat64Array([1.0, 0.0, 0.0]) + up + PackedFloat64Array([0.0, 0.0, 1.0])
+			)
+			stepper._native = native
+			stepper._turn(rotation)
+			var turned := _turned(stepper)
+			var waters := _waters(stepper, rng)
+			var heights: Array[PackedFloat64Array] = []
+			for water: PackedFloat64Array in waters:
+				heights.append(native.heights(water))
+			# The same turn in GDScript, from the attitude before it.
+			stepper._native = null
+			stepper._turned = PackedFloat64Array()
+			stepper._turn(rotation)
+			var reference := _turned(stepper)
+			for at in turned.size():
+				if not Checked.alike(turned[at], reference[at]):
+					found.append("%s's turned array %d at up %s" % [ship, at, up])
+			if stepper._air._upward != native.upward():
+				found.append("%s's ways air passes at up %s" % [ship, up])
+			for at in waters.size():
+				for cell in stepper._boxes.size():
+					var height := stepper._boxes[cell].height(waters[at][cell])
+					if not Checked.same(heights[at][cell], height):
+						found.append("%s's cell %d height at up %s" % [ship, cell, up])
+			turns += 1
+		stepper._native = native
+	gut.p("%d turns of her cells and openings" % turns)
+	assert_eq(found.slice(0, 12), [] as Array[String], "her turns and heights come out alike")
+
+
+func test_a_bake_wholly_in_gdscript_runs_alike() -> void:
+	if not _loaded():
+		return
+	var native := _bake(&"steamer", false)
+	var script := _bake(&"steamer", true)
+	assert_gt(native.steps(), 1000, "the bake runs on")
+	assert_eq(native.steps(), script.steps(), "as many steps")
+	assert_true(Checked.alike(native.times(), script.times()), "at the same times")
+	assert_true(Checked.alike(native.seas(), script.seas()), "the same seas")
+	assert_true(Checked.alike(native.rotations(), script.rotations()), "the same attitudes")
+	assert_true(Checked.alike(native.heads(), script.heads()), "the same heads")
+	assert_true(Checked.alike(native.waters(), script.waters()), "the same water")
+	assert_true(Checked.alike(native.pockets(), script.pockets()), "the same pockets")
+
+
+## Attitudes to turn her to: level both ways of zero, on her side, end on, upside down,
+## a hair off level, hard over, and some at random.
+func _ups(rng: RandomNumberGenerator) -> Array[PackedFloat64Array]:
+	var ups: Array[PackedFloat64Array] = [
+		PackedFloat64Array([0.0, 1.0, 0.0]),
+		PackedFloat64Array([-0.0, 1.0, -0.0]),
+		PackedFloat64Array([1.0, 0.0, 0.0]),
+		PackedFloat64Array([0.0, 0.0, -1.0]),
+		PackedFloat64Array([0.0, -1.0, 0.0]),
+		PackedFloat64Array([1e-9, 1.0, 1e-12]),
+		PackedFloat64Array([0.7071067811865476, 0.7071067811865476, 0.0]),
+		PackedFloat64Array([0.0, 0.7071067811865476, -0.7071067811865476]),
+		PackedFloat64Array([0.0, 0.7071067811865475, -0.7071067811865477]),
+	]
+	for _extra in 6:
+		var up := Vector3(rng.randf_range(-1, 1), rng.randf_range(-1, 1), rng.randf_range(-1, 1))
+		up = up.normalized()
+		ups.append(PackedFloat64Array([up.x, up.y, up.z]))
+	return ups
+
+
+## What [param stepper] reads of its cells and openings turned: floors, ceilings, average
+## surfaces, sills, tops and widths, and its air's tops — copies.
+func _turned(stepper: SinkStepper) -> Array[PackedFloat64Array]:
+	var arrays: Array[PackedFloat64Array] = [
+		stepper._floor,
+		stepper._ceiling,
+		stepper._area,
+		stepper._bottom,
+		stepper._top,
+		stepper._size,
+		stepper._air._top,
+	]
+	var copies: Array[PackedFloat64Array] = []
+	for array: PackedFloat64Array in arrays:
+		copies.append(array.duplicate())
+	return copies
+
+
+## Water for every cell of [param stepper]: dry, a hair, part, full, over full.
+func _waters(stepper: SinkStepper, rng: RandomNumberGenerator) -> Array[PackedFloat64Array]:
+	var waters: Array[PackedFloat64Array] = []
+	for kind in 5:
+		var water := PackedFloat64Array()
+		for cell in stepper._boxes.size():
+			var full := stepper.capacity_of(cell)
+			water.append(
+				[0.0, 1e-15, rng.randf_range(0.0, full), full, full * (1.0 + rng.randf())][kind]
+			)
+		waters.append(water)
+	return waters
+
+
+## The steamer's first bake run BAKE_STEPS steps: natively, or wholly in GDScript where
+## [param script] — its stepper's loops and turn and its motion's.
+func _bake(ship: StringName, script: bool) -> SinkBake:
+	var structure := Fleet.layout(ship).structure
+	var scenario := Fleet.scenario(ship)
+	var sea := SeaPhysics.load_default()
+	var choosing := MustSink.Choosing.new(
+		structure, scenario, SeedStreams.derive(SEED, "sink"), sea
+	)
+	choosing.work(1)
+	var damage: HitDamage = choosing._drawn.damage
+	ShipMotion.native_off = script
+	var stepper := SinkStepper.new(structure, damage, sea)
+	ShipMotion.native_off = false
+	if script:
+		stepper._native = null
+	var bake := SinkBake.new(stepper, sea, scenario.bake_cap, HullBreak.of(structure, damage, sea))
+	bake.run(BAKE_STEPS)
+	return bake
 
 
 func test_linear_systems_solve_alike() -> void:

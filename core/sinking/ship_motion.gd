@@ -185,7 +185,8 @@ func sea_at(rotation: PackedFloat64Array, rise: float) -> float:
 ## Moves [param next] — [param state]'s water already moved over [param seconds] —
 ## to where she is at the step's end: her rotation, the sea's height up her, her
 ## motion's rates and her roll stiffness. [param boxes] are her cells' water at any
-## attitude, left turned to the new one.
+## attitude: where the GDScript works her water (_loaded) they are left turned to the
+## new one; the extension never turns them, and SinkStepper turns them next.
 func move(state: FloodState, next: FloodState, boxes: Array[TiltedBox], seconds: float) -> void:
 	var rotation := state.rotation
 	var rise := sea_at(rotation, 0.0) - state.sea
@@ -250,9 +251,10 @@ func move(state: FloodState, next: FloodState, boxes: Array[TiltedBox], seconds:
 	var turned := Attitude.pitched(rotation, after[1] * seconds)
 	next.rotation = Attitude.squared(Attitude.rolled(turned, after[2] * seconds))
 	next.sea = sea_at(next.rotation, rise + after[0] * seconds)
-	var up := Attitude.up(next.rotation)
-	for box: TiltedBox in boxes:
-		box.turn(up[0], up[1], up[2])
+	if _native == null:
+		var up := Attitude.up(next.rotation)
+		for box: TiltedBox in boxes:
+			box.turn(up[0], up[1], up[2])
 
 
 ## The rise, pitch and roll that would bring her to rest from [param rotation] with
