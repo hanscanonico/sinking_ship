@@ -243,13 +243,7 @@ func _process(delta: float) -> void:
 		return
 	var snapshot := _match.current()
 	if _capture_due(snapshot):
-		_match.set_paused(true)
-		match _args.capture_screen:
-			"pause":
-				_pause.open(_match.prompts(), _match.spectating())
-			"online-pause", "online-settings":
-				_stage_online_pause(_args.capture_screen == "online-settings")
-		_capture(MatchTranscript.clock(snapshot["tick"]))
+		_capture_match(snapshot)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -856,6 +850,68 @@ func _capture_due(snapshot: Dictionary) -> bool:
 	if _capture_tick >= 0:
 		return snapshot["tick"] >= _capture_tick
 	return _args.capture_at >= 0.0 and snapshot["tick"] >= Ticks.from_seconds(_args.capture_at)
+
+
+## Stops the match on [param snapshot], its capture due, stages the screen asked for over
+## it and shoots it — or, ended before the moment asked for, says so and quits.
+func _capture_match(snapshot: Dictionary) -> void:
+	_match.set_paused(true)
+	var overrun := capture_overrun(_args, _capture_tick, snapshot, _match.played_config())
+	if not overrun.is_empty():
+		_capturing = true
+		push_error(overrun)
+		get_tree().quit(1)
+		return
+	match _args.capture_screen:
+		"pause":
+			_pause.open(_match.prompts(), _match.spectating())
+		"online-pause", "online-settings":
+			_stage_online_pause(_args.capture_screen == "online-settings")
+	_capture(MatchTranscript.clock(snapshot["tick"]))
+
+
+## Why a capture [param args] asks for cannot be shot from [param snapshot], a match
+## that ended before its moment — [param capture_tick] past --phys, else --capture-at's —
+## came: what would show is its results, not the moment asked for. Empty when it can,
+## or when the results are what [param args] asks to see. [param config] is the match's.
+static func capture_overrun(
+	args: MatchArgs, capture_tick: int, snapshot: Dictionary, config: MatchConfig
+) -> String:
+	if snapshot["phase"] != MatchState.Phase.ENDED or args.capture_screen == "results":
+		return ""
+	var due := capture_tick
+	if due < 0 and args.capture_at >= 0.0:
+		due = Ticks.from_seconds(args.capture_at)
+	var ended: int = snapshot["tick"]
+	if due < 0 or ended >= due:
+		return ""
+	var end := MatchTranscript.clock(ended)
+	if args.phys_seconds >= 0.0:
+		var schedule := config.schedule()
+		return (
+			(
+				"capture: the match ended at %s, physics %s after the hit, before PHYS=%s"
+				% [end, phys_clock(schedule.physics_at(ended)), phys_clock(args.phys_seconds)]
+			)
+			+ (
+				" (match %s), so only its results would show: ask for a smaller PHYS"
+				% MatchTranscript.clock(due)
+			)
+			+ " than that, or SCREEN=results for them"
+		)
+	return (
+		(
+			"capture: the match ended at %s, before AT=%s (%s), so only its results would"
+			% [end, args.capture_at, MatchTranscript.clock(due)]
+		)
+		+ " show: ask for an AT before %s, or SCREEN=results for them" % end
+	)
+
+
+## [param seconds] of physics as --phys takes them, h:mm:ss.
+static func phys_clock(seconds: float) -> String:
+	var whole := int(seconds)
+	return "%d:%02d:%02d" % [whole / 3600, whole / 60 % 60, whole % 60]
 
 
 ## Lets the view settle on what is showing, saves the frame and quits.
