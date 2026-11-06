@@ -1,18 +1,18 @@
 extends GutTest
-## The holes her flights leave in the Titanic's decks are railed round (#486): wherever
-## one piece of her deck has a flight's hole along its edge, either side of the flight or
-## across its low end, a railing runs along that edge or a wall lines it, so a body walks
-## round the hole, not into it. Its high end, where the flight comes up, stays open, and so
-## does an edge a flight up from that deck has its foot over. A flight that comes up past a
-## deck's end, as her open decks' do (the generator's OPEN_DECK_FLIGHTS), leaves no hole
-## in it: no piece of her deck has an edge along it.
+## The holes her flights leave in the Titanic's decks are railed round (#486, #489):
+## wherever her deck stands along a flight's hole, either side of the flight or across its
+## closed end, a railing runs along that edge or a wall lines it, so a body walks round
+## the hole, not into it. Every flight, along her or across her, onto every deck she has,
+## however many pieces of her deck hold the edge. Its high end, where the flight comes up,
+## stays open, and so does an edge a flight up from that deck has its foot over. A flight
+## that comes up past a deck's end, as her open decks' do (the generator's
+## OPEN_DECK_FLIGHTS), leaves no hole in it: no piece of her deck stands along it.
 ##
-## Held for the flights her generator rails round (hole_rails): those rising along her,
-## onto her decks from F deck up, along an edge one piece of her deck holds whole. Her
-## flights across her, those onto her decks under F deck and edges over two pieces: #489.
+## A hole's closed end is the flight's low end, or, where her deck stays whole over the
+## flight's foot (a hole cut only over its head, up_to_f's), that deck's edge across it.
 
-## The lowest deck held.
-const F_DECK := -8.5625
+## The least a flight climbs to leave a hole a body falls into: what a body steps up.
+const FLIGHT_RISE := 0.35
 ## How far apart along an edge it is tried, how far in from the edge's corners, and how
 ## far either side of it.
 const STEP := 0.25
@@ -30,10 +30,19 @@ func before_all() -> void:
 	_layout = Fleet.layout(&"titanic")
 
 
-## Whether a platform of hers at [param height] holds ship-plane point [param at].
-func _deck_at(height: float, at: Vector2) -> bool:
+## The platforms of hers at [param height].
+func _decks(height: float) -> Array[ShipPlatform]:
+	var found: Array[ShipPlatform] = []
 	for platform: ShipPlatform in _layout.platforms:
-		if absf(platform.height - height) < SLACK and platform.area.has_point(at):
+		if absf(platform.height - height) < SLACK:
+			found.append(platform)
+	return found
+
+
+## Whether one of [param decks] holds ship-plane point [param at].
+func _deck_at(decks: Array[ShipPlatform], at: Vector2) -> bool:
+	for platform: ShipPlatform in decks:
+		if platform.area.has_point(at):
 			return true
 	return false
 
@@ -55,21 +64,10 @@ func _railed(height: float, at: Vector2, along_x: bool) -> bool:
 	return false
 
 
-## Whether a flight up from a deck at [param height] has its foot over the edge from
-## [param a] to [param b].
-func _foot_of_a_flight(height: float, a: Vector2, b: Vector2) -> bool:
-	var edge := Rect2(a, Vector2.ZERO).expand(b).grow(SLACK)
+## Whether a flight up from a deck at [param height] has its foot over [param at].
+func _foot_of_a_flight(height: float, at: Vector2) -> bool:
 	for ramp: ShipRamp in _layout.ramps:
-		if absf(ramp.base() - height) < SLACK and ramp.area.intersects(edge):
-			return true
-	return false
-
-
-## Whether one platform of hers at [param height] has the whole edge from [param a] to
-## [param b] along its own edge.
-func _deck_edge(height: float, a: Vector2, b: Vector2) -> bool:
-	for platform: ShipPlatform in _layout.platforms:
-		if absf(platform.height - height) < SLACK and platform.edge_holds(a, b):
+		if absf(ramp.base() - height) < SLACK and ramp.area.grow(SLACK).has_point(at):
 			return true
 	return false
 
@@ -84,36 +82,74 @@ func _walled(height: float, at: Vector2) -> bool:
 	return false
 
 
+## Where along [param ramp] (x for a flight along her, z across) its hole's closed end
+## lies: the edge of the deck in [param decks] whole over its foot, if it has one, else
+## its low end.
+func _closed_end(ramp: ShipRamp, decks: Array[ShipPlatform]) -> float:
+	var along := 0 if ramp.axis == ShipRamp.Axis.X else 1
+	var across := 1 - along
+	var rising := ramp.end_height > ramp.start_height
+	var sign := 1.0 if rising else -1.0
+	var low := ramp.area.position[along] if rising else ramp.area.end[along]
+	var high := ramp.area.end[along] if rising else ramp.area.position[along]
+	var closed := low
+	for platform: ShipPlatform in decks:
+		var area := platform.area
+		if (
+			area.position[across] >= ramp.area.end[across] - SLACK
+			or area.end[across] <= ramp.area.position[across] + SLACK
+		):
+			continue
+		var near := area.end[along] if rising else area.position[along]
+		if sign * (near - low) > SLACK and sign * (high - near) > SLACK:
+			closed = near if sign * (near - closed) > 0.0 else closed
+	return closed
+
+
 ## The first point of each edge of [param ramp]'s hole where her deck stands outside
 ## it and not inside it, and no railing runs nor wall stands: "x, z at height" each.
 func _unrailed(ramp: ShipRamp) -> PackedStringArray:
-	var top := maxf(ramp.start_height, ramp.end_height)
-	var box := ramp.area
-	var low := box.position.x if ramp.end_height > ramp.start_height else box.end.x
-	var edges: Array = [  # [from, to, outward]
-		[box.position, Vector2(box.end.x, box.position.y), Vector2.UP],
-		[Vector2(box.position.x, box.end.y), box.end, Vector2.DOWN],
-		[
-			Vector2(low, box.position.y),
-			Vector2(low, box.end.y),
-			Vector2.RIGHT if low == box.end.x else Vector2.LEFT
-		],
-	]
 	var found := PackedStringArray()
+	var top := maxf(ramp.start_height, ramp.end_height)
+	if top - ramp.base() < FLIGHT_RISE:
+		return found
+	var decks := _decks(top)
+	var box := ramp.area
+	var closed := _closed_end(ramp, decks)
+	var rising := ramp.end_height > ramp.start_height
+	var edges: Array = []  # [from, to, outward]
+	if ramp.axis == ShipRamp.Axis.X:
+		edges = [
+			[box.position, Vector2(box.end.x, box.position.y), Vector2.UP],
+			[Vector2(box.position.x, box.end.y), box.end, Vector2.DOWN],
+			[
+				Vector2(closed, box.position.y),
+				Vector2(closed, box.end.y),
+				Vector2.LEFT if rising else Vector2.RIGHT
+			],
+		]
+	else:
+		edges = [
+			[box.position, Vector2(box.position.x, box.end.y), Vector2.LEFT],
+			[Vector2(box.end.x, box.position.y), box.end, Vector2.RIGHT],
+			[
+				Vector2(box.position.x, closed),
+				Vector2(box.end.x, closed),
+				Vector2.UP if rising else Vector2.DOWN
+			],
+		]
 	for edge: Array in edges:
 		var a: Vector2 = edge[0]
 		var b: Vector2 = edge[1]
 		var outward: Vector2 = edge[2]
-		if not _deck_edge(top, a, b) or _foot_of_a_flight(top, a, b):
-			continue
 		var length := a.distance_to(b)
 		var along_x := is_equal_approx(a.y, b.y)
 		var steps := maxi(1, floori((length - 2.0 * INSET) / STEP))
 		for step in steps + 1:
 			var at := a.lerp(b, (INSET + (length - 2.0 * INSET) * step / steps) / length)
-			if not _deck_at(top, at + outward * OFF) or _deck_at(top, at - outward * OFF):
+			if not _deck_at(decks, at + outward * OFF) or _deck_at(decks, at - outward * OFF):
 				continue
-			if _railed(top, at, along_x) or _walled(top, at):
+			if _foot_of_a_flight(top, at) or _railed(top, at, along_x) or _walled(top, at):
 				continue
 			found.append("%.2f, %.2f at %.4f" % [at.x, at.y, top])
 			break
@@ -123,6 +159,5 @@ func _unrailed(ramp: ShipRamp) -> PackedStringArray:
 func test_every_hole_a_flight_leaves_is_railed_round() -> void:
 	var unrailed := PackedStringArray()
 	for ramp: ShipRamp in _layout.ramps:
-		if ramp.axis == ShipRamp.Axis.X and maxf(ramp.start_height, ramp.end_height) >= F_DECK:
-			unrailed.append_array(_unrailed(ramp))
+		unrailed.append_array(_unrailed(ramp))
 	assert_eq(unrailed, PackedStringArray(), "every flight's hole railed round")

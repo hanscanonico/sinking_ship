@@ -25,8 +25,8 @@ enum Piece { HATCH, CASING, SKYLIGHT, LOCKER, POST, BOAT, BENCH, VENT, GEAR }
 ## shorter side; a round piece's diameter, height and diameter — to the model that
 ## dresses it (assets/models/NAME), "" for one drawn by code alone. A piece is its parts
 ## (DeckGear.PARTS): its foot, a blocker so named, stands at one of its kind's sizes, its
-## longer side along x or z, and each other part is a blocker named for it. A piece is
-## drawn as its model at its foot, filling its parts (DeckGear.draw()).
+## longer side along x or z, either way about, and each other part is a blocker named for
+## it. A piece is drawn as its model at its foot, filling its parts (DeckGear.draw()).
 const GEAR := {
 	# A warping capstan's drum (Plate IV), its height est.: on her poop, and on her
 	# forecastle, the after pair and the forward pair on its head.
@@ -36,8 +36,15 @@ const GEAR := {
 		Vector3(1.375, 0.9375, 1.375): "capstan_137",
 		Vector3(1.125, 0.9375, 1.125): "capstan_112",
 	},
-	# An electric crane's pedestal and machinery (Plates III and IV), its height est.
-	&"electric crane": {Vector3(1.5, 2.5, 1.5): "electric_crane"},
+	# An electric crane's pedestal and machinery (Plates III and IV), its height est., and
+	# its jib stowed on its crutch post (DeckGear.PARTS): her wells', her poop's and A
+	# deck's, each pair's long over all as its jib and tall to its house's top.
+	&"electric crane":
+	{
+		Vector3(8.375, 2.5, 1.5): "electric_crane_688",
+		Vector3(10.75, 2.5, 1.5): "electric_crane_925",
+		Vector3(8.5, 2.5, 1.5): "electric_crane_700",
+	},
 	# An electric winch, at the four sizes her plates draw: the boats' on the boat deck,
 	# aft and forward; the after well's; the forward well's and the poop's. Heights est.
 	&"electric winch":
@@ -112,9 +119,11 @@ const BENCH_RISE := 0.3
 const ARM_RISE := 0.18
 ## A boat stowed on chocks under her davits: a box at one of her structure's boat stations
 ## (its LIFEBOAT fittings) on the fitting's side, out to the edge of the deck it stands on,
-## STOWED_BOAT long, tall and in from the edge. The boat (BOAT_MODEL, its origin on the
-## deck under the middle of its keel, x along it) is BOAT_BEAM across and stands BOAT_OFF
-## in from the edge, its stems at the box's ends and its stem heads at its top; a davit
+## STOWED_BOAT long, tall and in from the edge, or a smaller boat's smaller (the Titanic's
+## cutters). The boat (BOAT_MODEL, its origin on the deck under the middle of its keel, x
+## along it) is BOAT_BEAM across and stands BOAT_OFF in from the edge, its stems at the
+## box's ends and its stem heads at its top — in a smaller box drawn smaller to it, across
+## all the box leaves past BOAT_OFF (boat_scale()); a davit
 ## (DAVIT_MODEL, its origin on the deck at the edge, z in) stands DAVIT_IN in from each end,
 ## its frame in the BOAT_OFF the boat leaves and its arm over the boat to its head,
 ## DAVIT_HEAD in and up, its fall down to the boat's hook under it; its box over all is
@@ -174,13 +183,13 @@ static func build(mesh: ShipMesh, space: ShipSpace, blocker: ShipBlocker, top: f
 		Piece.POST:
 			towing_post(mesh, area, blocker.bottom, top)
 		Piece.BOAT:
-			boat(mesh, area, blocker.bottom)
+			boat(mesh, area, blocker.bottom, blocker.top)
 		Piece.BENCH:
 			bench(mesh, blocker, back_of(space.layout, blocker))
 		Piece.VENT:
 			vent(mesh, blocker)
 		Piece.GEAR:
-			gear(mesh, blocker, top)
+			gear(mesh, space.layout, blocker, top)
 
 
 ## What [param blocker], a box on an open deck of [param space]'s ship, a ventilator
@@ -253,10 +262,11 @@ static func size_of(blocker: ShipBlocker) -> Vector3:
 	return Vector3(maxf(plan.x, plan.y), height, minf(plan.x, plan.y))
 
 
-## A piece of her gear over [param blocker] to [param top]: its kind's model at its foot,
-## filling its parts (DeckGear.draw()); a kind with none, a stanchion, a white post.
-static func gear(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
-	if DeckGear.draw(mesh, blocker):
+## A piece of her gear over [param blocker] of [param layout] to [param top]: its kind's
+## model at its foot, filling its parts (DeckGear.draw()); a kind with none, a stanchion,
+## a white post.
+static func gear(mesh: ShipMesh, layout: ShipLayout, blocker: ShipBlocker, top: float) -> void:
+	if DeckGear.draw(mesh, layout, blocker):
 		return
 	var paint := ShipPaints.white if blocker.name == &"stanchion" else ShipPaints.machine
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
@@ -265,21 +275,33 @@ static func gear(mesh: ShipMesh, blocker: ShipBlocker, top: float) -> void:
 	mesh.box(blocker.area, blocker.bottom, top, paint, ShipMesh.TOP | ShipMesh.SIDES)
 
 
-## A boat stowed on chocks over [param area] from [param bottom], a box at one of her boat
-## stations out to her deck's edge on the side its middle lies: the boat (BOAT_MODEL)
-## BOAT_OFF in from the edge, its stems at the box's ends, and at the edge DAVIT_IN in from
-## each end a davit (DAVIT_MODEL) leaning in over it.
-static func boat(mesh: ShipMesh, area: Rect2, bottom: float) -> void:
+## A boat stowed on chocks over [param area] from [param bottom] to [param top], a box at
+## one of her boat stations out to her deck's edge on the side its middle lies: the boat
+## (BOAT_MODEL) BOAT_OFF in from the edge, its stems at the box's ends and drawn to its
+## size (boat_scale()), and at the edge DAVIT_IN in from each end a davit (DAVIT_MODEL)
+## leaning in over it.
+static func boat(mesh: ShipMesh, area: Rect2, bottom: float, top: float) -> void:
 	var side := signf(area.get_center().y)
 	var edge := area.end.y if side > 0.0 else area.position.y
 	var middle := area.get_center().x
 	var inward := _turned(Vector2(0.0, -side))
-	var keel := Vector3(middle, bottom, edge - side * (BOAT_OFF + BOAT_BEAM * 0.5))
-	mesh.model(ShipModel.named(BOAT_MODEL), Transform3D(inward, keel))
+	var scale := boat_scale(area, top - bottom)
+	var keel := Vector3(middle, bottom, edge - side * (BOAT_OFF + BOAT_BEAM * scale.z * 0.5))
+	mesh.model(ShipModel.named(BOAT_MODEL), Transform3D(inward * Basis.from_scale(scale), keel))
 	var davit := ShipModel.named(DAVIT_MODEL)
 	for end: float in [-1.0, 1.0]:
 		var foot := Vector3(middle + end * (area.size.x * 0.5 - DAVIT_IN), bottom, edge)
 		mesh.model(davit, Transform3D(inward, foot))
+
+
+## How the boat stowed over [param area], [param height] tall, is drawn against BOAT_MODEL,
+## a lifeboat made to STOWED_BOAT's box: its length, height and beam each as its box's are
+## to that, its beam all the box leaves past BOAT_OFF; a lifeboat's box exactly so.
+static func boat_scale(area: Rect2, height: float) -> Vector3:
+	var box := Vector3(area.size.x, height, area.size.y)
+	if box.is_equal_approx(STOWED_BOAT):
+		return Vector3.ONE
+	return Vector3(box.x / STOWED_BOAT.x, box.y / STOWED_BOAT.y, (box.z - BOAT_OFF) / BOAT_BEAM)
 
 
 ## A bench over [param blocker]'s box (BENCH_MODEL) on the deck it stands on, its back to
