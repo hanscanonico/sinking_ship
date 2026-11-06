@@ -99,6 +99,11 @@ const LAID := 0.2
 ## the furthest first: where a stair goes down through the deck, the cable is led
 ## short of it.
 const HAWSE_IN := 0.8
+## How much of the deck a hawse pipe a cable holder's cable is led to keeps outboard of it:
+## the pipe leads down and out through her bow to the anchor in her side (est.; the
+## Titanic's Plate IV draws her mouths' forward ends 2.2 m in from her side, and her shell
+## stands 0.6 m inside it there).
+const HAWSE_SIDE := 1.25
 const SPURLING_IN: Array[float] = [3.6, 3.0, 2.4, 1.8, 1.2]
 ## The gear a cable is worked by where a fore deck carries it (DeckFurniture.GEAR): a
 ## windlass drum, or cable holder, on its bedplate, the cable led down through it to the
@@ -397,9 +402,9 @@ func _led_aft(mesh: ShipMesh, deck: EndDeck, middle: float, side: float, bow: Ve
 
 ## The cable of [param holder], a cable holder on [param deck], led from its forward face
 ## forward along its middle line to its hawse pipe, HAWSE_IN short of where the deck ends
-## on that line (_reach) — where her bow's flare takes the deck from under the pipe, which
-## leads down through her bow to the anchor in her side —, all of it lying on the deck
-## (_laid); none where it would not.
+## on that line or her bow's flare takes it within HAWSE_SIDE outboard of it (_reach) —
+## the pipe leads down through her bow to the anchor in her side —, all of it lying on the
+## deck (_laid); none where it would not.
 func _led_from(mesh: ShipMesh, deck: EndDeck, holder: ShipBlocker) -> void:
 	var line := holder.area.get_center().y
 	var face := Vector2(holder.area.end.x, line)
@@ -412,8 +417,9 @@ func _led_from(mesh: ShipMesh, deck: EndDeck, holder: ShipBlocker) -> void:
 	tackle.append(Rect2(face, Vector2.ZERO).expand(hawse).grow(LAID))
 
 
-## How far forward [param deck]'s pieces carry the line along her through [param from]:
-## from the piece under it on to each piece that meets it there, as far as the last.
+## How far forward [param deck]'s pieces carry the line along her through [param from],
+## each HAWSE_SIDE outboard of it: from the piece under it on to each piece that meets it
+## there, as far as the last.
 func _reach(deck: EndDeck, from: Vector2) -> float:
 	var reach := from.x
 	var carried := true
@@ -426,6 +432,10 @@ func _reach(deck: EndDeck, from: Vector2) -> float:
 				and area.end.x > reach + PIECE_JOIN
 				and area.position.y <= from.y
 				and from.y <= area.end.y
+				and (
+					(area.end.y - from.y if from.y >= 0.0 else from.y - area.position.y)
+					>= HAWSE_SIDE
+				)
 			):
 				reach = area.end.x
 				carried = true
