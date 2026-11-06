@@ -112,8 +112,12 @@ func test_the_bonus_range_grows_with_her_hull() -> void:
 	assert_almost_eq(titanic_length, 269.06, 0.01, "the Titanic's length overall")
 	for tier: String in BotProfile.tiers():
 		var profile := BotProfile.for_tier(StringName(tier))
-		for ship: String in ["steamer", "trawler", "tug"]:
-			var layout: ShipLayout = load("res://data/ships/%s.tres" % ship)
+		for layout: ShipLayout in [
+			SimFixtures.steamer(),
+			load("res://data/ships/trawler.tres"),
+			load("res://data/ships/tug.tres"),
+		]:
+			var ship := layout.resource_path.get_file()
 			var length := layout.structure.length()
 			assert_eq(profile.bonus_range(length), profile.bonus_range_m, "%s on %s" % [tier, ship])
 		assert_eq(profile.bonus_range(0.0), profile.bonus_range_m, "%s with no hull" % tier)
