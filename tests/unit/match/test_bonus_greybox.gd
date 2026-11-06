@@ -2,7 +2,9 @@ extends GutTest
 ## The bonuses aboard, drawn in greybox (#310) from the snapshot: each at its bonus spot, a
 ## shape of its kind's size in its kind's colour standing on the spot's floor, lit from
 ## within (#313) — none once it is no longer aboard, and none at all in a match without
-## bonuses.
+## bonuses. Once she has broken (SH33), each lies on the piece of her its spot is on (#335).
+
+const MATCH := preload("res://scenes/match/match.tscn")
 
 
 ## The shapes [param drawn] shows, in the order the snapshot lists its bonuses.
@@ -88,3 +90,46 @@ func test_a_match_without_bonuses_draws_none() -> void:
 	drawn.setup(SimFixtures.below_decks(), null)
 	drawn.show_bonuses(SimFixtures.sim(1, null, SimFixtures.below_decks()).snapshot())
 	assert_eq(_shown(drawn).size(), 0)
+
+
+## Once she has broken (SH33), a bonus is drawn on the piece of her its spot lies on, wherever
+## that piece goes (#335): on the weak hull 20 s after she parts, a bonus on her fore piece
+## stands where that piece's pose has its spot — not where her aft piece, which the ship's
+## own node follows, would carry it.
+func test_a_bonus_on_a_piece_she_broke_into_is_drawn_where_that_piece_is() -> void:
+	var config := SimFixtures.breaking(1, SimFixtures.bonus_rules(600.0))
+	var schedule := config.schedule()
+	var at := SimFixtures.after_parting(schedule, 20.0)
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	scene.start(config, true, false, MatchScene.LOCAL_SEAT, INF, true, null, at)
+	var spot := SimFixtures.fore_spot(config.ship, schedule, 2.0)
+	assert_ne(spot, -1, "a spot on her fore piece")
+	if spot == -1:
+		return
+	var aboard: Array = scene._driver.current["bonuses"]
+	aboard.append(BonusState.new(-1, 0, spot).to_dict())
+	var view: MatchView = scene.get_node("MatchView")
+	view._process(0.0)
+	var shown := _shown(view.get_node("Ship/Bonuses"))
+	assert_eq(shown.size(), 1, "drawn")
+	if shown.size() != 1:
+		return
+	var leaves := ShipPieces.leaves_of(schedule)
+	var middle := (
+		config.ship.bonus_spots[spot].point + Vector3.UP * SimFixtures.double_life().height * 0.5
+	)
+	var on_fore := view.global_transform * _drawn(scene, leaves[leaves.size() - 1]) * middle
+	var on_aft := view.global_transform * _drawn(scene, leaves[0]) * middle
+	assert_gt(on_fore.distance_to(on_aft), 1.0, "her pieces apart by then")
+	assert_almost_eq(shown[0].global_position, on_fore, Vector3.ONE * 1e-4, "on its own piece")
+
+
+## Where [param scene]'s view draws piece [param piece] of her now, in its own space: its
+## pose interpolated between the two snapshots drawn.
+func _drawn(scene: MatchScene, piece: int) -> Transform3D:
+	var driver := scene._driver
+	var schedule := driver.sim().schedule
+	var then := schedule.pose_at(driver.previous["tick"]).of_piece(piece).transform
+	var now := schedule.pose_at(driver.current["tick"]).of_piece(piece).transform
+	return then.interpolate_with(now, driver.alpha)
