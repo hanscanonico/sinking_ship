@@ -35,6 +35,11 @@ enum Lift {
 	ABEAM_ABEAM,
 }
 
+## For tests and probes: every ShipMotion made while this is set works its lift in
+## GDScript, as where the game's extension is not loaded — the twin a cross-check holds
+## the extension's answers to (test_motion_native).
+static var native_off := false
+
 var _g: float
 ## Per section: where along her and how long; and its outline's points, z then y, from
 ## its first point's place in the run of all of them, so many.
@@ -76,6 +81,11 @@ var _lift_made := PackedFloat64Array()
 var _lift_shares := PackedFloat64Array()
 ## The bottom under her, or null where the sea is too deep for her to reach it.
 var _seabed: Seabed
+## Where the game's extension is loaded, a NativeMotion that works lift_under(), highest()
+## and _loaded() to the same bits (native/, #411), handed her sections once; else null.
+var _native: Object
+## The cells' boxes last handed to the NativeMotion (_loaded).
+var _boxed: Array[TiltedBox] = []
 
 
 ## The motion of [param structure] under [param sea], resting intact with the sea
@@ -104,6 +114,20 @@ func _init(structure: ShipStructure, sea: SeaPhysics, rest: float, depth := INF)
 		[structure.heave_damping, structure.pitch_damping, structure.roll_damping]
 	)
 	_drag = sea.sink_drag
+	if not native_off and ClassDB.class_exists(&"NativeMotion"):
+		_native = ClassDB.instantiate(&"NativeMotion")
+		_native.setup(
+			_x,
+			_length,
+			_first,
+			_count,
+			_points,
+			_whole,
+			_corner_first,
+			_corner_count,
+			_corners,
+			_centre
+		)
 	var resting := lift_under(Attitude.level(), rest)
 	_plan = resting[Lift.AREA]
 	var stiffness := _stiffness(Attitude.level(), resting)
@@ -134,6 +158,8 @@ func grounded(rotation: PackedFloat64Array, sea: float) -> bool:
 ## How far the highest point of her outline stands over the sea standing [param sea] up
 ## her under [param rotation], along the world's up: under it when negative.
 func highest(rotation: PackedFloat64Array, sea: float) -> float:
+	if _native != null:
+		return _native.highest(rotation, sea)
 	var ux := rotation[3]
 	var uy := rotation[4]
 	var uz := rotation[5]
@@ -253,6 +279,10 @@ func steady_step(state: FloodState) -> float:
 func _loaded(
 	rotation: PackedFloat64Array, water: PackedFloat64Array, boxes: Array[TiltedBox]
 ) -> PackedFloat64Array:
+	if _native != null:
+		if not is_same(boxes, _boxed):
+			_hand_boxes(boxes)
+		return _native.loaded(rotation, water)
 	var up := Attitude.up(rotation)
 	var loaded := PackedFloat64Array([0.0, 0.0, 0.0, 0.0])
 	for cell in water.size():
@@ -268,6 +298,22 @@ func _loaded(
 		for axis in 3:
 			loaded[axis + 1] += volume * middle[axis]
 	return loaded
+
+
+## Hands [param boxes] to the NativeMotion, which works _loaded() from them: a box only
+## changes as it turns, which it does from the up it is asked at.
+func _hand_boxes(boxes: Array[TiltedBox]) -> void:
+	_boxed = boxes
+	var frames := PackedFloat64Array()
+	var capacity := PackedFloat64Array()
+	var full_area := PackedFloat64Array()
+	var sideways := PackedFloat64Array()
+	for box: TiltedBox in boxes:
+		frames.append_array(box.frame())
+		capacity.append(box.capacity())
+		full_area.append(box.full_area())
+		sideways.append(box.sideways())
+	_native.boxes(frames, capacity, full_area, sideways)
 
 
 ## The push of her water, [param loaded] (_loaded), under [param rotation]: its weight
@@ -368,6 +414,25 @@ func lift_under(
 	if not wanted:
 		by_section = PackedFloat64Array()
 		by_section.resize(_x.size())
+	var made: PackedFloat64Array
+	if _native != null:
+		var found: PackedFloat64Array = _native.lift_under(rotation, sea)
+		made = found.slice(0, Lift.size())
+		for section in _x.size():
+			by_section[section] = found[Lift.size() + section]
+	else:
+		made = _lifted(rotation, sea, by_section)
+	_lift_asked = asked
+	_lift_made = made.duplicate()
+	_lift_shares = by_section.duplicate()
+	return made
+
+
+## lift_under() worked out in GDScript, past its memo: each section's share of the
+## volume into [param by_section].
+func _lifted(
+	rotation: PackedFloat64Array, sea: float, by_section: PackedFloat64Array
+) -> PackedFloat64Array:
 	var ux := rotation[3]
 	var uy := rotation[4]
 	var uz := rotation[5]
@@ -480,9 +545,6 @@ func lift_under(
 		made[Lift.X] = mx / volume
 		made[Lift.Y] = my / volume
 		made[Lift.Z] = mz / volume
-	_lift_asked = asked
-	_lift_made = made.duplicate()
-	_lift_shares = by_section.duplicate()
 	return made
 
 
