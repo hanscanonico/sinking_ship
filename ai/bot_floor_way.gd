@@ -11,7 +11,9 @@ extends RefCounted
 ## whatever zones the floor runs through — then along that way as far as it could walk
 ## straight. It looks once a think, the bot's own think_period, and walks at what it found in
 ## between. Asked of the Surfaces of the frame it stands in; nothing here rolls the bot's
-## stream.
+## stream. The search runs in the game's extension where it is loaded, square for square
+## (NativeSurfaces.floor_way, #410): its GDScript is the web's, and the twin the extension's
+## answers are held to (test_floor_way_native).
 
 ## The side of a square of the floor a way round is found over, in metres.
 const CELL := 0.25
@@ -51,6 +53,10 @@ var _aim := Vector3.INF
 var _way := PackedVector3Array()
 var _way_leg: WalkGraph.Portal = null
 var _finds := 0
+## What the extension's search is handed of these and the rules (NativeSurfaces.floor_way).
+var _native_rules: PackedFloat64Array
+## How many squares its last search in GDScript settled (test_floor_way_native).
+var _settled := 0
 
 
 func _init(walk_graph: WalkGraph, rules: BrawlRules, think_period: int) -> void:
@@ -59,6 +65,9 @@ func _init(walk_graph: WalkGraph, rules: BrawlRules, think_period: int) -> void:
 	_snug = rules.body_radius * SNUG
 	_lean = rules.body_radius * LEAN
 	_every = think_period
+	_native_rules = PackedFloat64Array(
+		[CELL, MARGIN, MOST, _snug, rules.step_height, rules.body_height, rules.crawl_height]
+	)
 
 
 ## Where a body at [param from] on [param surface] walks to go on along [param leg] toward
@@ -172,6 +181,9 @@ func _stands(point: Vector3, surface: int, keep: PackedInt32Array, radius: float
 ## search settles MOST squares, or all it can reach, before it comes within a square and a
 ## half of the entry.
 func _find(from: Vector3, leg: WalkGraph.Portal, keep: PackedInt32Array) -> PackedVector3Array:
+	var mirror := _surfaces.native
+	if mirror != null:
+		return mirror.floor_way(from, leg.entry, keep, _native_rules)
 	var start := Vector2(from.x, from.z)
 	var goal := Vector2(leg.entry.x, leg.entry.z)
 	var box := Rect2(start, Vector2.ZERO).expand(goal).grow(MARGIN)
@@ -233,6 +245,7 @@ func _find(from: Vector3, leg: WalkGraph.Portal, keep: PackedInt32Array) -> Pack
 					cost[next] = through
 					came[next] = cell
 					open.push(through + _middle(next, origin, width).distance_to(goal), next)
+	_settled = settled
 	var way := PackedVector3Array()
 	if reached == -1:
 		return way

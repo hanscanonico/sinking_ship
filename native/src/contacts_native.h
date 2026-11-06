@@ -129,6 +129,13 @@ public:
 	double ceiling(const Vector3 &p_ship_point, double p_clearance) const;
 	NativeStands *stands() const { return stands_.ptr(); }
 
+	// Surfaces.under and BotFloorWay._find (floor_way_native.cpp).
+	void floors(const PackedInt32Array &p_from, const PackedInt32Array &p_floors,
+			const PackedFloat64Array &p_clearances);
+	int64_t under(const Vector3 &p_ship_point, double p_step, int64_t p_except_prop) const;
+	PackedVector3Array floor_way(const Vector3 &p_from, const Vector3 &p_entry, const PackedInt32Array &p_keep,
+			const PackedFloat64Array &p_rules) const;
+
 protected:
 	static void _bind_methods();
 
@@ -176,7 +183,16 @@ private:
 	std::vector<double> fall_radii_;
 	std::vector<double> fall_heights_;
 	std::vector<Vector2> fall_along_;
+	// Surfaces' floors: per cell of grid_ its platforms, and for each the nearest the height
+	// of any other surface of the cell comes to it (FloorClearances).
+	std::vector<int32_t> floors_from_;
+	std::vector<int32_t> floors_;
+	std::vector<double> clearances_;
 
+	int32_t under_at(const Vector3 &p_ship_point, double p_step, int32_t p_except_prop) const;
+	double height_on(int32_t p_surface, double p_x, double p_z) const;
+	bool stands_at(const Vector3 &p_point, int32_t p_surface, const std::vector<int32_t> &p_keep, double p_radius,
+			double p_step, double p_body_height, double p_crawl_height) const;
 	double height_at(int32_t p_surface, double p_x, double p_z) const;
 	double ramp_height(int32_t p_surface, double p_x, double p_z) const;
 	bool contains(int32_t p_surface, double p_x, double p_z) const;
