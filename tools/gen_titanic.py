@@ -3085,10 +3085,19 @@ for bid, x0, x1, z0, z1, floor, top in ROOM_PIECES:
 # draws that and no rail, and no body reaches the edge past it. A flight up past a deck's
 # end, as her open decks' are (OPEN_DECK_FLIGHTS), leaves no hole: no piece of that deck
 # stands beside it. One rising less than a body steps leaves none a body falls into.
+# Where something stands across the well within a body's breadth past the edge, and half
+# a railing's either side of its line (WELL_CLEAR) — the hole's far side, the hole being
+# narrower than that, or another flight standing in it higher than a step, its foot within
+# a body's height of that deck — a span broken open there would let a body through only
+# into what stands across, drawn (art-lint's open spans): such an edge is railed in spans
+# shorter than a body is broad (BREADTH), none of which, broken, lets one through.
 HOLE_RISE = rule("step_height")
 LINED = 0.1
 LINING = 1.0
 RAIL_LEAST = 0.05  # a stretch shorter than this is no way through for anybody
+BREADTH = 2 * rule("body_radius")
+RAIL_HALF = 0.05  # half a railing's breadth: its cap rail (ship_art's RAIL_WIDTH, 0.09) either side of its line
+WELL_CLEAR = BREADTH + RAIL_HALF
 
 def without(spans, cuts):
     """The stretches [(from, to)] with every cut [(from, to)] taken out of them."""
@@ -3128,6 +3137,27 @@ def hole_edges(rx0, rx1, rz0, rz1, axis, start, end):
     return [(tags[0], side, across[0], *along, -1), (tags[1], side, across[1], *along, 1),
             ("e", 2 - side, closed, *across, -sign)]
 
+def crowded(k, tag, fixed, at, out, a, b, top):
+    """Whether something stands across the well within WELL_CLEAR past flight k's hole's
+    edge tag, the line fixed/at from a to b with its deck on side out, at top: the hole's
+    far side, a side's well narrower than that, or another flight standing in the well
+    there higher than a step, its foot within a body's height of that deck."""
+    near, far = sorted((at, at - out * WELL_CLEAR))
+    width, _along = across_along(ramp_geo[k], fixed)
+    if tag != "e" and width[1] - width[0] < WELL_CLEAR - 1e-6:
+        return True
+    for j, r in enumerate(ramp_geo):
+        r_across, r_along = across_along(r, fixed)
+        c0, c1, l0, l1 = max(r_across[0], near), min(r_across[1], far), max(r_along[0], a), min(r_along[1], b)
+        if j == k or c0 >= c1 or l0 >= l1 or min(r[5], r[6]) >= top + BODY_HEIGHT:
+            continue
+        # The highest its treads stand over that stretch of the well: at an end of it along its rise.
+        lo, hi = (c0, c1) if (0 if r[4] == 0 else 2) == fixed else (l0, l1)
+        r_lo, r_hi = (r[0], r[1]) if r[4] == 0 else (r[2], r[3])
+        if max(r[5] + (r[6] - r[5]) * (v - r_lo) / (r_hi - r_lo) for v in (lo, hi)) > top + HOLE_RISE:
+            return True
+    return False
+
 def rail_holes():
     for k, (rx0, rx1, rz0, rz1, axis, start, end) in enumerate(list(ramp_geo)):
         top = max(start, end)
@@ -3160,8 +3190,14 @@ def rail_holes():
             spans = [(index, s) for index, stretch in outside for s in without([stretch], cuts)
                      if s[1] - s[0] >= RAIL_LEAST]
             for n, (index, (a, b)) in enumerate(spans):
-                ends = [(at, a), (at, b)] if fixed == 0 else [(a, at), (b, at)]
-                railing("%s_%s%s" % (rid, tag, n if len(spans) > 1 else ""), index, *ends)
+                name = "%s_%s%s" % (rid, tag, n if len(spans) > 1 else "")
+                if b - a < BREADTH or not crowded(k, tag, fixed, at, out, a, b, top):
+                    pieces = [(name, a, b)]
+                else:
+                    m = int((b - a) // BREADTH) + 1
+                    pieces = [("%s_%d" % (name, i), a + (b - a) * i / m, a + (b - a) * (i + 1) / m) for i in range(m)]
+                for piece, p0, p1 in pieces:
+                    railing(piece, index, *([(at, p0), (at, p1)] if fixed == 0 else [(p0, at), (p1, at)]))
 
 rail_holes()
 

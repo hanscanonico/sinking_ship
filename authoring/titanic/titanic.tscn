@@ -79201,22 +79201,71 @@ metadata/ship = &"railing"
 metadata/platform = &"Platform_c_56_3"
 
 [node name="Railing_c_crew_s_ladder_9_a_0" type="CSGBox3D" parent="Railings" unique_id=108001779]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 97.8125, 2.0625, -1.3125)
-size = Vector3(2, 1, 0.05)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 97.8125, 2.0625, -1.95375)
+size = Vector3(0.7175, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_c_53_5"
 
 [node name="Railing_c_crew_s_ladder_9_a_1" type="CSGBox3D" parent="Railings" unique_id=106118471]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 97.8125, 2.0625, 0.48125)
-size = Vector3(1.5875, 1, 0.05)
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 97.8125, 2.0625, -1.23625)
+size = Vector3(0.71750003, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_c_53_5"
 
-[node name="Railing_c_crew_s_ladder_9_f" type="CSGBox3D" parent="Railings" unique_id=2034778289]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 98.625, 2.0625, -0.46875006)
-size = Vector3(3.4875002, 1, 0.05)
+[node name="Railing_c_crew_s_ladder_9_a_2" type="CSGBox3D" parent="Railings" unique_id=605357336]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 97.8125, 2.0625, -0.51875)
+size = Vector3(0.7175, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_c_53_5"
+
+[node name="Railing_c_crew_s_ladder_9_a_3" type="CSGBox3D" parent="Railings" unique_id=872961937]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 97.8125, 2.0625, 0.19875)
+size = Vector3(0.7175, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_c_53_5"
+
+[node name="Railing_c_crew_s_ladder_9_a_4" type="CSGBox3D" parent="Railings" unique_id=1247129753]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 97.8125, 2.0625, 0.91625)
+size = Vector3(0.7175, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_c_53_5"
+
+[node name="Railing_c_crew_s_ladder_9_f_0" type="CSGBox3D" parent="Railings" unique_id=423207756]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 98.625, 2.0625, -1.86375)
+size = Vector3(0.6975001, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_c_54_2"
+
+[node name="Railing_c_crew_s_ladder_9_f_1" type="CSGBox3D" parent="Railings" unique_id=2082158074]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 98.625, 2.0625, -1.16625)
+size = Vector3(0.6975, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_c_54_2"
+
+[node name="Railing_c_crew_s_ladder_9_f_2" type="CSGBox3D" parent="Railings" unique_id=459156758]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 98.625, 2.0625, -0.46875)
+size = Vector3(0.6975, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_c_54_2"
+
+[node name="Railing_c_crew_s_ladder_9_f_3" type="CSGBox3D" parent="Railings" unique_id=20150921]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 98.625, 2.0625, 0.22874999)
+size = Vector3(0.6975, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_c_54_2"
+
+[node name="Railing_c_crew_s_ladder_9_f_4" type="CSGBox3D" parent="Railings" unique_id=1761816818]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 98.625, 2.0625, 0.92625)
+size = Vector3(0.6975, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_c_54_2"
@@ -79284,16 +79333,72 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_d_39_3"
 
-[node name="Railing_d_stair_3_a" type="CSGBox3D" parent="Railings" unique_id=136789324]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65.75, -2.6875, 1.65625)
-size = Vector3(3.3125, 1, 0.05)
+[node name="Railing_d_stair_3_a_0" type="CSGBox3D" parent="Railings" unique_id=1664272823]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65.75, -2.6875, 0.33125)
+size = Vector3(0.6625, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_d_40_0"
 
-[node name="Railing_d_stair_3_f" type="CSGBox3D" parent="Railings" unique_id=487332423]
+[node name="Railing_d_stair_3_a_1" type="CSGBox3D" parent="Railings" unique_id=441502066]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65.75, -2.6875, 0.99375004)
+size = Vector3(0.6625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_40_0"
+
+[node name="Railing_d_stair_3_a_2" type="CSGBox3D" parent="Railings" unique_id=1682097469]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65.75, -2.6875, 1.65625)
+size = Vector3(0.6624999, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_40_0"
+
+[node name="Railing_d_stair_3_a_3" type="CSGBox3D" parent="Railings" unique_id=607278996]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65.75, -2.6875, 2.31875)
+size = Vector3(0.66250014, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_40_0"
+
+[node name="Railing_d_stair_3_a_4" type="CSGBox3D" parent="Railings" unique_id=2069201406]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65.75, -2.6875, 2.98125)
+size = Vector3(0.6624999, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_40_0"
+
+[node name="Railing_d_stair_3_f_0" type="CSGBox3D" parent="Railings" unique_id=870718683]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65, -2.6875, 0.33125)
+size = Vector3(0.6625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_40_3"
+
+[node name="Railing_d_stair_3_f_1" type="CSGBox3D" parent="Railings" unique_id=2136214622]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65, -2.6875, 0.99375004)
+size = Vector3(0.6625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_40_3"
+
+[node name="Railing_d_stair_3_f_2" type="CSGBox3D" parent="Railings" unique_id=1028014801]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65, -2.6875, 1.65625)
-size = Vector3(3.3125, 1, 0.05)
+size = Vector3(0.6624999, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_40_3"
+
+[node name="Railing_d_stair_3_f_3" type="CSGBox3D" parent="Railings" unique_id=1292565455]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65, -2.6875, 2.31875)
+size = Vector3(0.66250014, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_40_3"
+
+[node name="Railing_d_stair_3_f_4" type="CSGBox3D" parent="Railings" unique_id=159788037]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -65, -2.6875, 2.98125)
+size = Vector3(0.6624999, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_d_40_3"
@@ -79571,23 +79676,44 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_d_60_2"
 
-[node name="Railing_d_third_class_ladder_12_s1" type="CSGBox3D" parent="Railings" unique_id=521479530]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.5, -0.75, 7.25)
-size = Vector3(1.5, 1, 0.05)
+[node name="Railing_d_third_class_ladder_12_s1_0" type="CSGBox3D" parent="Railings" unique_id=1817303527]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.125, -0.75, 7.25)
+size = Vector3(0.75, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_d_61_1"
 
-[node name="Railing_d_third_class_ladder_12_s2" type="CSGBox3D" parent="Railings" unique_id=200099370]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94, -0.75, 7.25)
-size = Vector3(1.5, 1, 0.05)
+[node name="Railing_d_third_class_ladder_12_s1_1" type="CSGBox3D" parent="Railings" unique_id=1039297481]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.875, -0.75, 7.25)
+size = Vector3(0.75, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_61_1"
+
+[node name="Railing_d_third_class_ladder_12_s2_0" type="CSGBox3D" parent="Railings" unique_id=1054304017]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.625, -0.75, 7.25)
+size = Vector3(0.75, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_d_62_1"
 
-[node name="Railing_d_third_class_ladder_12_s3" type="CSGBox3D" parent="Railings" unique_id=754307043]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.40625, -0.75, 7.25)
-size = Vector3(1.3125, 1, 0.05)
+[node name="Railing_d_third_class_ladder_12_s2_1" type="CSGBox3D" parent="Railings" unique_id=1713204569]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.375, -0.75, 7.25)
+size = Vector3(0.75, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_62_1"
+
+[node name="Railing_d_third_class_ladder_12_s3_0" type="CSGBox3D" parent="Railings" unique_id=1236327510]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.078094, -0.75, 7.25)
+size = Vector3(0.6561966, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_d_63_1"
+
+[node name="Railing_d_third_class_ladder_12_s3_1" type="CSGBox3D" parent="Railings" unique_id=630289907]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.734344, -0.75, 7.25)
+size = Vector3(0.6563034, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_d_63_1"
@@ -79774,9 +79900,30 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_e_35_1"
 
-[node name="Railing_e_ladder_6_p1" type="CSGBox3D" parent="Railings" unique_id=837234649]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.375, -5.4375, -10.1875)
-size = Vector3(2.5, 1, 0.05)
+[node name="Railing_e_ladder_6_p1_0" type="CSGBox3D" parent="Railings" unique_id=1806669029]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.3125, -5.4375, -10.1875)
+size = Vector3(0.625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_36_0"
+
+[node name="Railing_e_ladder_6_p1_1" type="CSGBox3D" parent="Railings" unique_id=2028690724]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.6875, -5.4375, -10.1875)
+size = Vector3(0.625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_36_0"
+
+[node name="Railing_e_ladder_6_p1_2" type="CSGBox3D" parent="Railings" unique_id=601409405]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.0625, -5.4375, -10.1875)
+size = Vector3(0.625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_36_0"
+
+[node name="Railing_e_ladder_6_p1_3" type="CSGBox3D" parent="Railings" unique_id=1328695644]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.4375, -5.4375, -10.1875)
+size = Vector3(0.625, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_e_36_0"
@@ -79788,9 +79935,30 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_e_35_2"
 
-[node name="Railing_e_ladder_6_s1" type="CSGBox3D" parent="Railings" unique_id=2007079046]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.375, -5.4375, -9.375)
-size = Vector3(2.5, 1, 0.05)
+[node name="Railing_e_ladder_6_s1_0" type="CSGBox3D" parent="Railings" unique_id=1167880551]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -46.3125, -5.4375, -9.375)
+size = Vector3(0.625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_36_1"
+
+[node name="Railing_e_ladder_6_s1_1" type="CSGBox3D" parent="Railings" unique_id=1878250294]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.6875, -5.4375, -9.375)
+size = Vector3(0.625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_36_1"
+
+[node name="Railing_e_ladder_6_s1_2" type="CSGBox3D" parent="Railings" unique_id=1728891094]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45.0625, -5.4375, -9.375)
+size = Vector3(0.625, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_36_1"
+
+[node name="Railing_e_ladder_6_s1_3" type="CSGBox3D" parent="Railings" unique_id=1878671959]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -44.4375, -5.4375, -9.375)
+size = Vector3(0.625, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_e_36_1"
@@ -79865,9 +80033,30 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_e_42_0"
 
-[node name="Railing_e_turkish_bath_stair_11_f" type="CSGBox3D" parent="Railings" unique_id=1450237635]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34.3125, -5.4375, 0.59375)
-size = Vector3(3.0625, 1, 0.05)
+[node name="Railing_e_turkish_bath_stair_11_f_0" type="CSGBox3D" parent="Railings" unique_id=650125521]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34.3125, -5.4375, -0.5547)
+size = Vector3(0.76559997, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_42_3"
+
+[node name="Railing_e_turkish_bath_stair_11_f_1" type="CSGBox3D" parent="Railings" unique_id=347361614]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34.3125, -5.4375, 0.21095)
+size = Vector3(0.7657, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_42_3"
+
+[node name="Railing_e_turkish_bath_stair_11_f_2" type="CSGBox3D" parent="Railings" unique_id=911745579]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34.3125, -5.4375, 0.97660005)
+size = Vector3(0.7656, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_e_42_3"
+
+[node name="Railing_e_turkish_bath_stair_11_f_3" type="CSGBox3D" parent="Railings" unique_id=315209252]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 34.3125, -5.4375, 1.7422)
+size = Vector3(0.76559997, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_e_42_3"
@@ -80208,16 +80397,30 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_f_56_1"
 
-[node name="Railing_f_stair_6_p0" type="CSGBox3D" parent="Railings" unique_id=1968324794]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.125, -8.0625, -7.5625)
-size = Vector3(1.5, 1, 0.05)
+[node name="Railing_f_stair_6_p0_0" type="CSGBox3D" parent="Railings" unique_id=855787096]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.75, -8.0625, -7.5625)
+size = Vector3(0.75, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_f_72_2"
 
-[node name="Railing_f_stair_6_p1" type="CSGBox3D" parent="Railings" unique_id=100602842]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.28125, -8.0625, -7.5625)
-size = Vector3(0.8125, 1, 0.05)
+[node name="Railing_f_stair_6_p0_1" type="CSGBox3D" parent="Railings" unique_id=259759265]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5, -8.0625, -7.5625)
+size = Vector3(0.75, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_f_72_2"
+
+[node name="Railing_f_stair_6_p1_0" type="CSGBox3D" parent="Railings" unique_id=1224013169]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.078094, -8.0625, -7.5625)
+size = Vector3(0.4061966, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_f_72_5"
+
+[node name="Railing_f_stair_6_p1_1" type="CSGBox3D" parent="Railings" unique_id=1108120571]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.484344, -8.0625, -7.5625)
+size = Vector3(0.4063034, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_f_72_5"
@@ -80418,9 +80621,16 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_g_55_1"
 
-[node name="Railing_space_g_stair_0_e" type="CSGBox3D" parent="Railings" unique_id=475386411]
-transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -66.75, -10.5, -9.375)
-size = Vector3(0.875, 1, 0.05)
+[node name="Railing_space_g_stair_0_e_0" type="CSGBox3D" parent="Railings" unique_id=145271884]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -66.75, -10.5, -9.59375)
+size = Vector3(0.4375, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_g_55_2"
+
+[node name="Railing_space_g_stair_0_e_1" type="CSGBox3D" parent="Railings" unique_id=1280715851]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -66.75, -10.5, -9.15625)
+size = Vector3(0.4375, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_g_55_2"
@@ -81265,16 +81475,30 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_orlop_92_2"
 
-[node name="Railing_space_orlop_hold_ladder_5_p1" type="CSGBox3D" parent="Railings" unique_id=661559275]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.65625, -12.4375, 1.5)
-size = Vector3(0.9375, 1, 0.05)
+[node name="Railing_space_orlop_hold_ladder_5_p1_0" type="CSGBox3D" parent="Railings" unique_id=535524717]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.421844, -12.4375, 1.5)
+size = Vector3(0.4686966, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_orlop_93_1"
 
-[node name="Railing_space_orlop_hold_ladder_5_p2" type="CSGBox3D" parent="Railings" unique_id=742460397]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.53125, -12.4375, 1.5)
-size = Vector3(0.8125, 1, 0.05)
+[node name="Railing_space_orlop_hold_ladder_5_p1_1" type="CSGBox3D" parent="Railings" unique_id=68793954]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.890594, -12.4375, 1.5)
+size = Vector3(0.4688034, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_orlop_93_1"
+
+[node name="Railing_space_orlop_hold_ladder_5_p2_0" type="CSGBox3D" parent="Railings" unique_id=1470111910]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.328094, -12.4375, 1.5)
+size = Vector3(0.4061966, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_orlop_94_1"
+
+[node name="Railing_space_orlop_hold_ladder_5_p2_1" type="CSGBox3D" parent="Railings" unique_id=874633722]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.734344, -12.4375, 1.5)
+size = Vector3(0.4063034, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_orlop_94_1"
@@ -81293,16 +81517,30 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_orlop_92_3"
 
-[node name="Railing_space_orlop_hold_ladder_5_s1" type="CSGBox3D" parent="Railings" unique_id=504033772]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.65625, -12.4375, 2.3125)
-size = Vector3(0.9375, 1, 0.05)
+[node name="Railing_space_orlop_hold_ladder_5_s1_0" type="CSGBox3D" parent="Railings" unique_id=1843620439]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.421844, -12.4375, 2.3125)
+size = Vector3(0.4686966, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_orlop_93_2"
 
-[node name="Railing_space_orlop_hold_ladder_5_s2" type="CSGBox3D" parent="Railings" unique_id=1241923139]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.53125, -12.4375, 2.3125)
-size = Vector3(0.8125, 1, 0.05)
+[node name="Railing_space_orlop_hold_ladder_5_s1_1" type="CSGBox3D" parent="Railings" unique_id=1494399566]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.890594, -12.4375, 2.3125)
+size = Vector3(0.4688034, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_orlop_93_2"
+
+[node name="Railing_space_orlop_hold_ladder_5_s2_0" type="CSGBox3D" parent="Railings" unique_id=946917607]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.328094, -12.4375, 2.3125)
+size = Vector3(0.4061966, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_orlop_94_2"
+
+[node name="Railing_space_orlop_hold_ladder_5_s2_1" type="CSGBox3D" parent="Railings" unique_id=1698101864]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.734344, -12.4375, 2.3125)
+size = Vector3(0.4063034, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_orlop_94_2"
