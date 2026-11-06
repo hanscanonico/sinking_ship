@@ -171,6 +171,9 @@ var _decks: FloodedDecks
 var _least := PackedVector3Array()
 var _size_x := PackedFloat64Array()
 var _size_z := PackedFloat64Array()
+## The NativeWaterFx its walk of her decks for those newly flooded goes to (#410), or
+## null where it runs here: the same effects either way (test_water_fx_native).
+var native: Object = WaterFxNative.made()
 
 
 func _init(config: MatchConfig, surfaces: Surfaces, schedule: SinkSchedule) -> void:
@@ -373,7 +376,10 @@ func _waterlines(
 func _floods(pose_then: ShipPose, pose_now: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 	var now := _decks.of(pose_now)
 	var then := _decks.of(pose_then)
-	for index in _layout.platforms.size():
+	var asked := native != null
+	var risen: PackedInt32Array = native.risen(now, then) if asked else PackedInt32Array()
+	for at in risen.size() if asked else _layout.platforms.size():
+		var index := risen[at] if asked else at
 		if now[index] == 0 or then[index] == 1:
 			continue
 		var platform := _layout.platforms[index]

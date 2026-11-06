@@ -254,8 +254,7 @@ func _notices(mesh: ShipMesh, signs: Node3D, wall: RoomDressing.Wall) -> void:
 func _notice(
 	mesh: ShipMesh, signs: Node3D, wall: RoomDressing.Wall, along: float, text: String, ink: Color
 ) -> void:
-	var font := ThemeDB.fallback_font
-	var size := font.get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1, NOTICE_FONT)
+	var size := SignText.lines_size(text, NOTICE_FONT)
 	var half := size * RoomDressing.SIGN_PIXEL * 0.5 + Vector2(0.08, 0.06)
 	var centre := wall.at(along, NOTICE_HEIGHT)
 	var red := ShipMesh.Paint.new(ShipMesh.Finish.PLAIN, ArtPalette.NOTICE_RED)

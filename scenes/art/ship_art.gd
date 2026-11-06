@@ -295,7 +295,7 @@ func build_frame(
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:
 			reach = Vector2(blocker.centre.x - blocker.radius, blocker.centre.x + blocker.radius)
 		if mesh.kept(reach.x, reach.y):
-			_blocker(mesh, blocker, pieces)
+			_blocker(mesh, blocker, pieces, hull)
 	if rules != null:
 		DeckWorks.rig(mesh, layout, rules, span, _funnels, pieces)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
@@ -620,7 +620,7 @@ func _process(_delta: float) -> void:
 ## The faces of the ship, gathered for one commit.
 func _mesh() -> ShipMesh:
 	var mesh := ShipMesh.new(_outdoors, _space.room_lines())
-	mesh.outdoors_over = _roofed.outdoors_over.bind(_room_boxes)
+	mesh.judge_by(_space.rooms_grid, _room_boxes, _roofed)
 	mesh.cut_above = cut_above
 	mesh.keep = span
 	return mesh
@@ -890,13 +890,16 @@ static func is_funnel(layout: ShipLayout, blocker: ShipBlocker) -> bool:
 	return FunnelArt.fitting_of(layout, blocker) != null
 
 
-## A wall, a funnel, a mast, a ventilator or a box on an open deck (DeckFurniture), by
-## its shape and where it stands — an engine standing in a room is the room's own
-## (RoomDressing). A blocker a deck rests on stops a plank short of its top, so the deck
-## shows. A funnel the sinking can fell stands over its foot on a piece of its own among
-## [param pieces], its smoke with it.
-func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
+## A piece of her deck gear by its name; else a wall, a funnel, a mast, a ventilator or a
+## box on an open deck (DeckFurniture), by its shape and where it stands — an engine
+## standing in a room is the room's own (RoomDressing). A blocker a deck rests on stops a
+## plank short of its top, so the deck shows. A funnel the sinking can fell stands over
+## its foot on a piece of its own among [param pieces], its smoke with it.
+func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: ShipHull) -> void:
 	var top := blocker.top - (PLANK if _space.deck_on(blocker) else 0.0)
+	if DeckFurniture.is_gear(blocker):
+		DeckFurniture.build(mesh, _space, blocker, top)
+		return
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
 		var felled := FunnelArt.fitting_of(_space.layout, blocker)
 		if felled != null:
@@ -916,29 +919,29 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 	if _space.is_wall(blocker):
 		var deck := _space.deck_under(centre, blocker.bottom)
 		var foot := blocker.bottom if is_nan(deck) else deck
+		var shown := ShipMesh.ALL_FACES & ~hull.under_skin(area, blocker.bottom, blocker.top)
 		_lined.box(
 			mesh,
 			area,
 			blocker.bottom,
 			top,
 			ShipPaints.wall,
-			ShipMesh.ALL_FACES,
-			ShipMesh.SIDES,
+			shown,
+			shown & ShipMesh.SIDES,
 			foot,
 			blocker.top
 		)
 		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM:
-			_door_frame(mesh, blocker, deck)
+			DoorFrame.build(mesh, _space, blocker, deck)
 		if top < blocker.top:
-			# Where the deck laid on it stops short of its edge, it stands up to the
-			# deck's top itself.
+			# Where the deck laid on it stops short of its edge, it stands up to its top.
 			for bare: Rect2 in _space.uncovered(area, blocker.top):
-				mesh.box(bare, top, blocker.top, ShipPaints.wall, ShipMesh.TOP | ShipMesh.SIDES)
+				mesh.box(bare, top, blocker.top, ShipPaints.wall, shown & ~ShipMesh.BOTTOM)
 		# Along her side, up to the room's ceiling where the deck over it stops short of
 		# the wall, so her shell's outside never shows from in the room (#147).
 		for stretch: Vector3 in _space.short_of_ceiling(blocker):
 			var piece := ShipSpace.stretch_of(blocker, stretch)
-			var sides := ShipMesh.SIDES
+			var sides := ShipMesh.SIDES & ~hull.under_skin(piece, blocker.top, stretch.z)
 			_lined.box(
 				mesh, piece, blocker.top, stretch.z, ShipPaints.wall, sides, sides, foot, stretch.z
 			)
@@ -953,54 +956,6 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary) -> void:
 		_lined.box(mesh, area, blocker.bottom, top, ShipPaints.wall, faces, faces)
 	elif _space.outdoors(Vector3(centre.x, (blocker.bottom + top) * 0.5, centre.y)):
 		DeckFurniture.build(mesh, _space, blocker, top)
-
-
-## Posts either side of the doorway under [param lintel], from the deck to its
-## underside, and a head across it on both faces of the wall.
-func _door_frame(mesh: ShipMesh, lintel: ShipBlocker, deck: float) -> void:
-	var area := lintel.area
-	var middle := area.get_center()
-	var along_x := area.size.x >= area.size.y
-	var wall := area.size.y if along_x else area.size.x
-	var thickness := wall + FRAME_PROUD * 2.0
-	var head := lintel.bottom + FRAME_WIDTH
-	var posts: Array[Rect2] = []
-	for end: float in [0.0, 1.0]:
-		if along_x:
-			var x := lerpf(area.position.x, area.end.x, end)
-			posts.append(
-				Rect2(x - FRAME_WIDTH * 0.5, middle.y - thickness * 0.5, FRAME_WIDTH, thickness)
-			)
-		else:
-			var z := lerpf(area.position.y, area.end.y, end)
-			posts.append(
-				Rect2(middle.x - thickness * 0.5, z - FRAME_WIDTH * 0.5, thickness, FRAME_WIDTH)
-			)
-	# A lintel whose ends stand past the deck under it heads no doorway: it is a
-	# deck's edge over open space, as the forecastle's over the hold.
-	for post: Rect2 in posts:
-		if not is_equal_approx(_space.deck_under(post.get_center(), lintel.bottom), deck):
-			return
-	for post: Rect2 in posts:
-		mesh.box(post, deck, head, ShipPaints.frame, ShipMesh.SIDES)
-	for side: float in [-1.0, 1.0]:
-		var face := (wall + FRAME_PROUD) * 0.5 * side - FRAME_PROUD * 0.5
-		var strip := (
-			Rect2(
-				area.position.x - FRAME_WIDTH * 0.5,
-				middle.y + face,
-				area.size.x + FRAME_WIDTH,
-				FRAME_PROUD
-			)
-			if along_x
-			else Rect2(
-				middle.x + face,
-				area.position.y - FRAME_WIDTH * 0.5,
-				FRAME_PROUD,
-				area.size.y + FRAME_WIDTH
-			)
-		)
-		mesh.box(strip, lintel.bottom, head, ShipPaints.frame)
 
 
 ## [param room]'s lamps where RoomDressing.lights() puts them: a pendant hung under

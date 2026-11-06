@@ -260,7 +260,7 @@ func _break_lamp(sill: Vector3, normal: Vector3) -> void:
 
 
 ## A lamp over the doorway under [param lintel], when it heads one as ShipArt frames
-## it (ShipArt._door_frame) with a room on its one side and the sky over the other: on
+## it (DoorFrame) with a room on its one side and the sky over the other: on
 ## the frame's head on its outdoor face, or beside the frame.
 func _doorway_lamp(lintel: ShipBlocker) -> void:
 	if not _space.is_wall(lintel):
