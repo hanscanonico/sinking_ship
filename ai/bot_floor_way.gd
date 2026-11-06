@@ -89,7 +89,9 @@ func holds(leg: WalkGraph.Portal, from: Vector3) -> bool:
 
 
 ## One look (toward): Vector3.INF to walk at [param to], else the point of the way round to
-## walk to.
+## walk to. From where no body could stand — where its reckoning, carried on by a walk that a
+## blocker stopped, puts it — it walks at [param to] and looks again next think: a way round
+## from there is none, and says nothing of the leg.
 func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> Vector3:
 	var keep := PackedInt32Array([surface])
 	if leg.ramp != WalkGraph.NONE:
@@ -97,7 +99,7 @@ func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> V
 	var near := _nearest(from)
 	if near == -1:
 		_way.clear()
-		if _finds == 0 or _walks(from, to, keep, LOOK):
+		if _finds == 0 or _walks(from, to, keep, LOOK) or not _stands(from, surface, keep, _snug):
 			return Vector3.INF
 		_way = _find(from, leg, keep)
 		# None found, it looks for none again along this leg.

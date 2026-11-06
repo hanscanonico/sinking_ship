@@ -1,7 +1,8 @@
 extends GutTest
 ## A bot's way over the floor to its next portal (BotFloorWay, #491), on the Titanic's G deck
 ## aft of O: the passage there holds the foot of the stair down from F deck and, beside it,
-## the head of the stair on down to her after hold, and its door aft lies behind both.
+## the head of the stair on down to her after hold, and its door aft lies behind both. And
+## on her forecastle, round No. 1 hatch to the step up onto her head (#497).
 
 const TITANIC := "res://data/ships/titanic.tres"
 const G_DECK := -11.0
@@ -11,6 +12,13 @@ const STAIR_FOOT := Vector3(-110.6, G_DECK, 0.3)
 const PAST_THE_DOOR := Vector3(-117.5, G_DECK, 1.2)
 ## In the passage, aft of both stairs, a body's width in front of that door.
 const BEFORE_THE_DOOR := Vector3(-115.0, G_DECK, 1.2)
+
+const FORECASTLE := 4.3125
+## On her forecastle abaft No. 1 hatch's port corner, beside the steam winch; inside the
+## hatch's coaming; and on her head, up the step forward.
+const BY_NO_1_HATCH := Vector3(103.2, FORECASTLE, -1.8)
+const IN_NO_1_HATCH := Vector3(105.5, FORECASTLE, 0.0)
+const ON_HER_HEAD := Vector3(113.0, 4.9375, 5.0)
 
 static var _layout: ShipLayout
 static var _graph: WalkGraph
@@ -83,3 +91,23 @@ func test_a_bot_walks_straight_where_it_can() -> void:
 	var way := BotFloorWay.new(_graph, SimFixtures.rules(), 1)
 	assert_eq(way.toward(BEFORE_THE_DOOR, surface, leg, to), to, "straight at it")
 	assert_false(way.holds(leg, BEFORE_THE_DOOR), "with no way round")
+
+
+## A look from where no body could stand — inside No. 1 hatch's coaming, where a bot's
+## reckoning, carried on by a walk the coaming stopped, can put it — finds no way round and
+## walks at the route's point; the next, from where it stands, still finds the way round the
+## hatch to the step up onto her head. On main the first look's search came to nothing, and a
+## failed search ended every one along the leg (#497).
+func test_a_look_from_where_no_body_stands_leaves_the_leg_its_ways_round() -> void:
+	var leg := _portal(BY_NO_1_HATCH, ON_HER_HEAD)
+	assert_not_null(leg, "the step up onto her head")
+	var step := SimFixtures.rules().step_height
+	var surfaces := _graph.surfaces()
+	var way := BotFloorWay.new(_graph, SimFixtures.rules(), 1)
+	var inside := surfaces.under(IN_NO_1_HATCH, step)
+	var to := _graph.toward(leg, IN_NO_1_HATCH, inside)
+	assert_eq(way.toward(IN_NO_1_HATCH, inside, leg, to), to, "walks at the route's point")
+	var by := surfaces.under(BY_NO_1_HATCH, step)
+	to = _graph.toward(leg, BY_NO_1_HATCH, by)
+	assert_ne(way.toward(BY_NO_1_HATCH, by, leg, to), to, "round the hatch")
+	assert_true(way.holds(leg, BY_NO_1_HATCH), "on its way round")
