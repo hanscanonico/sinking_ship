@@ -2,10 +2,16 @@ extends GutTest
 ## Her ground tackle and her mooring gear (ShipFittings, MooringGear) stand on the open
 ## deck at her ends, whole (EndDeck): every bow of the fleet lays its hawse pipes and
 ## cables — the steamer's forecastle, cut into pieces round its stair openings, among
-## them — and the steamer is moored by a pair of bitts and a coil either side at both
+## them; the Titanic's led from her cable holders forward to the hawse pipes her plate
+## draws — and the steamer is moored by a pair of bitts and a coil either side at both
 ## ends; every piece lies wholly on its deck with nothing standing there, outdoors, under
 ## a step, and clear of the tackle, of the other pieces, of where a seat starts and of
 ## where a swimmer comes aboard.
+
+## The Titanic's hawse pipes' mouths on her forecastle as Plate IV draws them, from their
+## after ends to their forward ends along her (tools/titanic_plates/forecastle.py's px
+## 10336-10457).
+const HAWSE_MOUTHS := Vector2(121.55, 124.79)
 
 var _rules: BrawlRules = load("res://data/rules/brawl.tres")
 
@@ -53,10 +59,56 @@ func test_the_steamer_s_after_deck_is_her_poop() -> void:
 	assert_almost_eq(aft.spread.position.x, -20.0, 0.001, "out to her stern")
 
 
+func test_the_titanic_s_fore_deck_is_her_forecastle_head_not_c_deck_under_it() -> void:
+	# Her C deck runs on under the forecastle to 0.1 m past its head's end, out of every
+	# room: her ground tackle and her forward mooring gear lay there, inside her bow and
+	# in her forward well, before #381.
+	var fore := EndDeck.of(ShipSpace.new(Fleet.layout(&"titanic")), 1.0)
+	assert_eq(fore.pieces[0].name, &"forecastle")
+	assert_almost_eq(fore.height, 4.9375, 0.001, "her forecastle head's deck")
+
+
+func test_a_deck_with_a_deck_over_it_is_no_end_deck() -> void:
+	var layout := ShipLayout.new()
+	for deck: Array in [[Rect2(0.0, 0.0, 10.1, 10.0), 0.0], [Rect2(0.0, 0.0, 10.0, 10.0), 3.0]]:
+		var platform := ShipPlatform.new()
+		platform.area = deck[0]
+		platform.height = deck[1]
+		layout.platforms.append(platform)
+	var fore := EndDeck.of(ShipSpace.new(layout), 1.0)
+	assert_almost_eq(fore.height, 3.0, 0.001, "the deck over it, though it reaches a hair less")
+	assert_true(EndDeck.roofed(layout, layout.platforms[0]))
+	assert_false(EndDeck.roofed(layout, layout.platforms[1]))
+
+
 func test_every_bow_lays_its_ground_tackle_both_sides() -> void:
 	for ship: String in Fleet.names():
 		var laid := _fitted(StringName(ship)).tackle.size()
 		assert_eq(laid, 2, "%s: a hawse pipe and its cable either side of her bow" % ship)
+
+
+func test_the_titanic_s_cables_lead_from_her_cable_holders_forward_to_their_hawse_pipes() -> void:
+	var holders: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in Fleet.layout(&"titanic").blockers:
+		if blocker.name == ShipFittings.CABLE_HOLDER:
+			holders.append(blocker)
+	assert_eq(holders.size(), 2, "her two cable holders, on her forecastle")
+	var tackle := _fitted(&"titanic").tackle
+	for holder in holders:
+		var line := holder.area.get_center().y
+		var led: Array[Rect2] = []
+		for kept: Rect2 in tackle:
+			if absf(kept.get_center().y - line) < 0.001:
+				led.append(kept)
+		assert_eq(led.size(), 1, "a cable from the holder at z %.2f" % line)
+		if led.is_empty():
+			continue
+		var laid := led[0].grow(-ShipFittings.LAID)
+		assert_almost_eq(laid.position.x, holder.area.end.x, 0.001, "from its forward face")
+		var hawse := laid.end.x
+		assert_between(
+			hawse, HAWSE_MOUTHS.x, HAWSE_MOUTHS.y, "its hawse pipe where her plate draws it"
+		)
 
 
 ## How many of [param placed] (MooringGear.placed) are [param model] on the deck at
