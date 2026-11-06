@@ -570,6 +570,17 @@ static func swim(match_sim: MatchSim, seat: int, pos: Vector3, facing_deg: float
 	player.surface = Surfaces.NONE
 
 
+## Puts [param seat] in the air at [param pos] (ship-local), flying at [param vel],
+## falling from there.
+static func fly(match_sim: MatchSim, seat: int, pos: Vector3, vel: Vector3) -> void:
+	place(match_sim, seat, pos)
+	var player := match_sim.state.seats[seat]
+	player.vel = vel
+	player.body = PlayerState.Body.AIRBORNE
+	player.surface = Surfaces.NONE
+	player.fall_from = pos.y
+
+
 ## The flat deck standing [param freeboard] out of the sea, within a swimmer's reach
 ## when that is low.
 static func low_deck(freeboard: float) -> ShipLayout:
