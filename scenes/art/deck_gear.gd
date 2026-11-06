@@ -180,6 +180,23 @@ static func laid(blocker: ShipBlocker) -> Array[ShipBlocker]:
 	return found
 
 
+## The piece [param blocker] is the foot of, drawn into [param mesh] as its model where it
+## stands (frame()), filling each of its parts; nothing for a part of a piece other than
+## its foot, which its foot's model draws; false where [param blocker] is no foot of a
+## piece with a model, for the caller to draw as its envelope.
+static func draw(mesh: ShipMesh, blocker: ShipBlocker) -> bool:
+	if is_part(blocker):
+		return true
+	var size := foot_of(blocker)
+	if size == Vector3.ZERO:
+		return false
+	var made: String = DeckFurniture.GEAR[blocker.name][size]
+	if made.is_empty():
+		return false
+	mesh.model(ShipModel.named(made), frame(blocker, size))
+	return true
+
+
 ## [param box]'s size as DeckFurniture.size_of() gives a blocker's: its longer side in
 ## plan, its height and its shorter side.
 static func _size(box: AABB) -> Vector3:
