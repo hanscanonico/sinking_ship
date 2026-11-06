@@ -19,7 +19,9 @@ var spread: Rect2
 
 
 ## The open deck at the end of [param space]'s ship [param toward] points to (1 her bow,
-## -1 her stern); null when no platform of hers is open to the sky.
+## -1 her stern); null when no platform of hers is open to the sky. A platform out of
+## every room with a deck over it (roofed()) is no open deck: the Titanic's C deck runs on
+## under her forecastle's to her stem, a hair further.
 static func of(space: ShipSpace, toward: float) -> EndDeck:
 	var end: ShipPlatform = null
 	var reach := -INF
@@ -30,6 +32,8 @@ static func of(space: ShipSpace, toward: float) -> EndDeck:
 		var along := platform.area.end.x if toward > 0.0 else -platform.area.position.x
 		var further := along > reach + ShipSpace.SLIVER
 		if further or (absf(along - reach) <= ShipSpace.SLIVER and platform.height > end.height):
+			if roofed(space.layout, platform):
+				continue
 			end = platform
 			reach = along
 	if end == null:
@@ -50,6 +54,15 @@ static func of(space: ShipSpace, toward: float) -> EndDeck:
 	for piece: ShipPlatform in deck.pieces:
 		deck.spread = deck.spread.merge(piece.area)
 	return deck
+
+
+## Whether a deck of [param layout] stands over the middle of [param platform].
+static func roofed(layout: ShipLayout, platform: ShipPlatform) -> bool:
+	var middle := platform.area.get_center()
+	for other: ShipPlatform in layout.platforms:
+		if other.height > platform.height + ShipSpace.SLIVER and other.area.has_point(middle):
+			return true
+	return false
 
 
 ## How far to port and to starboard (least z, greatest z) its pieces reach at

@@ -51,6 +51,51 @@ func test_a_stretch_keeps_only_what_lies_on_it() -> void:
 	assert_lt(corners.size(), everywhere.size(), "less of her than all of her")
 
 
+func test_her_art_is_merged_into_one_mesh_last_piece_first() -> void:
+	var holder := ArtGltf.flattened(_art, "Merged")
+	var merged := _corners(holder)
+	var meshes := holder.get_child_count()
+	holder.free()
+	var pieces := _pieces(_art)
+	assert_gt(pieces.size(), 1, "her art is in pieces")
+	assert_eq(meshes, 1, "merged into one mesh")
+	var shown := PackedVector3Array()
+	for piece in range(pieces.size() - 1, -1, -1):
+		shown.append_array(pieces[piece])
+	assert_eq(merged.size(), shown.size(), "every corner of hers, and no other")
+	var unmatched := 0
+	for corner in mini(shown.size(), merged.size()):
+		if not merged[corner].is_equal_approx(shown[corner]):
+			unmatched += 1
+	assert_eq(unmatched, 0, "each where her art stands it, in ship space, last piece first")
+
+
+## The corners of each triangle mesh shown under [param node], placed in its frame: one
+## array a mesh, in the order the tree holds them.
+func _pieces(node: Node, place := Transform3D.IDENTITY) -> Array[PackedVector3Array]:
+	var found: Array[PackedVector3Array] = []
+	for child: Node in node.get_children():
+		var at := place
+		if child is Node3D:
+			if not (child as Node3D).visible:
+				continue
+			at = place * (child as Node3D).transform
+		if child is MeshInstance3D and (child as MeshInstance3D).mesh != null:
+			var mesh := (child as MeshInstance3D).mesh
+			var corners := PackedVector3Array()
+			for surface in mesh.get_surface_count():
+				if mesh is ArrayMesh:
+					var primitive := (mesh as ArrayMesh).surface_get_primitive_type(surface)
+					if primitive != Mesh.PRIMITIVE_TRIANGLES:
+						continue
+				var points: PackedVector3Array = mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+				corners.append_array(at * points)
+			if not corners.is_empty():
+				found.append(corners)
+		found.append_array(_pieces(child, at))
+	return found
+
+
 ## Every corner of every mesh under [param node], placed in its frame.
 func _corners(node: Node, place := Transform3D.IDENTITY) -> PackedVector3Array:
 	var found := PackedVector3Array()
