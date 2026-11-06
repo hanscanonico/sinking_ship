@@ -204,23 +204,72 @@ GEAR = {
     "steam winch": [(3.8125, 1.25, 2.75)],
 }
 
+# The parts a piece of her gear is made of where it is more than its one envelope, as
+# DeckGear.PARTS declares them (tests/unit/art/test_deck_gear.gd holds every piece of the
+# fleet to them), by kind and size: its foot first, named its kind, then each part named its
+# kind and its own, a box or a round over its own box in the piece's space — x along its
+# longer side, z across, from the middle of its footprint, y up off its deck:
+# (part, round, x0, x1, y0, y1, z0, z1).
+GEAR_PARTS = {
+    "capstan": {(d, 0.9375, d): [
+        ("", True, -d / 2, d / 2, 0.0, 0.125, -d / 2, d / 2),
+        ("barrel", True, -b, b, 0.125, 0.9375, -b, b)] for d, b in [(1.625, 0.5), (1.375, 0.4375), (1.125, 0.375)]},
+    "cable holder": {(2.75, 0.75, 2.1875): [
+        ("", False, -1.375, 1.375, 0.0, 0.25, -1.09375, 1.09375),
+        ("wildcat", True, -0.875, 0.875, 0.25, 0.75, -0.875, 0.875)]},
+    "electric crane": {(1.5, 2.5, 1.5): [
+        ("", True, -0.4375, 0.4375, 0.0, 1.0, -0.4375, 0.4375),
+        ("house", False, -0.75, 0.75, 1.0, 2.5, -0.75, 0.75)]},
+    "steam windlass": {(5.625, 1.25, 3.3125): [
+        ("", False, -2.8125, 2.8125, 0.0, 0.3125, -1.65625, 1.65625),
+        ("cylinder", True, -2.5625, -1.5625, 0.3125, 1.25, -0.5, 0.5),
+        ("cylinder", True, 1.5625, 2.5625, 0.3125, 1.25, -0.5, 0.5),
+        ("gear case", False, -1.5625, 1.5625, 0.3125, 1.25, -1.40625, 1.40625)]},
+    "steam winch": {(3.8125, 1.25, 2.75): [
+        ("", False, -1.90625, 1.90625, 0.0, 0.25, -1.375, 1.375),
+        ("cylinder", True, -1.65625, -0.78125, 0.25, 1.25, 0.25, 1.125),
+        ("cylinder", True, -1.65625, -0.78125, 0.25, 1.25, -1.125, -0.25),
+        ("frame", False, -0.78125, 1.65625, 0.25, 1.25, -1.125, 1.125)]},
+}
+
 def gear(bid, kind, x0, x1, z0, z1, bottom):
     """A piece of her gear of kind where its plate draws it, x0..x1 by z0..z1 (its ink's box,
     or its place): the size of its kind nearest that box laid on its middle, its longer side
-    the way the box's is — a round piece's axis there — from bottom, on the grain; its
-    footprint (x0, x1, z0, z1)."""
+    the way the box's is — a round piece's axis there — from bottom, on the grain, as its
+    parts (GEAR_PARTS), each a blocker of its own; its footprint (x0, x1, z0, z1)."""
     along_x = x1 - x0 >= z1 - z0
     longer, shorter = (x1 - x0, z1 - z0) if along_x else (z1 - z0, x1 - x0)
     size = min(GEAR[kind], key=lambda s: abs(s[0] - longer) + abs(s[2] - shorter))
     mx, mz = (x0 + x1) * 0.5, (z0 + z1) * 0.5
+    parts = GEAR_PARTS.get(kind, {}).get(size)
     if kind in ROUND_GEAR:
         r = size[0] / 2
-        cylinder(bid, q(mx), q(mz), r, bottom, bottom + size[1], kind)
-        return q(mx) - r, q(mx) + r, q(mz) - r, q(mz) + r
-    sx, sz = (size[0], size[2]) if along_x else (size[2], size[0])
-    gx, gz = q(mx - sx / 2), q(mz - sz / 2)
-    box(bid, gx, gx + sx, gz, gz + sz, bottom, bottom + size[1], kind)
-    return gx, gx + sx, gz, gz + sz
+        cx, cz, along_x = q(mx), q(mz), True
+        if parts is None:
+            cylinder(bid, cx, cz, r, bottom, bottom + size[1], kind)
+        footprint = (cx - r, cx + r, cz - r, cz + r)
+    else:
+        sx, sz = (size[0], size[2]) if along_x else (size[2], size[0])
+        gx, gz = q(mx - sx / 2), q(mz - sz / 2)
+        if parts is None:
+            box(bid, gx, gx + sx, gz, gz + sz, bottom, bottom + size[1], kind)
+        cx, cz = gx + sx / 2, gz + sz / 2
+        footprint = (gx, gx + sx, gz, gz + sz)
+    for k, (part, round_, px0, px1, py0, py1, pz0, pz1) in enumerate(parts or []):
+        # Along her, or standing across her turned a quarter (DeckGear.turn()): its x
+        # along her -z, its z along her +x.
+        if along_x:
+            wx0, wx1, wz0, wz1 = cx + px0, cx + px1, cz + pz0, cz + pz1
+        else:
+            wx0, wx1, wz0, wz1 = cx + pz0, cx + pz1, cz - px1, cz - px0
+        name = "%s %s" % (kind, part) if part else kind
+        pid = "%s_%d_%s" % (bid, k, slug(part)) if part else bid
+        if round_:
+            assert abs((wx1 - wx0) - (wz1 - wz0)) < 1e-9, "%s's %s round" % (kind, part)
+            cylinder(pid, (wx0 + wx1) / 2, (wz0 + wz1) / 2, (wx1 - wx0) / 2, bottom + py0, bottom + py1, name)
+        else:
+            box(pid, wx0, wx1, wz0, wz1, bottom + py0, bottom + py1, name)
+    return footprint
 
 # A railing breaks span by span (SH10), as the steamer's: a run longer than
 # RAIL_SECTION is laid as touching spans of about that length.
@@ -931,6 +980,9 @@ def hole_rails(plats, sid):
     """Railings round a stair's hole on the deck above: its two sides and its low end."""
     for name, lo, hi, z0, z1, high, x_low in [s for s in stairs if s[0] == sid]:
         open_end = hi if x_low == lo else lo
+        # (Round the hole as the deck is cut: short of its foot, where the deck stays whole
+        # over it, its closed end where the cut ends.)
+        lo, hi = (FLIGHT_HOLES.get(name) or (lo, hi))[:2]
         closed = lo if open_end == hi else hi
         for tag, a, b in [("p", (lo, z0), (hi, z0)), ("s", (lo, z1), (hi, z1)), ("e", (closed, z0), (closed, z1))]:
             # Not across the treads of a flight up from this deck, its foot over the hole.
@@ -1110,6 +1162,8 @@ def run_on(flight, floors):
     flight = (name, lo, hi, z0, z1, rises, lower, upper) if along_x else (name, x0, x1, lo, hi, rises, lower, upper)
     return flight, height(lower, foot_end), height(upper, head_end)
 
+FLIGHT_HOLES = {}  # each flight's id: the hole it leaves in the deck over it, or None
+
 for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OUTLINE, G_OUTLINE, ORLOP_OUTLINE,
              LOWER_OUTLINE):
     floors = dict(PLAN_DECKS)
@@ -1136,6 +1190,14 @@ for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OU
         else:
             ends = (z0, z1) if rises == "starboard" else (z1, z0)
             stair_z(sid, ends[0], ends[1], x0, x1, low, high, into)
+        # C deck whole over No. 1's trunk (hold_1_d, #399): a crew's stair up from D deck
+        # forward of her bridge deck's front, rising aft, run on over its foot past bulkhead
+        # B (c.py), has C deck cut only aft of B, its foot under the deck with headroom (est.;
+        # cut on to its foot, C deck stood open over the trunk, a way into it from her
+        # forecastle, #483).
+        if upper == "c" and lower == "d" and rises == "aft" and x0 < BX["B"] < x1:
+            into[-1] = (into[-1][0], BX["B"]) + into[-1][2:]
+        FLIGHT_HOLES[sid] = into[-1] if upper in holes else None
         if plan is F_OUTLINE and waited is not None and f_waited(flight):
             F_WAITED.extend(into[waited:])
         if plan is G_OUTLINE and name != "hold ladder":
@@ -1195,6 +1257,7 @@ def up_to_f_z(sid, z_low, z_high, x0, x1, low):
 # view draws their ladders against their fronts (Plate IV px 9130-9190 and 1630-1700),
 # run on to stairs a body climbs. (A deck's after end comes down onto B deck's by its own
 # ladders, A_PLAN's; B deck's ends onto her wells by theirs, B_PLAN's.)
+OPEN_DECK_FLIGHTS = []  # their ids: each leaves no hole, a deck's end over it
 SIDE_LANE = (10.2, 10.2 + STAIR)  # outboard of A deck's house
 FCSL_LANES = [(-5.5625, -4.1625), (5.3125, 6.7125)]
 POOP_LANES = [(-7.3125, -5.9125), (6.1875, 7.5875)]
@@ -1203,6 +1266,7 @@ for k, (side, sign) in enumerate([("p", -1), ("s", 1)]):
     stair("a_fwd_" + side, A_RUN[1] + 7.0, A_RUN[1], lane[0], lane[1], c_at(A_RUN[1] + 7.0), A_DECK, [])
     stair("forecastle_" + side, FCSL_FROM - 5.8, FCSL_FROM, *FCSL_LANES[k], c_at(FCSL_FROM - 5.8), FCSL[0], [])
     stair("poop_" + side, POOP_TO + 5.5, POOP_TO, *POOP_LANES[k], 0.0, POOP, [])
+    OPEN_DECK_FLIGHTS.extend(prefix + side for prefix in ("a_fwd_", "forecastle_", "poop_"))
 
 def rail_line(rid, plats, axis, at, a, b, gaps=()):
     """Railings along the line where x (axis 0) or z (axis 2) is at, from a to b along
@@ -3894,8 +3958,12 @@ for k in range(6, 0, -1):
 for name in ("engine_room", "turbine_room"):
     b = cell_box(name)
     through("casing_" + name, "STAIRWELL", (b[0] + b[1]) * 0.5, 0.0, (b[1] - b[0]) * 0.5, 6.0, name, starts="OPEN")
-for name, x0, x1, z0, z1, high, _x_low in stairs:
-    if name.startswith(("boat_aft", "a_aft", "b_aft", "a_fwd", "forecastle_", "poop_")):
+# Each flight up through a deck between two of her cells, along her or across her (#483):
+# one rising across her, as C deck's crew's ladder under her forecastle, once left its hole
+# with no opening, and her after grand staircase's, their names starting as her open decks'
+# flights' once did, were taken for theirs.
+for name, fx0, fx1, fz0, fz1, high, _low in stairs + stairs_z:
+    if name in OPEN_DECK_FLIGHTS:
         continue
     # The boiler rooms' flights to F deck: the fiddley/casing openings already stand for
     # these shafts. The stairs of the spaces made in her old voids (#148): the hatchways,
@@ -3903,17 +3971,29 @@ for name, x0, x1, z0, z1, high, _x_low in stairs:
     # manholes into her double bottoms are their own (below).
     if name.startswith(("stokehold_", "space_")):
         continue
-    xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
-    below = cell_at(xm, high - 0.01, zm)
-    above = cell_at(xm, high + 0.01, zm)
-    if below != above and below is not None:
-        # Over the part of the flight both cells hold: one coming down past a house's end
+    # (Over the hole it leaves in the deck, where it leaves one.)
+    fx0, fx1, fz0, fz1 = FLIGHT_HOLES.get(name) or (fx0, fx1, fz0, fz1)
+    # Each pair of cells the hole parts, its middle's first: a flight over a house's end, or
+    # over two of her boiler rooms' cells, opens into each.
+    pairs = []
+    for u in (0.5, 0.01, 0.25, 0.75, 0.99):
+        for v in (0.5, 0.01, 0.25, 0.75, 0.99):
+            px, pz = fx0 + (fx1 - fx0) * u, fz0 + (fz1 - fz0) * v
+            pair = (cell_at(px, high - 0.01, pz), cell_at(px, high + 0.01, pz))
+            if pair[0] is not None and pair[0] != pair[1] and pair not in pairs:
+                pairs.append(pair)
+    for k, (below, above) in enumerate(pairs):
+        # Over the part of the hole both cells hold: one coming down past a house's end
         # into the next cell's (B deck's second-class staircase's well) opens only there.
+        x0, x1, z0, z1 = fx0, fx1, fz0, fz1
         for c in [below] + ([above] if above is not None else []):
             bx0, bx1, _y0, _y1, bz0, bz1 = cell_box(c)
             x0, x1, z0, z1 = max(x0, bx0), min(x1, bx1), max(z0, bz0), min(z1, bz1)
+        if x1 - x0 < 1e-3 or z1 - z0 < 1e-3:
+            continue
         xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
-        opening("stair_%s" % name, "STAIRWELL", below, above, (xm, high, zm), (x1 - x0, 0, z1 - z0), starts="OPEN")
+        opening("stair_%s%s" % (name, "_%s" % below if k else ""), "STAIRWELL", below, above, (xm, high, zm),
+                (x1 - x0, 0, z1 - z0), starts="OPEN")
 # The manholes down into her double bottoms (#148), each over its stair in the tank top:
 # bolted shut, a body going through one opening it as a doorway's door is opened; shut to the
 # water, each never weeps nor gives way.
