@@ -74000,15 +74000,15 @@ top = 8.825
 
 [sub_resource type="Resource" id="Blocker_stowed_boat_1"]
 script = ExtResource("3_block")
-area = Rect2(56, 10.65, 9, 3.15)
+area = Rect2(56.1, 11.3, 7.8, 2.5)
 bottom = 8.375
-top = 9.875
+top = 9.575
 
 [sub_resource type="Resource" id="Blocker_stowed_boat_2"]
 script = ExtResource("3_block")
-area = Rect2(56, -13.8, 9, 3.15)
+area = Rect2(56.1, -13.8, 7.8, 2.5)
 bottom = 8.375
-top = 9.875
+top = 9.575
 
 [sub_resource type="Resource" id="Blocker_stowed_boat_3"]
 script = ExtResource("3_block")
@@ -77365,7 +77365,7 @@ to = Vector2(33.3125, -0.0625)
 [sub_resource type="Resource" id="Railing_boat_ladder_9_p"]
 script = ExtResource("4_rail")
 platform = 34
-from = Vector2(65, -10.875)
+from = Vector2(61.8125, -10.875)
 to = Vector2(65.1875, -10.875)
 
 [sub_resource type="Resource" id="Railing_boat_ladder_9_s"]
@@ -77377,7 +77377,7 @@ to = Vector2(65.1875, -9.875)
 [sub_resource type="Resource" id="Railing_boat_ladder_9_e"]
 script = ExtResource("4_rail")
 platform = 33
-from = Vector2(61.8125, -10.65)
+from = Vector2(61.8125, -10.875)
 to = Vector2(61.8125, -9.875)
 
 [sub_resource type="Resource" id="Railing_boat_ladder_10_p"]
@@ -77389,14 +77389,14 @@ to = Vector2(65.1875, 10.0625)
 [sub_resource type="Resource" id="Railing_boat_ladder_10_s"]
 script = ExtResource("4_rail")
 platform = 36
-from = Vector2(65, 11.125)
+from = Vector2(61.8125, 11.125)
 to = Vector2(65.1875, 11.125)
 
 [sub_resource type="Resource" id="Railing_boat_ladder_10_e"]
 script = ExtResource("4_rail")
 platform = 33
 from = Vector2(61.8125, 10.0625)
-to = Vector2(61.8125, 10.65)
+to = Vector2(61.8125, 11.125)
 
 [sub_resource type="Resource" id="Railing_a_second_class_staircase_2_p"]
 script = ExtResource("4_rail")
@@ -91357,14 +91357,14 @@ along = Vector2(-2.7249, 27.2751)
 [sub_resource type="Resource" id="Fitting_boat_1"]
 script = ExtResource("16_fitting")
 name = &"boat_1"
-x = 60.5
+x = 60
 list_limit_deg = 15
 
 [sub_resource type="Resource" id="Fitting_boat_2"]
 script = ExtResource("16_fitting")
 name = &"boat_2"
 side = -1
-x = 60.5
+x = 60
 list_limit_deg = 15
 
 [sub_resource type="Resource" id="Fitting_boat_3"]
@@ -91474,14 +91474,14 @@ list_limit_deg = 15
 [sub_resource type="Resource" id="Fitting_collapsible_c"]
 script = ExtResource("16_fitting")
 name = &"collapsible_c"
-x = 60.5
+x = 60
 list_limit_deg = 15
 
 [sub_resource type="Resource" id="Fitting_collapsible_d"]
 script = ExtResource("16_fitting")
 name = &"collapsible_d"
 side = -1
-x = 60.5
+x = 60
 list_limit_deg = 15
 
 [sub_resource type="Resource" id="Fitting_funnel_1"]
