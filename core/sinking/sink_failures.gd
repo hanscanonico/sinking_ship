@@ -263,8 +263,9 @@ func _heads_across(state: FloodState, stepper: SinkStepper) -> PackedFloat64Arra
 	if state == _across_state:
 		return _across
 	_across_state = state
+	# The extension lifts as SinkAir does; an air that lifts otherwise is worked here.
 	var native := stepper.native()
-	if native != null:
+	if native != null and _air.get_script() == SinkAir:
 		_across = native.across(state, stepper.ceilings(), stepper.sills(), _air)
 		return _across
 	_across.resize(_index.size())

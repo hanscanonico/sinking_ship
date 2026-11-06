@@ -7,6 +7,8 @@
 
 #include "sink_native.h"
 
+#include <godot_cpp/core/error_macros.hpp>
+
 #include <cmath>
 #include <limits>
 
@@ -58,6 +60,8 @@ void NativeSink::shut_times(const PackedFloat64Array &p_shut_time) {
 // SinkStepper._share_out: every opening's share open p_since seconds after the hit, kept
 // for the step's flows and given back.
 PackedFloat64Array NativeSink::shares(double p_since, const PackedFloat64Array &p_opened) {
+	ERR_FAIL_COND_V_MSG(p_opened.size() != int64_t(shut_time_.size()), PackedFloat64Array(),
+			"An opened share per opening.");
 	const double *opened = p_opened.ptr();
 	PackedFloat64Array found;
 	found.resize(int64_t(shut_time_.size()));
@@ -73,6 +77,11 @@ void NativeSink::watched(const PackedInt32Array &p_index, const PackedInt32Array
 		const PackedInt32Array &p_second, const PackedFloat64Array &p_shut_time, const PackedFloat64Array &p_leak,
 		const PackedFloat64Array &p_collapse, const PackedFloat64Array &p_leak_share,
 		const PackedInt32Array &p_toward) {
+	const int64_t count = p_index.size();
+	ERR_FAIL_COND_MSG(p_first.size() != count || p_second.size() != count || p_shut_time.size() != count ||
+					p_leak.size() != count || p_collapse.size() != count || p_leak_share.size() != count ||
+					p_toward.size() != count,
+			"As many of each as there are watched openings.");
 	take(watched_index_, p_index);
 	take(watched_first_, p_first);
 	take(watched_second_, p_second);
@@ -91,6 +100,10 @@ void NativeSink::watched(const PackedInt32Array &p_index, const PackedInt32Array
 PackedInt32Array NativeSink::stiff(const PackedFloat64Array &p_heads, const PackedFloat64Array &p_water,
 		const PackedByteArray &p_held, const PackedByteArray &p_holding, const PackedFloat64Array &p_widest,
 		double p_sea, double p_per_metre) const {
+	const int64_t count = cells();
+	ERR_FAIL_COND_V_MSG(p_heads.size() != count || p_water.size() != count || p_held.size() != count ||
+					p_holding.size() != count || p_widest.size() != count,
+			PackedInt32Array(), "One of each per cell.");
 	const double *heads = p_heads.ptr();
 	const double *water = p_water.ptr();
 	const uint8_t *holding = p_holding.ptr();
@@ -163,6 +176,13 @@ PackedFloat64Array NativeSink::across(const PackedFloat64Array &p_heads, const P
 		double p_sea, const PackedFloat64Array &p_ceilings, const PackedFloat64Array &p_sills,
 		const PackedInt32Array &p_pocket, const PackedFloat64Array &p_air, const PackedInt32Array &p_members_from,
 		const PackedInt32Array &p_members_count, const PackedInt32Array &p_members) const {
+	// A pocket's arrays run by cell (SinkAir.pockets): an air never begun has none.
+	const int64_t count = cells();
+	ERR_FAIL_COND_V_MSG(p_heads.size() != count || p_water.size() != count || p_ceilings.size() != count ||
+					p_pocket.size() != count || p_air.size() != count || p_members_from.size() != count ||
+					p_members_count.size() != count,
+			PackedFloat64Array(), "One of each per cell: the air begun.");
+	ERR_FAIL_COND_V_MSG(p_sills.size() != int64_t(first_.size()), PackedFloat64Array(), "A sill per opening.");
 	const double *heads = p_heads.ptr();
 	const double *water = p_water.ptr();
 	const double *ceilings = p_ceilings.ptr();
@@ -173,7 +193,7 @@ PackedFloat64Array NativeSink::across(const PackedFloat64Array &p_heads, const P
 	const int32_t *members_count = p_members_count.ptr();
 	const int32_t *members = p_members.ptr();
 	double surface = p_sea;
-	for (int64_t cell = 0; cell < p_heads.size(); cell++) {
+	for (int64_t cell = 0; cell < count; cell++) {
 		if (water[cell] > 0.0 && heads[cell] < ceilings[cell]) {
 			surface = max_f(surface, heads[cell]);
 		}
@@ -241,6 +261,8 @@ double NativeSink::gives_way_gap(int64_t p_watched, double p_across) const {
 // shut p_seconds after the hit given way or leaking at the heads p_across it.
 PackedFloat64Array NativeSink::failed(const PackedFloat64Array &p_across, const PackedFloat64Array &p_opened,
 		double p_seconds) const {
+	ERR_FAIL_COND_V_MSG(p_across.size() != int64_t(watched_index_.size()) || p_opened.size() != int64_t(first_.size()),
+			PackedFloat64Array(), "A head per watched opening, a share per opening.");
 	const double *across = p_across.ptr();
 	const double *before = p_opened.ptr();
 	PackedFloat64Array found;
@@ -270,6 +292,8 @@ PackedFloat64Array NativeSink::failed(const PackedFloat64Array &p_across, const 
 
 // SinkFailures.gaps' openings: per watched one its leak's gap, then its giving way's.
 PackedFloat64Array NativeSink::failure_gaps(const PackedFloat64Array &p_across) const {
+	ERR_FAIL_COND_V_MSG(p_across.size() != int64_t(watched_index_.size()), PackedFloat64Array(),
+			"A head per watched opening.");
 	const double *across = p_across.ptr();
 	PackedFloat64Array found;
 	found.resize(int64_t(watched_index_.size() * 2));
