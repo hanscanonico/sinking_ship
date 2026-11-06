@@ -5,7 +5,8 @@
 # native build 20 in its install). Each `apt-get update` and `apt-get install` runs
 # under its own `timeout`, with apt's own retries and a short network timeout, and
 # the pair is tried up to three times: a hung mirror ends an attempt in minutes and
-# the next one usually gets through. Worst case, about 12 minutes and a red step.
+# the next one usually gets through; after the first, the runner's first mirror is
+# tried last. Worst case, about 12 minutes and a red step.
 #
 # With CI_APT_DEBS set to a directory (an actions/cache path), the mirror is skipped
 # when that directory holds the packages' .debs: they are installed with `dpkg -i`,
@@ -74,6 +75,20 @@ keep_debs() {
 		echo "ci_apt_install: kept $(find "$debs_dir" -maxdepth 1 -name '*.deb' | wc -l) .debs in $debs_dir"
 }
 
+# GitHub's runners fetch through a mirror list, Azure's mirror first. apt moves to the
+# next mirror only when one errors, never when one crawls (#465: ~45 KB/s from Azure),
+# so after a failed first attempt the first mirror goes to the end of the list.
+# (ubuntu-24.04's list is the source line `mirror+file:/etc/apt/apt-mirrors.txt`.)
+demote_first_mirror() {
+	local list=/etc/apt/apt-mirrors.txt
+	[ "$(grep -c . "$list" 2>/dev/null)" -ge 2 ] || return 0
+	# A priority: tag would outrank the order, so the tags go and the order rules.
+	{ grep . "$list" | tail -n +2 && grep . "$list" | head -n 1; } |
+		sed -E 's/[[:space:]]+priority:[0-9]+//' > /tmp/apt-mirrors.txt &&
+		sudo cp /tmp/apt-mirrors.txt "$list" &&
+		echo "ci_apt_install: mirrors now in this order:" && cat "$list"
+}
+
 fix=()
 if [ -n "$debs_dir" ]; then
 	if install_local "$@"; then
@@ -98,6 +113,9 @@ for attempt in $(seq 1 "$attempts"); do
 	if [ "$attempt" -lt "$attempts" ]; then
 		# An install cut short can leave dpkg half-configured; settle it before the retry.
 		sudo dpkg --configure -a || true
+		if [ "$attempt" -eq 1 ]; then
+			demote_first_mirror
+		fi
 		sleep 10
 	fi
 done
