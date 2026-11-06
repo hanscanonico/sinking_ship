@@ -9,12 +9,16 @@ extends GutTest
 ## it to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const RunMatch := preload("res://tools/run_match.gd")
+const SEA := preload("res://scenes/art/water.gdshader")
 const SHIPS: Array[StringName] = [&"steamer", &"small_titanic"]
 const SEED := 4
 ## How many ticks each step checked spans, and where between its two poses each of its
 ## frames is drawn.
 const STRIDE := 15
 const ALPHAS: Array[float] = [0.37, 1.0]
+## How many poses of her sinking her water is set on its edges in, and a hair off one.
+const EDGE_POSES := 40
+const HAIR := 1e-9
 ## What is read of each drawn thing's material — but its slot, each InnerWater's own
 ## (InnerWater.TO_SHIP) — and of an InnerWater's own state.
 const PARAMS: Array[StringName] = [
@@ -57,7 +61,7 @@ func test_her_water_is_drawn_alike_as_she_sinks() -> void:
 		var config := RunMatch.default_config(SEED, 2, ship)
 		var schedule := config.schedule()
 		var sea := ShaderMaterial.new()
-		sea.shader = preload("res://scenes/art/water.gdshader")
+		sea.shader = SEA
 		var waters: Array[InnerWater] = []
 		for side in 2:
 			var water: InnerWater = add_child_autofree(InnerWater.new())
@@ -141,6 +145,106 @@ func test_her_steps_plan_alike_as_she_sinks() -> void:
 		assert_eq(differences, [] as Array[String], "%s's steps plan alike" % ship)
 		for kind: String in ["WASH", "FLOOD", "POUR"]:
 			assert_true(told.has(kind), "%s's sinking tells of %s" % [ship, kind])
+
+
+func test_her_water_on_its_edges_is_drawn_and_heard_alike() -> void:
+	if not _loaded():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 410
+	for ship: StringName in SHIPS:
+		var config := RunMatch.default_config(SEED, 2, ship)
+		var sim := MatchSim.create(config)
+		var schedule := sim.schedule
+		var sea := ShaderMaterial.new()
+		sea.shader = SEA
+		var waters: Array[InnerWater] = []
+		var cues: Array[CuePlanner] = []
+		for side in 2:
+			var water: InnerWater = add_child_autofree(InnerWater.new())
+			if side == 1:
+				water.native = null
+			water.setup(
+				config.ship.structure,
+				config.ship.rooms,
+				schedule.passages(),
+				schedule.failing(),
+				sea,
+				{}
+			)
+			waters.append(water)
+			cues.append(CuePlanner.new(config, sim.surfaces, schedule, 0))
+		cues[1].native = null
+		var differences: Array[String] = []
+		var end := schedule.end_tick()
+		for at in EDGE_POSES:
+			var base := schedule.pose_at(int(end * (at + 0.5) / EDGE_POSES))
+			for water: InnerWater in waters:
+				water.show_water(base, base, 0.0)
+			var pose := SimFixtures.copy_of(base)
+			pose.levels = _edges(waters[1], cues[1], base, rng)
+			var drawn: Array[PackedByteArray] = []
+			for water: InnerWater in waters:
+				water.show_water(pose, pose, 0.0)
+				drawn.append(var_to_bytes(_state(water, {})))
+			if drawn[0] != drawn[1] and differences.size() < 4:
+				differences.append("drawn at pose %d" % at)
+			var heard: Array[PackedByteArray] = []
+			for cue: CuePlanner in cues:
+				var reading := cue._reading(pose)
+				heard.append(var_to_bytes([reading.over, reading.pouring]))
+			if heard[0] != heard[1] and differences.size() < 4:
+				differences.append("heard at pose %d" % at)
+		assert_eq(differences, [] as Array[String], "%s's water on its edges is alike" % ship)
+
+
+## Per cell of [param base], a level on one of the edges the walks compare it with —
+## where a sheet or a stack starts or stops showing, where her floor is heard flooding,
+## where an opening it is a side of starts pouring or crossing — or a hair off one, as
+## [param water] and [param cue] work them out under [param base].
+func _edges(
+	water: InnerWater, cue: CuePlanner, base: ShipPose, rng: RandomNumberGenerator
+) -> PackedFloat64Array:
+	var ship := water._ship
+	var first := maxf(SinkTimeline.FIRST_WATER, InnerWater.CLEAR_OF_FLOOR)
+	var edges: Array[PackedFloat64Array] = []
+	for cell in base.levels.size():
+		edges.append(PackedFloat64Array([base.levels[cell]]))
+		if water._surfaces[cell] != null:
+			var reach := CellSurface.reach(ship, water._boxes[cell])
+			edges[cell].append_array([reach.x + first, reach.y - InnerWater.SHOWS])
+	for stack: Array in water._stacks:
+		var reach := CellSurface.reach(ship, stack[1])
+		edges[stack[0]].append_array([reach.x + first, reach.y - InnerWater.SHOWS])
+	for at in water._stack_cells.size():
+		var reach := CellSurface.reach(ship, water._stack_bounds[at])
+		var slack := InnerWater.STACK_SLACK
+		edges[water._stack_cells[at]].append_array(
+			[reach.x + first - slack, reach.y - InnerWater.SHOWS + slack]
+		)
+	var basis := base.transform.basis
+	var row := Vector3(basis.x.y, basis.y.y, basis.z.y)
+	var rise := base.transform.origin.y
+	for cell in cue._floors.size():
+		var half := cue._floor_halves[cell]
+		var reach := absf(row.x) * half.x + absf(row.y) * half.y + absf(row.z) * half.z
+		edges[cell].append(row.dot(cue._floors[cell]) - reach + rise + CuePlanner.SHOWS)
+	for index in water._passages.size():
+		var middle := row.dot(water._centres[index]) + rise
+		var lowest := middle - water._reaches[index]
+		var highest := middle + water._reaches[index]
+		for side in 2:
+			var cell := water._slots[index * 2 + side]
+			if cell < base.levels.size():
+				edges[cell].append_array(
+					[lowest + InnerWater.SHOWS, highest - InnerWater.POURS, lowest, highest]
+				)
+	var levels := PackedFloat64Array()
+	for cell in edges.size():
+		var level := edges[cell][rng.randi_range(0, edges[cell].size() - 1)]
+		var hair: float = [0.0, 0.0, HAIR, -HAIR][rng.randi_range(0, 3)]
+		levels.append(level + hair)
+	return levels
 
 
 ## [param water]'s state and every drawn thing of it, as bytes compare them; counting
