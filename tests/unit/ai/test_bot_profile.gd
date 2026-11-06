@@ -99,6 +99,30 @@ func test_each_knob_out_of_range_is_named() -> void:
 	var nowhere: BotProfile = normal.duplicate()
 	nowhere.bonus_range_m = 0.0
 	assert_eq(nowhere.problems(), PackedStringArray(["bot: bonus_range_m must be positive"]))
+	var hull_less: BotProfile = normal.duplicate()
+	hull_less.bonus_range_hull_m = 0.0
+	assert_eq(hull_less.problems(), PackedStringArray(["bot: bonus_range_hull_m must be positive"]))
+
+
+## A tier's bonus range is its own on the steamer and on any shorter hull, to the bit, and
+## grows with her length on a longer one (#340): on the Titanic, about six times as far.
+func test_the_bonus_range_grows_with_her_hull() -> void:
+	var titanic: ShipLayout = load("res://data/ships/titanic.tres")
+	var titanic_length := titanic.structure.length()
+	assert_almost_eq(titanic_length, 269.06, 0.01, "the Titanic's length overall")
+	for tier: String in BotProfile.tiers():
+		var profile := BotProfile.for_tier(StringName(tier))
+		for layout: ShipLayout in [
+			SimFixtures.steamer(),
+			load("res://data/ships/trawler.tres"),
+			load("res://data/ships/tug.tres"),
+		]:
+			var ship := layout.resource_path.get_file()
+			var length := layout.structure.length()
+			assert_eq(profile.bonus_range(length), profile.bonus_range_m, "%s on %s" % [tier, ship])
+		assert_eq(profile.bonus_range(0.0), profile.bonus_range_m, "%s with no hull" % tier)
+		var far := profile.bonus_range_m * titanic_length / profile.bonus_range_hull_m
+		assert_almost_eq(profile.bonus_range(titanic_length), far, 1e-6, "%s on her" % tier)
 
 
 ## A bot climbs out of a floor within climb_margin_m of the sea: a bonus margin under it

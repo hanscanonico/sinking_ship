@@ -3,7 +3,8 @@ extends RefCounted
 ## A bot and the bonuses aboard (#307) as its delayed view shows them (D10) — every one,
 ## walls or not, as the props are: the feed has told every player each one's kind and room.
 ## The bonus it goes for, chosen at a think: of a kind worth more to it than its own bonus, a
-## walk of bonus_range_m or less away, while the floor it lies on and the lowest point of its
+## walk of its range or less away — bonus_range_m, grown on a hull longer than the steamer's
+## (BotProfile.bonus_range) — while the floor it lies on and the lowest point of its
 ## way there stand bonus_margin_m or more above the water as its view has the water now —
 ## never as the timeline has it next; the best for how much more it is worth, less the
 ## farther it lies. Unlike a lifebuoy, it goes down toward the water for one by design. Then
@@ -18,6 +19,8 @@ var spot := -1
 
 var _seat: int
 var _profile: BotProfile
+## How far a walk it goes for a bonus on her hull (BotProfile.bonus_range).
+var _range: float
 var _rules: BrawlRules
 var _layout: ShipLayout
 ## What a Grab press reaches, in a match played with bonuses; null in one without.
@@ -39,6 +42,8 @@ func _init(
 	_profile = profile
 	_rules = rules
 	_layout = layout
+	var hull := layout.structure.length() if layout.structure != null else 0.0
+	_range = profile.bonus_range(hull)
 	if bonus_rules != null:
 		_reach = GrabReach.new(layout, rules, bonus_rules)
 		_kinds.assign(bonus_rules.kinds)
@@ -48,7 +53,7 @@ func _init(
 ## Picks the bonus to go for at a think, from [param me] in [param seen], among those
 ## [param found] — a search of [param graph] from where it stands — reaches under
 ## [param pose]: of a kind worth more to it than its own bonus (worth), a walk of
-## bonus_range_m or less away, its floor and its way there its margin above the water
+## its range or less away, its floor and its way there its margin above the water
 ## (_clear) — the best by how much more it is worth, less by up to bonus_walk_share of that
 ## the farther away it lies. Returns its score, that by bonus_weight, or 0 with none to go
 ## for: none, too, off her decks, where a body takes nothing (GrabReach) and her spots are
@@ -71,13 +76,13 @@ func choose(
 		if gain <= 0.0 or zone == WalkGraph.NONE:
 			continue
 		# Past its range, it need not know how far: the search stops there.
-		var walked := found.cost_to(zone, _profile.bonus_range_m)
+		var walked := found.cost_to(zone, _range)
 		if walked == INF:
 			continue
 		var far := walked + Vector2(at.x - my_pos.x, at.z - my_pos.z).length()
-		if far > _profile.bonus_range_m or not _clear(graph, found, zone, at, pose):
+		if far > _range or not _clear(graph, found, zone, at, pose):
 			continue
-		var walk := _profile.bonus_walk_share * far / _profile.bonus_range_m
+		var walk := _profile.bonus_walk_share * far / _range
 		var score := _profile.bonus_weight * gain * (1.0 - walk)
 		if score > best:
 			best = score
