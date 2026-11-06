@@ -67,8 +67,8 @@ var _lines: Array[PackedFloat32Array] = []
 var _runs := {}
 var _glazed_runs := {}
 var _floor_boxes := {}
-## Per room, its _highest_ceiling(), worked out the first time it is asked.
-var _highest := {}
+## Per room, its _roof_cap(), worked out the first time it is asked.
+var _caps := {}
 ## The highest of her rooms' floors, and whether any of them is named a wheelhouse
 ## (_top_room_floor, _has_wheelhouse); worked out once.
 var _top_floor := -INF
@@ -134,8 +134,6 @@ func outdoors(point: Vector3, boxes: Array[AABB] = []) -> bool:
 ## A height over which [param room]'s ceiling never stands, with room to spare: over
 ## its open height, every deck and every hatch near enough to roof it.
 func _highest_ceiling(room: ShipRoom) -> float:
-	if _highest.has(room):
-		return _highest[room]
 	var top := room.floor_height + OPEN_ROOM_HEIGHT
 	var reach := room.area.grow(ROOF_REACH)
 	for index: int in _platforms_near(reach):
@@ -147,8 +145,26 @@ func _highest_ceiling(room: ShipRoom) -> float:
 		var footprint := Rect2(Vector2(opening.centre.x, opening.centre.z) - size * 0.5, size)
 		if footprint.intersects(reach, true):
 			top = maxf(top, opening.centre.y)
-	_highest[room] = top
 	return top
+
+
+## A height [param room]'s ceiling stands no higher than anywhere over its area: the lowest
+## of the decks over its floor (roof) whose areas hold all of it — the deck roofing each
+## point of it is that one or one lower, and a hatch or a slab only lowers it; INF where
+## none holds all of it. Worked out the first time it is asked.
+func _roof_cap(room: ShipRoom) -> float:
+	if _caps.has(room):
+		return _caps[room]
+	var middle := room.area.get_center()
+	# Asked once so the decks over the room are gathered (_over).
+	roof(room, middle.x, middle.y)
+	var cap := INF
+	for index: int in _over[room]:
+		var platform := layout.platforms[index]
+		if platform.area.encloses(room.area):
+			cap = minf(cap, platform.height)
+	_caps[room] = cap
+	return cap
 
 
 ## Every hatch of her structure, in her openings' order, gathered the first time it is
@@ -688,9 +704,9 @@ func short_of_ceiling(blocker: ShipBlocker) -> Array[Vector3]:
 		var high := minf(box.end[axis], area.end[axis])
 		if high - low < SLIVER:
 			continue
-		# No ceiling of the room stands over the wall's top: it stands short of none (most
-		# walls reach the deck over them).
-		if _highest_ceiling(room) <= blocker.top + SLIVER:
+		# A deck over all of the room no higher than the wall's top: no ceiling of it
+		# stands over the wall, which stands short of none (most walls reach the deck).
+		if _roof_cap(room) <= blocker.top + SLIVER:
 			continue
 		# Toward the room across the wall: just inside its face, and past the wall.
 		var way := signf(area.get_center()[1 - axis] - line)
