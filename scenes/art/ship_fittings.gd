@@ -274,7 +274,9 @@ static func _deck_between(
 ) -> bool:
 	var inner := minf(x, x - out * BREAK_OVERHANG)
 	var outer := maxf(x, x - out * BREAK_OVERHANG)
-	for other: ShipPlatform in space.layout.platforms:
+	# Of her platforms, those near the overhang: every one under any of it is among them.
+	for index: int in space._platforms_near(Rect2(inner, z, outer - inner, 0.0)):
+		var other := space.layout.platforms[index]
 		var area := other.area
 		if other.height <= foot + ShipSpace.SLIVER:
 			continue

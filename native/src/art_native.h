@@ -30,6 +30,7 @@
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <unordered_map>
 #include <vector>
 
@@ -162,6 +163,7 @@ public:
 	void set_grid(const Ref<NativeIndoorGrid> &p_grid, const Array &p_boxes);
 	void set_roofed(double p_weather_floor, const PackedFloat64Array &p_sections, const Array &p_outlines,
 			const Array &p_areas, const PackedFloat64Array &p_heights);
+	void judge_like(const Ref<NativeShipMesh> &p_other);
 
 	void box(const Rect2 &p_area, double p_bottom, double p_top, int64_t p_finish, const Color &p_colour,
 			int64_t p_finish_in, const Color &p_colour_in, int64_t p_faces, double p_foot, double p_head);
@@ -254,17 +256,21 @@ private:
 	Callable _fading;
 	Ref<NativeIndoorGrid> _grid;
 	std::vector<AABB> _boxes;
-	// RoofedIndoors: her lowest weather deck, her sections (x and length) and their
-	// outlines, her platforms (area and height) and, per square of the plane, those
-	// reaching into it; whether any is set.
+	// RoofedIndoors: her sections (x and length) and their outlines, her platforms (area
+	// and height) and, per square of the plane, those reaching into it — read only once
+	// set, so every mesh judged like another (judge_like) shares its own.
+	struct Roof {
+		std::vector<double> section_x;
+		std::vector<double> section_length;
+		std::vector<std::vector<Vector2>> outlines;
+		std::vector<Rect2> platform_areas;
+		std::vector<double> platform_heights;
+		std::map<std::pair<int64_t, int64_t>, std::vector<int32_t>> platform_squares;
+	};
+	// Her lowest weather deck, and whether any roofed space is set.
 	bool _roofed = false;
 	double _weather_floor = -INFINITY;
-	std::vector<double> _section_x;
-	std::vector<double> _section_length;
-	std::vector<std::vector<Vector2>> _outlines;
-	std::vector<Rect2> _platform_areas;
-	std::vector<double> _platform_heights;
-	std::map<std::pair<int64_t, int64_t>, std::vector<int32_t>> _platform_squares;
+	std::shared_ptr<const Roof> _roof = std::make_shared<const Roof>();
 	bool _holds(const Vector3 &p_point) const;
 	double _reach(size_t p_section, double p_y, int64_t p_side) const;
 	double _half_breadth(double p_x, double p_y, int64_t p_side) const;

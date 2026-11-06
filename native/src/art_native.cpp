@@ -7,6 +7,7 @@
 #include "art_native.h"
 
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/variant/basis.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 #include <godot_cpp/variant/vector3i.hpp>
@@ -846,36 +847,44 @@ void NativeShipMesh::set_roofed(double p_weather_floor, const PackedFloat64Array
 		const Array &p_outlines, const Array &p_areas, const PackedFloat64Array &p_heights) {
 	_roofed = true;
 	_weather_floor = p_weather_floor;
-	_section_x.clear();
-	_section_length.clear();
-	_outlines.clear();
+	std::shared_ptr<Roof> roof = std::make_shared<Roof>();
 	for (int64_t index = 0; index < p_outlines.size(); index++) {
-		_section_x.push_back(p_sections[index * 2]);
-		_section_length.push_back(p_sections[index * 2 + 1]);
+		roof->section_x.push_back(p_sections[index * 2]);
+		roof->section_length.push_back(p_sections[index * 2 + 1]);
 		const PackedVector2Array outline = p_outlines[index];
-		_outlines.emplace_back(outline.ptr(), outline.ptr() + outline.size());
+		roof->outlines.emplace_back(outline.ptr(), outline.ptr() + outline.size());
 	}
-	_platform_areas.clear();
-	_platform_squares.clear();
-	_platform_heights.assign(p_heights.ptr(), p_heights.ptr() + p_heights.size());
+	roof->platform_heights.assign(p_heights.ptr(), p_heights.ptr() + p_heights.size());
 	for (int64_t index = 0; index < p_areas.size(); index++) {
 		const Rect2 area = p_areas[index];
-		_platform_areas.push_back(area);
+		roof->platform_areas.push_back(area);
 		const Vector2 end = area.position + area.size;
 		const auto first = roof_square(area.position.x, area.position.y);
 		const auto last = roof_square(end.x, end.y);
 		for (int64_t x = first.first; x < last.first + 1; x++) {
 			for (int64_t z = first.second; z < last.second + 1; z++) {
-				_platform_squares[{ x, z }].push_back((int32_t)index);
+				roof->platform_squares[{ x, z }].push_back((int32_t)index);
 			}
 		}
 	}
+	_roof = roof;
+}
+
+// ShipMesh.judge_like: judged as [param p_other] is — its grid, its rooms' boxes and its
+// roofed space, the last shared, never copied.
+void NativeShipMesh::judge_like(const Ref<NativeShipMesh> &p_other) {
+	ERR_FAIL_COND(p_other.is_null());
+	_grid = p_other->_grid;
+	_boxes = p_other->_boxes;
+	_roofed = p_other->_roofed;
+	_weather_floor = p_other->_weather_floor;
+	_roof = p_other->_roof;
 }
 
 // HullSection.shell_at, as a reach (ShipStructure._reach): how far out to side
 // [param p_side] her shell reaches at height [param p_y]; 0 where it does not.
 double NativeShipMesh::_reach(size_t p_section, double p_y, int64_t p_side) const {
-	const std::vector<Vector2> &outline = _outlines[p_section];
+	const std::vector<Vector2> &outline = _roof->outlines[p_section];
 	double outermost = -INFINITY;
 	for (size_t index = 0; index < outline.size(); index++) {
 		const Vector2 a = outline[index];
@@ -892,18 +901,20 @@ double NativeShipMesh::_reach(size_t p_section, double p_y, int64_t p_side) cons
 // ShipStructure.half_breadth: her shell as her art lofts it, between the two sections
 // whose middles stand either side of x, closing onto her stem past her last one's.
 double NativeShipMesh::_half_breadth(double p_x, double p_y, int64_t p_side) const {
-	const size_t count = _section_x.size();
+	const std::vector<double> &section_x = _roof->section_x;
+	const std::vector<double> &section_length = _roof->section_length;
+	const size_t count = section_x.size();
 	if (count == 0) {
 		return 0.0;
 	}
-	const double aft_end = _section_x[0] - _section_length[0] * 0.5;
-	const double last_x = _section_x[count - 1];
-	const double last_length = _section_length[count - 1];
+	const double aft_end = section_x[0] - section_length[0] * 0.5;
+	const double last_x = section_x[count - 1];
+	const double last_length = section_length[count - 1];
 	if (p_x < aft_end || p_x > last_x + last_length * 0.5) {
 		return 0.0;
 	}
 	for (size_t index = 0; index < count; index++) {
-		const double x = _section_x[index];
+		const double x = section_x[index];
 		if (p_x > x && index < count - 1) {
 			continue;
 		}
@@ -914,7 +925,7 @@ double NativeShipMesh::_half_breadth(double p_x, double p_y, int64_t p_side) con
 		if (p_x > x) {
 			return here * (1.0 - (p_x - x) / (last_length * 0.5));
 		}
-		const double before = _section_x[index - 1];
+		const double before = section_x[index - 1];
 		const double t = (p_x - before) / (x - before);
 		const double from = _reach(index - 1, p_y, p_side);
 		return from + (here - from) * t;
@@ -936,14 +947,14 @@ bool NativeShipMesh::_holds(const Vector3 &p_point) const {
 	if (breadth <= 0.0 || z * (double)side > breadth) {
 		return false;
 	}
-	const auto found = _platform_squares.find(roof_square(x, z));
-	if (found == _platform_squares.end()) {
+	const auto found = _roof->platform_squares.find(roof_square(x, z));
+	if (found == _roof->platform_squares.end()) {
 		return false;
 	}
 	for (int32_t index : found->second) {
-		const Rect2 &area = _platform_areas[index];
+		const Rect2 &area = _roof->platform_areas[index];
 		const Vector2 end = area.position + area.size;
-		if (_platform_heights[index] > y && x >= area.position.x && x <= end.x && z >= area.position.y &&
+		if (_roof->platform_heights[index] > y && x >= area.position.x && x <= end.x && z >= area.position.y &&
 				z <= end.y) {
 			return true;
 		}
@@ -1628,6 +1639,7 @@ void NativeShipMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_grid", "grid", "boxes"), &NativeShipMesh::set_grid);
 	ClassDB::bind_method(D_METHOD("set_roofed", "weather_floor", "sections", "outlines", "areas", "heights"),
 			&NativeShipMesh::set_roofed);
+	ClassDB::bind_method(D_METHOD("judge_like", "other"), &NativeShipMesh::judge_like);
 	ClassDB::bind_method(D_METHOD("box", "area", "bottom", "top", "finish", "colour", "finish_in", "colour_in",
 								 "faces", "foot", "head"),
 			&NativeShipMesh::box);

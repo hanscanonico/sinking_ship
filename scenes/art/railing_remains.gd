@@ -26,6 +26,9 @@ const SPLINTERS := 3
 const SPLINTER := 0.16
 const SPLINTER_WIDTH := 0.022
 const SPLINTER_FAN := 0.45
+## The side of the squares railings' ends are filed by (_ends_near), in metres: far wider
+## than is_equal_approx() lets two ends stand apart.
+const END_SQUARE := 1.0
 
 var _layout: ShipLayout
 ## The rules' railing height, the rails' sections and the posts' side (ShipArt).
@@ -33,6 +36,9 @@ var _height: float
 var _cap: Vector2
 var _middle: Vector2
 var _post: float
+## Per END_SQUARE square, the railings, by index in ascending order, with an end in it;
+## filed the first time sharing() is asked.
+var _ends := {}
 
 
 func _init(layout: ShipLayout, height: float, cap: Vector2, middle: Vector2, post: float) -> void:
@@ -139,7 +145,7 @@ func held(index: int, broken: PackedInt32Array) -> int:
 func sharing(index: int, point: Vector2) -> PackedInt32Array:
 	var height := _layout.platforms[_layout.railings[index].platform].height
 	var found := PackedInt32Array()
-	for other_index in _layout.railings.size():
+	for other_index: int in _ends_near(point):
 		var other := _layout.railings[other_index]
 		var level := _layout.platforms[other.platform].height
 		if other_index == index or not is_equal_approx(level, height):
@@ -147,3 +153,35 @@ func sharing(index: int, point: Vector2) -> PackedInt32Array:
 		if other.from.is_equal_approx(point) or other.to.is_equal_approx(point):
 			found.append(other_index)
 	return found
+
+
+## The railings, by index in ascending order, with an end in the END_SQUARE square
+## [param point] stands in or one beside it: every one whose end is approximately the
+## point is among them.
+func _ends_near(point: Vector2) -> PackedInt32Array:
+	if _ends.is_empty():
+		for index in _layout.railings.size():
+			var railing := _layout.railings[index]
+			for end: Vector2 in [railing.from, railing.to]:
+				var square := _square_of(end)
+				if not _ends.has(square):
+					_ends[square] = PackedInt32Array()
+				var filed: PackedInt32Array = _ends[square]
+				if filed.is_empty() or filed[filed.size() - 1] != index:
+					filed.append(index)
+					_ends[square] = filed
+	var gathered := PackedInt32Array()
+	var middle := _square_of(point)
+	for x in range(-1, 2):
+		for y in range(-1, 2):
+			gathered.append_array(_ends.get(middle + Vector2i(x, y), PackedInt32Array()))
+	gathered.sort()
+	var near := PackedInt32Array()
+	for index: int in gathered:
+		if near.is_empty() or near[near.size() - 1] != index:
+			near.append(index)
+	return near
+
+
+static func _square_of(point: Vector2) -> Vector2i:
+	return Vector2i(floori(point.x / END_SQUARE), floori(point.y / END_SQUARE))

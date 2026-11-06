@@ -413,11 +413,8 @@ static func kind_of(space: ShipSpace, room: ShipRoom) -> Kind:
 			for gap: Vector2 in _gaps(room, side, runs):
 				doorways += 1 if _beyond(space, room, side, gap) != -1 else 0
 		return Kind.PASSAGE if doorways >= 2 else Kind.CUDDY
-	var top_floor := -INF
-	var wheelhouse := false
-	for other: ShipRoom in space.layout.rooms:
-		top_floor = maxf(top_floor, other.floor_height)
-		wheelhouse = wheelhouse or String(other.name).to_lower().contains("wheelhouse")
+	var top_floor := space._top_room_floor()
+	var wheelhouse := space._has_wheelhouse()
 	var area := size.x * size.y
 	if room.floor_height >= top_floor and area < SALOON_AREA and not wheelhouse:
 		return Kind.HELM
@@ -614,12 +611,18 @@ func lights(room: ShipRoom) -> Array[Light]:
 func build(mesh: ShipMesh, signs: Node3D, panes: Array[Array]) -> void:
 	_cabin_count = 0
 	var cuddy := 0
+	# Each room's glass, in the panes' order, gathered in one pass over them.
+	var glazed := {}
+	for pane: Array in panes:
+		if not glazed.has(pane[0]):
+			var own: Array[Array] = []
+			glazed[pane[0]] = own
+		glazed[pane[0]].append(pane)
 	for index in _layout.rooms.size():
 		var room := _layout.rooms[index]
 		var glass: Array[Array] = []
-		for pane: Array in panes:
-			if pane[0] == room:
-				glass.append(pane)
+		if glazed.has(room):
+			glass = glazed[room]
 		match _kinds[index]:
 			Kind.ENGINE:
 				_engine.build(mesh, room)

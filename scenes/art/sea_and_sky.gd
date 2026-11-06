@@ -287,13 +287,14 @@ func _map_rooms(layout: ShipLayout) -> void:
 
 
 ## [param layout]'s rooms' maps — room_map, then room_edges — made the first time they
-## are asked for, on whatever thread asks; none for a layout without rooms.
-static func maps_of(layout: ShipLayout) -> Array:
+## are asked for, on whatever thread asks, of [param space] when given (a ShipSpace of
+## the layout that thread alone asks, its dressing's); none for a layout without rooms.
+static func maps_of(layout: ShipLayout, space: ShipSpace = null) -> Array:
 	_maps_guard.lock()
 	var found: Array = _maps.get(layout, [])
 	_maps_guard.unlock()
 	if found.is_empty() and not layout.rooms.is_empty():
-		found = [room_map(layout), room_edges(layout)]
+		found = [room_map(layout, space), room_edges(layout, space)]
 		_maps_guard.lock()
 		_maps[layout] = found
 		_maps_guard.unlock()
@@ -353,9 +354,11 @@ static func room_bounds(layout: ShipLayout) -> Rect2:
 ## red the lowest floor, green the highest ceiling (ShipSpace) of the rooms reaching
 ## into the cell — of both sides where a wall runs through it, so the water in a room
 ## by its wall never takes the sky — and both zero where no room is. A point of the
-## ship between the two, and in a room by room_edges(), stands in a room.
-static func room_map(layout: ShipLayout) -> Image:
-	var space := ShipSpace.new(layout)
+## ship between the two, and in a room by room_edges(), stands in a room. Read off
+## [param space], when given one of the layout, else a new one.
+static func room_map(layout: ShipLayout, space: ShipSpace = null) -> Image:
+	if space == null or space.layout != layout:
+		space = ShipSpace.new(layout)
 	var bounds := room_bounds(layout)
 	var size := _cells(bounds)
 	var map := Image.create_empty(size.x, size.y, false, Image.FORMAT_RGF)
@@ -381,9 +384,11 @@ static func room_map(layout: ShipLayout) -> Image:
 ## past EDGE_GRACE — less than nothing outside them, held within EDGE_REACH; half floats, which a
 ## browser's GPU reads between texels. Read between the cells' middles, as the sea
 ## reads it, a wall runs where it stands rather than along the cells', so no strip of
-## a room by its wall takes the sky, nor of the sea by the hull loses it.
-static func room_edges(layout: ShipLayout) -> Image:
-	var space := ShipSpace.new(layout)
+## a room by its wall takes the sky, nor of the sea by the hull loses it. Read off
+## [param space] as room_map() is.
+static func room_edges(layout: ShipLayout, space: ShipSpace = null) -> Image:
+	if space == null or space.layout != layout:
+		space = ShipSpace.new(layout)
 	var bounds := room_bounds(layout)
 	var size := _cells(bounds)
 	var edges := Image.create_empty(size.x, size.y, false, Image.FORMAT_RH)
