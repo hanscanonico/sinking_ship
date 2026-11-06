@@ -120,6 +120,8 @@ var shared_space: ShipSpace
 var pack := false
 
 var _space: ShipSpace
+## Her roofed space under her lowest weather deck, painted as indoors (_outdoors).
+var _roofed: RoofedIndoors
 var _dressing: RoomDressing
 ## The deck's and the walls' faces, in the linings of the rooms they look into.
 var _lined: LinedFaces
@@ -235,6 +237,7 @@ func build_frame(
 		child.queue_free()
 	var shared := shared_space != null and shared_space.layout == layout
 	_space = shared_space if shared else ShipSpace.new(layout)
+	_roofed = RoofedIndoors.new(_space)
 	_rooms_boxed()
 	_dressing = RoomDressing.new(_space, cut_above)
 	_lined = LinedFaces.new(_dressing)
@@ -617,16 +620,17 @@ func _process(_delta: float) -> void:
 ## The faces of the ship, gathered for one commit.
 func _mesh() -> ShipMesh:
 	var mesh := ShipMesh.new(_outdoors, _space.room_lines())
-	mesh.outdoors_over = _space.rooms_grid.outdoors_over.bind(_room_boxes)
+	mesh.outdoors_over = _roofed.outdoors_over.bind(_room_boxes)
 	mesh.cut_above = cut_above
 	mesh.keep = span
 	return mesh
 
 
 ## Whether ship point [param point] stands outdoors, as ShipSpace.outdoors says —
-## asked only where the point stands in some room's box; outside every one it does.
+## asked only where the point stands in some room's box; outside every one it does —
+## but for her roofed space under her lowest weather deck (RoofedIndoors).
 func _outdoors(point: Vector3) -> bool:
-	return _space.outdoors(point, _room_boxes)
+	return _roofed.outdoors(point, _room_boxes)
 
 
 ## Per room, a box holding all of it: its area and floor, up to the highest deck over
