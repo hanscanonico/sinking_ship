@@ -16,8 +16,9 @@ ShipLayout.dressed).
 Ship-local metres: x toward the bow, z to starboard, y up, origin on C deck — the
 inquiry's "highest deck which extends continuously from bow to stern" — amidships.
 Her decks are laid flat at their amidships heights (the inquiry's table), but for C and D
-decks forward of her bridge deck's front, stepped up to her sheer (D_SHEER, C_SHEER); the
-rest of her sheer lives in her bulkhead tops, her stepped forecastle and poop.
+decks forward of her bridge deck's front, stepped up to her sheer (D_SHEER, C_SHEER), and D
+deck aft of bulkhead N (D_SHEER_AFT); the rest of her sheer lives in her bulkhead tops, her
+stepped forecastle and poop.
 
 `--variant=olympic1913` and `--variant=britannic` write her sisters as test-only hulls
 (tests/fixtures/ships/titanic_olympic_1913.tres, titanic_britannic.tres), played by name
@@ -825,6 +826,27 @@ POOP = q(B_DECK + 0.56)                    # SB-III: C's sheer at x −107…−
 D_SHEER = [(B_RUN[1], -1.25)]
 C_SHEER = [(B_RUN[1], 1.5625)]
 
+# Her sheer aft (#399): D deck aft of bulkhead N laid where her plates stand it, as forward
+# and as far as it may. Her bulkhead tops measured off Plate III are the truth again
+# (BULKHEADS: "up to the underside of D deck", BOT), and Plate III's D deck line reads them
+# within 0.2 ft: M 0.05 m over its amidships height, N 0.26, O 0.50, P 1.07, her rudder post
+# 1.37. Aft of N she stands at N's top on the decks' grain, 0.25 m up, a step a body walks up
+# at N's line through the second-class dining saloon, so N stands up to the deck aft of it
+# and over the one forward. One step: a deck a step parts off is a deck of its own, and a
+# step a body walks up is no ramp to one; aft of N her plates draw two stairs up to C deck
+# (her second-class stairway between N and O, her third-class one aft of O), so the deck
+# aft of N has two ways up, but a second step, at O to O's top, would leave the deck aft of
+# it one (the third-class stairway), and a step to P's would be 0.5 m more again, more than a
+# body steps up. So O stands 0.25 m over her D deck, P 0.80 and her plate at her rudder post
+# 1.12, 2.94 m under C deck, which stays flat under her poop (POOP stands on its sheer). M's
+# top is under the grain: from M forward to her bridge deck's front D deck stays flat. (The
+# line, the deck's height aft of it), on the 1/128 m grain her cells part D deck on (D_CUTS).
+def grain_top(letter):
+    """Bulkhead letter's measured top on the decks' grain under it."""
+    return math.floor(TOPS[letter] * 16 + 1e-9) / 16
+
+D_SHEER_AFT = [(round(BX[letter] * 128) / 128, grain_top(letter)) for letter in "N"]
+
 def stepped(flat, steps, x, up=False):
     """A deck's height at x, flat aft of its first step, each step's height forward of it: on a
     step's line, the lower one's, or the higher's if up."""
@@ -835,8 +857,16 @@ def stepped(flat, steps, x, up=False):
     return h
 
 def d_at(x, up=False):
-    """D deck's height at x (D_SHEER)."""
-    return stepped(D_DECK, D_SHEER, x, up)
+    """D deck's height at x (D_SHEER forward, D_SHEER_AFT aft): on a step's line, the lower
+    one's, or the higher's if up."""
+    h = stepped(D_DECK, D_SHEER, x, up)
+    for at, height in D_SHEER_AFT:
+        if x < at - 1e-6 or (up and x < at + 1e-6):
+            h = height
+    return h
+
+# Every line D deck steps on, forward and aft.
+D_STEPS = D_SHEER + D_SHEER_AFT
 
 def c_at(x, up=False):
     """C deck's height at x (C_SHEER): her wells' and the decks under her houses' and forecastle."""
@@ -1424,7 +1454,7 @@ C_NOSE = max(r[2] for r in D_OUTLINE.rooms) + T  # over D deck's foremost store,
 def sheer_strips(x0, x1, height, steps, **kw):
     """hull_strips from x0 to x1 on a deck her sheer steps (height(x), steps' lines): each
     stretch between two steps at its own height."""
-    lines = [x0] + [at for at, _h in steps if x0 + 1e-6 < at < x1 - 1e-6] + [x1]
+    lines = [x0] + sorted(at for at, _h in steps if x0 + 1e-6 < at < x1 - 1e-6) + [x1]
     return [p for a, b in zip(lines, lines[1:]) for p in hull_strips(a, b, height((a + b) * 0.5), **kw)]
 
 C_PIECES = (hull_strips(C_TIP, C_ENDS[0], 0.0) + hull_strips(C_ENDS[0], POOP_TO, 0.0)
@@ -1437,7 +1467,7 @@ c_deck = [i for k, (x0, x1, z0, z1) in enumerate(C_PIECES)
 B_TAIL = [p for p in B_OUTLINE.decks if p[2] is not None]
 C_PLAN = plates.load("c", side=held_to(C_PIECES), ends=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM))
 D_ENDS = (min(r[1] for r in D_OUTLINE.rooms) - T, max(r[2] for r in D_OUTLINE.rooms) + T)
-D_PIECES = sheer_strips(*D_ENDS, d_at, D_SHEER)
+D_PIECES = sheer_strips(*D_ENDS, d_at, D_STEPS)
 d_deck = [i for k, (x0, x1, z0, z1) in enumerate(D_PIECES)
           for i in deck("d_%d" % k, "D deck", x0, x1, z0, z1, d_at((x0 + x1) * 0.5), holes["d"])]
 # D deck's cells part where a bulkhead's measured top stands over her flat D deck — P,
@@ -1702,7 +1732,7 @@ DECKS_AT = {BOAT: boat, A_DECK: a_deck, B_DECK: b_deck, 0.0: c_deck + well, D_DE
             E_DECK: e_deck, F_DECK: f_deck}
 # (C and D decks forward, where her sheer steps them.)
 DECKS_AT.update({h: c_deck + well for _at, h in C_SHEER})
-DECKS_AT.update({h: d_deck for _at, h in D_SHEER})
+DECKS_AT.update({h: d_deck for _at, h in D_STEPS})
 for name, _lo, _hi, _z0, _z1, high, _x_low in list(stairs):
     if high in DECKS_AT and not name.startswith(("boat_aft", "a_aft", "b_aft", "a_fwd")):
         hole_rails(DECKS_AT[high], name)
@@ -1741,14 +1771,16 @@ DOOR_LEAST = 1.0   # the layout lint's least door
 
 NO_ROOM = []  # (deck, axis, at, along, room, wall from, wall to): a door its wall has no room for
 
-def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None, main=None, water=True, wall_top=None):
+def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None, main=None, water=True, wall_top=None,
+               sill=None):
     """A traced deck's rooms, walls, doors and solid blocks, from floor to ceiling: a
     height, or the height of the deck over ship x, ceiling(x), which changes only at
     breaks — a wall along her under two decks is laid in a piece under each. Given
     place, its rooms as her cells hold them: split along parted_at, named for where
     they stand (named_pieces). floor may be a height over ship x too; water false, its doors
     are the ship's to open to her water (none of the doorways'). wall_top, a wall along her
-    at z over ship x its top, where it isn't the deck's over it."""
+    at z over ship x its top, where it isn't the deck's over it. sill, a wall across her at x
+    its doorways' floor, where it isn't the wall's (on a step, the higher deck's)."""
     over = ceiling if callable(ceiling) else (lambda _x: ceiling)
     level = floor if callable(floor) else (lambda _x: floor)
 
@@ -1838,7 +1870,7 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
                 else:
                     box("%s_lintel_%d" % (bid, i), c0, c1, at - half, at + half, floor + LINTEL, top)
             if water:
-                doorways.append((axis, at, c0, c1, floor))
+                doorways.append((axis, at, c0, c1, sill(at) if sill and axis == 0 else floor))
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.solids):
         floor = level((x0 + x1) * 0.5)
         sid, high = "%s_%d_%s" % (prefix, k, slug(what)), over((x0 + x1) * 0.5) if top is None else floor + top
@@ -1854,10 +1886,18 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
         # sides: the art draws a box indoors only as the room's furniture or machinery.
         # Each side runs through the corners, as a wall does past its ends, so no sliver
         # opens between two sides where a room's edge runs along one (B deck's buffet).
+        # Over a break each side stands on the deck under it and up to the deck over it,
+        # a side along her in a piece each side of the break, as a wall along her is (No. 4
+        # hatch on D deck, over bulkhead N's step).
         h = PARTITION / 2
-        for side, sides in [("aft", (x0 - h, x0 + h, z0 - h, z1 + h)), ("fore", (x1 - h, x1 + h, z0 - h, z1 + h)),
-                            ("port", (x0 - h, x1 + h, z0 - h, z0 + h)), ("starboard", (x0 - h, x1 + h, z1 - h, z1 + h))]:
-            box("%s_%s" % (sid, side), *sides, floor, high)
+        for side, (sx0, sx1, sz0, sz1) in [("aft", (x0 - h, x0 + h, z0 - h, z1 + h)),
+                                           ("fore", (x1 - h, x1 + h, z0 - h, z1 + h)),
+                                           ("port", (x0 - h, x1 + h, z0 - h, z0 + h)),
+                                           ("starboard", (x0 - h, x1 + h, z1 - h, z1 + h))]:
+            cuts = [sx0] + [v for v in sorted(breaks) if sx0 + 2 * T < v < sx1 - 2 * T] + [sx1]
+            for j, (p, q) in enumerate(zip(cuts, cuts[1:])):
+                box("%s_%s" % (sid, side) + ("_u%d" % j if len(cuts) > 2 else ""), p, q, sz0, sz1,
+                    level((p + q) * 0.5), over((p + q) * 0.5))
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.raised):
         box("%s_raised_%d" % (prefix, k), x0, x1, z0, z1, floor, floor + top - 2 * T)
 
@@ -1990,8 +2030,8 @@ def d_place(x):
 
 plan_layer("c", C_PLAN, c_at, c_over, (POOP_TO, C_TAIL, B_RUN[1], FCSL_FROM, FC_RAMP[1]),
            parted_at=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, FCSL_STEP), place=c_place, main=("C deck",))
-plan_layer("d", D_PLAN, d_at, lambda x: c_at(x, True), [at for at, _h in D_SHEER + C_SHEER], parted_at=D_CUTS,
-           place=d_place, main=("D deck",))
+plan_layer("d", D_PLAN, d_at, lambda x: c_at(x, True), [at for at, _h in D_STEPS + C_SHEER], parted_at=D_CUTS,
+           place=d_place, main=("D deck",), sill=lambda x: d_at(x, True))
 # Her stepped D deck's riser at her bridge deck's front, across her where the plate's wall on
 # that line leaves a gap (the trunk's forward of it): steel from the deck aft up to the one
 # forward, so nobody aft looks into the space under the deck forward.
@@ -2016,8 +2056,21 @@ def ef_place(level, cuts=None):
         return ("%s deck" % level, "forward of %s" % letter[round(cuts[-1], 4)])
     return place
 
-plan_layer("e", E_PLAN, E_DECK, lambda x: d_at(x, True), [at for at, _h in D_SHEER], parted_at=EF_CUTS,
+plan_layer("e", E_PLAN, E_DECK, lambda x: d_at(x, True), [at for at, _h in D_STEPS], parted_at=EF_CUTS,
            place=ef_place("E"))
+# And where she steps up aft (D_SHEER_AFT), at N: across her from the deck forward up
+# to the one aft, wherever nothing on the line stands from the one to the other already (a
+# wall on it, E deck's under the deck aft), in the doorways too, a step a body walks up.
+for line, high in D_SHEER_AFT:
+    low = d_at(line + 0.01)
+    half = min(p[3] for p in D_PIECES if abs(p[0] - line) < 1e-6 or abs(p[1] - line) < 1e-6)
+    standing = sorted((b[2], b[3]) for b in block_geo if b[0] < line < b[1] and b[4] <= low + 1e-6
+                      and b[5] >= high - 1e-6)
+    at_z = -half
+    for k, (w0, w1) in enumerate(standing + [(half, half)]):
+        if w0 - at_z > 0.005:
+            box("d_riser_%s_%d" % (LINE_LETTER[round(line, 4)].lower(), k), line - T, line + T, at_z, w0, low, high)
+        at_z = max(at_z, w1)
 plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=EF_CUTS, place=ef_place("F"))
 plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=G_CUTS, place=ef_place("G", G_CUTS))
 # The pocket abaft D the racquet court's stair comes down in, past its door through D.
@@ -3510,12 +3563,13 @@ for name in ("after_hold_fwd", "after_hold_aft"):
     x0, x1 = COMP[name]
     cell(name, x0, x1, TANK_TOP, ORLOP, -HALF, HALF, "CARGO", HOLD)
     cell(name + "_orlop", x0, x1, ORLOP, G_DECK, -HALF, HALF, "STORES")
-    cell(name + "_tween", x0, x1, G_DECK, D_DECK, -HALF, HALF, "ACCOMMODATION")
-    cell(name + "_d", x0, x1, D_DECK, 0.0, -HALF, HALF, "ACCOMMODATION")
+    # (Under D deck where her sheer lifts it aft, D_SHEER_AFT.)
+    cell(name + "_tween", x0, x1, G_DECK, d_at((x0 + x1) * 0.5), -HALF, HALF, "ACCOMMODATION")
+    cell(name + "_d", x0, x1, d_at((x0 + x1) * 0.5), 0.0, -HALF, HALF, "ACCOMMODATION")
 x0, x1 = COMP["after_peak"]
 cell("after_peak_tank", x0, x1, KEEL, G_DECK, -HALF, HALF, "VOID")
-cell("after_peak_tween", x0, x1, G_DECK, D_DECK, -HALF, HALF, "STORES")
-cell("after_peak_d", x0, x1, D_DECK, 0.0, -HALF, HALF, "ACCOMMODATION")
+cell("after_peak_tween", x0, x1, G_DECK, d_at((x0 + x1) * 0.5), -HALF, HALF, "STORES")
+cell("after_peak_d", x0, x1, d_at((x0 + x1) * 0.5), 0.0, -HALF, HALF, "ACCOMMODATION")
 # D deck under the bridge deck, and forward of it under the well and No. 1 hatch: one
 # space, two cells, so the water drawn round each one's rooms stands inside her shell.
 cell("d_deck", UPPER["M"], B_RUN[1], D_DECK, 0.0, -HALF, HALF, "ACCOMMODATION")
@@ -3841,7 +3895,7 @@ opening("door_forecastle", "DOOR", "forecastle", SKY, (FCSL_FROM, c_at(FCSL_FROM
 # the second-class staircase's well forward of its lift, in her house under A deck; on C
 # deck, her after second-class entrance's hall at B deck's after end.
 for plan, plan_floor, over in ((BOAT_PLAN, BOAT, BOAT + HOUSE_TOP), (A_PLAN, A_DECK, BOAT), (B_PLAN, B_DECK, A_DECK),
-                          (C_PLAN, c_at, c_over), (D_PLAN, d_at, lambda x: c_at(x, True)), (E_PLAN, E_DECK, D_DECK), (F_PLAN, F_DECK, E_DECK), (G_PLAN, G_DECK, F_DECK),
+                          (C_PLAN, c_at, c_over), (D_PLAN, lambda x: d_at(x, True), lambda x: c_at(x, True)), (E_PLAN, E_DECK, D_DECK), (F_PLAN, F_DECK, E_DECK), (G_PLAN, G_DECK, F_DECK),
                           (ORLOP_PLAN, ORLOP_FWD, G_DECK), (LOWER_PLAN, LOWER_ORLOP, ORLOP_FWD)):
     for ox0, ox1, oz0, oz1 in plan.open:
         floor = plan_floor((ox0 + ox1) * 0.5) if callable(plan_floor) else plan_floor
@@ -4549,16 +4603,17 @@ def furniture(kind, name, at, fields, facing=0.0):
 
 # The à la carte restaurant's (B_PLAN) and the dining saloons' (D_PLAN), 3 m apart over
 # each of their rectangles, on the grid of those shifted a quarter pitch at a time each way
-# under which the most keep every rule.
-for tag, floor, rects in [("restaurant", B_DECK, b_rooms("à la carte restaurant")),
-                          ("saloon_1", D_DECK, d_rooms("first-class dining saloon")),
-                          ("saloon_2", D_DECK, d_rooms("second-class dining saloon"))]:
+# under which the most keep every rule. (The second-class saloon's on D deck where her sheer
+# steps it at N, D_SHEER_AFT.)
+for tag, floor, rects in [("restaurant", lambda _x: B_DECK, b_rooms("à la carte restaurant")),
+                          ("saloon_1", d_at, d_rooms("first-class dining saloon")),
+                          ("saloon_2", d_at, d_rooms("second-class dining saloon"))]:
     for k, (_n, x0, x1, z0, z1) in enumerate(rects):
         best = []
         for sx in SHIFTS:
             for sz in SHIFTS:
                 grid = [(x, z) for x in lattice(x0, x1, 3.0, sx) for z in lattice(z0, z1, 3.0, sz)]
-                laid = [("%s_%d_%d" % (tag, k, i), x, floor, z) for i, (x, z) in enumerate(grid)]
+                laid = [("%s_%d_%d" % (tag, k, i), x, floor(x), z) for i, (x, z) in enumerate(grid)]
                 laid = [t for t in laid if not laid_problems(*t)]
                 if len(laid) > len(best):
                     best = laid
