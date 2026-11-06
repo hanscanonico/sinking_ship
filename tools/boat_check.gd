@@ -3,7 +3,8 @@ extends RefCounted
 ## boat curves away from a box's corners and under its gunwale, so it is held where it
 ## meets the box — its stem heads its top and its stems its ends, over its keel; its
 ## gunwale its inboard side amidships; and its davits' feet the deck's edge — rather
-## than at every side and corner as a box drawn as a box is.
+## than at every side and corner as a box drawn as a box is. A smaller boat is drawn to
+## its smaller box (DeckFurniture.boat_scale), its keel in the middle of its beam.
 
 
 ## Whether [param blocker] is a box on an open deck of [param space]'s ship that
@@ -26,7 +27,8 @@ static func probes(blocker: ShipBlocker) -> Array[Array]:
 	var area := blocker.area
 	var side := signf(area.get_center().y)
 	var edge := area.end.y if side > 0.0 else area.position.y
-	var keel := edge - side * (DeckFurniture.BOAT_OFF + DeckFurniture.BOAT_BEAM * 0.5)
+	var scale := DeckFurniture.boat_scale(area, blocker.top - blocker.bottom)
+	var keel := edge - side * (DeckFurniture.BOAT_OFF + DeckFurniture.BOAT_BEAM * scale.z * 0.5)
 	var middle := area.get_center().x
 	var gunwale := lerpf(blocker.bottom, blocker.top, 0.75)
 	var found: Array[Array] = []
