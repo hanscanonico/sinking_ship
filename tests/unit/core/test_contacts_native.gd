@@ -6,12 +6,12 @@ extends GutTest
 ## crates touching, stacked on lids and astride the grids' cells — and on her real ships,
 ## their doors half shut and a funnel down, every obstacle, railing and airborne-railing
 ## contact and every crate near a point, asked at corners, edges and a hair either side
-## of them, at ±0 and from heights a step either side of every surface; then matches
-## stepped tick by tick, one natively and one in GDScript, their snapshots byte for byte —
-## a saloon's tables and chairs afloat as she settles and heels, and the steamer's crates
-## sliding hard into railings that break. Where the extension is not loaded there is
-## nothing to hold it to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there
-## fails.
+## of them, at ±0 and from heights a step either side of every surface — and where a
+## falling body lands there and its ceiling; then matches stepped tick by tick, one
+## natively and one in GDScript, their snapshots byte for byte — a saloon's tables and
+## chairs afloat as she settles and heels, and the steamer's crates sliding hard into
+## railings that break. Where the extension is not loaded there is nothing to hold it
+## to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const STEAMER := "res://data/ships/steamer.tres"
 const SMALL_TITANIC := "res://data/ships/small_titanic.tres"
@@ -211,6 +211,7 @@ func _ask_all(
 				native, reference, point, shape, rules.step_height, -1, rules.crawl_height, 0.1
 			)
 			_rails(native, reference, point, shape, rules)
+		_floors(native, reference, point, rules, _rng.randi_range(-1, props.size() - 1))
 		for reach: float in [0.0, rules.body_radius, 1.9]:
 			_near(native.stands, reference.stands, point, reach, -1)
 		_near(native.stands, reference.stands, point, 0.3, _rng.randi_range(0, props.size() - 1))
@@ -256,6 +257,25 @@ func _rails(
 		reference.airborne_rail_contacts(point, came, shape.x, shape.y, rules.railing_height),
 		"airborne railings at %s from %s" % [point, came]
 	)
+
+
+## landing() and ceiling() at [param point], natively and in GDScript: the lid of
+## [param except] passed over, and the ceiling from the feet and a step and a head over.
+func _floors(
+	native: Surfaces, reference: Surfaces, point: Vector3, rules: BrawlRules, except: int
+) -> void:
+	for passed: int in [-1, except]:
+		_asked += 1
+		var mine := native.landing(point, passed)
+		var theirs := reference.landing(point, passed)
+		if mine != theirs:
+			_note("landing at %s past %d: %d, not %d" % [point, passed, mine, theirs])
+	for clearance: float in [0.0, rules.step_height, rules.body_height]:
+		_asked += 1
+		var mine := native.ceiling(point, clearance)
+		var theirs := reference.ceiling(point, clearance)
+		if var_to_bytes(mine) != var_to_bytes(theirs):
+			_note("ceiling at %s over %s: %s, not %s" % [point, clearance, mine, theirs])
 
 
 func _near(

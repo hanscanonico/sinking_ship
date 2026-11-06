@@ -5,7 +5,8 @@ extends GutTest
 ## the extension and by one whose loops run in GDScript — every sheet, stack, pour,
 ## froth and light the same, shown or hidden, placed and painted alike, and the same
 ## state kept — and an FxPlanner's and a CuePlanner's effects and sounds of each step
-## the same, field for field. Where the extension is not loaded there is nothing to hold
+## the same, field for field — on a hull that breaks too, each piece of her read as it
+## stands (PieceViews). Where the extension is not loaded there is nothing to hold
 ## it to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const RunMatch := preload("res://tools/run_match.gd")
@@ -102,49 +103,63 @@ func test_her_steps_plan_alike_as_she_sinks() -> void:
 	if not _loaded():
 		return
 	for ship: StringName in SHIPS:
-		var config := RunMatch.default_config(SEED, 2, ship)
-		var sim := MatchSim.create(config)
-		var schedule := sim.schedule
-		var fxs: Array[FxPlanner] = []
-		var cues: Array[CuePlanner] = []
+		_plans_alike(RunMatch.default_config(SEED, 2, ship), ship, 0, ["WASH", "FLOOD", "POUR"])
+
+
+func test_her_broken_steps_plan_alike() -> void:
+	# Once she has broken, every piece of her read as it stands (PieceViews, #478).
+	if not _loaded():
+		return
+	var config := SimFixtures.breaking(1, null)
+	var from := SimFixtures.after_parting(config.schedule(), -10.0)
+	_plans_alike(config, &"steamer_weak", from, ["WASH", "FLOOD"])
+
+
+## An FxPlanner's and a CuePlanner's steps of [param config]'s sinking from [param from],
+## natively and in GDScript, field for field: telling of every kind in [param kinds].
+func _plans_alike(config: MatchConfig, ship: StringName, from: int, kinds: Array) -> void:
+	var sim := MatchSim.create(config)
+	var schedule := sim.schedule
+	var fxs: Array[FxPlanner] = []
+	var cues: Array[CuePlanner] = []
+	for side in 2:
+		fxs.append(FxPlanner.new(config, sim.surfaces, schedule))
+		cues.append(CuePlanner.new(config, sim.surfaces, schedule, 0))
+		cues[side].listener_seat = 0
+	assert_not_null(fxs[0].native, "%s's effects are planned natively" % ship)
+	assert_not_null(cues[0].native, "%s's sounds are planned natively" % ship)
+	fxs[1].native = null
+	fxs[1]._decks._middles.water = null
+	cues[1].native = null
+	cues[1]._decks._middles.water = null
+	var differences: Array[String] = []
+	var told := {}
+	var snapshot := sim.snapshot()
+	snapshot["events"] = []
+	var end := schedule.end_tick()
+	for tick in range(from, end, STRIDE):
+		var previous := snapshot.duplicate()
+		previous["tick"] = tick
+		var current := snapshot.duplicate()
+		current["tick"] = tick + STRIDE
+		var planned: Array[PackedByteArray] = []
 		for side in 2:
-			fxs.append(FxPlanner.new(config, sim.surfaces, schedule))
-			cues.append(CuePlanner.new(config, sim.surfaces, schedule, 0))
-			cues[side].listener_seat = 0
-		assert_not_null(fxs[0].native, "%s's effects are planned natively" % ship)
-		assert_not_null(cues[0].native, "%s's sounds are planned natively" % ship)
-		fxs[1].native = null
-		fxs[1]._decks._middles.water = null
-		cues[1].native = null
-		cues[1]._decks._middles.water = null
-		var differences: Array[String] = []
-		var told := {}
-		var snapshot := sim.snapshot()
-		snapshot["events"] = []
-		var end := schedule.end_tick()
-		for tick in range(0, end, STRIDE):
-			var previous := snapshot.duplicate()
-			previous["tick"] = tick
-			var current := snapshot.duplicate()
-			current["tick"] = tick + STRIDE
-			var planned: Array[PackedByteArray] = []
-			for side in 2:
-				var made: Array = []
-				for each: FxCue in fxs[side].plan(previous, current):
-					made.append(_fields(each))
-					if side == 0:
-						told[FxCue.Kind.keys()[each.kind]] = true
-				for each: AudioCue in cues[side].plan(previous, current):
-					made.append(_fields(each))
-					if side == 0:
-						told[AudioCue.Kind.keys()[each.kind]] = true
-				planned.append(var_to_bytes(made))
-			if planned[0] != planned[1] and differences.size() < 4:
-				differences.append("tick %d" % tick)
-		gut.p("%s: %d ticks, told %s" % [ship, end, told.keys()])
-		assert_eq(differences, [] as Array[String], "%s's steps plan alike" % ship)
-		for kind: String in ["WASH", "FLOOD", "POUR"]:
-			assert_true(told.has(kind), "%s's sinking tells of %s" % [ship, kind])
+			var made: Array = []
+			for each: FxCue in fxs[side].plan(previous, current):
+				made.append(_fields(each))
+				if side == 0:
+					told[FxCue.Kind.keys()[each.kind]] = true
+			for each: AudioCue in cues[side].plan(previous, current):
+				made.append(_fields(each))
+				if side == 0:
+					told[AudioCue.Kind.keys()[each.kind]] = true
+			planned.append(var_to_bytes(made))
+		if planned[0] != planned[1] and differences.size() < 4:
+			differences.append("tick %d" % tick)
+	gut.p("%s: %d ticks, told %s" % [ship, end, told.keys()])
+	assert_eq(differences, [] as Array[String], "%s's steps plan alike" % ship)
+	for kind: String in kinds:
+		assert_true(told.has(kind), "%s's sinking tells of %s" % [ship, kind])
 
 
 func test_her_water_on_its_edges_is_drawn_and_heard_alike() -> void:

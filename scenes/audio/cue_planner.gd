@@ -136,7 +136,9 @@ var _pour_rearm := Ticks.from_seconds(POUR_REARM)
 var _creak_strain := 0.0
 var _groan_strain := 0.0
 ## Her platforms' water, and the last two poses' cells' and openings', read once a
-## pose: a step's pose before it is the step before's own (_water_coming_on).
+## pose: a step's pose before it is the step before's own (_water_coming_on). Once she has
+## broken, each as the piece of her it lies on stands (PieceViews, #478).
+var _pieces: PieceViews
 var _decks: FloodedDecks
 var _readings: Array[Reading] = [Reading.new(), Reading.new()]
 var _next_reading := 0
@@ -161,7 +163,8 @@ func _init(
 	_surfaces = surfaces
 	_schedule = schedule
 	_layout = config.ship
-	_decks = FloodedDecks.new(config.ship)
+	_pieces = PieceViews.new(config.ship, schedule)
+	_decks = FloodedDecks.new(config.ship, _pieces)
 	_walk_speed = config.rules.walk_speed
 	_wade_depth = config.rules.wade_depth
 	_charge_full = Ticks.from_seconds(config.rules.charge_full)
@@ -256,6 +259,7 @@ func hums(snapshot: Dictionary) -> Array[AudioCue]:
 func _footstep(entry: Dictionary, pose: ShipPose, tick: int, cues: Array[AudioCue]) -> void:
 	if entry["hitstop"] > 0:
 		return
+	pose = _pieces.of_piece(pose, entry.get("piece", 0))
 	var seat: int = entry["seat"]
 	var vel: Vector3 = entry["vel"]
 	var speed := Vector2(vel.x, vel.z).length()
@@ -400,7 +404,8 @@ func _from_event(event: Dictionary, now: Dictionary, pose: ShipPose, cues: Array
 			var cue := _at_seat(AudioCue.Kind.LANDING, tick, now[seat])
 			var heavy := clampf(float(event["stagger"]) / LANDING_LOUD_TICKS, 0.0, 1.0)
 			cue.gain = lerpf(LANDING_SOFT, 1.0, heavy)
-			cue.ground = _ground(event["surface"], cue.position, pose)
+			var seated := _pieces.of_piece(pose, now[seat].get("piece", 0))
+			cue.ground = _ground(event["surface"], cue.position, seated)
 			cues.append(cue)
 		SimEvent.Kind.ENTERED_WATER:
 			cues.append(_at_seat(AudioCue.Kind.SPLASH, tick, now[seat]))
@@ -665,6 +670,27 @@ func _reading(pose: ShipPose) -> Reading:
 	var reading := _readings[_next_reading]
 	_next_reading = 1 - _next_reading
 	reading.pose = pose
+	var views := _pieces.of(pose)
+	if views.size() == 1:
+		_read(reading, pose)
+		return reading
+	# Broken: every cell and opening as the piece its middle lies on stands.
+	var read := Reading.new()
+	reading.over.resize(_floors.size())
+	reading.pouring.resize(_openings.size())
+	for place in views.size():
+		_read(read, views[place])
+		for cell in _floors.size():
+			if _pieces.place_of(views, _floors[cell].x) == place:
+				reading.over[cell] = read.over[cell]
+		for index in _openings.size():
+			if _pieces.place_of(views, _opening_centres[index].x) == place:
+				reading.pouring[index] = read.pouring[index]
+	return reading
+
+
+## _reading's walk of every cell and opening under [param pose], into [param reading].
+func _read(reading: Reading, pose: ShipPose) -> void:
 	var basis := pose.transform.basis
 	var row := Vector3(basis.x.y, basis.y.y, basis.z.y)
 	var across := absf(row.x)
@@ -674,7 +700,7 @@ func _reading(pose: ShipPose) -> Reading:
 	var levels := pose.levels
 	if native != null:
 		_read_natively(reading, pose, levels)
-		return reading
+		return
 	reading.over.resize(_floors.size())
 	for cell in _floors.size():
 		var half := _floor_halves[cell]
@@ -705,7 +731,6 @@ func _reading(pose: ShipPose) -> Reading:
 			and absf(first_level - second_level) >= POURS
 		):
 			reading.pouring[index] = 1
-	return reading
 
 
 ## _reading's walk of every cell and opening, the extension's: those open of the openings

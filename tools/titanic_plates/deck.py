@@ -36,6 +36,8 @@ A deck's pieces, each a rectangle (x0, y0, x1, y1) in plate pixels unless said:
             box's middle.
     BRIDGES [(name, x0, y0, x1, y1, height), …]: a deck on stanchions height metres
             over the deck, open under it, y None for her whole breadth there.
+    SIDE    [(x, y), …]: points on her side as the view draws it, aft to forward, each on
+            its line's middle: the generator holds a deck laid off her hull within it.
 
 Rooms snap to shared lines: edges within SNAP pixels of each other are one wall.
 
@@ -195,6 +197,7 @@ class Deck:
         self.stairs = [s for p in parts for s in p.stairs]
         self.gear = [g for p in parts for g in p.gear]
         self.bridges = [b for p in parts for b in p.bridges]
+        self.side = [s for p in parts for s in p.side]
         if len(parts) > 1:
             self._join(parts)
         self._nudged(module)
@@ -615,6 +618,8 @@ class _Part:
                 self.bridges.append((bridge_name, a, b, None, None, height))
             else:
                 self.bridges.append((bridge_name,) + self.view.rect(x0, y0, x1, y1) + (height,))
+        # Her side as (x, half breadth), in ship metres, aft to forward.
+        self.side = [(self.view.x(x), abs(self.view.z(x, y))) for x, y in getattr(module, "SIDE", [])]
 
     def _owner(self, box):
         """The list and index of box, by its place among the rooms, solids, raised floors

@@ -106,12 +106,21 @@ var _linings := PackedFloat64Array()
 ## The atmosphere's pressure as metres of sea: what a pocket's air (ShipPose.pockets)
 ## squeezes past.
 var _atmosphere := 0.0
+## Her pose as each piece of her stands in it, once she has broken (#478): each stretch
+## of the gash comes in as the piece it lies on stands.
+var _pieces: PieceViews
 
 
 ## Plans [param schedule]'s strike on [param layout], whose rooms are walled by
-## [param walls].
-func _init(schedule: SinkSchedule, layout: ShipLayout, walls: Array[ShipBlocker] = []) -> void:
+## [param walls], each stretch of it on the piece of her [param pieces] has it lie on.
+func _init(
+	schedule: SinkSchedule,
+	layout: ShipLayout,
+	walls: Array[ShipBlocker] = [],
+	pieces: PieceViews = null
+) -> void:
 	_schedule = schedule
+	_pieces = pieces if pieces != null else PieceViews.new(layout, schedule)
 	_structure = layout.structure
 	var sea := SeaPhysics.load_default()
 	_atmosphere = sea.air_pressure / (sea.sea_density * sea.gravity)
@@ -197,14 +206,19 @@ func breach(from_tick: int, tick: int, pose: ShipPose, cues: Array[FxCue]) -> vo
 		_rents(damage, struck, cues)
 		_heads_at(_schedule.pose_at(struck), damage)
 	var beat := struck + (tick - 1 - struck) / BREACH_TICKS * BREACH_TICKS
-	# A broken hull's pieces keep cells of their own, and once she has gone the gash is
-	# the least of it.
-	var whole := pose.pieces.is_empty() and pose.levels.size() == _structure.cells.size()
+	# Once she has broken, each stretch as its own piece stands (PieceViews); a hull that
+	# breaks, before it has, comes in unseen; and once she has gone the gash is the least
+	# of it.
+	var views := _pieces.of(pose)
+	var unread := views.size() == 1 and not pose.pieces.is_empty()
 	var gone := _schedule.gone_tick()
-	if beat < from_tick or not whole or (gone >= 0 and tick >= gone):
+	if beat < from_tick or unread or (gone >= 0 and tick >= gone):
 		return
 	for index in damage.openings.size():
-		_inrush(index, damage.openings[index], pose, tick, cues)
+		var opening := damage.openings[index]
+		var view := views[_pieces.place_of(views, opening.centre.x)]
+		if view.levels.size() == _structure.cells.size():
+			_inrush(index, opening, view, tick, cues)
 
 
 ## The sea coming in through [param opening], the gash's [param index]th stretch, under
