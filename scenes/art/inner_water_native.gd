@@ -160,7 +160,7 @@ func find_wet(water: InnerWater, then: ShipPose, now: ShipPose, levels: PackedFl
 	)
 	water._wet = found[0]
 	for index: int in found[1]:
-		if water._pours[index].visible:
+		if not water._pours[index].top_level:
 			water._hide_pour(index)
 	water._last_heads = found[3]
 	var slots := water._slots
