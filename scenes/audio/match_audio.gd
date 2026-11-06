@@ -37,6 +37,8 @@ var _underwater: Underwater
 var _sim: MatchSim
 var _local_seat := -1
 var _schedule: SinkSchedule
+## The pieces her sinking ends in (ShipPieces.leaves_of): none for a hull that never breaks.
+var _leaves := PackedInt32Array()
 ## Her rooms, indexed for the feet asked of every frame (RoomIndex).
 var _rooms: RoomIndex
 var _step_height: float
@@ -129,6 +131,7 @@ func setup(
 	_sim = sim
 	_local_seat = local_seat
 	_schedule = sim.schedule
+	_leaves = ShipPieces.leaves_of(_schedule)
 	_rooms = RoomIndex.new(sim.config.ship)
 	_step_height = sim.config.rules.step_height
 	_planner = CuePlanner.new(sim.config, sim.surfaces, sim.schedule, local_seat)
@@ -171,7 +174,7 @@ func _process(delta: float) -> void:
 	if _driver == null or not _driver.started() or camera == null:
 		return
 	_listener.global_transform = camera.global_transform
-	_keep_humming(_planner.hums(_driver.current), _view.ship_to_world())
+	_keep_humming(_planner.hums(_driver.current), _view)
 	# The sea is the world plane (D7), so the ears' height is their distance to it.
 	var above_sea := camera.global_position.y - FirstPersonCamera.eye_height_of(camera)
 	var tick: int = _driver.current["tick"]
@@ -200,14 +203,19 @@ func _process(delta: float) -> void:
 
 ## Reads the sinking's part of the mix at [param tick], with the ears at
 ## [param ears] (world space): how fast she sinks over the second to it, and the
-## listener's own cell — the water rising in it, and how deep it stands.
+## listener's own cell — the water rising in it, and how deep it stands — on the piece of
+## her the ears are on once she has broken (MatchView.leaf_holding, #460).
 func _read_sinking(tick: int, ears: Vector3) -> void:
 	var pose := _pose_at(tick)
 	var before := _pose_at(tick - Ticks.RATE)
 	_sink_rate = pose.sink - before.sink
 	_cell_rise = 0.0
 	_cell_depth = -INF
-	var at := _view.ship_to_world().affine_inverse() * ears
+	var leaf := _view.leaf_holding(ears)
+	if not _leaves.is_empty():
+		pose = pose.of_piece(_leaves[leaf])
+		before = before.of_piece(_leaves[leaf])
+	var at := _view.piece_to_world(leaf).affine_inverse() * ears
 	var cell := pose.cell_at(at)
 	if cell == CellMap.NONE:
 		return
@@ -260,7 +268,7 @@ func _play(cue: AudioCue) -> void:
 		voice.global_position = (
 			_view.seat_world_position(cue.seat)
 			if cue.seat >= 0
-			else _view.ship_to_world() * cue.position
+			else _view.lying_to_world(cue.position) * cue.position
 		)
 		voice.play()
 		return
@@ -286,10 +294,11 @@ static func _idle(voices: Array, from: int) -> int:
 
 
 ## Keeps a voice humming at each of [param hums] (CuePlanner.hums) where its bonus lies as
-## [param to_world] draws the ship now — on the room's bus, its file looping, carried as
-## its kind and gain say (SoundBank), as _play carries a cue — the same voice for as long
-## as that bonus lies there; the voice of a bonus no longer humming goes with it.
-func _keep_humming(hums: Array[AudioCue], to_world: Transform3D) -> void:
+## [param view] draws it now, on the piece of her it lies on (MatchView.lying_to_world) —
+## on the room's bus, its file looping, carried as its kind and gain say (SoundBank), as
+## _play carries a cue — the same voice for as long as that bonus lies there; the voice of
+## a bonus no longer humming goes with it.
+func _keep_humming(hums: Array[AudioCue], view: MatchView) -> void:
 	var kept: Dictionary[Vector3, AudioStreamPlayer3D] = {}
 	for hum: AudioCue in hums:
 		var voice: AudioStreamPlayer3D = _hums.get(hum.position)
@@ -305,7 +314,7 @@ func _keep_humming(hums: Array[AudioCue], to_world: Transform3D) -> void:
 		voice.unit_size = SoundBank.near(hum.kind)
 		voice.max_distance = SoundBank.far(hum.kind)
 		voice.pitch_scale = SoundBank.pitch(hum.kind)
-		voice.global_position = to_world * hum.position
+		voice.global_position = view.lying_to_world(hum.position) * hum.position
 		if SoundBank.audible() and not voice.playing:
 			voice.play()
 	for gone: AudioStreamPlayer3D in _hums.values():
@@ -320,7 +329,7 @@ func _silence() -> void:
 		voice.stop()
 	for voice: AudioStreamPlayer in _head:
 		voice.stop()
-	_keep_humming([], Transform3D.IDENTITY)
+	_keep_humming([], _view)
 
 
 ## How enclosed [param seat]'s feet are on the latest snapshot: 1 in a room, 0 on
