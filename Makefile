@@ -168,14 +168,25 @@ match:
 # hand-roll a lock around them; run, a person playing, does not take it. A window the
 # system stops drawing — covered, minimised, on another Space, the display asleep —
 # fails a capture once no frame has been drawn for a minute (DrawWatch), rather
-# than hang holding the lock.
+# than hang holding the lock. Nor does a capture hold it past CAPTURE_LIMIT seconds of
+# the engine running (tools/engine_guard.sh stops it, and what it started, #464): 600
+# for the load, 10 a second of AT — a match second is 30 drawn frames, 7.5 s at the
+# Titanic's 4 fps — or 2 a second of PHYS, whose physics runs ahead of the match on the
+# paced clock, and 120 more; CAPTURE_LIMIT=0 for none. It is also stopped the moment its
+# output shows its scripts failed to compile (a stale import, among the likely causes)
+# or one script error 100 times over.
 menu-screen = $(filter menu settings graphics online room replays,$(SCREEN))
+CAPTURE_LIMIT ?=
+capture-limit = $(or $(CAPTURE_LIMIT),$(shell awk -v at='$(AT)' -v phys='$(PHYS)' 'BEGIN { \
+	n = split(phys, p, ":"); s = 0; for (i = 1; i <= n; i++) s = s * 60 + p[i]; \
+	print int(600 + 10 * at + 2 * s + 120) }'))
 capture:
 	$(call require-godot)
 	@test -n "$(AT)$(PHYS)$(filter menu settings graphics online room replays results hold,$(SCREEN))" || \
 		{ echo "capture: AT=<seconds of match time> or PHYS=<h:mm:ss of physics> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
-	tools/window_lock.sh tools/engine_guard.sh $(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
+	ENGINE_GUARD_LIMIT=$(capture-limit) ENGINE_GUARD_EARLY=1 \
+		tools/window_lock.sh tools/engine_guard.sh $(GODOT) --path . $(if $(RES),--resolution $(RES)) --audio-driver Dummy --fixed-fps 30 -- \
 		$(match-args) $(bake-cache-arg) $(if $(menu-screen),,--autoplay) --capture="$(CAPTURE)" \
 		$(if $(AT),--capture-at=$(AT)) $(if $(PHYS),--phys=$(PHYS)) $(if $(JUMP),--jump) \
 		$(if $(EYE),--capture-eye=$(EYE)) \
@@ -326,7 +337,9 @@ bench:
 # draw calls — its unaccounted rest with it (FrameProbe). Its client only watches, so it
 # never predicts: its reconcile is the restore of each snapshot.
 # Rules live in tools/fps.sh. Not part of verify: it needs a display, and the machine to
-# itself — it takes the window lock itself, as capture does.
+# itself — it takes the window lock itself, as capture does, and bounds its game as
+# capture does: FPS_LIMIT seconds, the load limit, SKIP and SECONDS and 120 more by
+# default, and stopped at once on a compile failure or one script error over and over.
 fps:
 	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \
 		$(if $(SECONDS),--seconds=$(SECONDS)) $(if $(SKIP),--skip=$(SKIP)) \

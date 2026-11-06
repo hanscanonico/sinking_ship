@@ -14,13 +14,21 @@
 # long as it lives, past COMMAND's own end: on Windows, stopping a task kills its
 # shell and leaves the Godot it started running, and that Godot keeps the lock.
 #
-# It tries once without waiting; when another window holds it, it says so in one
-# line on stderr, naming the holder — its PID, how long it has run, its command —
-# when the file says which it is, and waits WINDOW_LOCK_WAIT seconds at most, 1800
-# by default (0 waits as long as it takes). A waiter that runs out of time says so,
-# naming the holder again and, when the process the file names is gone — something
-# it started holds the lock — the Godot processes running, and exits 75 without
-# running COMMAND. Otherwise the exit status is COMMAND's.
+# Waiters take the window in the order they came: each holds a ticket in FILE.queue
+# while it waits, and the first with no live ticket ahead of it takes the lock
+# (tools/lib/window_queue.pl, where there is Perl; without it they wait unordered). A
+# ticket is itself a kernel lock, so a waiter that dies leaves none behind. The kernel
+# lock on FILE stays what keeps two windows apart: an older copy of this script takes
+# no ticket, and may take the window ahead of the queue, never alongside it.
+#
+# It tries once without waiting, when no one is queued; when another window holds it,
+# it says so in one line on stderr, naming the holder — its PID, how long it has run,
+# its command — when the file says which it is, and how many wait ahead of it, and
+# waits WINDOW_LOCK_WAIT seconds at most, 1800 by default (0 waits as long as it
+# takes). A waiter that runs out of time says so, naming the holder again and, when the
+# process the file names is gone — something it started holds the lock — the Godot
+# processes running, and exits 75 without running COMMAND. Otherwise the exit status is
+# COMMAND's.
 #
 # A holder writes its PID, which exec keeps for COMMAND, into the file with its start
 # time, so a PID the system has since given another process is never named. Git
@@ -129,29 +137,72 @@ exec 9>>"$WINDOW_LOCK_FILE" || {
 	exit 1
 }
 
-if ! fd_lock_try 9; then
-	limit=''
-	((WAIT_SECONDS > 0)) && limit="; giving up after $WAIT_SECONDS s"
-	echo "window: waiting for another game window (lock $WINDOW_LOCK_FILE)$(holder)$limit" >&2
-	fd_lock_wait 9 "$WAIT_SECONDS"
-	waited=$?
-	if ((waited == 1 && WAIT_SECONDS > 0)); then
-		said=$(holder)
-		echo "window: gave up after $WAIT_SECONDS s waiting for another game window" \
-			"(lock $WINDOW_LOCK_FILE)$said" >&2
-		if [[ "$said" == *gone* ]]; then
-			running=$(godots)
-			if [[ -n "$running" ]]; then
-				echo "window: the Godot windows open, one of which likely holds it:" >&2
-				printf '%s\n' "$running" | sed 's/^/window:   /' >&2
-			fi
+# Says it gave up after WAIT_SECONDS, naming the holder and, when the process the file
+# names is gone, the Godot windows open, and exits 75.
+give_up() {
+	local said running
+	said=$(holder)
+	echo "window: gave up after $WAIT_SECONDS s waiting for another game window" \
+		"(lock $WINDOW_LOCK_FILE)$said" >&2
+	if [[ "$said" == *gone* ]]; then
+		running=$(godots)
+		if [[ -n "$running" ]]; then
+			echo "window: the Godot windows open, one of which likely holds it:" >&2
+			printf '%s\n' "$running" | sed 's/^/window:   /' >&2
 		fi
-		echo "window: WINDOW_LOCK_WAIT=0 waits as long as it takes" >&2
-		exit 75
-	elif ((waited != 0)); then
+	fi
+	echo "window: WINDOW_LOCK_WAIT=0 waits as long as it takes" >&2
+	exit 75
+}
+
+# Waits out of turn, as the lock did before its queue: where there is no Perl to keep
+# the queue, or it cannot be kept.
+wait_unordered() {
+	fd_lock_wait 9 "$WAIT_SECONDS"
+	local waited=$?
+	((waited == 1 && WAIT_SECONDS > 0)) && give_up
+	if ((waited != 0)); then
 		echo "window: could not take $WINDOW_LOCK_FILE" >&2
 		exit 1
 	fi
+}
+
+waiting_line() {
+	echo "window: waiting for another game window (lock $WINDOW_LOCK_FILE)$(holder)$limit" >&2
+}
+
+# The queue: waiters take the window in the order they came (tools/lib/window_queue.pl),
+# where there is Perl to keep it. The first try without waiting is only for an empty
+# queue, so a newcomer never takes the window from a waiter ahead of it.
+QUEUE="$WINDOW_LOCK_FILE.queue"
+queued=0
+for ticket in "$QUEUE"/[0-9]*; do
+	[[ -e "$ticket" ]] && queued=1 && break
+done
+limit=''
+((WAIT_SECONDS > 0)) && limit="; giving up after $WAIT_SECONDS s"
+if ((queued == 0)) && fd_lock_try 9; then
+	:
+elif command -v perl >/dev/null; then
+	# Its word that it holds the lock is what counts: a Perl ended from outside — on
+	# Windows a TerminateProcess reads as exit 0 — said nothing, and holds nothing. It is
+	# exec'd in the substitution's place, as tools/lib/fd_lock.sh says why.
+	got=$(exec perl "$(dirname "$0")/lib/window_queue.pl" "$$" "$QUEUE" 9 "$WAIT_SECONDS" \
+		"window: waiting for another game window (lock $WINDOW_LOCK_FILE)$(holder)$limit")
+	waited=$?
+	if ((waited == 1 && WAIT_SECONDS > 0)); then
+		give_up
+	elif ((waited == 2)); then
+		echo "window: cannot keep the queue in $QUEUE: waiting out of turn" >&2
+		wait_unordered
+	elif ((waited != 0)) || [[ "${got##*$'\n'}" != locked ]]; then
+		echo "window: could not take $WINDOW_LOCK_FILE: its waiter ended (exit $waited)" \
+			"without saying it holds it" >&2
+		exit 1
+	fi
+else
+	waiting_line
+	wait_unordered
 fi
 
 printf '%s\t%s\n' "$$" "$(started "$$")" >"$WINDOW_LOCK_FILE"

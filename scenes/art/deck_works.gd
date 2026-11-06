@@ -301,13 +301,15 @@ static func mast(mesh: ShipMesh, blocker: ShipBlocker, top: float, art: ShipArt)
 ## spar's along her, a mast's or a funnel's, and from mast to mast over what stands
 ## between; on a ship of two masts, the wireless aerial between their heads; and a
 ## cargo derrick on a mast over the hatch it works (_derrick). No stay comes down to
-## her deck: one would pass through a body at her railing. A ventilator is no spar.
+## her deck: one would pass through a body at her railing. A ventilator is no spar, nor
+## a capstan or a stanchion of her gear.
 static func rigging(layout: ShipLayout, rules: BrawlRules) -> Array[RigLine]:
 	var spars: Array[ShipBlocker] = []
 	for blocker: ShipBlocker in layout.blockers:
 		if (
 			blocker.shape == ShipBlocker.Shape.CYLINDER
 			and not DeckFurniture.is_vent(layout, blocker)
+			and not DeckFurniture.is_gear(blocker)
 		):
 			spars.append(blocker)
 	spars.sort_custom(func(a: ShipBlocker, b: ShipBlocker) -> bool: return a.centre.x < b.centre.x)

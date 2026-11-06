@@ -78,7 +78,7 @@ def check(name):
     for axis, at, a, b, _kind, doors in traced.walls:
         if doors and b - a < DOOR_ROOM:
             found.append("a door in %.2f m of wall at %s %.2f" % (b - a, "x" if axis == 0 else "z", at))
-    floors = set(DECKS) | {r[0] for r in traced.raised}
+    floors = set(DECKS) | {r[0] for r in traced.raised} | {b[0] for b in traced.bridges}
     stair_boxes = []
     for stair_name, x0, x1, z0, z1, _rises, lower, upper in traced.stairs:
         stair_boxes.append((x0, x1, z0, z1))

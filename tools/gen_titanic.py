@@ -146,12 +146,15 @@ def ramp(rid, x0, x1, z0, z1, axis, start, end):
         f.append(("end_height", num(end)))
     ramps.append(sub("Ramp_" + rid, "2_ramp", f))
 
-def box(bid, x0, x1, z0, z1, bottom, top):
+def box(bid, x0, x1, z0, z1, bottom, top, name=None):
+    """A box blocker; given name, a piece of her deck gear by it (gear(), GEAR)."""
     block_geo.append((x0, x1, z0, z1, bottom, top, True))
     f = [("area", rect_xz(x0, x1, z0, z1))]
     if bottom != 0.0:
         f.append(("bottom", num(bottom)))
     f.append(("top", num(top)))
+    if name:
+        f.append(("name", '&"%s"' % name))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
 
 def drop_box(bid):
@@ -174,13 +177,50 @@ def relay_box(bid, x0, x1, z0, z1, bottom, top):
     body = ["[sub_resource type=\"Resource\" id=\"%s\"]" % kind_id, "script = ExtResource(\"3_block\")"]
     subs[at] = "\n".join(body + ["%s = %s" % kv for kv in f])
 
-def cylinder(bid, cx, cz, r, bottom, top):
+def cylinder(bid, cx, cz, r, bottom, top, name=None):
+    """A round blocker; given name, a piece of her deck gear by it (gear(), GEAR)."""
     block_geo.append((cx - r, cx + r, cz - r, cz + r, bottom, top, False))
     f = [("shape", "1"), ("centre", "Vector2(%s, %s)" % (num(cx), num(cz))), ("radius", num(r))]
     if bottom != 0.0:
         f.append(("bottom", num(bottom)))
     f.append(("top", num(top)))
+    if name:
+        f.append(("name", '&"%s"' % name))
     blockers.append(sub("Blocker_" + bid, "3_block", f))
+
+# Her deck gear, each kind at the sizes her plates draw it, as DeckFurniture.GEAR declares
+# them (tests/unit/art/test_deck_furniture.gd holds every named blocker to one): (its longer
+# side, its height, its shorter side), a round piece's diameter for both sides; its heights
+# est. but the docking bridge's stanchions', which are its deck's (POOP_BRIDGE below).
+ROUND_GEAR = ("capstan", "stanchion")
+GEAR = {
+    "capstan": [(1.625, 0.9375, 1.625), (1.375, 0.9375, 1.375), (1.125, 0.9375, 1.125)],
+    "electric crane": [(1.5, 2.5, 1.5)],
+    "electric winch": [(1.0, 1.0, 0.75), (1.875, 1.0, 0.875), (1.5625, 1.0, 1.125), (2.3125, 1.0, 1.125)],
+    "wheel stand": [(0.75, 1.25, 0.625)],
+    "stanchion": [(0.125, 2.625, 0.125)],
+    "cable holder": [(2.75, 0.75, 2.1875)],
+    "steam windlass": [(5.625, 1.25, 3.3125)],
+    "steam winch": [(3.8125, 1.25, 2.75)],
+}
+
+def gear(bid, kind, x0, x1, z0, z1, bottom):
+    """A piece of her gear of kind where its plate draws it, x0..x1 by z0..z1 (its ink's box,
+    or its place): the size of its kind nearest that box laid on its middle, its longer side
+    the way the box's is — a round piece's axis there — from bottom, on the grain; its
+    footprint (x0, x1, z0, z1)."""
+    along_x = x1 - x0 >= z1 - z0
+    longer, shorter = (x1 - x0, z1 - z0) if along_x else (z1 - z0, x1 - x0)
+    size = min(GEAR[kind], key=lambda s: abs(s[0] - longer) + abs(s[2] - shorter))
+    mx, mz = (x0 + x1) * 0.5, (z0 + z1) * 0.5
+    if kind in ROUND_GEAR:
+        r = size[0] / 2
+        cylinder(bid, q(mx), q(mz), r, bottom, bottom + size[1], kind)
+        return q(mx) - r, q(mx) + r, q(mz) - r, q(mz) + r
+    sx, sz = (size[0], size[2]) if along_x else (size[2], size[0])
+    gx, gz = q(mx - sx / 2), q(mz - sz / 2)
+    box(bid, gx, gx + sx, gz, gz + sz, bottom, bottom + size[1], kind)
+    return gx, gx + sx, gz, gz + sz
 
 # A railing breaks span by span (SH10), as the steamer's: a run longer than
 # RAIL_SECTION is laid as touching spans of about that length.
@@ -1895,6 +1935,11 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.solids):
         floor = level((x0 + x1) * 0.5)
         sid, high = "%s_%d_%s" % (prefix, k, slug(what)), over((x0 + x1) * 0.5) if top is None else floor + top
+        if what in GEAR:
+            # A piece of her gear the plate draws on its deck, at its kind's size (GEAR).
+            assert top is not None and any(abs(s[1] - top) < 1e-9 for s in GEAR[what]), what
+            gear(sid, what, x0, x1, z0, z1, floor)
+            continue
         if top is not None or not any(r[1] < (x0 + x1) / 2 < r[2] and r[3] < (z0 + z1) / 2 < r[4] for r in plan.rooms):
             box(sid, x0, x1, z0, z1, floor, high)
             continue
@@ -1921,7 +1966,13 @@ for k, (x0, x1, _z0, half) in enumerate([p for p in A_PIECES if p[1] > SCREEN_RU
             *sorted((sign * half, sign * (half - 2 * T))), A_DECK, BOAT)
 for k, x in enumerate(FUNNELS):
     cylinder("funnel_%d" % (k + 1), x, 0.0, FUNNEL_RADIUS, FUNNEL_FOOT, FUNNEL_TOP)
-cylinder("foremast", 96.0, 0.0, 0.6, FCSL[0], FCSL[0] + 40.0)       # est., SB-III
+# The foremast up through the forecastle, as stout as before (est., SB-III) and as her
+# mainmast, its after face where the forecastle's plan draws its ring's, hard on the steam
+# windlass's forward face (Plate IV px 9346, FCSL_PLAN). The plan's ring is 0.75 m across:
+# a mast that slight would stand 0.25 m further aft.
+FCSL_PLAN = plates.load("forecastle")
+FOREMAST = 0.6
+cylinder("foremast", q(plates.kept(FCSL_PLAN.view.x(9346)) + FOREMAST), 0.0, FOREMAST, FCSL[0], FCSL[0] + 40.0)
 # The mainmast, up through A deck's after end and B deck's after second-class entrance,
 # where A deck's plan draws its circle (Plate III px 2385). B deck's plan draws its own
 # 1.1 m forward of it, calibrated on her after end (b_aft.py), and Plate III's elevation
@@ -2599,18 +2650,25 @@ def free_stretches(lo, hi, cuts, least):
         spans.append((at, hi))
     return [(a, b) for a, b in spans if b - a >= least]
 
-def clear_of(x0, x1, z0, z1, foot, top, lane):
+def clear_of(x0, x1, z0, z1, foot, top, lane, back=0):
     """Whether a box x0…x1, z0…z1 from foot to top keeps lane clear of every blocker
-    standing there, every room on that floor and every stair at it."""
+    standing there, every room on that floor and every stair at it; but for what lies wholly
+    behind its back, the side of it (-1 or 1 along z) it is backed onto, as a seat backs onto
+    the wall it stands against."""
+    def behind(c0, c1):
+        return (back > 0 and c0 >= z1 - 1e-6) or (back < 0 and c1 <= z0 + 1e-6)
     for b in block_geo:
-        if b[4] < top and b[5] > foot and b[0] < x1 + lane and b[1] > x0 - lane and b[2] < z1 + lane and b[3] > z0 - lane:
+        if (b[4] < top and b[5] > foot and b[0] < x1 + lane and b[1] > x0 - lane and b[2] < z1 + lane
+                and b[3] > z0 - lane and not behind(b[2], b[3])):
             return False
     for r in room_geo:
-        if abs(r[4] - foot) < 0.01 and r[0] < x1 + lane and r[1] > x0 - lane and r[2] < z1 + lane and r[3] > z0 - lane:
+        if (abs(r[4] - foot) < 0.01 and r[0] < x1 + lane and r[1] > x0 - lane and r[2] < z1 + lane
+                and r[3] > z0 - lane and not behind(r[2], r[3])):
             return False
     for r in ramp_geo:
         if (min(r[5], r[6]) - 0.01 <= foot <= max(r[5], r[6]) + 0.01
-                and r[0] < x1 + lane and r[1] > x0 - lane and r[2] < z1 + lane and r[3] > z0 - lane):
+                and r[0] < x1 + lane and r[1] > x0 - lane and r[2] < z1 + lane and r[3] > z0 - lane
+                and not behind(r[2], r[3])):
             return False
     return True
 
@@ -2631,7 +2689,7 @@ for house in ("officers_house", "staircase_house"):
         for k, (a, b) in enumerate(free_stretches(hx0 + 0.5, hx1 - 0.5, cuts, 2.0)):
             length = min(SEAT_LOCKER_LONGEST, b - a - 0.2)
             x0 = round((a + b - length) / 2, 4)
-            if clear_of(x0, x0 + length, z0, z1, BOAT, BOAT + SEAT_LOCKER[1], 0.3):
+            if clear_of(x0, x0 + length, z0, z1, BOAT, BOAT + SEAT_LOCKER[1], 0.3, -sign):
                 box("seat_locker_%s_%d_%s" % (house, k, tag), x0, round(x0 + length, 4), z0, z1, BOAT,
                     BOAT + SEAT_LOCKER[1])
 
@@ -2667,6 +2725,93 @@ DECK_VENTS += [(name, x, sign * z, r, deck) for name, x, z, r, deck in [
 for name, x, z, r, foot in DECK_VENTS:
     side = "" if z == 0.0 else ("_s" if z > 0.0 else "_p")
     cylinder("vent_%s%s" % (name, side), x, z, r, foot, foot + VENTS[r])
+# Her poop's gear and the docking bridge over it, as Plate IV draws them (POOP_PLAN, #381):
+# each piece of her gear where the plate draws it, at its kind's size (GEAR). The docking
+# bridge's deck POOP_BRIDGE over the poop's, across her where the plate dashes it, out to
+# her sides as far as the poop's narrowest strip under it reaches; on stanchions (est.:
+# Plate III's elevation draws a trestle), at each of its corners and along its edges across
+# her STANCHION_SPAN apart at most, but where its deck carries on past the edge or the
+# ladder comes up; railed round but at the head of its ladder up from the poop; and on her
+# centre line its wheel stand ("controlled ... from the docking bridge aft by mechanical
+# means", the special number), in the middle of its deck fore and aft (est.).
+POOP_PLAN = plates.load("poop")
+for k, (kind, x0, x1, z0, z1) in enumerate(POOP_PLAN.gear):
+    gear("poop_%d_%s" % (k, slug(kind)), kind, x0, x1, z0, z1, POOP)
+assert len({b[5] for b in POOP_PLAN.bridges}) == 1, "the docking bridge stands at one height"
+POOP_BRIDGE = q(POOP + POOP_PLAN.bridges[0][5])
+STANCHION = GEAR["stanchion"][0][0] / 2
+assert abs(POOP + GEAR["stanchion"][0][1] - POOP_BRIDGE) < 1e-9, "a stanchion stands up to the bridge"
+STANCHION_SPAN = 4.0
+BRIDGE_PIECES = []
+for _name, x0, x1, z0, z1, _height in POOP_PLAN.bridges:
+    if z0 is None:
+        half = min(w for _i, a, b, w in POOP_STRIPS if a < x1 and b > x0)
+        z0, z1 = -half, half
+    BRIDGE_PIECES.append((x0, x1, z0, z1))
+docking_bridge = [platform("docking_bridge_%d" % k, "docking bridge", *piece, POOP_BRIDGE)
+                  for k, piece in enumerate(BRIDGE_PIECES)]
+# Its ladder up from the poop where the plate draws it, to starboard, and one to port
+# mirroring it across her (est., the owner's ruling of 2026-11-05: the plate draws no
+# other, and its deck wants two ways up).
+BRIDGE_LADDERS = []
+for name, x0, x1, z0, z1, rises, lower, upper in POOP_PLAN.stairs:
+    assert (rises, lower, upper) == ("fore", "poop", "docking bridge"), name
+    assert z0 > 0.0, "%s to starboard, its mirror to port" % name
+    for side, (a, b) in [("s", (z0, z1)), ("p", (-z1, -z0))]:
+        stair("%s_%s" % (slug(name), side), x0, x1, a, b, POOP, POOP_BRIDGE, [])
+        BRIDGE_LADDERS.append((x1, a, b))
+
+def carried_on(edge, side, along, piece):
+    """Whether another piece of the docking bridge carries its deck on past piece's edge at
+    x = edge (its after edge for side -1, its forward edge for side 1), at z along."""
+    for other in BRIDGE_PIECES:
+        near = other[1] if side < 0 else other[0]
+        if other is not piece and abs(near - edge) < 1e-6 and other[2] - 1e-6 <= along <= other[3] + 1e-6:
+            return True
+    return False
+
+BODY_WIDTH = 2 * rule("body_radius")
+posts = 0
+for piece in BRIDGE_PIECES:
+    x0, x1, z0, z1 = piece
+    count = max(1, math.ceil((z1 - z0 - 2 * STANCHION) / STANCHION_SPAN - 1e-9))
+    # Its outermost on the grain inside the deck's edge, never a hair over it.
+    lo, hi = math.ceil((z0 + STANCHION) * 16 - 1e-9) / 16, math.floor((z1 - STANCHION) * 16 + 1e-9) / 16
+    for side, edge in [(-1, x0), (1, x1)]:
+        for j in range(count + 1):
+            z = min(max(q(lerp(lo, hi, j / count)), lo), hi)
+            # None where its deck carries on, nor in a body's way to its ladder's head.
+            if carried_on(edge, side, z, piece) or any(
+                    abs(edge - lx) < 1e-6 and lz0 - BODY_WIDTH - STANCHION < z < lz1 + BODY_WIDTH + STANCHION
+                    for lx, lz0, lz1 in BRIDGE_LADDERS):
+                continue
+            x = edge - side * STANCHION
+            gear("docking_bridge_stanchion_%d" % posts, "stanchion", x, x, z, z, POOP)
+            posts += 1
+outline_rails("docking_bridge", BRIDGE_PIECES, docking_bridge, [(0, lx, lz0, lz1) for lx, lz0, lz1 in BRIDGE_LADDERS])
+WHEEL_AT = (BRIDGE_PIECES[0][0] + BRIDGE_PIECES[1][1]) * 0.5
+wheel = GEAR["wheel stand"][0]
+gear("docking_bridge_wheel_stand", "wheel stand", WHEEL_AT - wheel[2] / 2, WHEEL_AT + wheel[2] / 2,
+     -wheel[0] / 2, wheel[0] / 2, POOP_BRIDGE)
+# Her gear on the forecastle and its head as Plate IV draws it (FCSL_PLAN, #381), each piece
+# on the deck it stands on, a body's width clear of the step between them (FLIGHT_LEAD):
+# her steam windlass and steam winch, No. 1 hatch's coaming between them and her after
+# capstans, her cable holders, each side's cable led from it forward to its hawse pipe
+# (ShipFittings), and her forward capstans.
+def fcsl_deck(kind, x0, x1):
+    """The forecastle deck a piece of kind x0..x1 along her stands on, either side of its step."""
+    if x1 <= FC_RAMP[0] - FLIGHT_LEAD:
+        return FCSL[0]
+    assert x0 >= FC_RAMP[1] + FLIGHT_LEAD, "%s a body's width clear of the forecastle's step" % kind
+    return FCSL[1]
+
+for k, (kind, x0, x1, z0, z1) in enumerate(FCSL_PLAN.gear):
+    deck = fcsl_deck(kind, x0, x1)
+    laid = gear("fcsl_%d_%s" % (k, slug(kind)), kind, x0, x1, z0, z1, deck)
+    assert fcsl_deck(kind, laid[0], laid[1]) == deck, kind
+for what, x0, x1, z0, z1, height in FCSL_PLAN.solids:
+    deck = fcsl_deck(what, x0, x1)
+    box("fcsl_" + slug(what), x0, x1, z0, z1, deck, deck + height, "hatch")
 # Benches, teak seats with low backs, BENCH long, deep and tall, each backed onto what
 # stands behind it: along A deck's house on both its promenades between its doors, a bench
 # every BENCH_PITCH.
@@ -2698,7 +2843,7 @@ for k in range(int((A_HOUSE[1] - A_HOUSE[0]) // BENCH_PITCH)):
         if face is None or door_near(2, sign * (face - T), x0, x1, A_DECK, 1.0):
             continue
         z0, z1 = sorted((sign * face, sign * (face + BENCH[1])))
-        if not clear_of(x0, x1, z0, z1, A_DECK, A_DECK + BENCH[2], 0.1) or any(
+        if not clear_of(x0, x1, z0, z1, A_DECK, A_DECK + BENCH[2], 0.1, -sign) or any(
                 r[0] - STAIR_CLEAR < x1 and x0 < r[1] + STAIR_CLEAR and r[2] < z1 and z0 < r[3] for r in ramp_geo
                 if max(r[5], r[6]) >= A_DECK - 0.01 and min(r[5], r[6]) <= A_DECK + 0.01):
             continue
@@ -2708,13 +2853,13 @@ for bid, x0, x1, z0, z1 in A_BENCHES:
 
 # Sixteen seats across her decks (SH21 takes more): six on the boat deck and one on her
 # bridge, two on A deck's promenade, one on B deck's second-class promenade aft, one on
-# each well deck, the forecastle and the poop, one in the first-class dining saloon, facing
-# forward to the grand staircase's foot.
+# each well deck, the forecastle — between her foremast and her steam winch — and the
+# poop, one in the first-class dining saloon, facing forward to the grand staircase's foot.
 spawns = [
     (60.0, BOAT, 9.5), (60.0, BOAT, -9.5), (5.0, BOAT, 9.5), (5.0, BOAT, -9.5), (-40.0, BOAT, 9.5),
     (-40.0, BOAT, -9.5), (69.0, BOAT, 0.0), (-77.0, BOAT, 0.0),
     (45.0, A_DECK, 11.5), (-20.0, A_DECK, -11.5), (-80.0, B_DECK, 11.5),
-    (82.0, WELL_DECK, 8.0), (-100.0, 0.0, -6.0), (100.0, FCSL[0], 0.0), (-115.0, POOP, 0.0),
+    (82.0, WELL_DECK, 8.0), (-100.0, 0.0, -6.0), (98.0, FCSL[0], 0.0), (-115.0, POOP, 0.0),
     (-6.0, D_DECK, 1.0),
 ]
 # --- Her public rooms' furniture (SB-IV, est.), after every other platform, blocker and

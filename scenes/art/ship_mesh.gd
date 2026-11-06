@@ -10,7 +10,8 @@ extends RefCounted
 ## so no indoor mesh spans more than a few rooms. Each face's rim fades toward the
 ## crew's ink (ship.gdshaderinc), so a box reads bevelled. A mesh told which pieces
 ## fade out near the eye (fading) gives each vertex its piece's box, for the shader to
-## fade the piece by.
+## fade the piece by. Where the game's extension is loaded, a NativeShipMesh draws the
+## faces, quads and boxes into batches of its own, to the same arrays (ArtNative).
 
 ## What a face is painted with (ship.gdshaderinc's finishes, then the glass, then
 ## the rooms' own: riveted steel and rough timber).
@@ -80,20 +81,41 @@ class Batch:
 	var halves := PackedFloat32Array()
 
 
+## When set, (key: String, arrays: Array, finish: int) -> void, told of every batch as
+## it is committed, in commit order: test_ship_mesh_native hashes every mesh of her art
+## drawn by the extension and by the GDScript.
+static var committed := Callable()
+
 ## Ship-local height: a piece wholly at or above it is not drawn — the observer's
 ## cut-away; ship.gdshaderinc trims what straddles it.
-var cut_above := INF
+var cut_above := INF:
+	set(value):
+		cut_above = value
+		if _native != null:
+			_native.set_cut_above(value)
 ## The stretch along her, x from aft to fore, that is drawn: a piece wholly KEEP_MARGIN
 ## or more past either end of it is not — a broken hull's piece draws its own stretch
 ## alone (ShipArt.span), its paints trimming what straddles the cut (PieceClip).
-var keep := Vector2(-INF, INF)
+var keep := Vector2(-INF, INF):
+	set(value):
+		keep = value
+		if _native != null:
+			_native.set_keep(value)
 ## (piece: AABB) -> bool, ship space, when set: whether a piece — what one call
 ## draws, a box, a cylinder, a face — fades out near the eye (ship_near.gdshader).
-var fading := Callable()
+var fading := Callable():
+	set(value):
+		fading = value
+		if _native != null:
+			_native.set_fading(value)
 ## (origin, u, v, u_cuts, v_cuts, normal, probe) -> Array, when set: what the outdoors
 ## callable says of every piece of a cut face at once (IndoorGrid.outdoors_over) — empty
 ## where it cannot, and each piece is asked alone.
-var outdoors_over := Callable()
+var outdoors_over := Callable():
+	set(value):
+		outdoors_over = value
+		if _native != null:
+			_native.set_outdoors_over(value)
 ## When set, where commit() hands its indoor chunks instead of drawing each (PackedChunks):
 ## every mesh of one art its chunk shares, drawn as one instance a chunk; their surfaces
 ## named [member packed_as].
@@ -118,6 +140,9 @@ var _last_outdoors := true
 var _depth := 0
 var _piece := AABB()
 var _reached: Array[Batch] = []
+## The NativeShipMesh that draws this mesh's pieces and keeps its batches (ArtNative), or
+## null where the extension is not loaded: then the GDScript below does.
+var _native: Object
 
 
 ## [param outdoors] says whether a ship point is outdoors; [param room_cuts] holds,
@@ -129,6 +154,24 @@ func _init(outdoors: Callable, room_cuts: Array[PackedFloat32Array]) -> void:
 		var lines := room_cuts[axis].duplicate()
 		lines.sort()
 		_cuts.append(lines)
+	_native = ArtNative.made(&"NativeShipMesh")
+	if _native != null:
+		_native.setup(_cuts, outdoors)
+
+
+## Judges each piece indoors or out by [param grid]'s rooms and [param boxes], a box per
+## room holding all of it, and when given by [param roofed] too: the outdoors callable
+## this mesh was made with must say the same (ShipSpace.outdoors, or RoofedIndoors.outdoors
+## over the same grid), and outdoors_over becomes theirs.
+func judge_by(grid: IndoorGrid, boxes: Array[AABB], roofed: RoofedIndoors = null) -> void:
+	if roofed != null:
+		outdoors_over = roofed.outdoors_over.bind(boxes)
+	else:
+		outdoors_over = grid.outdoors_over.bind(boxes)
+	if _native != null and grid.native() != null:
+		_native.set_grid(grid.native(), boxes)
+		if roofed != null:
+			_native.callv(&"set_roofed", roofed.shape())
 
 
 ## An axis-aligned box over [param area] (x/z) from [param bottom] to [param top]:
@@ -143,6 +186,20 @@ func box(
 	foot := NAN,
 	head := NAN
 ) -> void:
+	if _native != null:
+		_native.box(
+			area,
+			bottom,
+			top,
+			paint.finish,
+			paint.colour,
+			paint.finish_in,
+			paint.colour_in,
+			faces,
+			foot,
+			head
+		)
+		return
 	if top - bottom < SLIVER or area.size.x < SLIVER or area.size.y < SLIVER:
 		return
 	if not kept(area.position.x, area.end.x):
@@ -176,6 +233,11 @@ func box(
 ## edges [param rims] names on each face darkened — none where a rim would not show,
 ## a bevel too small or on a paint too dark to see.
 func turned_box(place: Transform3D, size: Vector3, paint: Paint, rims := RIM_ALL) -> void:
+	if _native != null:
+		_native.turned_box(
+			place, size, paint.finish, paint.colour, paint.finish_in, paint.colour_in, rims
+		)
+		return
 	var half := size * 0.5
 	var b := place.basis
 	var x := b.x * size.x
@@ -292,6 +354,20 @@ func polygon(
 func face(
 	origin: Vector3, u: Vector3, v: Vector3, paint: Paint, rims := RIM_ALL, foot := NAN, head := NAN
 ) -> void:
+	if _native != null:
+		_native.face(
+			origin,
+			u,
+			v,
+			paint.finish,
+			paint.colour,
+			paint.finish_in,
+			paint.colour_in,
+			rims,
+			foot,
+			head
+		)
+		return
 	var normal := u.cross(v).normalized()
 	var whole := PackedFloat32Array([0.0, 1.0])
 	var narrow := minf(u.length(), v.length()) < NARROW
@@ -339,11 +415,27 @@ func quad(
 	foot := NAN,
 	head := NAN
 ) -> void:
+	if _native != null:
+		_native.quad(
+			a,
+			b,
+			c,
+			d,
+			normal,
+			paint.finish,
+			paint.colour,
+			paint.finish_in,
+			paint.colour_in,
+			rims,
+			foot,
+			head
+		)
+		return
 	if minf(minf(a.y, b.y), minf(c.y, d.y)) >= cut_above:
 		return
 	if not kept(minf(minf(a.x, b.x), minf(c.x, d.x)), maxf(maxf(a.x, b.x), maxf(c.x, d.x))):
 		return
-	var batch := _batch_for((a + c) * 0.5, normal, paint)
+	var batch: Batch = _batch_for((a + c) * 0.5, normal, paint)
 	var outdoors: bool = _last_outdoors
 	var colour := paint.colour if outdoors else paint.colour_in
 	var flag := 1.0 if outdoors else 0.0
@@ -426,7 +518,7 @@ func smooth_quad(
 	if not kept(aft, maxf(maxf(corners[0].x, corners[1].x), maxf(corners[2].x, corners[3].x))):
 		return
 	var facing := (normals[0] + normals[1] + normals[2] + normals[3]).normalized()
-	var batch := _batch_for((corners[0] + corners[2]) * 0.5, facing, paint)
+	var batch: Variant = _batch_for((corners[0] + corners[2]) * 0.5, facing, paint)
 	var colour := paint.colour if _last_outdoors else paint.colour_in
 	var uvs := PackedVector2Array()
 	var uv2s := PackedVector2Array()
@@ -455,7 +547,7 @@ func triangle(
 	var aft := minf(corners[0].x, minf(corners[1].x, corners[2].x))
 	if not kept(aft, maxf(corners[0].x, maxf(corners[1].x, corners[2].x))):
 		return
-	var batch := _batch_for((corners[0] + corners[1] + corners[2]) / 3.0, normal, paint)
+	var batch: Variant = _batch_for((corners[0] + corners[1] + corners[2]) / 3.0, normal, paint)
 	var colour := paint.colour if _last_outdoors else paint.colour_in
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
@@ -493,6 +585,23 @@ func model(prop: ShipModel, place: Transform3D, paints := {}) -> void:
 	_open()
 	for surface in prop.surfaces:
 		var paint: Paint = paints.get(surface.paint, surface.paint)
+		if _native != null:
+			_native.model_surface(
+				place,
+				turn,
+				mirrored,
+				surface.points,
+				surface.normals,
+				surface.order,
+				surface.inks,
+				paint.finish,
+				paint.colour,
+				paint.finish_in,
+				paint.colour_in,
+				foot,
+				head
+			)
+			continue
 		var points := surface.points
 		var normals := surface.normals
 		var order := surface.order
@@ -520,12 +629,12 @@ func model(prop: ShipModel, place: Transform3D, paints := {}) -> void:
 			if facing.length_squared() < SLIVER * SLIVER * SLIVER * SLIVER:
 				continue
 			var middle := (placed[a] + placed[b] + placed[c]) / 3.0
-			var batch := _batch_for(middle, facing.normalized(), paint)
+			var batch: Variant = _batch_for(middle, facing.normalized(), paint)
 			if not corners.has(batch):
 				corners[batch] = PackedInt32Array()
 				outdoors[batch] = _last_outdoors
 			corners[batch].append_array([a, b, c])
-		for batch: Batch in corners:
+		for batch: Variant in corners:
 			_emit_model(
 				batch,
 				corners[batch],
@@ -543,7 +652,7 @@ func model(prop: ShipModel, place: Transform3D, paints := {}) -> void:
 ## The model corners [param corners] (model() gathered them for [param batch]) into it,
 ## each once: its placed point and normal, its paint's colour and bands, its ink.
 func _emit_model(
-	batch: Batch,
+	batch: Variant,
 	corners: PackedInt32Array,
 	placed: PackedVector3Array,
 	turned: PackedVector3Array,
@@ -583,6 +692,7 @@ func kept(aft: float, fore: float) -> bool:
 ## chunk indoors, and one outdoors, a surface for each finish — a moving ship moves as
 ## few instances as she has chunks — but the glass, each finish its own instance.
 func commit(parent: Node3D, materials: Dictionary) -> void:
+	_take_native()
 	var keys := _batches.keys()
 	keys.sort()
 	var meshes := {}
@@ -609,6 +719,8 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 				Mesh.ARRAY_CUSTOM_RGBA_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM0_SHIFT
 				| Mesh.ARRAY_CUSTOM_RGB_FLOAT << Mesh.ARRAY_FORMAT_CUSTOM1_SHIFT
 			)
+		if committed.is_valid():
+			committed.call(key, arrays, finish)
 		if packed != null and group.begins_with("in "):
 			packed.add(group, arrays, format, materials[finish], packed_as)
 			continue
@@ -630,12 +742,48 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 	_batches.clear()
 	_finishes.clear()
 	_placed.clear()
+	if _native != null:
+		_native.clear()
+
+
+## The NativeShipMesh drawing this mesh, or null where the GDScript does.
+func native() -> Object:
+	return _native
+
+
+## Every batch drawn so far, by its key ("finish out" or "finish in x y z").
+func batches() -> Dictionary:
+	_take_native()
+	return _batches
+
+
+## The NativeShipMesh's batches so far, copied into this mesh's own.
+func _take_native() -> void:
+	if _native == null:
+		return
+	for entry: Array in _native.batches():
+		var batch := Batch.new()
+		batch.indices = entry[2]
+		batch.vertices = entry[3]
+		batch.normals = entry[4]
+		batch.colours = entry[5]
+		batch.uvs = entry[6]
+		batch.uv2s = entry[7]
+		batch.pieces = entry[8]
+		batch.halves = entry[9]
+		_batches[entry[0]] = batch
+		_finishes[entry[0]] = entry[1]
 
 
 ## The batch a piece centred on [param middle] and facing [param normal] goes in:
 ## its paint's finish indoors or out, judged a step in front of it, and its chunk.
-## [member _last_outdoors] keeps the verdict for the caller.
-func _batch_for(middle: Vector3, normal: Vector3, paint: Paint) -> Batch:
+## [member _last_outdoors] keeps the verdict for the caller. The NativeShipMesh's, by
+## its number, when there is one.
+func _batch_for(middle: Vector3, normal: Vector3, paint: Paint) -> Variant:
+	if _native != null:
+		var at: int = _native.batch_for(middle, normal, paint.finish, paint.finish_in)
+		_last_outdoors = _native.last_outdoors()
+		return at
 	_last_outdoors = _outdoors.call(middle + normal * PROBE)
 	var finish := paint.finish if _last_outdoors else paint.finish_in
 	# Outdoors a finish's one batch, filed under no chunk.
@@ -661,7 +809,7 @@ func _batch_for(middle: Vector3, normal: Vector3, paint: Paint) -> Batch:
 ## and 1 outdoors), and their triangles by index in [param order], three to a
 ## triangle. Godot's front faces are wound clockwise.
 func _emit(
-	batch: Batch,
+	into: Variant,
 	order: PackedInt32Array,
 	points: PackedVector3Array,
 	normals: PackedVector3Array,
@@ -669,6 +817,10 @@ func _emit(
 	uvs: PackedVector2Array,
 	uv2s: PackedVector2Array
 ) -> void:
+	if _native != null:
+		_native.emit(into, order, points, normals, colour, uvs, uv2s)
+		return
+	var batch: Batch = into
 	var base := batch.vertices.size()
 	batch.vertices.append_array(points)
 	batch.normals.append_array(normals)
@@ -696,10 +848,16 @@ func _emit(
 ## Begins and ends a call that draws a piece out of several calls' faces: the
 ## outermost seals it.
 func _open() -> void:
+	if _native != null:
+		_native.open()
+		return
 	_depth += 1
 
 
 func _close() -> void:
+	if _native != null:
+		_native.close()
+		return
 	_depth -= 1
 	if _depth == 0 and not _reached.is_empty():
 		_seal()

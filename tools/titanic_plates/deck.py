@@ -31,6 +31,11 @@ A deck's pieces, each a rectangle (x0, y0, x1, y1) in plate pixels unless said:
     STAIRS  [(name, x0, y0, x1, y1, rises, lower, upper), …]: a flight over the
             rectangle, rising toward rises ("fore", "aft", "port" or "starboard") from
             the deck called lower to the one called upper.
+    GEAR    [(kind, x0, y0, x1, y1), …]: a piece of her deck gear (DeckFurniture.GEAR's
+            kinds), the box its ink fills: the generator lays its kind's size on the
+            box's middle.
+    BRIDGES [(name, x0, y0, x1, y1, height), …]: a deck on stanchions height metres
+            over the deck, open under it, y None for her whole breadth there.
 
 Rooms snap to shared lines: edges within SNAP pixels of each other are one wall.
 
@@ -199,6 +204,8 @@ class Deck:
         self.decks = [d for p in parts for d in p.decks]
         self.doors = [d for p in parts for d in p.doors]
         self.stairs = [s for p in parts for s in p.stairs]
+        self.gear = [g for p in parts for g in p.gear]
+        self.bridges = [b for p in parts for b in p.bridges]
         if len(parts) > 1:
             self._join(parts)
         self._nudged(module)
@@ -715,6 +722,16 @@ class _Part:
         self.open = [self.view.rect(*o) for o in getattr(module, "OPEN", [])]
         self.stairs = [(stair_name,) + self.view.rect(x0, y0, x1, y1) + (rises, lower, upper)
                        for stair_name, x0, y0, x1, y1, rises, lower, upper in getattr(module, "STAIRS", [])]
+        # Her gear as (kind, x0, x1, z0, z1), its ink's box in ship metres; a deck on
+        # stanchions as (name, x0, x1, z0, z1, height), its z None for her whole breadth.
+        self.gear = [(kind,) + self.view.rect(x0, y0, x1, y1) for kind, x0, y0, x1, y1 in getattr(module, "GEAR", [])]
+        self.bridges = []
+        for bridge_name, x0, y0, x1, y1, height in getattr(module, "BRIDGES", []):
+            if y0 is None:
+                a, b = sorted((kept(self.view.x(x0)), kept(self.view.x(x1))))
+                self.bridges.append((bridge_name, a, b, None, None, height))
+            else:
+                self.bridges.append((bridge_name,) + self.view.rect(x0, y0, x1, y1) + (height,))
 
     def _owner(self, box):
         """The list and index of box, by its place among the rooms, solids, raised floors
