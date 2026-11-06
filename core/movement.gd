@@ -583,7 +583,9 @@ func _hold(player: PlayerState, contact: Surfaces.Contact) -> void:
 
 ## What each body stands on. A grounded body follows its surface up and down
 ## within step_height; past an edge deeper than that it falls. A falling body lands
-## on the highest surface it comes down onto, staggered by the drop — a jump's by
+## on the highest surface it comes down onto, or one within step_height over its feet —
+## a deck edge _blockers let it step in over, so it is never pushed back out through it
+## a tick later (#472) — staggered by the drop — a jump's by
 ## the drop below where it left, so its own height costs nothing. A swimmer's height
 ## is the water's (_water).
 func ground(
@@ -607,7 +609,7 @@ func ground(
 		if player.vel.y > 0.0:
 			continue
 		var below := _surfaces.landing(
-			Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
+			Vector3(player.pos.x, feet_before[player.seat] + _rules.step_height, player.pos.z)
 		)
 		if below == Surfaces.NONE:
 			continue

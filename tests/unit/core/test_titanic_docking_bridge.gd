@@ -199,3 +199,28 @@ func test_an_easy_bot_climbs_a_ladder_from_most_starts() -> void:
 	assert_gte(
 		up, ceili(starts.size() * 0.75), "up from most starts; not from %s" % ", ".join(stuck)
 	)
+
+
+## A body falling off the starboard ladder's open side near its head, its feet within a
+## step under the docking bridge's deck and flying on forward over the deck's edge, lands
+## on the deck — held inboard by the railing there — rather than pushed inboard by that
+## railing and then back out through it by the deck's edge (#472: x −127.24 → −126.85 →
+## −127.65). The world held dry.
+func test_a_body_falling_past_the_bridge_edge_by_a_ladder_head_lands_on_it() -> void:
+	var rules := SimFixtures.rules()
+	var starboard := _ladders()[0] if _ladders()[0].area.get_center().y > 0.0 else _ladders()[1]
+	var head := starboard.area.end.x
+	var sim := SimFixtures.sim(1, null, _layout)
+	HeldPose.hold(sim, HeldPose.flooded(_layout, -_layout.freeboard, {}))
+	var side := starboard.area.end.y + 0.25
+	var start := Vector3(head - 0.2, BRIDGE - rules.step_height * 0.5, side)
+	SimFixtures.fly(sim, 0, start, Vector3(2.0, 0.0, 0.5))
+	var x := start.x
+	for tick in 12:
+		SimFixtures.step(sim)
+		var body := sim.state.seats[0]
+		assert_gte(body.pos.x, x, "tick %d: on forward, never back out over the edge" % tick)
+		x = body.pos.x
+	var body := sim.state.seats[0]
+	assert_eq(body.body, PlayerState.Body.GROUNDED, "landed")
+	assert_almost_eq(body.pos.y, BRIDGE, 0.0001, "on the bridge's deck, not the poop")
