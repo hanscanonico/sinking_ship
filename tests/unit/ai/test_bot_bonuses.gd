@@ -301,9 +301,10 @@ func test_a_bot_on_the_titanic_goes_round_the_stairs_in_a_passage_for_a_bonus() 
 ## past her cells, where the sea outside her reads: her CO2 evaporator room on the orlop has a
 ## corner there, within a body's radius of her shell (her sections cut finer where she
 ## tapers, #318, hold it inside her now). Held dry, with no hit, the room stands clear of
-## any water in her where a body can stand in it, and a normal bot in her second-class dining saloon sets out for the Double
-## life lying there (#491). On main the corner read the sea, 3.4 m over the floor, and no bot
-## went for any bonus whose way passed a room like it.
+## any water in her where a body can stand in it, and a normal bot in her second-class
+## dining saloon sets out for the Double life lying there (#491). On main the corner read
+## the sea, 3.4 m over the floor, and no bot went for any bonus whose way passed a room
+## like it.
 func test_a_bot_reads_a_room_at_her_shell_by_where_a_body_stands() -> void:
 	var sinking: SinkScenario = load(TITANIC_SINKING).duplicate()
 	sinking.hit = null
