@@ -40,9 +40,13 @@
 # a --skip that leaves fewer than 5 samples fails the run, as a short one does.
 #
 # --project runs another checkout of the game (an A/B against main) with this
-# script's rules. The engine runs under `timeout`, which ends it LOAD_LIMIT seconds
-# past --seconds — the game quits by itself --seconds after the match starts — and
-# kills it KILL_AFTER seconds later if it has not quit by then.
+# script's rules. The game quits by itself --seconds after the match starts; it runs
+# under tools/engine_guard.sh, which stops it, and what it started, once it has run
+# FPS_LIMIT seconds — LOAD_LIMIT plus SKIP plus --seconds plus FPS_MARGIN (120) by
+# default; 0 for no limit — as it holds the one window lock all along, and the moment
+# its output shows its scripts failed to compile or one script error over and over
+# (#464). Either stop fails the run, saying why. The guard's exit-time scan is not this
+# script's rule: the run is judged by its samples.
 
 set -uo pipefail
 # Decimal points, whatever the machine's locale writes numbers with.
@@ -65,7 +69,6 @@ SECONDS_RUN=40
 RESOLUTION=1440x900
 PROJECT=.
 SKIP=8
-KILL_AFTER=10
 LOAD_LIMIT=600
 SPLIT=0
 EXTRA=()
@@ -93,8 +96,13 @@ while (($#)); do
 	shift
 done
 
-if ! [[ $SKIP =~ ^[0-9]+$ && $SECONDS_RUN =~ ^[0-9]+$ ]]; then
-	echo "fps: --skip and --seconds take whole seconds: $SKIP, $SECONDS_RUN" >&2
+if ! [[ $SKIP =~ ^[0-9]+$ && $SECONDS_RUN =~ ^[0-9]+$ && $LOAD_LIMIT =~ ^[0-9]+$ ]]; then
+	echo "fps: --skip, --seconds and --load-limit take whole seconds: $SKIP, $SECONDS_RUN, $LOAD_LIMIT" >&2
+	exit 2
+fi
+LIMIT=${FPS_LIMIT:-$((LOAD_LIMIT + SKIP + SECONDS_RUN + ${FPS_MARGIN:-120}))}
+if ! [[ $LIMIT =~ ^[0-9]+$ ]]; then
+	echo "fps: FPS_LIMIT takes whole seconds (0: no limit), not '$LIMIT'" >&2
 	exit 2
 fi
 
@@ -114,12 +122,19 @@ LOG=$(mktemp)
 trap 'rm -f "$LOG"' EXIT
 
 START_LOAD=$(load)
-# The run is judged by its samples, not by how the engine ended.
-timeout -k "$KILL_AFTER" "$((LOAD_LIMIT + SECONDS_RUN))" "$GODOT" --path "$PROJECT" \
+# The run is judged by its samples, not by how the engine ended, unless the guard
+# stopped it.
+ENGINE_GUARD_LIMIT="$LIMIT" ENGINE_GUARD_EARLY=1 ENGINE_GUARD_SCAN=0 tools/engine_guard.sh \
+	"$GODOT" --path "$PROJECT" \
 	--disable-vsync --print-fps --always-on-top --resolution "$RESOLUTION" --audio-driver Dummy -- \
 	--seed="$SEED" --seats="$SEATS" --autoplay --match-seconds="$SECONDS_RUN" \
 	${SPLIT_ARGS[@]+"${SPLIT_ARGS[@]}"} ${EXTRA[@]+"${EXTRA[@]}"} >"$LOG" 2>&1
 END_LOAD=$(load)
+if grep -q '^engine_guard: .*stopping' "$LOG"; then
+	grep '^engine_guard: ' "$LOG" >&2
+	echo "fps: FAILED: the game was stopped before it ended by itself" >&2
+	exit 1
+fi
 
 LOADED=$(grep -m1 -o '^first match frame [0-9.]* s' "$LOG" | awk '{print $4}')
 if [[ -z $LOADED ]]; then
