@@ -66,8 +66,8 @@ class Staged:
 		for since: float in sinces:
 			var opened := _opened.duplicate()
 			if rng.randf() < 0.5:
-				for _try in 4:
-					opened[rng.randi_range(0, opened.size() - 1)] = [0.5, 1.0, HAIR][_try % 3]
+				for kind in 4:
+					opened[rng.randi_range(0, opened.size() - 1)] = [0.5, 1.0, HAIR][kind % 3]
 			var answer := _native.shares(since, opened)
 			var reference := PackedFloat64Array()
 			for index in _names.size():
@@ -95,10 +95,10 @@ class Staged:
 			var metre := per_metre
 			if trial > 0:
 				made_up_heads(tried, sea)
-				for _try in 3:
+				for kind in 3:
 					var cell := rng.randi_range(0, _boxes.size() - 1)
 					var full := _capacity[cell]
-					twin.water[cell] = [0.0, full, full - HAIR * full, full * 0.5][_try % 4]
+					twin.water[cell] = [0.0, full, full - HAIR * full, full * 0.5][kind]
 				if rng.randf() < 0.3:
 					held[rng.randi_range(0, held.size() - 1)] = 1
 				metre *= rng.randf_range(0.1, 10.0)
@@ -136,9 +136,9 @@ class Staged:
 		for _try in MADE_UP:
 			var twin := next.copy()
 			made_up_heads(twin.heads, twin.sea)
-			for _cell in 2:
+			for kind in 2:
 				var cell := rng.randi_range(0, twin.water.size() - 1)
-				twin.water[cell] = [0.0, _capacity[cell]][_cell]
+				twin.water[cell] = [0.0, _capacity[cell]][kind]
 			states.append(twin)
 		var acrosses: Array[PackedFloat64Array] = []
 		for at in states.size():
@@ -156,18 +156,33 @@ class Staged:
 		# The memo as the step left it.
 		failures._across_state = next
 		failures._across = acrosses[0]
-		for _try in MADE_UP:
-			acrosses.append(made_up_across(watched))
 		var indices: PackedInt32Array = watched[0]
 		if indices.is_empty():
 			return
+		for _try in MADE_UP:
+			acrosses.append(made_up_across(watched))
+		check_failing(state, next, acrosses, watched)
+		# Her watched openings made harder, on both sides, then as they were.
+		var layout := made_up_layout(watched)
+		hand_over(layout)
+		check_failing(state, next, acrosses + [made_up_across(layout)], layout)
+		hand_over(watched)
+
+	## What gives way and leaks at each of [param acrosses] past [param next], stepped
+	## from [param state], from what stood open before or made-up openings, at its second
+	## or one on a shut time, her watched openings [param watched]; and the gaps at each.
+	func check_failing(
+		state: FloodState, next: FloodState, acrosses: Array, watched: Array
+	) -> void:
+		var failures := _failures
+		var native := _native
 		for across: PackedFloat64Array in acrosses:
 			var opened := state.opened.duplicate()
 			var seconds := next.seconds
 			if rng.randf() < 0.5:
-				for _try in 4:
+				for kind in 4:
 					var index: int = watched[0][rng.randi_range(0, watched[0].size() - 1)]
-					opened[index] = [0.0, 1.0, 0.25, 0.0][_try]
+					opened[index] = [0.0, 1.0, 0.25, 0.0][kind]
 			if rng.randf() < 0.5:
 				var time: float = watched[3][rng.randi_range(0, watched[3].size() - 1)]
 				seconds = edged(PackedFloat64Array([absf(time), 0.0]))
@@ -185,6 +200,39 @@ class Staged:
 			asked[&"gaps"] += 1
 			if not alike(native.failure_gaps(across), failures._opening_gaps(across)):
 				note("failure gaps at step %d" % next.steps)
+
+	## [param watched] (SinkFailures.watched) made harder: some openings that never give
+	## way or never leak, that open toward either side or neither, whose leaks pass
+	## nothing, or shut from the start, never or over half a minute.
+	func made_up_layout(watched: Array) -> Array:
+		var layout: Array = []
+		for array: Variant in watched:
+			layout.append(array.duplicate())
+		for at in (layout[0] as PackedInt32Array).size():
+			match rng.randi_range(0, 6):
+				0:
+					layout[5][at] = 0.0
+				1:
+					layout[4][at] = 0.0
+				2:
+					layout[7][at] = rng.randi_range(-1, 1)
+				3:
+					layout[6][at] = 0.0
+				4:
+					layout[3][at] = [-1.0, 0.0, 30.0][rng.randi_range(0, 2)]
+		return layout
+
+	## Hands [param watched] to her failures and the extension alike.
+	func hand_over(watched: Array) -> void:
+		_native.watched(watched)
+		_failures._index = watched[0]
+		_failures._first = watched[1]
+		_failures._second = watched[2]
+		_failures._shut_time = watched[3]
+		_failures._leak = watched[4]
+		_failures._collapse = watched[5]
+		_failures._leak_share = watched[6]
+		_failures._toward = watched[7]
 
 	## Heads across each watched opening of [param watched] (SinkFailures.watched) on its
 	## leak or collapse head, a hair either side, either sign, none or at random.
