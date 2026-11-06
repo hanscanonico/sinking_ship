@@ -243,19 +243,7 @@ func _process(delta: float) -> void:
 		return
 	var snapshot := _match.current()
 	if _capture_due(snapshot):
-		var overrun := capture_overrun(_args, _capture_tick, snapshot, _match.played_config())
-		if not overrun.is_empty():
-			_capturing = true
-			push_error(overrun)
-			get_tree().quit(1)
-			return
-		_match.set_paused(true)
-		match _args.capture_screen:
-			"pause":
-				_pause.open(_match.prompts(), _match.spectating())
-			"online-pause", "online-settings":
-				_stage_online_pause(_args.capture_screen == "online-settings")
-		_capture(MatchTranscript.clock(snapshot["tick"]))
+		_capture_match(snapshot)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -862,6 +850,24 @@ func _capture_due(snapshot: Dictionary) -> bool:
 	if _capture_tick >= 0:
 		return snapshot["tick"] >= _capture_tick
 	return _args.capture_at >= 0.0 and snapshot["tick"] >= Ticks.from_seconds(_args.capture_at)
+
+
+## Stops the match on [param snapshot], its capture due, stages the screen asked for over
+## it and shoots it — or, ended before the moment asked for, says so and quits.
+func _capture_match(snapshot: Dictionary) -> void:
+	_match.set_paused(true)
+	var overrun := capture_overrun(_args, _capture_tick, snapshot, _match.played_config())
+	if not overrun.is_empty():
+		_capturing = true
+		push_error(overrun)
+		get_tree().quit(1)
+		return
+	match _args.capture_screen:
+		"pause":
+			_pause.open(_match.prompts(), _match.spectating())
+		"online-pause", "online-settings":
+			_stage_online_pause(_args.capture_screen == "online-settings")
+	_capture(MatchTranscript.clock(snapshot["tick"]))
 
 
 ## Why a capture [param args] asks for cannot be shot from [param snapshot], a match
