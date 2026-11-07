@@ -1232,6 +1232,11 @@ STAIRS = [
 
 # Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
 NUDGES = [
+    # The line along the passage aft of B, between it and the men's lavatory and the four-berth
+    # room, 1/16 m to port: D deck's ladder down along the passage still clear of it, the
+    # four-berth room's door off its forward wall a body's door wide where her side narrows
+    # the passage's bay (#514).
+    (2, 7.375, 7.3125, 88.0, 99.5),
     (0, 98.8125, 98.4375, -1.9, 1.1),  # the passage's way past B's line (#373)
     (0, 38.25, 38.9375, -13.7, -5.7),  # the stewards' wall forward of D's stair's head, not under its treads
     (0, 69.875, 69.6875, -13.0, -8.9),  # the four-berth room's door, short of bulkhead D's line
@@ -1268,8 +1273,6 @@ NUDGES = [
     (0, -118.25, -117.8125, 0.9, 8.8),
 ]
 DOOR_MOVES = [
-    ((95.6875, 7.875), (94.0, 7.375)),  # the four-berth room's, her side at B's line (#373) leaving it no stretch
-    ((35.1875, -7.125), (37.0, -7.125)),  # the stewards' door past bulkhead F's line
     ((-66.0, 7.75), (-66.0, 7.4375)),  # M's starboard passage door, clear of both rooms' corners
     ((-48.625, -7.4375), (-48.625, -7.375)),  # L's working passage door, clear of the passage's corner
     ((-4.3125, -5.8125), (-3.625, -5.8125)),  # the rooms' door, clear of two passages' join
@@ -1277,6 +1280,23 @@ DOOR_MOVES = [
     ((104.0, -3.5), (104.0, -4.125)),  # likewise
     (None, (-70.625, -12.0)),  # the potato room's way past the ladder laid along its door
     (None, (-64.9375, 12.4)),  # the passage behind M's ladder, through the room it served
+    # Doors that opened onto a flight (#514): the second-class entrance's from the passage aft
+    # of M, aft of its flight down's head; the women's lavatory's onto its passage, D deck's
+    # ladder down run on through its after part (d.py); the firemen's W.C.s' aft of their
+    # spiral's head; the men's lavatory's onto the passage along it, D deck's ladder down run
+    # on along the passage it opened onto, its other piece's into the first; the musicians'
+    # quarters', aft of D deck's stair down through them (d.py).
+    ((-72.0625, -2.875), (-72.625, -2.875)),
+    ((80.9375, 6.875), (84.125, 4.6875)),
+    ((102.625, 3.375), (100.8125, 3.375)),
+    ((90.625, 6.375), (89.4375, 4.6875)),
+    (None, (89.4375, 7.3125)),
+    (None, (-65.0, -10.875)),
+    # (The second-class stewards' quarters' and the four-berth room's aft of B stay where the
+    # plate draws them: aft of the stair down that fills the stewards' lobby, and into the
+    # passage's bay, clear of D deck's ladder down run on along the passage.)
+    # The store the port spiral's head fills (NOT_ROOMS):
+    ((101.625, -3.875), None),
 ]
 # Less than a door's width either side of D's line; the store her stem takes; the joins
 # over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below;
@@ -1306,6 +1326,10 @@ WALLED_SOLIDS = [(-64.2, -7.6), (-64.2, -5.8)]
 WALLED_SOLIDS += [(-38.0, -2.0, "fore"), (-38.0, 5.0, "fore"), (-14.0, -10.0, "starboard"), (85.5, -7.0, "starboard")]
 NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
              (79.5, 6.0), (80.0, -4.9)]
+# D deck's stewards' staircase down through the engineers' stewards' quarters (d.py, est.),
+# and the firemen's port spiral's head through the store aft of their wash place: each
+# room the flight's well, no body's (#514).
+NOT_ROOMS += [(-26.9, -0.2), (100.9, -4.0)]
 # The store her stem takes: no floor of hers reaches it (E_STEM).
 GONE = [(127.5, 0.0)]
 # A bathroom by J's line and a store too small for a door; a store her stem takes.
@@ -1326,6 +1350,12 @@ STAIR_MOVES = [
     # it this one had 0.74 m over it (#514). The ladderway's port side a lane past both, the
     # four-berth room's and the men's lavatory's way in.
     (("third-class ladder", 78.25, -6.25), (78.25, 81.375, -6.5625, -5.5625)),
+    # The main third-class stairway's flight down to F deck 0.69 m forward of the plate's,
+    # its head forward of the mouth of F deck's passage to the third-class rooms aft of O,
+    # which it stood in the way of; and the ladder down by N 0.44 m aft, its head aft of the
+    # mouth of F deck's passage aft of N (#514).
+    (("third-class stairway", -114.625, 0.5625), (-113.9375, -110.8125, 0.5625, 2.875)),
+    (("ladder", -91.8125, -6.0), (-92.25, -89.0625, -6.0, -4.625)),
     # A body's lead clear of the wall before each end (the layout lint):
     (("ladder", -69.3125, -10.6875), (-70.0625, -66.875, -10.6875, -9.75)),
     # The engineers' ladder down to F deck along the port side of F deck's widened stair box,

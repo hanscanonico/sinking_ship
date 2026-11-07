@@ -567,11 +567,12 @@ class Deck:
                             if hi - lo > 0.9 and (best is None or hi - lo > best[0]):
                                 mid = (lo + hi) * 0.5
                                 best = (hi - lo, (at, mid) if axis == 0 else (mid, at))
-            # A well its flights fill (NOT_ROOMS) that an OPEN joins to a passage: the join is
-            # its way in, and a door in another of its walls would open onto a flight's side
-            # (#514: F deck's engineers' stair box, open at its forward end).
+            # A well its flights fill (NOT_ROOMS): an OPEN joining it to a passage is its way
+            # in, and a door in another of its walls would open onto a flight's side (#514: F
+            # deck's engineers' stair box, open at its forward end); nor does a body stand in
+            # one with no such join, behind a flight's run on (#514: D deck's crew stairs).
             well = any(room[1] < x < room[2] and room[3] < z < room[4] for x, z in self.not_rooms)
-            if best is not None and not (joined and well):
+            if best is not None and not well:
                 out.append(best[1])
         return out
 

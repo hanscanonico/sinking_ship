@@ -1115,6 +1115,11 @@ DOOR_MOVES = [
     ((-44.1875, -9.8125), None),  # the stair box's: its forward end open (OPENED), the ladder's foot and the stair's head
     (None, (1.6875, -6.4375)),  # the saloons', either side of the ladderway's feet at H (est.)
     (None, (1.6875, 7.5)),
+    # Doors that opened onto E deck's ladders down (e.py), run on along the passages beside
+    # them (#514): the linen room's second door onto the passage its other side, the
+    # eight-berth room's onto the passage aft of it.
+    ((74.125, -5.6875), (74.125, -4.375)),
+    ((78.9375, -6.75), (78.4375, -10.0)),
 ]
 # Each saloon's bay aft of the casing keeps its own way in, a pier in the wide join:
 SHUT = [(4.5625, -6.0)]

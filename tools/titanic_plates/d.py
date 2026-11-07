@@ -851,3 +851,13 @@ STAIR_MOVES = [
 # The W.C.s forward of the third-class lavatories aft of O, whose faces those rooms only
 # touch: walled, or a hair's gap reads as a doorway onto them (#514).
 WALLED_SOLIDS = [(-116.0, -8.0, "aft"), (-115.7, 8.0, "aft")]
+# The third-class matron's room's and surgery's doors onto the corridors beside them: the
+# plate's open onto the head of C deck's flight down, run on to their wall (c.py) (#514).
+DOOR_MOVES = [
+    ((-109.5, -1.5), (-108.625, -2.75)),
+    ((-109.5, 1.375), (-108.625, 3.0625)),
+]
+# The firemen's wash place's and W.C.s' pieces aft of the passage, C deck's crew stairs down
+# run on through them (c.py): behind each stair's head a closet no body reaches (#514).
+NOT_ROOMS = [(99.5, -3.5), (99.3, 3.5)]
+SHUT = [(99.47, -5.0625), (99.31, 5.4375)]

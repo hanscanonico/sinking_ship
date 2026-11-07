@@ -898,6 +898,10 @@ OPEN = [
 # The well the after second-class stairway's flight down to D deck runs on into, under B
 # deck's after end: its floor all the flight's hole in her after well deck (#514), no room.
 NOT_ROOMS = [(-93.4, 1.5)]
+# The windlass room's forward tip, which the warping engine fills to 0.44 m of, the hull's
+# step beside its corner 0.49 m off it: no body's (#514). Walled off.
+NOT_ROOMS += [(125.0, 0.0)]
+SHUT = [(123.81, 0.0)]
 
 STAIRS = [
     # The main third-class stairway down to D deck (BOT: "16 ft. to E deck"), rising

@@ -581,6 +581,8 @@ DOOR_MOVES = [
     ((-93.4375, 9.25), (-93.3125, 8.8125)),  # the four-berth room's, off her side's wall
     ((-115.9375, 0.0625), (-116.8125, 0.5)),  # the two-berth room's, between P's doors' passages
     ((97.375, 6.3125), (97.5625, 5.375)),  # the four-berth room's along B, inside her side
+    # The two-berth room's aft of C, to starboard of F deck's stair down beside it (#514):
+    (None, (72.1875, -6.25)),
 ]
 # The pieces of Ls her side leaves narrower than a body, or past one (each room whole without).
 MADE_SOLID = [(-91.3, -9.4), (-90.0, -9.5), (-98.6, -7.5), (-98.6, 7.7)]
