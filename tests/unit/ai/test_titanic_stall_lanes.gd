@@ -3,12 +3,15 @@ extends GutTest
 ## after ladders on B deck's open after end, which ran on aft from the plate's ladders to fill
 ## her deck from A deck's step to her after rail. On G deck it walks from the passage aft of
 ## K between the brine tank room and the paint store out onto the passage along the casing,
-## whose mouth the engine oil tank's nudge closed. And a bot finds its way round to a target
+## whose mouth the engine oil tank's nudge closed. On D deck it walks along the third-class
+## passage aft of P either side of its trunk, which left the cabins aft of it no way in that
+## a body takes. And a bot finds its way round to a target
 ## past C deck's doorway into the second-class entrance aft, whose clear width leaves a
 ## body's middle a lane no square's middle of the way round's search falls in.
 
 const TITANIC := "res://data/ships/titanic.tres"
 const B_DECK := 2.75
+const D_AFT := -2.9375
 const G_DECK := -11.0
 ## B deck's open after end, starboard and port of her middle, walked along her after rail.
 const PAST_THE_LADDER_FEET: Array[Vector3] = [
@@ -19,6 +22,12 @@ const BEYOND_THE_FOOT := 7.4
 ## G deck: the passage aft of K, and the passage along the casing past its mouth.
 const IN_THE_PASSAGE := Vector3(-43.0, G_DECK, -12.4)
 const ALONG_THE_CASING := -9.5
+## D deck aft of P: the passage's lanes starboard and port of the trunk, from its after
+## side, and how far forward past its forward side, x -122.47, the walk gets.
+const ABAFT_THE_TRUNK: Array[Vector3] = [
+	Vector3(-126.75, D_AFT, -0.99), Vector3(-126.75, D_AFT, 0.99)
+]
+const FORWARD_OF_THE_TRUNK := -122.3
 ## C deck: by the doorway into the second-class entrance aft, and a target beyond it.
 const BY_THE_DOORWAY := Vector3(-90.4, 0.0, -7.93)
 const PAST_THE_DOORWAY := Vector3(-89.0, 0.0, -7.375)
@@ -56,6 +65,12 @@ func test_a_body_walks_past_the_foot_of_a_deck_s_after_ladders() -> void:
 func test_a_body_walks_out_of_the_passage_aft_of_k_onto_the_casing_s() -> void:
 	var at := _walked(IN_THE_PASSAGE, Vector2(0.0, 1.0), 1.5)
 	assert_gt(at.z, ALONG_THE_CASING, "through the passage's mouth")
+
+
+func test_a_body_walks_past_the_trunk_in_d_deck_s_passage_aft_of_p() -> void:
+	for from: Vector3 in ABAFT_THE_TRUNK:
+		var at := _walked(from, Vector2(1.0, 0.0), 1.5)
+		assert_gt(at.x, FORWARD_OF_THE_TRUNK, "from %s along its lane" % from)
 
 
 func test_a_bot_finds_its_way_round_past_a_doorway_a_body_just_fits() -> void:
