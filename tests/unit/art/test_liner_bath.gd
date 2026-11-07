@@ -205,3 +205,65 @@ func test_the_turkish_bath_hangs_a_lantern_for_each_pendant() -> void:
 		assert_eq(light.kind, ShipLamp.Kind.PENDANT)
 		assert_true(room.area.has_point(Vector2(light.at.x, light.at.z)))
 	assert_eq(bath.lights(_room(SWIMMING)).size(), 0, "the swimming bath keeps its pendants")
+
+
+## A Turkish bath's lobby 4 m square round the origin on a deck, a deck 3 m over it —
+## test data — with a hole beside its middle, and a stair up through it when
+## [param stair].
+func _lobby(stair: bool) -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 1.0
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [
+		[Rect2(-5.0, -5.0, 10.0, 10.0), 0.0],
+		[Rect2(-5.0, -5.0, 4.0, 10.0), 3.0],
+		[Rect2(-0.2, -5.0, 5.2, 10.0), 3.0],
+		[Rect2(-1.0, -5.0, 0.8, 4.0), 3.0],
+		[Rect2(-1.0, 1.0, 0.8, 4.0), 3.0],
+	]:
+		var platform := ShipPlatform.new()
+		platform.area = row[0]
+		platform.height = row[1]
+		platforms.append(platform)
+	layout.platforms = platforms
+	if stair:
+		var ramp := ShipRamp.new()
+		ramp.area = Rect2(-1.0, -1.0, 0.8, 2.0)
+		ramp.axis = ShipRamp.Axis.Z
+		ramp.start_height = 0.0
+		ramp.end_height = 3.0
+		var ramps: Array[ShipRamp] = [ramp]
+		layout.ramps = ramps
+	var room := ShipRoom.new()
+	room.name = &"Turkish bath lobby"
+	room.area = Rect2(-2.0, -2.0, 4.0, 4.0)
+	var rooms: Array[ShipRoom] = [room]
+	layout.rooms = rooms
+	return layout
+
+
+func test_no_lantern_hangs_beside_a_stair() -> void:
+	# Its one pendant at its middle: a body climbing the stair beside it rises past its
+	# lantern's foot (#514).
+	for stair: bool in [false, true]:
+		var layout := _lobby(stair)
+		var space := ShipSpace.new(layout)
+		var bath := LinerBath.new(space, CabinDressing.new(space))
+		var mesh := ShipMesh.new(func(_point: Vector3) -> bool: return false, space.room_lines())
+		bath.build(mesh, layout.rooms[0], [])
+		var materials := {}
+		for finish: int in ShipMesh.Finish.values():
+			materials[finish] = StandardMaterial3D.new()
+		var parent := Node3D.new()
+		mesh.commit(parent, materials)
+		var hung := 0
+		for node: Node in parent.get_children():
+			var faces := (node as MeshInstance3D).mesh.get_faces()
+			for corner: Vector3 in faces:
+				if Vector2(corner.x, corner.z).length() < 0.3 and corner.y > LinerBath.HEADROOM:
+					hung += 1
+		parent.free()
+		if stair:
+			assert_eq(hung, 0, "no lantern beside the stair")
+		else:
+			assert_gt(hung, 0, "its lantern, with no stair beside it")

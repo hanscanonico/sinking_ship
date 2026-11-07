@@ -895,6 +895,10 @@ OPEN = [
     (7010, 1922, 7041, 1934), (7159, 1922, 7194, 1934), (7162, 2660, 7200, 2672),
 ]
 
+# The well the after second-class stairway's flight down to D deck runs on into, under B
+# deck's after end: its floor all the flight's hole in her after well deck (#514), no room.
+NOT_ROOMS = [(-93.4, 1.5)]
+
 STAIRS = [
     # The main third-class stairway down to D deck (BOT: "16 ft. to E deck"), rising
     # forward to its landing: the plate's middle and starboard lanes, its port lane left

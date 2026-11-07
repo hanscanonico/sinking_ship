@@ -7,18 +7,17 @@ extends RefCounted
 ## by, and walks straight out as deep past its line with nothing pushing it back the way it
 ## came.
 ##
-## The Titanic's layout has places where neither is true, and a route through one walks a
-## bot into it for good: there is no way round to find. Two flights are stacked in one well,
-## the lower one under the upper's wedge, and a body walking down the upper one walks on
-## along the lower one's head. A railing holds a body only from its own deck's side, so a
-## doorway onto a railed hole's edge lets a body out onto her open deck, pushed on its way,
-## and never back in. Neither is a way for the graph. Where something else holds a body back
-## — a stair's high end in a doorway, machinery or furniture against it, a flight with too
-## little headroom, a railing in a doorway between two rooms — the layout is at fault (#514),
-## and the portal stays where it always stood, so that no room is sealed off the graph
-## (test_no_sealed_room): the one doorway between two rooms a railing shuts, into E deck's
-## passage by the stair aft of C, is the only way into six rooms. Asked of Surfaces once, as
-## the graph is built, before any crate or broken railing is honoured.
+## Where neither is true, a route through walks a bot into it for good: there is no way round
+## to find. Two flights stacked in one well, the lower one under the upper's wedge: a body
+## walking down the upper one walks on along the lower one's head (the layout lint holds
+## every ship's flights clear of it since #514). A railing holds a body only from its own
+## deck's side, so a doorway onto a railed hole's edge lets a body out onto her open deck,
+## pushed on its way, and never back in, as the Titanic's do. Neither is a way for the graph.
+## Where something else holds a body back — a stair's high end in a doorway, machinery or
+## furniture against it, a railing in a doorway between two rooms — the layout is at fault
+## (#514), and the portal stays where it always stood, so that no room is sealed off the
+## graph (test_no_sealed_room). Asked of Surfaces once, as the graph is built, before any
+## crate or broken railing is honoured.
 
 ## How far apart along a flight's middle, and across a doorway, a body is tried, in metres.
 const STRIDE := 0.125

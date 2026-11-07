@@ -338,7 +338,10 @@ OPENED = [(99.3025, 99.3225, -1.0625, 1.4375)]
 # side to the lobby, but at the height the lay puts her orlop her side stands 0.8 m from
 # the lobby's wall, 0.67 m clear between the walls' faces, narrower than a body (#360: "a
 # space narrower than a body"). Its door from the lobby goes with it; nothing lies behind it.
-MADE_SOLID = [(-68.0, -10.6)]
+# The lobby 0.5 m wider into it, for the foot of G deck's stair down (g.py's STAIR_MOVES,
+# beside F deck's flight down to G, #514).
+MADE_SOLID = [(-68.0, -10.95)]
+NUDGES = [(2, -10.25, -10.75, -71.3, -64.8)]
 
 STAIR_MOVES = [
     # In from her side at the lower orlop's height, under the orlop her G deck leaves room for:
