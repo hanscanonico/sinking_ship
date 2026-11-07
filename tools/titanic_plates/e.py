@@ -1147,9 +1147,15 @@ STAIRS = [
     # (2.2 m) run on 35 px forward, its head at the passage's mouth.
     ("ladder", 2078, 4602, 2201, 4656, "fore", "f", "e"),
     # The after second-class stairway's flight down to F deck: the starboard one of the
-    # plate's two, D deck's coming down the port one (d.py), rising aft as the flights above
-    # do; its 72 px of treads (1.9 m) run on 48 px aft over the landing.
-    ("second-class stairway", 2029, 4877, 2152, 4949, "aft", "f", "e"),
+    # plate's two, D deck's coming down the port one (d.py). It rises forward, as the
+    # stairway's flights alternate (C deck's rises forward between B's and D's rising aft,
+    # c.py): a body down D deck's flight comes round the well's forward end onto its head,
+    # and off its foot on F deck's landing aft of the well onto the head of F deck's flight
+    # down to G (f.py). The plate draws no way it rises; rising aft, its head stood behind
+    # the well, where no body down D deck's flight reached it, and its foot in front of F
+    # deck's, which no body reached either (#501). Its 72 px of treads (1.9 m) run on 48 px
+    # aft below them to its foot over the landing.
+    ("second-class stairway", 2029, 4877, 2152, 4949, "fore", "f", "e"),
     # The forward second-class staircase's flight down to F deck: the starboard one, D deck's
     # coming down to port of the lift (d.py); its 55 px of treads run on 65 px aft into the
     # entrance, rising aft.
