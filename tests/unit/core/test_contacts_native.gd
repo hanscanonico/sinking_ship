@@ -262,8 +262,10 @@ func _rails(
 	)
 
 
-## landing() and ceiling() at [param point], natively and in GDScript: the lid of
-## [param except] passed over, and the ceiling from the feet and a step and a head over.
+## landing(), under() and ceiling() at [param point], natively and in GDScript: the lid of
+## [param except] passed over, the surface under feet a step, none and a hop either side
+## (BotFloorWay's search asks the extension's), and the ceiling from the feet and a step and
+## a head over.
 func _floors(
 	native: Surfaces, reference: Surfaces, point: Vector3, rules: BrawlRules, except: int
 ) -> void:
@@ -273,6 +275,21 @@ func _floors(
 		var theirs := reference.landing(point, passed)
 		if mine != theirs:
 			_note("landing at %s past %d: %d, not %d" % [point, passed, mine, theirs])
+		# A step as high as each floor of its cell is clear of the rest, too: where feet
+		# level with a floor stand on it alone, or not.
+		var steps: Array[float] = [rules.step_height, 0.0, Movement.AIR_STEP]
+		var cell := reference._grid.cell_at(Vector2(point.x, point.z))
+		for clearance: float in reference._floor_clearances[cell]:
+			if is_finite(clearance):
+				steps.append(clearance)
+		for step: float in steps:
+			_asked += 1
+			var under: int = native.native.under(point, step, passed)
+			var stood := reference.under(point, step, passed)
+			if under != stood:
+				_note(
+					"under %s a step %s past %d: %d, not %d" % [point, step, passed, under, stood]
+				)
 	for clearance: float in [0.0, rules.step_height, rules.body_height]:
 		_asked += 1
 		var mine := native.ceiling(point, clearance)
