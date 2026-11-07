@@ -46,6 +46,9 @@ const HANG := 0.05
 const SCREW_LEAST := 0.25
 ## How many halvings find the propeller's scale.
 const FIT_STEPS := 24
+## How many times larger a propeller her counter leaves room for aft of her sternpost must
+## be than her run's for it to turn there (_fit_gear()).
+const RUN_SHORT := 2.0
 
 var _sections: Array[HullSection] = []
 ## Per section, its starboard and port sides resampled (shell_sides()).
@@ -852,7 +855,10 @@ func _bottom_at(x: float) -> float:
 ## over its head, off her transom where her run never does —, its head up under her
 ## bottom wherever it hangs under her; her propeller just forward of it, as ShipHull
 ## turns one, as large as her draft has it (_scale) and no larger than her run leaves
-## room for over her keel; its shaft forward to her shell.
+## room for over her keel; its shaft forward to her shell. Where her run leaves it under
+## 1 / RUN_SHORT of the room her counter does aft of her sternpost — her post straight
+## down to her keel, as the Titanic's lines draw it once her sections follow them (#318)
+## — it turns there instead, her rudder hung aft of it (_aft_of_post()).
 func _fit_gear() -> void:
 	var stern := _bottoms[0].x
 	var chord := RUDDER_CHORD * _scale
@@ -862,9 +868,23 @@ func _fit_gear() -> void:
 		stern + (RUDDER_GAP + RUDDER_CHORD) * _scale - gap, _clear_to(head) - HANG * _scale
 	)
 	_rudder_foot = _keel_y + 0.1 * _scale
-	# Her bottom stands at its head or over it all along it: the head runs up to her
-	# bottom, step for step, wherever that stands higher — level with her transom's foot
-	# aft of her.
+	var post := fore + gap
+	_screw = _largest(func(screw: float) -> bool: return _turns(post, screw))
+	_hub = Vector3(post + HUB * _screw * 2.0, _keel_y + (0.1 + BLADE_REACH + HUB) * _screw, 0.0)
+	var aft := _largest(_under_counter)
+	if aft > _screw * RUN_SHORT:
+		_screw = aft
+		_hub = _aft_of_post(_screw)
+		fore = _hub.x - HUB * _screw * 2.0 - gap
+	_hang_rudder(fore, chord, head)
+	_shaft_to = _clear_to(_hub.y + HUB * _screw * 0.5)
+
+
+## Her rudder's head from [param fore] aft over [param chord], at [param head] or up
+## under her bottom: her bottom stands at its head or over it all along it — the head runs
+## up to her bottom, step for step, wherever that stands higher; level with her transom's
+## foot aft of her.
+func _hang_rudder(fore: float, chord: float, head: float) -> void:
 	var under := PackedVector2Array([Vector2(fore - chord, _bottom_at(fore - chord))])
 	for point: Vector2 in _bottoms:
 		if point.x > fore - chord and point.x < fore:
@@ -873,27 +893,51 @@ func _fit_gear() -> void:
 	_rudder_head.clear()
 	for point: Vector2 in under:
 		_rudder_head.append(Vector2(point.x, maxf(point.y, head)))
-	var post := fore + gap
-	_screw = _scale
-	if not _turns(post, _screw):
-		var low := 0.0
-		for _step in FIT_STEPS:
-			var middle := (low + _screw) * 0.5
-			if _turns(post, middle):
-				low = middle
-			else:
-				_screw = middle
-		_screw = low if low >= SCREW_LEAST else 0.0
-	_hub = Vector3(post + HUB * _screw * 2.0, _keel_y + (0.1 + BLADE_REACH + HUB) * _screw, 0.0)
-	_shaft_to = _clear_to(_hub.y + HUB * _screw * 0.5)
+
+
+## The largest scale up to _scale that [param fits], found in FIT_STEPS halvings; 0 for
+## none of SCREW_LEAST or more.
+func _largest(fits: Callable) -> float:
+	if fits.call(_scale):
+		return _scale
+	var low := 0.0
+	var high := _scale
+	for _step in FIT_STEPS:
+		var middle := (low + high) * 0.5
+		if fits.call(middle):
+			low = middle
+		else:
+			high = middle
+	return low if low >= SCREW_LEAST else 0.0
 
 
 ## Whether a propeller at [param screw] times the steamer's, turning just forward of
 ## [param post] as _fit_gear() turns hers, sweeps clear under her run over its boss's
 ## length.
 func _turns(post: float, screw: float) -> bool:
-	var sweep := _keel_y + (0.1 + 2.0 * (BLADE_REACH + HUB)) * screw
-	return _clear_to(sweep) >= post + HUB * 3.5 * screw
+	return _clear_to(_sweep(screw)) >= post + HUB * 3.5 * screw
+
+
+## The hub of a propeller at [param screw] times the steamer's turning aft of her
+## sternpost, under her counter: its boss's length aft of where her bottom comes down to
+## its blades' sweep (_sweep()).
+func _aft_of_post(screw: float) -> Vector3:
+	return Vector3(
+		_clear_to(_sweep(screw)) - HUB * 3.5 * screw,
+		_keel_y + (0.1 + BLADE_REACH + HUB) * screw,
+		0.0
+	)
+
+
+## Whether a propeller at [param screw] times the steamer's turns aft of her sternpost
+## (_aft_of_post()) clear of her: its blades forward of her transom.
+func _under_counter(screw: float) -> bool:
+	return _aft_of_post(screw).x - BLADE_CHORD * screw > _bottoms[0].x
+
+
+## The top of the sweep of a propeller's blades at [param screw] times the steamer's.
+func _sweep(screw: float) -> float:
+	return _keel_y + (0.1 + 2.0 * (BLADE_REACH + HUB)) * screw
 
 
 ## The rudder, hung from her keel up past her waterline where _fit_gear() fits it, its

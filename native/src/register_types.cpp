@@ -3,6 +3,7 @@
 
 #include "art_native.h"
 #include "contacts_native.h"
+#include "hull_native.h"
 #include "motion_native.h"
 #include "sink_native.h"
 #include "walk_search_native.h"
@@ -25,6 +26,8 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeWater);
 	GDREGISTER_CLASS(NativeSink);
 	GDREGISTER_CLASS(NativeMotion);
+	GDREGISTER_CLASS(NativeLevelHull);
+	GDREGISTER_CLASS(NativeGirder);
 	GDREGISTER_CLASS(NativeIndoorGrid);
 	GDREGISTER_CLASS(NativeLining);
 	GDREGISTER_CLASS(NativeShipMesh);
