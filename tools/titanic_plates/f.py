@@ -1115,6 +1115,14 @@ DOOR_MOVES = [
     ((-44.1875, -9.8125), None),  # the stair box's: its forward end open (OPENED), the ladder's foot and the stair's head
     (None, (1.6875, -6.4375)),  # the saloons', either side of the ladderway's feet at H (est.)
     (None, (1.6875, 7.5)),
+    # Doors that opened onto E deck's ladders down (e.py), run on along the passages beside
+    # them (#514): the linen room's second door onto the passage its other side, the
+    # eight-berth room's onto the passage aft of it.
+    ((74.125, -5.6875), (74.125, -4.375)),
+    ((78.9375, -6.75), (78.4375, -10.0)),
+    # The ladderway's door from the passage aft of it, to starboard of the railing round G
+    # deck's ladder's hole: its own, given none, stood in that railing (#514).
+    (None, (92.5625, 6.625)),
 ]
 # Each saloon's bay aft of the casing keeps its own way in, a pier in the wide join:
 SHUT = [(4.5625, -6.0)]
@@ -1125,6 +1133,10 @@ OPENED = [
     # The engineers' stair box's whole forward end, where E deck's ladder comes down and
     # the stair on down to G deck comes up side by side (#514):
     (-44.4475, -44.4275, -10.375, -8.6875),
+    # The ladderway's after wall over G deck's ladder's hole, which reaches past it into the
+    # passage (no wall left hanging over its hole): with the ladderway's door moved clear
+    # of the railing round it (DOOR_MOVES) the wall stood across the hole (#514).
+    (92.5525, 92.5725, 4.625, 5.75),
 ]
 # The passage two flights fill side by side; the engineers' stairway its stair fills; the
 # passage along L's ladder fills.
@@ -1135,6 +1147,9 @@ GONE = [(126.0, 0.0), (122.0, 0.0)]
 GONE += [(75.0, 0.0)]
 # Two closets whose faces only touch the rooms over them: walled, or those rooms read open.
 WALLED_SOLIDS = [(-101.3, -8.0), (-97.6, -8.0)]
+# Likewise (#514): the reciprocating engine casing's forward end on K's line, the boiler
+# casings by the third-class dining saloons and the linen drying room, the hot air tanks.
+WALLED_SOLIDS += [(-38.0, 0.0, "fore"), (-11.5, 0.0, "port"), (14.0, 0.0, "port"), (21.0, 7.5, "aft"), (48.0, 0.0, "port")]
 # The junior second engineer's L's leg over the stair box, which the box widened to port
 # (NUDGES) leaves no room for its door (DOOR_LEAST): a closet. His room is its other part.
 MADE_SOLID = [(-45.3, -10.9)]

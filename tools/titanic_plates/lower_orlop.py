@@ -72,6 +72,7 @@ STAIRS = [
 
 STAIR_MOVES = [
     # In from her side at the tank top, where her floor stops well inside this plan's side, its
-    # head clear of the join into the hold's forward piece:
-    (("hold ladder", 110.6875, 1.1875), (108.9375, 112.875, 0.25, 1.25)),
+    # head clear of the join into the hold's forward piece; to starboard of the door into the
+    # double bottom's forward piece under it, which its wedge narrowed below a body (#514):
+    (("hold ladder", 110.6875, 1.1875), (108.9375, 112.875, 0.4375, 1.25)),
 ]
