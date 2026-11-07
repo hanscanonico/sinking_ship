@@ -133,7 +133,7 @@ public:
 	void floors(const PackedInt32Array &p_from, const PackedInt32Array &p_floors,
 			const PackedFloat64Array &p_clearances);
 	int64_t under(const Vector3 &p_ship_point, double p_step, int64_t p_except_prop) const;
-	PackedVector3Array floor_way(const Vector3 &p_from, const Vector3 &p_entry, const PackedInt32Array &p_keep,
+	PackedVector3Array floor_way(const Vector3 &p_from, const Vector3 &p_end, const PackedInt32Array &p_keep,
 			const PackedFloat64Array &p_rules) const;
 
 protected:

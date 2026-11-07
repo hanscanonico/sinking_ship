@@ -93,26 +93,27 @@ static func rooms_on(layout: ShipLayout) -> Array[PackedInt32Array]:
 ## picture keeps them: 1 where the middle of the patch's share of the deck — a far
 ## edge's patch reaches past it — stands out of every room the deck stands in
 ## (rooms_on), each grown as ShipSpace.outdoors() grows a room; 0 in one.
-static func out_on_deck(layout: ShipLayout) -> Array[PackedByteArray]:
-	return _indoors_of(layout)[1]
+static func out_on_deck(layout: ShipLayout, space: ShipSpace = null) -> Array[PackedByteArray]:
+	return _indoors_of(layout, space)[1]
 
 
 ## [param layout]'s rooms_on and out_on_deck, made the first time they are asked for, on
-## whatever thread asks.
-static func _indoors_of(layout: ShipLayout) -> Array:
+## whatever thread asks, of [param space] as SeaAndSky.maps_of() is.
+static func _indoors_of(layout: ShipLayout, space: ShipSpace = null) -> Array:
 	_indoors_guard.lock()
 	var found: Array = _indoors.get(layout, [])
 	_indoors_guard.unlock()
 	if found.is_empty():
-		found = _indoors_made(layout)
+		found = _indoors_made(layout, space)
 		_indoors_guard.lock()
 		_indoors[layout] = found
 		_indoors_guard.unlock()
 	return found
 
 
-static func _indoors_made(layout: ShipLayout) -> Array:
-	var space := ShipSpace.new(layout)
+static func _indoors_made(layout: ShipLayout, space: ShipSpace) -> Array:
+	if space == null or space.layout != layout:
+		space = ShipSpace.new(layout)
 	var rooms: Array[PackedInt32Array] = []
 	var outs: Array[PackedByteArray] = []
 	for platform: ShipPlatform in layout.platforms:

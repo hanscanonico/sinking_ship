@@ -174,6 +174,24 @@ func judge_by(grid: IndoorGrid, boxes: Array[AABB], roofed: RoofedIndoors = null
 			_native.callv(&"set_roofed", roofed.shape())
 
 
+## A new mesh, empty, made and judged as [param other] was (_init, judge_by): its outdoors
+## callable, its lines sorted once and its judging shared, not worked out again — what
+## each piece of an art that can fall or fail gathers its faces in, by the hundred.
+static func like(other: ShipMesh) -> ShipMesh:
+	var none: Array[PackedFloat32Array] = [
+		PackedFloat32Array(), PackedFloat32Array(), PackedFloat32Array()
+	]
+	var mesh := ShipMesh.new(other._outdoors, none)
+	# Read only, never added to: shared.
+	mesh._cuts = other._cuts
+	if mesh._native != null:
+		mesh._native.setup(mesh._cuts, mesh._outdoors)
+	mesh.outdoors_over = other.outdoors_over
+	if mesh._native != null and other._native != null:
+		mesh._native.judge_like(other._native)
+	return mesh
+
+
 ## An axis-aligned box over [param area] (x/z) from [param bottom] to [param top]:
 ## [param faces] says which of its six. [param foot] and [param head] are the heights
 ## its paint's bands are measured from — its own bottom and top unless given.

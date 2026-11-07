@@ -122,15 +122,6 @@ func _forecastle_under() -> float:
 	return -1.0
 
 
-## What she does with no break: her forecastle's going under at [param under], and her end.
-func _unbroken(under: float) -> String:
-	var gone := _first(_timeline, SinkTimeline.Kind.GONE)
-	return (
-		"%.1f° of trim as her forecastle goes under at %s, whole, gone at %s"
-		% [_leans(under)[0], _clock(under), _clock(gone)]
-	)
-
-
 func _clock(seconds: float) -> String:
 	return MatchTranscript.physics_clock(seconds)
 
@@ -156,11 +147,9 @@ func test_her_trim_from_a_degree_to_the_plateau_and_the_plunge() -> void:
 	var settling := (_leans(SETTLING.y)[0] - _leans(SETTLING.x)[0]) / (SETTLING.y - SETTLING.x)
 	var under := _forecastle_under()
 	var hinge := _event(SinkTimeline.Kind.HINGING)
-	if hinge == null:
-		# The owner's ruling: pending while she does not break; #399 restores it.
-		pending("she does not break (#399): %s" % _unbroken(under))
-		return
 	assert_not_null(hinge, "she breaks")
+	if hinge == null:
+		return
 	var late := (_leans(hinge.seconds)[0] - _leans(under)[0]) / (hinge.seconds - under)
 	gut.p(
 		(
@@ -181,43 +170,20 @@ func test_her_trim_from_a_degree_to_the_plateau_and_the_plunge() -> void:
 		)
 	else:
 		assert_gt(late, settling * ACCELERATION, "the late acceleration")
-	var missed := PackedStringArray()
-	var whole := _timeline.pieces_at(PLATEAU.y).size() == 1
-	if under < PLATEAU.y or not whole:
-		# Her forecastle is under, and she breaks, before the plateau's end: measured over
-		# its first forty minutes, it rises faster than the research's plateau too.
-		(
-			missed
-			. append(
-				(
-					"a plateau of at most 1.5°/h to %s: her forecastle under at %s, %.2f°/h to %s"
-					% [
-						_clock(PLATEAU.y),
-						_clock(under),
-						settling * 60.0 * MINUTE,
-						_clock(SETTLING.y),
-					]
-				)
-			)
-		)
-	else:
-		var plateau := (_leans(PLATEAU.y)[0] - _leans(PLATEAU.x)[0]) / (PLATEAU.y - PLATEAU.x)
-		if plateau > PLATEAU_MOST:
-			missed.append("a plateau of %.2f°/h, not at most 1.5°/h" % (plateau * 60.0 * MINUTE))
+	assert_gt(under, PLATEAU.y, "her forecastle clear of the sea to T+125")
+	assert_eq(_timeline.pieces_at(PLATEAU.y).size(), 1, "whole to T+125")
+	var plateau_rate := (_leans(PLATEAU.y)[0] - _leans(PLATEAU.x)[0]) / (PLATEAU.y - PLATEAU.x)
+	assert_lte(plateau_rate, PLATEAU_MOST, "a plateau of at most 1.5°/h from T+60 to T+125")
 	var at_155 := _leans(LATE_TRIM_AT)[0]
 	if _timeline.pieces_at(LATE_TRIM_AT).size() > 1 or at_155 < LATE_TRIM.x:
-		# She breaks before T+155 (test_she_breaks_where_and_when_she_did).
-		missed.append(
+		# She breaks before T+155 (test_she_breaks_where_and_when_she_did), at under 8°.
+		pending(
 			(
 				"8–12° at %s: she broke at %s, at %.1f°"
 				% [_clock(LATE_TRIM_AT), _clock(hinge.seconds), _leans(hinge.seconds)[0]]
 			)
 		)
-	if not missed.is_empty():
-		pending(", ".join(missed))
 		return
-	var plateau_rate := (_leans(PLATEAU.y)[0] - _leans(PLATEAU.x)[0]) / (PLATEAU.y - PLATEAU.x)
-	assert_lte(plateau_rate, PLATEAU_MOST, "a plateau of at most 1.5°/h from T+60 to T+125")
 	assert_between(at_155, LATE_TRIM.x, LATE_TRIM.y, "8–12° at T+155")
 
 
@@ -243,14 +209,7 @@ func test_boiler_rooms_1_to_3_dry_for_a_hundred_minutes() -> void:
 				wet_at = times[state]
 	var where := "in %s" % wettest if most > 0.0 else "in any"
 	gut.p("boiler rooms 1–3 before %s: at most %.2f m³ %s" % [_clock(DRY_UNTIL), most, where])
-	if wet_at >= 0.0:
-		pending(
-			(
-				"boiler rooms 1–3 wet before %s: water from %s, %.0f m³ in %s"
-				% [_clock(DRY_UNTIL), _clock(wet_at), most, wettest]
-			)
-		)
-		return
+	assert_lt(wet_at, 0.0, "boiler rooms 1–3 dry before T+100: wet from %s" % _clock(wet_at))
 	assert_lte(most, DRY, "no water in boiler rooms 1–3 before T+100")
 
 
@@ -281,21 +240,16 @@ func test_her_forecastle_head_goes_under() -> void:
 	var under := _forecastle_under()
 	gut.p("her forecastle head under at %s" % _clock(under))
 	assert_gt(under, 0.0, "her forecastle head goes under")
-	if under < FORECASTLE_AT.x or under > FORECASTLE_AT.y:
-		pending("her forecastle head under at %s, not T+145 ± 8 min" % _clock(under))
-		return
 	assert_between(under, FORECASTLE_AT.x, FORECASTLE_AT.y, "T+145 ± 8 min")
 
 
 func test_she_breaks_where_and_when_she_did() -> void:
 	var hinge := _event(SinkTimeline.Kind.HINGING)
 	var parted := _event(SinkTimeline.Kind.PARTED)
-	if hinge == null or parted == null:
-		# The owner's ruling: pending while she does not break; #399 restores it.
-		pending("she does not break (#399): %s" % _unbroken(_forecastle_under()))
-		return
 	assert_not_null(hinge, "she breaks")
 	assert_not_null(parted, "in two")
+	if hinge == null or parted == null:
+		return
 	var trim := _leans(hinge.seconds)[0]
 	var bow := _structure.cells[_structure.cell_named(STEM)].high.x
 	assert_lt(hinge.seconds, parted.seconds, "a hinge, then the parting")
@@ -310,19 +264,14 @@ func test_she_breaks_where_and_when_she_did() -> void:
 		)
 	)
 	assert_between(from_bow, BREAK_FROM_BOW.x, BREAK_FROM_BOW.y, "130–160 m from her bow")
-	var missed := PackedStringArray()
+	assert_between(hinge.seconds, BREAK_AT.x, BREAK_AT.y, "T+157 ± 10 min")
 	if trim < BREAK_TRIM.x or trim > BREAK_TRIM.y:
 		# Her girder gives at its share as her bow plunges, between about 7° and 14° of
 		# trim as the water aft of it stands then: a few hundredths of a square metre of
 		# hole move it across 8° (R21). Measured.
-		missed.append("at %.1f° of trim, not 8–23°" % trim)
-	if hinge.seconds < BREAK_AT.x or hinge.seconds > BREAK_AT.y:
-		missed.append("at %s, not T+157 ± 10 min" % _clock(hinge.seconds))
-	if not missed.is_empty():
-		pending("the break " + ", ".join(missed))
+		pending("the break at %.1f° of trim, not 8–23°" % trim)
 		return
 	assert_between(trim, BREAK_TRIM.x, BREAK_TRIM.y, "no break under 8°, a break by 23°")
-	assert_between(hinge.seconds, BREAK_AT.x, BREAK_AT.y, "T+157 ± 10 min")
 
 
 func test_her_lights_burn_until_the_break() -> void:
@@ -332,29 +281,15 @@ func test_her_lights_burn_until_the_break() -> void:
 	gut.p(
 		"her mains stopped %.0f s, her lights out %.0f s, she parts %.0f s" % [mains, out, parted]
 	)
-	if parted < 0.0:
-		# The owner's ruling: pending while she does not break; #399 restores it.
-		pending("she does not break (#399): %s" % _unbroken(_forecastle_under()))
-		return
 	assert_gt(parted, 0.0, "she breaks")
 	assert_true(mains < 0.0 or mains >= parted - LIGHTS, "her mains run until the break")
-	if out < 0.0 or absf(out - parted) > LIGHTS:
-		# Her bow, cut from her generators aft, goes dark as she parts (HullBreak); her
-		# stern keeps them while it floats (the test of her stern, below). Measured.
-		var stern := "never, her stern lit while it floats" if out < 0.0 else "at %s" % _clock(out)
-		pending("her lights out at the break ± 2 min: out %s" % stern)
-		return
+	assert_gt(out, 0.0, "her lights go out")
 	assert_almost_eq(out, parted, LIGHTS, "her lights go out at the break, ± 2 min")
 
 
 func test_she_never_capsizes() -> void:
 	var labels := OutcomeClassifier.labels(_timeline)
 	gut.p("outcome " + OutcomeClassifier.told(labels))
-	if OutcomeClassifier.Outcome.CAPSIZED in labels:
-		# Her stern, broken off her (test_her_stern_floats_a_few_minutes_more), lists and
-		# fills for hours and rolls over before it goes. Measured.
-		pending("her stern capsizes: %s" % OutcomeClassifier.told(labels))
-		return
 	assert_false(OutcomeClassifier.Outcome.CAPSIZED in labels, "never capsizes")
 
 
@@ -369,17 +304,7 @@ func test_her_stern_floats_a_few_minutes_more_and_she_is_gone() -> void:
 	)
 	assert_gt(bow_gone, parted, "her bow goes once she has parted")
 	var stern := _timeline.gone_at - parted
-	if _timeline.end != SinkTimeline.End.GONE or stern < STERN_AFTER.x or stern > STERN_AFTER.y:
-		# A piece of her afloat stays so on its own cells (§5b.3): her stern, its torn end
-		# lifted clear as it settles back, takes the hours its open cells take — or lies
-		# still, afloat. Measured.
-		pending(
-			(
-				"her stern 1–5 min more and her gone at 160 ± 30 min: %s at %s"
-				% [SinkTimeline.End.keys()[_timeline.end], _clock(_timeline.length())]
-			)
-		)
-		return
+	assert_eq(_timeline.end, SinkTimeline.End.GONE, "all of her gone")
 	assert_between(stern, STERN_AFTER.x, STERN_AFTER.y, "her stern 1–5 min more")
 	assert_between(_timeline.gone_at, GONE_AT.x, GONE_AT.y, "gone at 160 ± 30 min")
 

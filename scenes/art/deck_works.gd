@@ -302,8 +302,11 @@ static func mast(mesh: ShipMesh, blocker: ShipBlocker, top: float, art: ShipArt)
 ## between; on a ship of two masts, the wireless aerial between their heads; and a
 ## cargo derrick on a mast over the hatch it works (_derrick). No stay comes down to
 ## her deck: one would pass through a body at her railing. A ventilator is no spar, nor
-## a capstan or a stanchion of her gear.
-static func rigging(layout: ShipLayout, rules: BrawlRules) -> Array[RigLine]:
+## a capstan or a stanchion of her gear. Her hatches are read off [param space] when it
+## is one of her layout (her art's), else off a new one.
+static func rigging(
+	layout: ShipLayout, rules: BrawlRules, space: ShipSpace = null
+) -> Array[RigLine]:
 	var spars: Array[ShipBlocker] = []
 	for blocker: ShipBlocker in layout.blockers:
 		if (
@@ -337,7 +340,8 @@ static func rigging(layout: ShipLayout, rules: BrawlRules) -> Array[RigLine]:
 	for line in lines:
 		if _clears(layout, rules, line):
 			clear.append(line)
-	var space := ShipSpace.new(layout)
+	if space == null or space.layout != layout:
+		space = ShipSpace.new(layout)
 	var worked := {}
 	for blocker: ShipBlocker in layout.blockers:
 		if not _is_hatch(space, blocker):
@@ -364,15 +368,17 @@ static func rigging(layout: ShipLayout, rules: BrawlRules) -> Array[RigLine]:
 ## line whose ends both stand in [param span], the stretch drawn (PieceClip): one fixed to
 ## a funnel the sinking can fell into that funnel's own piece — the node [param funnels]
 ## holds under its fitting's name, among [param pieces] — so it goes with it as it falls.
+## [param space] is rigging()'s.
 static func rig(
 	mesh: ShipMesh,
 	layout: ShipLayout,
 	rules: BrawlRules,
 	span: Vector2,
 	funnels: Dictionary,
-	pieces: Dictionary
+	pieces: Dictionary,
+	space: ShipSpace = null
 ) -> void:
-	for line in rigging(layout, rules):
+	for line in rigging(layout, rules, space):
 		if not (PieceClip.holds(span, line.from.x) and PieceClip.holds(span, line.to.x)):
 			continue
 		var into := mesh

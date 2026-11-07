@@ -2,9 +2,9 @@ extends GutTest
 ## A bot's search for a way round by the floor in the game's extension
 ## (NativeSurfaces.floor_way, #410) against BotFloorWay's own GDScript, bit for bit: from
 ## every kind of start to every kind of portal on her ships — through a door, onto a stair
-## and off one, ways found and none — as the bot asks it, every point of every way the
-## same, the same none, and the same square it would give up on. The extension's
-## Surfaces.under, which it asks per square, is held to the GDScript in
+## and off one, ways found and none — and to a target on her floor, as the bot asks it,
+## every point of every way the same, the same none, and the same square it would give up
+## on. The extension's Surfaces.under, which it asks per square, is held to the GDScript in
 ## test_contacts_native. Where the extension is not loaded there is nothing to hold it to;
 ## CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
@@ -52,7 +52,7 @@ func test_the_g_deck_way_round_its_stairs_is_found_alike() -> void:
 	var asked := 0
 	for portal: WalkGraph.Portal in graph.portals():
 		if portal.from_zone == out_of and portal.to_zone == into:
-			_ask(ways, G_DECK_STAIR_FOOT, portal)
+			_ask(ways, G_DECK_STAIR_FOOT, portal.entry, portal.ramp)
 			asked += 1
 	assert_eq(asked, 1, "the door aft of the passage")
 	assert_eq(_found, 1, "a way round its stairs")
@@ -91,14 +91,14 @@ func test_ways_found_deep_in_their_search_are_found_alike() -> void:
 		var short: PackedVector3Array = surfaces.native.floor_way(from, portal.entry, keep, halved)
 		if not short.is_empty():
 			continue
-		var theirs := twin._find(from, portal, keep)
+		var theirs := twin._find(from, portal.entry, keep)
 		if not theirs.is_empty() and twin._settled > BotFloorWay.MOST / 2 and deep < DEEP_ASKED:
 			deep += 1
 		elif theirs.is_empty() and twin._settled == BotFloorWay.MOST and given_up < DEEP_ASKED:
 			given_up += 1
 		else:
 			continue
-		_ask(ways, from, portal)
+		_ask(ways, from, portal.entry, portal.ramp)
 		if deep == DEEP_ASKED and given_up == DEEP_ASKED:
 			break
 	assert_eq(deep, DEEP_ASKED, "ways found deep in their search")
@@ -115,8 +115,12 @@ func test_her_ships_ways_round_are_found_alike() -> void:
 		var portals := graph.portals()
 		for _pick in PORTALS:
 			var portal: WalkGraph.Portal = portals[_rng.randi_range(0, portals.size() - 1)]
-			for from: Vector3 in _starts(graph, portal):
-				_ask(ways, from, portal)
+			var starts := _starts(graph, portal)
+			for from: Vector3 in starts:
+				_ask(ways, from, portal.entry, portal.ramp)
+			# And from each to the next, as a bot closes on its target in its own zone (#497).
+			for at in range(1, starts.size()):
+				_ask(ways, starts[at - 1], starts[at], WalkGraph.NONE)
 		_assert_none(path)
 	assert_gt(_found, 0, "some ways round found")
 	assert_gt(_none, 0, "and some searches finding none")
@@ -160,28 +164,29 @@ func _starts(graph: WalkGraph, portal: WalkGraph.Portal) -> Array[Vector3]:
 	return found
 
 
-## Searches for a way from [param from] to [param portal]'s entry both ways, as the bot asks
-## (BotFloorWay._look): kept to the floor under it, and the portal's own stair.
-func _ask(ways: Array, from: Vector3, portal: WalkGraph.Portal) -> void:
+## Searches for a way from [param from] to [param end] — a portal's entry, or a target —
+## both ways, as the bot asks (BotFloorWay._look): kept to the floor under it, and the
+## portal's own stair [param ramp].
+func _ask(ways: Array, from: Vector3, end: Vector3, ramp: int) -> void:
 	var graph: WalkGraph = ways[0]
 	var native: BotFloorWay = ways[1]
 	var twin: BotFloorWay = ways[2]
 	var surfaces := graph.surfaces()
 	var keep := PackedInt32Array([surfaces.under(from, SimFixtures.rules().step_height)])
-	if portal.ramp != WalkGraph.NONE:
-		keep.append(surfaces.ramp_surface(portal.ramp))
-	var mine := native._find(from, portal, keep)
-	var theirs := twin._find(from, portal, keep)
+	if ramp != WalkGraph.NONE:
+		keep.append(surfaces.ramp_surface(ramp))
+	var mine := native._find(from, end, keep)
+	var theirs := twin._find(from, end, keep)
 	if theirs.is_empty():
 		_none += 1
 	else:
 		_found += 1
-		_assert_stops_alike(ways, from, portal, keep, theirs, twin._settled)
+		_assert_stops_alike(ways, from, end, keep, theirs, twin._settled)
 	if var_to_bytes(mine) != var_to_bytes(theirs):
 		_differences.append(
 			(
 				"from %s to %s (keeping %s): %d points, not %d"
-				% [from, portal.entry, keep, mine.size(), theirs.size()]
+				% [from, end, keep, mine.size(), theirs.size()]
 			)
 		)
 
@@ -193,7 +198,7 @@ func _ask(ways: Array, from: Vector3, portal: WalkGraph.Portal) -> void:
 func _assert_stops_alike(
 	ways: Array,
 	from: Vector3,
-	portal: WalkGraph.Portal,
+	end: Vector3,
 	keep: PackedInt32Array,
 	theirs: PackedVector3Array,
 	settled: int
@@ -202,13 +207,9 @@ func _assert_stops_alike(
 	var native: BotFloorWay = ways[1]
 	var rules := native._native_rules.duplicate()
 	rules[2] = settled
-	var enough: PackedVector3Array = graph.surfaces().native.floor_way(
-		from, portal.entry, keep, rules
-	)
+	var enough: PackedVector3Array = graph.surfaces().native.floor_way(from, end, keep, rules)
 	rules[2] = settled - 1
-	var short: PackedVector3Array = graph.surfaces().native.floor_way(
-		from, portal.entry, keep, rules
-	)
+	var short: PackedVector3Array = graph.surfaces().native.floor_way(from, end, keep, rules)
 	var alike := var_to_bytes(enough) == var_to_bytes(theirs)
 	if not alike or not short.is_empty():
 		var found := (
@@ -220,7 +221,7 @@ func _assert_stops_alike(
 				"none" if short.is_empty() else "too"
 			]
 		)
-		_differences.append("from %s to %s: %s" % [from, portal.entry, found])
+		_differences.append("from %s to %s: %s" % [from, end, found])
 
 
 func _assert_none(what: String) -> void:

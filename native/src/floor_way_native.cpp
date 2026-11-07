@@ -212,14 +212,14 @@ bool NativeSurfaces::stands_at(const Vector3 &p_point, int32_t p_surface, const 
 	return found.empty();
 }
 
-// BotFloorWay._find: the shortest way round by the floor from p_from to p_entry over the
-// squares of a grid round the two that a body could stand on with its feet at p_from's
-// height, eight ways and never across a corner, as points from the middle of its first
-// square on to p_entry; empty when the search settles its most squares, or all it can
-// reach, before it comes within a square and a half of p_entry. p_rules: the square's
+// BotFloorWay._find: the shortest way round by the floor from p_from to p_end, a leg's
+// entry or the bot's target, over the squares of a grid round the two that a body could
+// stand on with its feet at p_from's height, eight ways and never across a corner, as
+// points from the middle of its first square on to p_end; empty when the search settles its
+// most squares, or all it can reach, before it comes within a square and a half of p_end. p_rules: the square's
 // side, the margin round the box, the most squares settled, a square's body's radius, a
 // step's height, a body's height and how low it crawls.
-PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector3 &p_entry,
+PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector3 &p_end,
 		const PackedInt32Array &p_keep, const PackedFloat64Array &p_rules) const {
 	const double side = p_rules[0];
 	const double margin = p_rules[1];
@@ -229,7 +229,7 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 	const double body_height = p_rules[5];
 	const double crawl_height = p_rules[6];
 	const Vector2 start(p_from.x, p_from.z);
-	const Vector2 goal(p_entry.x, p_entry.z);
+	const Vector2 goal(p_end.x, p_end.z);
 	const Rect2 box = Rect2(start, Vector2()).expand(goal).grow(real_t(margin));
 	FloorGrid grid;
 	grid.side = real_t(side);
@@ -312,7 +312,7 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 	}
 	way.resize(count);
 	Vector3 *write = way.ptrw();
-	write[count - 1] = p_entry;
+	write[count - 1] = p_end;
 	int64_t at = count - 2;
 	for (int64_t back = reached; back != -1; back = came[size_t(back)]) {
 		const Vector2 middle = grid.middle(back);

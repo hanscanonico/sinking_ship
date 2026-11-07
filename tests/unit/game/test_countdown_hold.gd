@@ -1,8 +1,9 @@
 extends GutTest
 ## A countdown held for a match's sinking or her ship (Game): Esc over it never opens the
 ## pause, whose Menu would leave the countdown running to start the match over the menu;
-## leaving for the menu gives it up; and what was served on a thread for one held match is
-## never handed to another with other settings (MatchServing).
+## leaving for the menu gives it up; what was served on a thread for one held match is
+## never handed to another with other settings (MatchServing); and a Game freed sees the
+## ships it dressed on a thread through first, in the tree or not.
 
 const MATCH_DATA := "res://data/match/default.tres"
 const MATCH := preload("res://scenes/match/match.tscn")
@@ -23,6 +24,19 @@ func _holding_game(config: MatchConfig) -> Game:
 	game._holding = config
 	game._hold.begin(Ticks.to_seconds(config.countdown_ticks))
 	game._dressed_hold = true
+	return game
+
+
+## A Game ready to play, never booted (no menu, no music): only what Play reads, each
+## countdown it holds dressing her ship ahead on a thread (Game._dress_ahead).
+func _playing_game() -> Game:
+	var game: Game = autofree(Game.new())
+	autofree(game._baker)
+	add_child_autofree(game._hold)
+	game._args = MatchArgs.parse(PackedStringArray(["--autoplay"]))
+	game._match_rules = load(MATCH_DATA)
+	game._upcoming = NextMatch.new(game._match_rules, game._seeds)
+	game._menu = autofree(MainMenu.new())
 	return game
 
 
@@ -67,6 +81,30 @@ func test_leaving_for_the_menu_gives_up_the_held_countdown() -> void:
 	await _settle(game._serving)
 	assert_false(game._serving.ready_for(config), "what was served for it let go")
 	game._serving.finish()
+
+
+## A Game freed never having entered the tree, as a test's is, sees every ship it dressed
+## on a thread through, as leaving the tree does: one given up frees her nodes on her
+## thread, and left to it once the Game was gone, GUT's orphan counter walked them as she
+## did, and the run crashed (#493).
+func test_a_game_freed_outside_the_tree_sees_its_ships_dressing_through() -> void:
+	var game := _playing_game()
+	var choices := MatchChoices.new()
+	choices.ship = &"tug"
+	game._play(choices)
+	var given_up: ShipArt = game._dressing.art
+	game._cancel_hold()
+	game._play(choices)
+	var holding := game._dressing
+	var held: ShipArt = holding.art
+	game.free()
+	assert_eq(ShipDressing.under_way(), 0, "no ship left dressing on a thread")
+	assert_false(is_instance_valid(given_up), "the one given up freed")
+	assert_false(is_instance_valid(held), "and the one held let go and freed")
+	# A Game that left them fails here, never hangs the run: the one held, never let go,
+	# would wait on her thread for her sinking for good.
+	holding.drop()
+	ShipDressing.finish_all()
 
 
 func test_what_was_served_is_taken_only_for_its_own_config() -> void:
