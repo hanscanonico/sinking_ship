@@ -30,6 +30,11 @@ inline double abs_f(double p_value) {
 	return std::fabs(p_value);
 }
 
+// clampf: under the least the least, over the most the most.
+inline double clamp_f(double p_value, double p_least, double p_most) {
+	return p_value < p_least ? p_least : (p_value > p_most ? p_most : p_value);
+}
+
 inline double lerp_f(double p_from, double p_to, double p_weight) {
 	return p_from + (p_to - p_from) * p_weight;
 }
@@ -400,6 +405,284 @@ PackedInt32Array NativeWaterFx::risen(const PackedByteArray &p_now, const Packed
 	return found;
 }
 
+// InnerWater._held_in's walk of the cells: those of the first p_count holding a
+// pocket's air (p_pockets over 0), in order.
+PackedInt32Array NativeWaterFx::held(const PackedFloat64Array &p_pockets, int64_t p_count) const {
+	PackedInt32Array found;
+	const double *pockets = p_pockets.ptr();
+	const int64_t count = p_count < p_pockets.size() ? p_count : p_pockets.size();
+	for (int64_t cell = 0; cell < count; cell++) {
+		if (pockets[cell] > 0.0) {
+			found.push_back(int32_t(cell));
+		}
+	}
+	return found;
+}
+
+// CellSurface.placed for each drawn sheet p_touched shows (index * 2 + 1; one to hide,
+// index * 2, is passed over): the p_index-th over cell p_cells[index], its box's middle
+// p_middles[index] standing at p_world_middles[index].y in the world, its half size
+// p_halves[index], at that cell's level p_levels[cell], laid level by p_level's columns
+// (across, up, along). Gives a Transform3D per sheet shown, in order.
+Array NativeWaterFx::placed(const PackedInt32Array &p_touched, const PackedInt32Array &p_cells,
+		const PackedFloat64Array &p_levels, const PackedVector3Array &p_middles,
+		const PackedVector3Array &p_world_middles, const PackedVector3Array &p_halves,
+		const Basis &p_level) const {
+	Array found;
+	const Vector3 across = p_level.get_column(0);
+	const Vector3 up = p_level.get_column(1);
+	const Vector3 along = p_level.get_column(2);
+	const int32_t *touched = p_touched.ptr();
+	const int32_t *cells = p_cells.ptr();
+	const double *levels = p_levels.ptr();
+	const Vector3 *middles = p_middles.ptr();
+	const Vector3 *world_middles = p_world_middles.ptr();
+	const Vector3 *halves = p_halves.ptr();
+	for (int64_t at = 0; at < p_touched.size(); at++) {
+		if ((touched[at] & 1) == 0) {
+			continue;
+		}
+		const int32_t index = touched[at] >> 1;
+		const Vector3 &half = halves[index];
+		const double wide = abs_f(double(across.x)) * double(half.x) + abs_f(double(across.y)) * double(half.y) +
+				abs_f(double(across.z)) * double(half.z);
+		const double deep = abs_f(double(along.x)) * double(half.x) + abs_f(double(along.y)) * double(half.y) +
+				abs_f(double(along.z)) * double(half.z);
+		const Basis basis(across * real_t(2.0) * real_t(wide), up, along * real_t(2.0) * real_t(deep));
+		const double rise = levels[cells[index]] - double(world_middles[index].y);
+		found.push_back(Transform3D(basis, middles[index] + up * real_t(rise)));
+	}
+	return found;
+}
+
+// InnerWater._show_pour's reckoning, line for line, for each opening p_wet names, but
+// what the engine works and every node it sets: the cells' water at world heights
+// p_levels (the sea at 0); per opening its two sides p_sides (-1 for the sea), its
+// middle p_centres and size p_sizes, which way it faces p_facings, whether it is drawn
+// pouring p_drawn, whether it has a crossing p_crossed, its box's middle in the world
+// p_span_middles and half size p_span_halves, its middle in the world p_world_centres,
+// the points under it on its two sides' floors in the world p_world_unders, and its
+// sides' last heads p_last_heads; per opening of p_wet, how far open it stands p_open
+// and the water through it p_flow (-1 for none); per cell its corners p_cell_lows and
+// p_cell_highs; her six axes laid level with the world p_flats (+x, +y, +z, -x, -y,
+// -z); and p_spread: the turn's |x.y|, |y.y|, |z.y|, then SHOWS, POURS, FLOOD,
+// FLOW_FULL, THINNEST, OFF_WALL, OFF_SHELL, MOST_THROW, LANDING.x and LANDING.y.
+// Gives, per opening of p_wet, 0 to hide it apart from her (dry or never drawn), 1 to
+// hide it where it stands, 2 to draw it; per one drawn, its middle and the point its
+// landing is thrown to — each before it is set at its height (_at_height) — its sheet's
+// across and normal laid level, and its from, to, width, short side, thrown, strength,
+// the landing's spread, outdoor, its crossing (0 none, 1 through a deck, 2 a round jet)
+// and how tall it falls; then the heads last told, and the air blown out (_blow), each
+// as opening * 2 + side, at that side's height.
+Array NativeWaterFx::pours(const PackedInt32Array &p_wet, const PackedFloat64Array &p_levels,
+		const PackedInt32Array &p_sides, const PackedVector3Array &p_centres, const PackedVector3Array &p_sizes,
+		const PackedInt32Array &p_facings, const PackedByteArray &p_drawn, const PackedByteArray &p_crossed,
+		const PackedVector3Array &p_span_middles, const PackedVector3Array &p_span_halves,
+		const PackedVector3Array &p_world_centres, const PackedVector3Array &p_world_unders,
+		const PackedVector2Array &p_last_heads, const PackedFloat64Array &p_open, const PackedFloat64Array &p_flow,
+		const PackedVector3Array &p_cell_lows, const PackedVector3Array &p_cell_highs,
+		const PackedVector3Array &p_flats, const PackedFloat64Array &p_spread) const {
+	PackedInt32Array codes;
+	PackedVector3Array points;
+	PackedVector3Array axes;
+	PackedFloat64Array values;
+	PackedInt32Array blown;
+	PackedFloat64Array blown_at;
+	PackedVector2Array last_heads = p_last_heads;
+	Vector2 *last = last_heads.ptrw();
+	const double *levels = p_levels.ptr();
+	const int32_t *sides = p_sides.ptr();
+	const Vector3 *centres = p_centres.ptr();
+	const Vector3 *sizes = p_sizes.ptr();
+	const int32_t *facings = p_facings.ptr();
+	const uint8_t *drawn = p_drawn.ptr();
+	const uint8_t *crossed = p_crossed.ptr();
+	const Vector3 *span_middles = p_span_middles.ptr();
+	const Vector3 *span_halves = p_span_halves.ptr();
+	const Vector3 *world_centres = p_world_centres.ptr();
+	const Vector3 *world_unders = p_world_unders.ptr();
+	const Vector3 *lows = p_cell_lows.ptr();
+	const Vector3 *highs = p_cell_highs.ptr();
+	const Vector3 *flats = p_flats.ptr();
+	const double *spread = p_spread.ptr();
+	const double shows_by = spread[3];
+	const double pours_by = spread[4];
+	const double flood = spread[5];
+	const double flow_full = spread[6];
+	const double thinnest = spread[7];
+	const double off_wall = spread[8];
+	const double off_shell = spread[9];
+	const double most_throw = spread[10];
+	const double landing_least = spread[11];
+	const double landing_most = spread[12];
+	for (int64_t at = 0; at < p_wet.size(); at++) {
+		const int32_t index = p_wet[at];
+		const int32_t first = sides[index * 2];
+		const int32_t second = sides[index * 2 + 1];
+		const double heights[2] = { first == SEA_OR_SKY ? 0.0 : levels[first],
+			second == SEA_OR_SKY ? 0.0 : levels[second] };
+		float bottom_f;
+		float top_f;
+		reach(double(span_middles[index].y), span_halves[index], spread, bottom_f, top_f);
+		const double bottom = bottom_f;
+		const double top = top_f;
+		if (drawn[index] == 1) {
+			// _blow: the heads told, then each side's water that has just reached the top.
+			const Vector2 told = last[index];
+			last[index] = Vector2(float(heights[0]), float(heights[1]));
+			for (int side = 0; side < 2; side++) {
+				const int32_t cell = sides[index * 2 + side];
+				const double was = double(side == 0 ? told.x : told.y);
+				if (cell == SEA_OR_SKY || !(was < top && heights[side] >= top && std::isfinite(was))) {
+					continue;
+				}
+				blown.push_back(index * 2 + side);
+				blown_at.push_back(heights[side]);
+			}
+		}
+		if (drawn[index] == 0 || max_f(heights[0], heights[1]) <= bottom + shows_by) {
+			codes.push_back(0);
+			continue;
+		}
+		const int32_t axis = facings[index];
+		const double open = p_open[at];
+		const int high = heights[0] >= heights[1] ? 0 : 1;
+		const int low = 1 - high;
+		const int32_t side_high = high == 0 ? first : second;
+		const int32_t side_low = high == 0 ? second : first;
+		const double floor_under = side_low == SEA_OR_SKY ? -INFINITY : double(world_unders[index * 2 + low].y);
+		const double drop = heights[high] - max_f(heights[low], floor_under);
+		if (open <= 0.0 || heights[high] <= bottom + shows_by || heights[high] - heights[low] < pours_by) {
+			codes.push_back(1);
+			continue;
+		}
+		double from = min_f(heights[high], top);
+		const double to = max_f(heights[low], floor_under);
+		const Vector3 &size = sizes[index];
+		const double opening_width =
+				axis == 1 ? max_f(double(size.x), double(size.z)) : double(axis == 0 ? size.z : size.x);
+		const double flow = p_flow[at];
+		double strength;
+		if (flow < 0.0) {
+			strength = clamp_f(drop / flood, thinnest, 1.0);
+		} else {
+			strength = clamp_f(flow / (max_f(opening_width, 0.1) * flow_full), thinnest, 1.0);
+		}
+		Vector3 centre = centres[index];
+		double width = 0.0;
+		int across_axis;
+		int normal_axis;
+		double normal_sign = 1.0;
+		if (axis == 1) {
+			const bool over = side_high == SEA_OR_SKY || double(lows[side_high].y) >= double(centre.y) - 0.01;
+			if (!over) {
+				codes.push_back(1);
+				continue;
+			}
+			from = double(world_centres[index].y);
+			const int long_axis = size.x >= size.z ? 0 : 2;
+			width = double(size[long_axis]);
+			across_axis = long_axis;
+			normal_axis = 2 - long_axis;
+		} else {
+			const int along = axis == 0 ? 2 : 0;
+			width = double(size[along]) * open;
+			across_axis = along;
+			normal_axis = axis;
+			const double middle = side_low == SEA_OR_SKY ?
+					1e3 :
+					(double(lows[side_low][axis]) + double(highs[side_low][axis])) * 0.5;
+			const double offset = middle - double(centre[axis]);
+			normal_sign = offset > 0.0 ? 1.0 : (offset < 0.0 ? -1.0 : 0.0);
+			Vector3 normal;
+			normal[axis] = real_t(normal_sign);
+			centre += normal * real_t(side_high == SEA_OR_SKY ? off_shell : off_wall);
+			centre[along] = real_t(double(centre[along]) + double(size[along]) * (1.0 - open) * 0.5);
+		}
+		if (from - to < pours_by || width <= 0.0) {
+			codes.push_back(1);
+			continue;
+		}
+		const double tall = from - to;
+		double thrown = 0.0;
+		if (axis != 1) {
+			const double head = max_f(heights[high] - (from + max_f(bottom, heights[low])) * 0.5, 0.0);
+			thrown = min_f(2.0 * std::sqrt(head * tall), most_throw);
+		}
+		// normal.abs().max_axis_index(), the normal a unit along normal_axis or none.
+		Vector3 normal_abs;
+		normal_abs[normal_axis] = real_t(std::fabs(normal_sign));
+		const double short_side = double(size[int(normal_abs.max_axis_index())]);
+		const Vector3 across = flats[across_axis];
+		const Vector3 normal =
+				normal_sign > 0.0 ? flats[normal_axis] : (normal_sign < 0.0 ? flats[normal_axis + 3] : Vector3());
+		const double outdoor = axis == 1 && side_high == SEA_OR_SKY ? 1.0 : 0.0;
+		const double landing_spread = lerp_f(landing_least, landing_most, strength);
+		const int crossing = crossed[index] == 0 ? 0 : (axis == 1 ? 1 : 2);
+		codes.push_back(2);
+		points.push_back(centre);
+		points.push_back(centre + normal * real_t(thrown));
+		axes.push_back(across);
+		axes.push_back(normal);
+		values.push_back(from);
+		values.push_back(to);
+		values.push_back(width);
+		values.push_back(short_side);
+		values.push_back(thrown);
+		values.push_back(strength);
+		values.push_back(landing_spread);
+		values.push_back(outdoor);
+		values.push_back(double(crossing));
+		values.push_back(tall);
+	}
+	Array found;
+	found.push_back(codes);
+	found.push_back(points);
+	found.push_back(axes);
+	found.push_back(values);
+	found.push_back(last_heads);
+	found.push_back(blown);
+	found.push_back(blown_at);
+	return found;
+}
+
+// InnerWater._show_inflows' walk of the cells, from p_then's levels to p_now's: each
+// cell's water over its middle, whose heights in the world at either pose are
+// p_middles_then[cell].y and p_middles_now[cell].y, climbing in p_seconds as a share of
+// p_full (InnerWater.inflow), its churn p_inflows eased p_ease of the way to it, none
+// under p_calm (eased_inflow). Gives the cells whose churn changed and their churns, in
+// order.
+Array NativeWaterFx::inflows(const PackedFloat64Array &p_then, const PackedFloat64Array &p_now,
+		const PackedVector3Array &p_middles_then, const PackedVector3Array &p_middles_now,
+		const PackedFloat64Array &p_inflows, double p_seconds, double p_full, double p_ease, double p_calm) const {
+	PackedInt32Array cells;
+	PackedFloat64Array churns;
+	const double *then = p_then.ptr();
+	const double *now = p_now.ptr();
+	const Vector3 *middles_then = p_middles_then.ptr();
+	const Vector3 *middles_now = p_middles_now.ptr();
+	const double *inflows = p_inflows.ptr();
+	for (int64_t cell = 0; cell < p_inflows.size(); cell++) {
+		const double was = then[cell] - double(middles_then[cell].y);
+		const double is_now = now[cell] - double(middles_now[cell].y);
+		double fresh = 0.0;
+		if (!(p_seconds <= 0.0 || p_full <= 0.0)) {
+			fresh = clamp_f((is_now - was) / p_seconds / p_full, 0.0, 1.0);
+		}
+		const double eased = lerp_f(inflows[cell], fresh, p_ease);
+		const double churn = eased >= p_calm ? eased : 0.0;
+		if (churn == inflows[cell]) {
+			continue;
+		}
+		cells.push_back(int32_t(cell));
+		churns.push_back(churn);
+	}
+	Array found;
+	found.push_back(cells);
+	found.push_back(churns);
+	return found;
+}
+
 void NativeWaterFx::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("levels_between", "then", "now", "alpha"), &NativeWaterFx::levels_between);
 	ClassDB::bind_method(D_METHOD("surfaces", "levels", "cells", "middles", "halves", "spread", "shown"),
@@ -417,4 +700,15 @@ void NativeWaterFx::_bind_methods() {
 								 "heard", "off_since", "tick", "cell_rearm", "pour_rearm"),
 			&NativeWaterFx::coming_on);
 	ClassDB::bind_method(D_METHOD("risen", "now", "then"), &NativeWaterFx::risen);
+	ClassDB::bind_method(D_METHOD("held", "pockets", "count"), &NativeWaterFx::held);
+	ClassDB::bind_method(D_METHOD("placed", "touched", "cells", "levels", "middles", "world_middles", "halves",
+								 "level"),
+			&NativeWaterFx::placed);
+	ClassDB::bind_method(D_METHOD("pours", "wet", "levels", "sides", "centres", "sizes", "facings", "drawn",
+								 "crossed", "span_middles", "span_halves", "world_centres", "world_unders",
+								 "last_heads", "open", "flow", "cell_lows", "cell_highs", "flats", "spread"),
+			&NativeWaterFx::pours);
+	ClassDB::bind_method(D_METHOD("inflows", "then", "now", "middles_then", "middles_now", "inflows", "seconds",
+								 "full", "ease", "calm"),
+			&NativeWaterFx::inflows);
 }

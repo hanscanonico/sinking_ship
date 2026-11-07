@@ -158,6 +158,8 @@ var _centres := PackedVector3Array()
 var _reaches := PackedFloat64Array()
 var _slots := PackedInt32Array()
 var _drawn := PackedByteArray()
+## Per opening, 1 where it has a crossing.
+var _crossed := PackedByteArray()
 ## Per opening, 1 where it is shut until it fails (SinkSchedule.failing).
 var _shut := PackedByteArray()
 ## The names of the openings the poses last shown had flows for (ShipPose.passages), and
@@ -185,6 +187,8 @@ var _next_burst := 0
 ## drawn, -1 for none.
 var _leaks: Array[MeshInstance3D] = []
 var _airs := PackedFloat64Array()
+## What of her pockets' air is drawn (InnerWaterPockets).
+var _pockets := InnerWaterPockets.new()
 ## Per cell, the glow its water was last given — in doubles, so a glow given is one kept,
 ## not given again every frame — and the light cast up into the pocket an eye is in.
 var _glows := PackedFloat64Array()
@@ -279,6 +283,7 @@ func setup(
 	_reaches.clear()
 	_slots.clear()
 	_drawn.clear()
+	_crossed.clear()
 	_made.clear()
 	_unmade.clear()
 	_wet.clear()
@@ -291,6 +296,7 @@ func setup(
 		_pours.append(null)
 		_crossings.append(null)
 		_landings.append(null)
+		_crossed.append(0)
 		_made.append(0)
 		if _shut[_pours.size() - 1] == 0:
 			_pour_for(_pours.size() - 1)
@@ -306,6 +312,8 @@ func setup(
 		_centres.append(opening.centre)
 		_reaches.append(opening.size.length() * 0.5 + TICK_SLACK)
 		_drawn.append(0 if opening.kind in unseen else 1)
+	if native != null:
+		native.lay_out_openings(structure, _passages, _spans, _floors)
 	_bursts.clear()
 	_burst_cells.clear()
 	_burst_at.clear()
@@ -322,6 +330,7 @@ func setup(
 		_leaks.append(leak)
 	_airs.resize(structure.cells.size())
 	_airs.fill(-1.0)
+	_pockets = InnerWaterPockets.new()
 	_glows.resize(structure.cells.size())
 	_glows.fill(0.0)
 	_inflows.resize(structure.cells.size())
@@ -375,14 +384,21 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	if _asks_natively(then, now):
 		_levels = native.levels_between(then, now, alpha)
 		var first := maxf(SinkTimeline.FIRST_WATER, CLEAR_OF_FLOOR)
-		var found: Array = native.surfaces(_levels, _ship, first, _stacks_shown)
+		var found: Array = native.surfaces(_levels, _ship, _level, first, _stacks_shown)
+		var placed: Array = found[1]
+		var shown := 0
 		for each: int in found[0]:
-			var cell := each >> 1
-			_place(_surfaces[cell], _boxes[cell], _levels[cell], each & 1 == 1, to_ship)
-		for each: int in found[1]:
+			var showing := each & 1 == 1
+			_place_at(_surfaces[each >> 1], showing, placed[shown] if showing else null, to_ship)
+			shown += 1 if showing else 0
+		placed = found[3]
+		shown = 0
+		for each: int in found[2]:
+			var showing := each & 1 == 1
 			var stack: Array = _stacks[each >> 1]
-			_place(stack[2], stack[1], _levels[stack[0]], each & 1 == 1, to_ship)
-		_stacks_shown = found[2]
+			_place_at(stack[2], showing, placed[shown] if showing else null, to_ship)
+			shown += 1 if showing else 0
+		_stacks_shown = found[4]
 	else:
 		_levels.resize(_surfaces.size())
 		for cell in _surfaces.size():
@@ -416,9 +432,12 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			leaf.position = _slide(door) * (shut - 1.0)
 	if then != _wet_then or now != _wet_now:
 		_find_wet(then, now, _levels)
-	for index in _wet:
-		_show_pour(index, _levels, now)
-	_show_pockets(now, _levels)
+	if _asks_natively(then, now):
+		native.show_pours(self)
+	else:
+		for index in _wet:
+			_show_pour(index, _levels, now)
+	_pockets.show(self, now, _levels)
 	for burst in BURSTS:
 		if _burst_ages[burst] >= 0.0:
 			var under := _burst_cells[burst]
@@ -537,6 +556,17 @@ func _hide_pour(index: int) -> void:
 		_stow(crossing)
 
 
+## Hides opening [param index]'s pour, its froth and its crossing where they stand, as
+## one that does not pour this frame (_show_pour): each is shown again where it pours,
+## so one pouring frame after frame stays shown rather than hidden and shown again.
+func _unshow(index: int) -> void:
+	_pours[index].visible = false
+	_landings[index].visible = false
+	var crossing := _crossings[index]
+	if crossing != null:
+		crossing.visible = false
+
+
 ## Hides [param sheet] standing apart from her (top level), so her moving every frame
 ## spends nothing on it — the Titanic has hundreds of openings gone dry or never pouring —
 ## until it is hung or laid again (_hang, _lay), which sets where it is drawn first. One
@@ -557,6 +587,7 @@ func _pour_for(index: int) -> void:
 	_made[index] = 1
 	if opening.facing() == 1 or opening.kind == ShipOpening.Kind.PORTHOLE:
 		_crossings[index] = _pour()
+		_crossed[index] = 1
 	_landings[index] = _froth()
 	_hide_pour(index)
 
@@ -613,6 +644,20 @@ func _place(
 			_param(surface, &"world_to_ship", to_ship)
 
 
+## Shows [param surface] placed at [param placed] (CellSurface.placed) where
+## [param showing], else hides it, as _place does.
+func _place_at(
+	surface: MeshInstance3D, showing: bool, placed: Variant, to_ship: Transform3D
+) -> void:
+	if surface.visible != showing:
+		surface.visible = showing
+		surface.top_level = not showing
+	if showing:
+		surface.transform = placed
+		if _slot == -1:
+			_param(surface, &"world_to_ship", to_ship)
+
+
 ## Whether a cell's water standing at world height [param level] may be drawn in some
 ## box inside one whose lowest and highest corners stand at [param reach]'s x and y: as
 ## shows() has it, give or take STACK_SLACK, well past what rounding moves a corner by.
@@ -651,6 +696,14 @@ static func eased_inflow(churn: float, fresh: float) -> float:
 ## down churns as it pours in — and tells its sheets.
 func _show_inflows(then: ShipPose, now: ShipPose) -> void:
 	_inflow_now = now
+	if _asks_natively(then, now):
+		var found: Array = native.inflows(then, now, _inflows)
+		var churns: PackedFloat64Array = found[1]
+		var at := 0
+		for cell: int in found[0]:
+			_churn(cell, churns[at])
+			at += 1
+		return
 	for cell in _inflows.size():
 		var middle := _structure.cells[cell].low.lerp(_structure.cells[cell].high, 0.5)
 		var was := _level_of(then, cell) - then.world_height(middle)
@@ -659,11 +712,16 @@ func _show_inflows(then: ShipPose, now: ShipPose) -> void:
 		var churn := eased_inflow(_inflows[cell], fresh)
 		if churn == _inflows[cell]:
 			continue
-		_inflows[cell] = churn
-		if _surfaces[cell] != null:
-			_param(_surfaces[cell], &"inflow", churn)
-		for index: int in _stacks_of(cell):
-			_param(_stacks[index][2], &"inflow", churn)
+		_churn(cell, churn)
+
+
+## Tells [param cell]'s sheets their water churns [param churn] hard.
+func _churn(cell: int, churn: float) -> void:
+	_inflows[cell] = churn
+	if _surfaces[cell] != null:
+		_param(_surfaces[cell], &"inflow", churn)
+	for index: int in _stacks_of(cell):
+		_param(_stacks[index][2], &"inflow", churn)
 
 
 ## The stacks [param cell] is drawn in, by index into _stacks: none for most.
@@ -763,10 +821,6 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		# Dry, or never drawn pouring: nothing to do but keep it hidden.
 		_hide_pour(index)
 		return
-	pour.visible = false
-	landing.visible = false
-	if crossing != null:
-		crossing.visible = false
 	var axis := opening.facing()
 	var open := 1.0 - float(pose.doors_shut.get(opening.name, 0.0))
 	var failed: int = pose.opened.get(opening.name, 0)
@@ -786,6 +840,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	var floor_under := -INF if side_low == -1 else (_ship * under).y
 	var drop := _heights[high] - maxf(_heights[low], floor_under)
 	if open <= 0.0 or _heights[high] <= bottom + SHOWS or _heights[high] - _heights[low] < POURS:
+		_unshow(index)
 		return
 	var from := minf(_heights[high], top)
 	var to := maxf(_heights[low], floor_under)
@@ -798,6 +853,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		# A hole in a deck: water falls through it from over the hole, if the higher
 		# side is over it, down the hole's longer way.
 		if not _over(side_high, opening.centre.y):
+			_unshow(index)
 			return
 		from = (_ship * centre).y
 		var long := 0 if opening.size.x >= opening.size.z else 2
@@ -813,6 +869,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		# A sliding door's opening is what its leaf has not covered.
 		centre[along] += opening.size[along] * (1.0 - open) * 0.5
 	if from - to < POURS or width <= 0.0:
+		_unshow(index)
 		return
 	var tall := from - to
 	# Through a wall it leaves at the speed the head over it drives and arcs on into the
@@ -942,106 +999,24 @@ func _blow(index: int, levels: PackedFloat64Array, top: float, opening: ShipOpen
 		var cell := _sides[index * 2 + side]
 		if cell == -1 or not (last[side] < top and levels[side] >= top and is_finite(last[side])):
 			continue
-		var burst := _next_burst
-		_next_burst = (_next_burst + 1) % BURSTS
-		var at := opening.centre
-		var axis := opening.facing()
-		if axis != 1:
-			at[axis] += signf(_middle(cell, axis) - at[axis]) * BURST_IN
-		var flat := _level * Basis.from_scale(Vector3(BURST, 1.0, BURST))
-		_lay(_bursts[burst], flat, _at_height(at, levels[side] + FROTH_LIFT), 1.0, 0.0)
-		_param(_bursts[burst], &"outdoor", 0.0)
-		_burst_cells[burst] = cell
-		_burst_at[burst] = at
-		_burst_ages[burst] = 0.0
-		set_process(true)
+		_burst_out(index, side, levels[side], opening)
 
 
-## The pockets [param pose] has, its cells' water at world heights [param levels]:
-## bubbles over each one that leaks into water standing over the middle of its top, and
-## a burst at the opening of each that has just gone free with air to blow out.
-func _show_pockets(pose: ShipPose, levels: PackedFloat64Array) -> void:
-	var leak := 0
-	var lit := -1
-	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
-	var eye_cell := pose.cell_at(to_local(camera.global_position)) if camera != null else -1
-	for cell in _airs.size():
-		var low := _structure.cells[cell].low
-		var box := AABB(low, _structure.cells[cell].high - low)
-		var held := cell < pose.pockets.size() and pose.pockets[cell] > 0.0
-		var glow := POCKET_GLOW if held else 0.0
-		if _surfaces[cell] != null and _glows[cell] != glow:
-			_param(_surfaces[cell], &"pocket_glow", glow)
-			for index: int in _stacks_of(cell):
-				_param(_stacks[index][2], &"pocket_glow", glow)
-			_glows[cell] = glow
-		if held and cell == eye_cell:
-			lit = cell
-		if not held:
-			if _airs[cell] >= VENTS:
-				_vent(cell, levels, pose)
-			_airs[cell] = -1.0
-			continue
-		_airs[cell] = CellSurface.reach(_ship, box).y - levels[cell]
-		var top := box.get_center()
-		top.y = box.end.y
-		var over := pose.water_level(top + Vector3.UP * CellMap.DRY)
-		if leak >= LEAKS or _structure.cells[cell].leak_area <= 0.0 or over <= (_ship * top).y:
-			continue
-		var flat := _level * Basis.from_scale(Vector3(LEAK, 1.0, LEAK))
-		var outside := pose.cell_at(top + Vector3.UP * CellMap.DRY) == CellMap.NONE
-		_lay(_leaks[leak], flat, _at_height(top, over + FROTH_LIFT), 1.0, 0.0)
-		_param(_leaks[leak], &"outdoor", 1.0 if outside else 0.0)
-		leak += 1
-	for unused in range(leak, LEAKS):
-		_leaks[unused].visible = false
-	_pocket_light.visible = lit != -1
-	if lit != -1:
-		var low := _structure.cells[lit].low
-		var box := AABB(low, _structure.cells[lit].high - low)
-		var middle := box.get_center()
-		middle.y = box.position.y
-		_pocket_light.position = _at_height(middle, levels[lit] + FROTH_LIFT)
-		var reach := maxf(box.size.x, box.size.z) * POCKET_SPAN
-		_pocket_light.omni_range = clampf(reach, POCKET_REACH.x, POCKET_REACH.y)
-
-
-## Bursts the air of [param cell]'s pocket out as it goes free, its cells' water at world
-## heights [param levels] under [param pose]: on the water at the top of the opening of
-## its not shut that stands highest, over whichever side's water stands higher there.
-func _vent(cell: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
-	var best := -1
-	var highest := -INF
-	for index in _passages.size():
-		if _sides[index * 2] != cell and _sides[index * 2 + 1] != cell:
-			continue
-		var passage := _passages[index].name
-		var shut: bool = _shut[index] == 1 or pose.doors_shut.get(passage, 0.0) >= 1.0
-		if shut and pose.opened.get(passage, 0) < 2:
-			continue
-		var top := CellSurface.reach(_ship, _spans[index]).y
-		if top > highest:
-			best = index
-			highest = top
-	if best == -1:
-		return
-	var opening := _passages[best]
-	var beyond := _sides[best * 2 + 1] if _sides[best * 2] == cell else _sides[best * 2]
-	var beyond_level := 0.0 if beyond == -1 else levels[beyond]
-	var under := cell if levels[cell] >= beyond_level else beyond
-	var level := maxf(levels[cell], beyond_level)
-	# On the water the air comes up through, clear of the wall or the shell it is in.
+## Bursts the air out of [param opening] (passage [param index]) on the water of its
+## side [param side], standing at world height [param level], as it reaches the
+## opening's top (_blow).
+func _burst_out(index: int, side: int, level: float, opening: ShipOpening) -> void:
+	var cell := _sides[index * 2 + side]
+	var burst := _next_burst
+	_next_burst = (_next_burst + 1) % BURSTS
 	var at := opening.centre
 	var axis := opening.facing()
 	if axis != 1:
-		var out := signf(_middle(cell, axis) - at[axis]) * (1.0 if under == cell else -1.0)
-		at[axis] += out * VENT_BURST * 0.4
-	var burst := _next_burst
-	_next_burst = (_next_burst + 1) % BURSTS
-	var flat := _level * Basis.from_scale(Vector3(VENT_BURST, 1.0, VENT_BURST))
+		at[axis] += signf(_middle(cell, axis) - at[axis]) * BURST_IN
+	var flat := _level * Basis.from_scale(Vector3(BURST, 1.0, BURST))
 	_lay(_bursts[burst], flat, _at_height(at, level + FROTH_LIFT), 1.0, 0.0)
-	_param(_bursts[burst], &"outdoor", 1.0 if under == -1 else 0.0)
-	_burst_cells[burst] = under
+	_param(_bursts[burst], &"outdoor", 0.0)
+	_burst_cells[burst] = cell
 	_burst_at[burst] = at
 	_burst_ages[burst] = 0.0
 	set_process(true)
