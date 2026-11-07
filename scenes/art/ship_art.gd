@@ -424,7 +424,7 @@ func _pack(chunks: PackedChunks, dressed: Node3D) -> void:
 	var globes := LampGlobes.new()
 	globes.name = "Globes"
 	add_child(globes)
-	globes.take(_lamps, still)
+	globes.take(_lamps)
 	var labels: Array[Label3D] = []
 	for child: Node in dressed.get_children():
 		if child is Label3D:
@@ -432,7 +432,7 @@ func _pack(chunks: PackedChunks, dressed: Node3D) -> void:
 	var signs := SignPool.new()
 	signs.name = "Signs"
 	dressed.add_child(signs)
-	signs.take(labels, still)
+	signs.take(labels)
 
 
 ## Shows [param node] or hides it. Hidden, it stands apart from her (top level), so her

@@ -22,20 +22,10 @@ var _cubes := {}
 ## The signs drawn now, by index, and the eye they were chosen for (INF before any).
 var _drawn := {}
 var _eye := Vector3.INF
-## The letters drawn, standing apart from her, placed where this node stands (StillGroup);
-## null when they follow her as nodes.
-var _group: StillGroup
 
 
-## Holds each of [param labels], taken out of the tree: drawn as the eye nears it — by
-## [param still], standing apart from her, when given.
-func take(labels: Array[Label3D], still: StillInstances = null) -> void:
-	if still != null:
-		_group = still.group(self)
-	_hold(labels)
-
-
-func _hold(labels: Array[Label3D]) -> void:
+## Holds each of [param labels], taken out of the tree: drawn as the eye nears it.
+func take(labels: Array[Label3D]) -> void:
 	for label: Label3D in labels:
 		if label.get_parent() != null:
 			label.get_parent().remove_child(label)
@@ -80,15 +70,11 @@ func show_near(eye: Vector3) -> void:
 		wanted[int(near[at].y)] = true
 	for index: int in _drawn.keys():
 		if not wanted.has(index):
-			if _group != null:
-				_group.release(_signs[index])
 			remove_child(_signs[index])
 			_drawn.erase(index)
 	for index: int in wanted:
 		if not _drawn.has(index):
 			add_child(_signs[index])
-			if _group != null:
-				_group.hold(_signs[index])
 			_drawn[index] = true
 
 
