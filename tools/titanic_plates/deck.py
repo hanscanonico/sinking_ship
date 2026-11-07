@@ -223,7 +223,10 @@ class Deck:
         behind its door: its walls stay, its floor is no room's. GONE, the room or solid at
         each (x, z) her hull takes, walls and all. WALLED_SOLIDS, a
         solid at each (x, z) whose face only touches a room's edge, the edge walled: every
-        face, or (x, z, face) the one face named."""
+        face, or (x, z, face) the one face named. HOLE_ENDS, each flight ((x, z) on it) whose
+        hole in the deck over it is cut from its head back only to at (x along her, or z
+        athwart her), where that deck's floor a room needs stands over the flight's foot with
+        a body's headroom under it."""
         for axis, at, to, lo, hi in getattr(module, "NUDGES", ()):
             found = False
             for list_name in ("rooms", "solids"):
@@ -278,6 +281,7 @@ class Deck:
             pieces.remove(next(r for r in pieces if r[1] < x < r[2] and r[3] < z < r[4]))
         self.not_rooms = list(getattr(module, "NOT_ROOMS", ()))
         self.walled_solids = list(getattr(module, "WALLED_SOLIDS", ()))
+        self.hole_ends = list(getattr(module, "HOLE_ENDS", ()))
 
     def _join(self, parts):
         """The lines two parts read of one wall moved onto one: of each kind, lines of
