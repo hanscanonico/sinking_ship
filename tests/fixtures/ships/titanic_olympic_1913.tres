@@ -86867,9 +86867,10 @@ joins = Array[StringName]([&"no_1_hatch_trunk", &"hold_1_d"])
 centre = Vector3(105.6875, -1.25, -0.9375)
 size = Vector3(3, 0, 1.875)
 starts = 1
-leak_head = 0.3
+leak_head = 0.0762
 collapse_head = 1
 leak_area = 0.05
+opens_toward = &"hold_1_d"
 
 [sub_resource type="Resource" id="Opening_pipe_cover_no_1_hatch_port"]
 script = ExtResource("13_opening")
@@ -86888,9 +86889,10 @@ joins = Array[StringName]([&"no_1_hatch_trunk", &"hold_1_d"])
 centre = Vector3(105.6875, -1.25, 1)
 size = Vector3(3, 0, 2)
 starts = 1
-leak_head = 0.3
+leak_head = 0.0762
 collapse_head = 1
 leak_area = 0.05
+opens_toward = &"hold_1_d"
 
 [sub_resource type="Resource" id="Opening_pipe_cover_no_1_hatch_starboard"]
 script = ExtResource("13_opening")
@@ -86909,9 +86911,10 @@ joins = Array[StringName]([&"hold_2_tween", &"d_deck_forward"])
 centre = Vector3(89.25, -1.25, 0.125)
 size = Vector3(5.25, 0, 5.75)
 starts = 1
-leak_head = 0.3
+leak_head = 0.0762
 collapse_head = 1
 leak_area = 0.05
+opens_toward = &"d_deck_forward"
 
 [sub_resource type="Resource" id="Opening_pipe_cover_no_2_hatch"]
 script = ExtResource("13_opening")
@@ -86930,9 +86933,10 @@ joins = Array[StringName]([&"hold_3_upper", &"d_deck_forward"])
 centre = Vector3(82, -1.25, 0.0625)
 size = Vector3(3.625, 0, 5.75)
 starts = 1
-leak_head = 0.3
+leak_head = 0.0762
 collapse_head = 1
 leak_area = 0.05
+opens_toward = &"d_deck_forward"
 
 [sub_resource type="Resource" id="Opening_pipe_cover_bunker_hatch"]
 script = ExtResource("13_opening")
