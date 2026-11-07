@@ -66,8 +66,16 @@ func test_each_chunk_draws_its_walls_then_its_furnishings_in_their_paints() -> v
 				for surface in mesh.get_surface_count():
 					surfaces.append([mesh, surface, loose == furnishings])
 		var mesh: ArrayMesh = (packed[name] as MeshInstance3D).mesh
-		assert_eq(mesh.get_surface_count(), surfaces.size(), name)
-		for index in mini(mesh.get_surface_count(), surfaces.size()):
+		# Her glass rides after them (test_her_glass_rides_in_its_chunk_where_it_lies_inside_it).
+		var walled := 0
+		while walled < mesh.get_surface_count():
+			if mesh.surface_get_name(walled) == String(PackedChunks.GLASS):
+				break
+			walled += 1
+		for surface in range(walled, mesh.get_surface_count()):
+			assert_eq(mesh.surface_get_name(surface), String(PackedChunks.GLASS), name)
+		assert_eq(walled, surfaces.size(), name)
+		for index in mini(walled, surfaces.size()):
 			var from: ArrayMesh = surfaces[index][0]
 			var surface: int = surfaces[index][1]
 			var wanted := from.surface_get_arrays(surface)
@@ -82,6 +90,92 @@ func test_each_chunk_draws_its_walls_then_its_furnishings_in_their_paints() -> v
 			assert_eq(paint.get_shader_parameter("finish"), was.get_shader_parameter("finish"))
 			var furnishing: bool = surfaces[index][2]
 			assert_eq(mesh.surface_get_name(index) == String(ShipArt.FURNISHING), furnishing)
+
+
+## [param parent]'s glass in chunks (ShipMesh.commit): its instances named "<finish>_in_…",
+## by name.
+func _glass(parent: Node) -> Dictionary:
+	var found := {}
+	for child: Node in parent.get_children():
+		var name := String(child.name)
+		if child is MeshInstance3D and name.contains("_in_") and not name.begins_with("Railing"):
+			found[name] = child
+	return found
+
+
+func test_her_glass_rides_in_its_chunk_where_it_lies_inside_it() -> void:
+	var loose := _glass(_loose)
+	var apart := _glass(_packed)
+	var chunks := _chunks(_packed)
+	assert_gt(loose.size(), 0, "she has glass indoors")
+	var riding := 0
+	for name: String in loose:
+		var was := (loose[name] as MeshInstance3D).mesh
+		assert_eq(was.get_surface_count(), 1, name)
+		var wanted := was.surface_get_arrays(0)
+		var chunk: MeshInstance3D = chunks.get(name.substr(name.find("in_")))
+		var found := -1
+		var riding_in := chunk.mesh as ArrayMesh if chunk != null else null
+		if riding_in != null:
+			for surface in riding_in.get_surface_count():
+				var got := riding_in.surface_get_arrays(surface)
+				var glass := riding_in.surface_get_name(surface) == String(PackedChunks.GLASS)
+				if glass and got[Mesh.ARRAY_VERTEX] == wanted[Mesh.ARRAY_VERTEX]:
+					found = surface
+		if found == -1:
+			assert_true(apart.has(name), "%s: in its chunk or its own instance" % name)
+			if not apart.has(name):
+				continue
+			var own := (apart[name] as MeshInstance3D).mesh
+			assert_eq(own.surface_get_arrays(0)[Mesh.ARRAY_INDEX], wanted[Mesh.ARRAY_INDEX])
+			_assert_same_glass(own.surface_get_material(0), was.surface_get_material(0), name)
+			assert_false(chunk != null and chunk.mesh.get_aabb().encloses(was.get_aabb()), name)
+			continue
+		riding += 1
+		assert_false(apart.has(name), "%s: drawn once" % name)
+		var got := chunk.mesh.surface_get_arrays(found)
+		assert_eq(got[Mesh.ARRAY_INDEX], wanted[Mesh.ARRAY_INDEX], name)
+		assert_eq(got[Mesh.ARRAY_TEX_UV2], wanted[Mesh.ARRAY_TEX_UV2], name)
+		_assert_same_glass(
+			chunk.mesh.surface_get_material(found), was.surface_get_material(0), name
+		)
+	assert_gt(riding, 0, "some glass rides in its chunk")
+	assert_eq(apart.size(), loose.size() - riding, "the rest each its own instance")
+
+
+func _assert_same_glass(got: Material, wanted: Material, name: String) -> void:
+	var paint := got as ShaderMaterial
+	var was := wanted as ShaderMaterial
+	assert_eq(paint.shader, was.shader, name)
+	assert_eq(paint.get_shader_parameter("outside"), was.get_shader_parameter("outside"), name)
+
+
+func test_a_chunk_meets_the_lamps_it_met_before_what_rides_in_it() -> void:
+	# A lamp lights the instances its range reaches: a chunk's box is its walls' and
+	# furnishings' alone, whatever glass and railings ride in it.
+	var art := _breakable()
+	for chunk: MeshInstance3D in _chunks(art).values():
+		var own := ArrayMesh.new()
+		var mesh := chunk.mesh as ArrayMesh
+		for surface in mesh.get_surface_count():
+			if mesh.surface_get_name(surface) in [String(ShipArt.FURNISHING), ""]:
+				var corners := []
+				corners.resize(Mesh.ARRAY_MAX)
+				corners[Mesh.ARRAY_VERTEX] = mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+				own.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, corners)
+		assert_eq(mesh.get_aabb(), own.get_aabb(), chunk.name)
+	art.free()
+
+
+## Her art packed as the match draws her, every railing breakable.
+func _breakable() -> ShipArt:
+	var art := ShipArt.new()
+	art.rules = _rules
+	art.pack = true
+	var none: Array[StringName] = []
+	var every := PackedInt32Array(range(_layout.railings.size()))
+	art.build(_layout, _rules.railing_height, _rules.body_radius, none, every)
+	return art
 
 
 func test_the_furnishings_read_back_are_the_same_faces() -> void:

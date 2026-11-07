@@ -192,8 +192,10 @@ func build(art: Node3D, materials: Dictionary, cut_above: float, span: Vector2) 
 		glow.material_override = _materials[index]
 		glow.transform = Transform3D(turn, glasses[index])
 		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		glow.visible = glasses[index].y < cut_above and PieceClip.holds(span, glasses[index].x)
 		node.add_child(glow)
+		# One off the stretch drawn, or over the cut-away, stands apart from her: never shown.
+		if glasses[index].y >= cut_above or not PieceClip.holds(span, glasses[index].x):
+			ShipArt.show_apart(glow, false)
 	mesh.commit(node, materials)
 
 

@@ -18,7 +18,8 @@ extends Node3D
 ## give way blinks red, then falls onto the floor beneath with its ceiling, beams,
 ## railings, ladders and the lamp of the room under it, and a failed railing is gone.
 ## The walls under it stand. The match's own hazards are drawn the same way (SH10):
-## any railing may break, so each is a node of its own, gone once broken but for its
+## any railing may break, so each is a node of its own — packed, its own triangles of a
+## few meshes (RailingBatches) — gone once broken but for its
 ## remains, built the first time it breaks (few ever do); and every crate of the
 ## cargo is a wooden box under a node of its own, which MatchView places (crates()),
 ## lit as the room it stands in or the open deck. Of the rooms' lamps, LampSight
@@ -139,7 +140,12 @@ var _floors := PackedFloat64Array()
 ## Per railing, the node it hangs from when an event can fail it, or null, and the
 ## node its remains hang from, shown once it is broken — null until it first is —
 ## drawn again as the spans beside it break or mend (RailingRemains.held()).
+## Packed, a breakable span on a deck that stays put has no node: _batched draws it, and
+## its faces wait in _rail_meshes, by index, until it does. _rail_on: the node each hangs on.
 var _rails: Array[Node3D] = []
+var _batched: RailingBatches
+var _rail_meshes := {}
+var _rail_on: Array[Node3D] = []
 var _remains: Array[Node3D] = []
 var _remains_held := PackedInt32Array()
 ## The broken railings the rails were last drawn for, so they are gone through only as
@@ -255,6 +261,8 @@ func build_frame(
 	_breakups.clear()
 	_floors.clear()
 	_rails.clear()
+	_rail_meshes.clear()
+	_rail_on.clear()
 	_remains.clear()
 	_remains_held.clear()
 	_railings_drawn = PackedInt32Array([-1])
@@ -307,13 +315,23 @@ func build_frame(
 		DeckWorks.rig(mesh, layout, rules, span, _funnels, pieces, _space)
 	var cap := Vector2(RAIL_WIDTH, RAIL_DEPTH)
 	_wreckage = RailingRemains.new(layout, railing_height, cap, Vector2.ONE * MID_RAIL, POST)
+	_batched = RailingBatches.new() if pack else null
 	for index in layout.railings.size():
 		var railing := layout.railings[index]
 		var wreck := _wrecks[railing.platform]
 		var on: Node3D = wreck if wreck != null else self
-		_rails.append(_piece(pieces, index in fails, "Railing%d" % index, on))
+		var kept := mesh.kept(
+			minf(railing.from.x, railing.to.x), maxf(railing.from.x, railing.to.x)
+		)
+		# Packed, a breakable span on a deck that stays put is drawn with the rest (_batched).
+		var batched := pack and wreck == null and index in fails
+		_rails.append(null if batched else _piece(pieces, index in fails, "Railing%d" % index, on))
+		_rail_on.append(on)
 		var into: ShipMesh = pieces.get(_rails[index], pieces.get(wreck, mesh))
-		if mesh.kept(minf(railing.from.x, railing.to.x), maxf(railing.from.x, railing.to.x)):
+		if batched and kept:
+			into = _mesh()
+			_rail_meshes[index] = into
+		if kept:
 			_railing(into, index, railing_height)
 			hull.staff(into, railing)
 		_remains.append(null)
@@ -383,6 +401,9 @@ func build_fittings(open_ports := PackedVector3Array()) -> void:
 			deck = _wrecks.find(node.get_parent())
 		var paints: Dictionary = materials if deck == -1 else _flashes[layout.platforms[deck].name]
 		(pieces[node] as ShipMesh).commit(node, paints)
+	for index: int in _rail_meshes:
+		_batched.add(index, _rail_meshes[index], materials)
+	_rail_meshes.clear()
 	if pack:
 		_pack(chunks, dressed)
 	prop_art = PropArt.new()
@@ -393,10 +414,10 @@ func build_fittings(open_ports := PackedVector3Array()) -> void:
 	add_child(_occluders)
 
 
-## Draws what build() packs (pack): [param chunks] under it, its lamps by LampGlobes and
-## the signs under [param dressed] by a SignPool.
+## Draws what build() packs (pack): [param chunks] under it, its breakable railings with
+## them, its lamps by LampGlobes and the signs under [param dressed] by a SignPool.
 func _pack(chunks: PackedChunks, dressed: Node3D) -> void:
-	chunks.commit(self)
+	chunks.commit(self, _batched)
 	var globes := LampGlobes.new()
 	globes.name = "Globes"
 	add_child(globes)
@@ -427,6 +448,11 @@ static func show_apart(node: Node3D, shown: bool) -> void:
 		node.set_meta(HUNG_AT, node.transform)
 	node.visible = false
 	node.top_level = true
+
+
+## What draws its breakable railings packed (pack), or null.
+func railings() -> RailingBatches:
+	return _batched
 
 
 ## The graphics preset it was last told of (show_graphics).
@@ -503,10 +529,14 @@ func show_sinking(
 		return
 	_railings_drawn = broken_railings
 	for index in _rails.size():
-		if _rails[index] == null:
+		var batched := _batched != null and _batched.holds(index)
+		if _rails[index] == null and not batched:
 			continue
 		var broken := index in broken_railings
-		_rails[index].visible = not broken
+		if batched:
+			_batched.show(index, not broken)
+		else:
+			_rails[index].visible = not broken
 		var held := _wreckage.held(index, broken_railings) if broken else 0
 		if broken and _remains[index] != null and held != _remains_held[index]:
 			_remains[index].free()
@@ -591,7 +621,7 @@ func show_falls(falls: Array[FunnelFall], tick: float) -> void:
 ## has them, under a node of their own beside the span's, in the paints of the deck
 ## it stands on.
 func _remains_of(index: int, held: int) -> Node3D:
-	var on := _rails[index].get_parent() as Node3D
+	var on := _rail_on[index]
 	var node := Node3D.new()
 	node.name = "Railing%dRemains" % index
 	on.add_child(node)
