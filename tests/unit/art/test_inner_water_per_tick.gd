@@ -146,6 +146,39 @@ func test_a_pour_is_hidden_once_its_door_is_dry_the_whole_tick() -> void:
 	assert_eq(_pouring(water), 0)
 
 
+## A pour hidden stands apart from her (top level), so her moving spends nothing on it — its
+## landing and its crossing with it — and poured again it hangs where a pour never hidden
+## does.
+func test_a_pour_hidden_stands_apart_and_poured_again_hangs_as_one_never_hidden() -> void:
+	var wet := _pose(true)
+	var dry := _pose()
+	var again := _water()
+	again.show_water(wet, wet, 0.0)
+	again.show_water(dry, dry, 0.0)
+	var made := 0
+	for index in again._pours.size():
+		for sheet: MeshInstance3D in _sheets(again, index):
+			made += 1
+			assert_false(sheet.visible, "hidden once dry")
+			assert_true(sheet.top_level, "and apart from her")
+	assert_gt(made, 0, "pours made")
+	again.show_water(wet, wet, 0.0)
+	var fresh := _water()
+	fresh.show_water(wet, wet, 0.0)
+	var shown := 0
+	for index in fresh._pours.size():
+		var mine := _sheets(again, index)
+		var theirs := _sheets(fresh, index)
+		assert_eq(mine.size(), theirs.size(), "the same sheets made")
+		for at in mini(mine.size(), theirs.size()):
+			assert_eq(mine[at].visible, theirs[at].visible, "shown alike")
+			if theirs[at].visible:
+				shown += 1
+				assert_false(mine[at].top_level, "hung on her")
+				assert_eq(mine[at].transform, theirs[at].transform, "where it hangs")
+	assert_gt(shown, 0, "pours shown again")
+
+
 func test_water_over_every_top_since_last_drawn_bursts_though_nothing_pours() -> void:
 	var water := _water()
 	water.show_water(_sunk(false), _sunk(false), 0.0)
@@ -281,6 +314,17 @@ func _levelled(raised := 0.0) -> ShipPose:
 	pose.levels[_low] = level
 	pose.levels[_high] = level + raised
 	return pose
+
+
+## Opening [param index]'s pour, its landing and its crossing in [param water], those made.
+func _sheets(water: InnerWater, index: int) -> Array[MeshInstance3D]:
+	var found: Array[MeshInstance3D] = []
+	for sheet: MeshInstance3D in [
+		water._pours[index], water._landings[index], water._crossings[index]
+	]:
+		if sheet != null:
+			found.append(sheet)
+	return found
 
 
 ## Whether the door's own pour is shown.
