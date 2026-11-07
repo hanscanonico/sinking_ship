@@ -775,7 +775,10 @@ for k, (rid, name, x0, x1) in enumerate(A_ROOMS):
         # read as a doorway no body goes through (#514).
         aft = x0 - T if k > 0 and A_ROOMS[k - 1][0] is not None else x0 + T
         fwd = x1 + T if k + 1 < len(A_ROOMS) and A_ROOMS[k + 1][0] is not None else x1 - T
-        box("a_block_%d" % k, aft, fwd, -A_HOUSE[2] + T, A_HOUSE[2] - T, A_DECK, BOAT)
+        # Its sides run into the house's side walls where it reaches into a room, so that
+        # nothing opens at the room's corners between its end and their faces.
+        side = A_HOUSE[2] if (aft, fwd) != (x0 + T, x1 - T) else A_HOUSE[2] - T
+        box("a_block_%d" % k, aft, fwd, -side, side, A_DECK, BOAT)
         continue
     room(rid, name, x0, x1, -A_HOUSE[2], A_HOUSE[2], A_DECK)
     for tag, z in [("p", -A_HOUSE[2]), ("s", A_HOUSE[2])]:

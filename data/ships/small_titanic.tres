@@ -3589,7 +3589,7 @@ top = 8.375
 
 [sub_resource type="Resource" id="Blocker_a_block_3"]
 script = ExtResource("3_block")
-area = Rect2(-39, -8.9, 22.7, 17.8)
+area = Rect2(-39, -9, 22.7, 18)
 bottom = 5.5
 top = 8.375
 
@@ -3679,7 +3679,7 @@ top = 8.375
 
 [sub_resource type="Resource" id="Blocker_a_block_6"]
 script = ExtResource("3_block")
-area = Rect2(7.7, -8.9, 13.2, 17.8)
+area = Rect2(7.7, -9, 13.2, 18)
 bottom = 5.5
 top = 8.375
 
@@ -3727,7 +3727,7 @@ top = 8.375
 
 [sub_resource type="Resource" id="Blocker_a_block_8"]
 script = ExtResource("3_block")
-area = Rect2(32.8, -8.9, 35.5, 17.8)
+area = Rect2(32.8, -9, 35.5, 18)
 bottom = 5.5
 top = 8.375
 
@@ -11543,25 +11543,25 @@ top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_5_p"]
 script = ExtResource("3_block")
-area = Rect2(-31, -9.45, 1.8, 0.55)
+area = Rect2(-31, -9.55, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_5_s"]
 script = ExtResource("3_block")
-area = Rect2(-31, 8.9, 1.8, 0.55)
+area = Rect2(-31, 9, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_6_p"]
 script = ExtResource("3_block")
-area = Rect2(-22, -9.45, 1.8, 0.55)
+area = Rect2(-22, -9.55, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_6_s"]
 script = ExtResource("3_block")
-area = Rect2(-22, 8.9, 1.8, 0.55)
+area = Rect2(-22, 9, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
@@ -11591,13 +11591,13 @@ top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_10_p"]
 script = ExtResource("3_block")
-area = Rect2(14, -9.45, 1.8, 0.55)
+area = Rect2(14, -9.55, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_10_s"]
 script = ExtResource("3_block")
-area = Rect2(14, 8.9, 1.8, 0.55)
+area = Rect2(14, 9, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
@@ -11615,37 +11615,37 @@ top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_13_p"]
 script = ExtResource("3_block")
-area = Rect2(41, -9.45, 1.8, 0.55)
+area = Rect2(41, -9.55, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_13_s"]
 script = ExtResource("3_block")
-area = Rect2(41, 8.9, 1.8, 0.55)
+area = Rect2(41, 9, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_14_p"]
 script = ExtResource("3_block")
-area = Rect2(50, -9.45, 1.8, 0.55)
+area = Rect2(50, -9.55, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_14_s"]
 script = ExtResource("3_block")
-area = Rect2(50, 8.9, 1.8, 0.55)
+area = Rect2(50, 9, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_15_p"]
 script = ExtResource("3_block")
-area = Rect2(59, -9.45, 1.8, 0.55)
+area = Rect2(59, -9.55, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
 [sub_resource type="Resource" id="Blocker_bench_a_15_s"]
 script = ExtResource("3_block")
-area = Rect2(59, 8.9, 1.8, 0.55)
+area = Rect2(59, 9, 1.8, 0.55)
 bottom = 5.5
 top = 5.95
 
