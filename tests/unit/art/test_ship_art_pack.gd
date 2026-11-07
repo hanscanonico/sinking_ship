@@ -287,3 +287,18 @@ func test_what_the_sinking_has_yet_to_show_stands_apart_until_it_does() -> void:
 	assert_true(node.visible)
 	assert_eq(node.position, Vector3(1.0, 2.0, 3.0))
 	assert_eq(node.global_position, Vector3(6.0, 2.0, 3.0))
+
+
+func test_every_chunk_and_railing_drawn_apart_stands_apart_placed_where_she_is() -> void:
+	var stills := _packed.find_children("StillInstances", "StillInstances", false, false)
+	assert_eq(stills.size(), 1, "one StillInstances under her")
+	var still: StillInstances = stills[0]
+	var held := still.held()
+	for chunk: MeshInstance3D in _chunks(_packed).values():
+		assert_true(chunk in held, "%s is held" % chunk.name)
+	for instance: MeshInstance3D in held:
+		assert_true(instance.top_level, "%s stands apart from her" % instance.name)
+		assert_eq(instance.get_parent(), _packed, "%s hangs under her" % instance.name)
+	var at := Transform3D(Basis(Vector3.FORWARD, 0.05), Vector3(2.0, -1.0, 0.5))
+	still.place(at)
+	assert_eq(still.placed(), at, "placed where she stands")
