@@ -234,8 +234,8 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 			_pace[room] = rules.walk_speed / rules.crawl_speed
 	var doors := _wide_doors(rules.crawl_height)
 	_find_door_depths(doors)
-	_add_ramps()
-	_add_doors(doors)
+	_add_ramps(rules)
+	_add_doors(doors, rules)
 	_flooded.resize(_zone_count)
 	_doomed.resize(_zone_count)
 	_heights.resize(_zone_count)
@@ -725,9 +725,11 @@ func _link_decks() -> void:
 		_decks.append(zone_of_root[root])
 
 
-## A portal each way along every ramp whose two ends join platforms.
-func _add_ramps() -> void:
+## A portal each way along every ramp whose two ends join platforms and that a body could
+## walk (WayThrough.flight).
+func _add_ramps(rules: BrawlRules) -> void:
 	for ramp in _ramps.size():
+		var walked := WayThrough.flight(_surfaces, rules, _layout, ramp)
 		var joined := _surfaces.joins(_surfaces.ramp_surface(ramp))
 		var ends: Array[Vector3] = [_ramps[ramp].end_point(0), _ramps[ramp].end_point(1)]
 		var zones := PackedInt32Array()
@@ -740,7 +742,7 @@ func _add_ramps() -> void:
 			zones.append(_zone_on(joined[end], Vector2(ends[end].x, ends[end].z) + outward * _lead))
 		_ramp_zones.append(zones)
 		var toward := PackedInt32Array([NONE, NONE])
-		if zones[0] != NONE and zones[1] != NONE:
+		if zones[0] != NONE and zones[1] != NONE and walked:
 			var area := _ramps[ramp].area
 			var width := area.size.y if _ramps[ramp].axis == ShipRamp.Axis.X else area.size.x
 			for end in 2:
@@ -789,19 +791,24 @@ func _find_door_depths(doors: Array[Array]) -> void:
 
 
 ## A portal out through each of a room's [param doors] that gives onto another zone, and
-## back in from an open deck — a room's own scan adds the way back from a room.
-func _add_doors(doors: Array[Array]) -> void:
+## back in from an open deck — a room's own scan adds the way back from a room —, each
+## where a body could go through it that way, nearest its middle (WayThrough.crossings).
+func _add_doors(doors: Array[Array], rules: BrawlRules) -> void:
 	for room in doors.size():
 		var floor_height := _layout.rooms[room].floor_height
 		for door: ShipRoom.Door in doors[room]:
 			var other := _gives_onto(room, door)
 			if other == NONE:
 				continue
-			var middle := door.middle()
-			var at := Vector3(middle.x, floor_height, middle.y)
-			_add(Portal.new(Vector2i(room, other), at, at, door.outward, door.width(), NONE))
-			if other >= _layout.rooms.size():
-				_add(Portal.new(Vector2i(other, room), at, at, -door.outward, door.width(), NONE))
+			var deck := other >= _layout.rooms.size()
+			var offs := WayThrough.crossings(_surfaces, rules, door, floor_height, deck)
+			for way in 2 if deck else 1:
+				if not is_nan(offs[way]):
+					var at := WayThrough.across(door, offs[way], floor_height)
+					var ends := Vector2i(room, other) if way == 0 else Vector2i(other, room)
+					var out := door.outward if way == 0 else -door.outward
+					var wide := door.width() - absf(offs[way]) * 2.0
+					_add(Portal.new(ends, at, at, out, wide, NONE))
 
 
 ## The zone [param door] out of [param room] gives onto, a body's width out through it:
