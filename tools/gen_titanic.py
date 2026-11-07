@@ -1246,6 +1246,18 @@ for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OU
         # forecastle, #483).
         if upper == "c" and lower == "d" and rises == "aft" and x0 < BX["B"] < x1:
             into[-1] = (into[-1][0], BX["B"]) + into[-1][2:]
+        # A flight whose foot runs on under a room's floor on the deck over it (HOLE_ENDS) has
+        # that deck cut from its head back only to the room's edge, a body's headroom over the
+        # flight there; cut its whole run, the hole took the room's floor (#531).
+        for (hx, hz), at in plan.hole_ends:
+            if x0 <= hx <= x1 and z0 <= hz <= z1:
+                along = rises in ("fore", "aft")
+                cut_head, cut_foot = ends[1], ends[0]
+                assert min(cut_head, cut_foot) < at < max(cut_head, cut_foot), ("a hole's end off its flight", sid)
+                over = high - 2 * T - (low + (high - low) * abs(at - cut_foot) / abs(cut_head - cut_foot))
+                assert over >= rule("body_height"), ("no headroom where the hole ends", sid, over)
+                a, b = sorted((cut_head, at))
+                into[-1] = (a, b) + into[-1][2:] if along else into[-1][:2] + (a, b)
         FLIGHT_HOLES[sid] = into[-1] if upper in holes else None
         if plan is F_OUTLINE and waited is not None and f_waited(flight):
             F_WAITED.extend(into[waited:])
@@ -2139,6 +2151,12 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
             for j, (p, q) in enumerate(zip(cuts, cuts[1:])):
                 box("%s_%s" % (sid, side) + ("_u%d" % j if len(cuts) > 2 else ""), p, q, sz0, sz1,
                     level((p + q) * 0.5), over((p + q) * 0.5))
+        # And a side across it at each break, where the room it stands in is two (No. 4
+        # hatch on D deck, over bulkhead N's step): its floor inside is no one's, but the two
+        # rooms' join ran on through it, a doorway a body reaches only inside the shaft (#531).
+        for j, v in enumerate(v for v in sorted(breaks) if x0 + 2 * T < v < x1 - 2 * T):
+            box("%s_across_%d" % (sid, j), v - h, v + h, z0 - h, z1 + h, min(level(v - 2 * T), level(v + 2 * T)),
+                min(over(v - 2 * T), over(v + 2 * T)))
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.raised):
         box("%s_raised_%d" % (prefix, k), x0, x1, z0, z1, floor, floor + top - 2 * T)
 

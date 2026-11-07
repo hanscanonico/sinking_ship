@@ -1295,8 +1295,6 @@ DOOR_MOVES = [
     # (The second-class stewards' quarters' and the four-berth room's aft of B stay where the
     # plate draws them: aft of the stair down that fills the stewards' lobby, and into the
     # passage's bay, clear of D deck's ladder down run on along the passage.)
-    # The store the port spiral's head fills (NOT_ROOMS):
-    ((101.625, -3.875), None),
 ]
 # Less than a door's width either side of D's line; the store her stem takes; the joins
 # over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below;
@@ -1332,10 +1330,10 @@ WALLED_SOLIDS = [(-64.2, -7.6), (-64.2, -5.8)]
 WALLED_SOLIDS += [(-38.0, -2.0, "fore"), (-38.0, 5.0, "fore"), (-14.0, -10.0, "starboard"), (85.5, -7.0, "starboard")]
 NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
              (79.5, 6.0), (80.0, -4.9)]
-# D deck's stewards' staircase down through the engineers' stewards' quarters (d.py, est.),
-# and the firemen's port spiral's head through the store aft of their wash place: each
-# room the flight's well, no body's (#514).
-NOT_ROOMS += [(-26.9, -0.2), (100.9, -4.0)]
+# D deck's stewards' staircase down through the engineers' stewards' quarters (d.py, est.):
+# the room the flight's well, no body's (#514). (The store aft of the firemen's wash place
+# keeps its floor and its door: D deck's port spiral comes down into it, d.py, #531.)
+NOT_ROOMS += [(-26.9, -0.2)]
 # The 20 ft ladderway's well aft of H, its head's landing open to the passage (OPENED); and
 # the stewards' lobby's sliver aft of F, its stair down's (#514).
 NOT_ROOMS += [(-1.5, 0.0), (36.2, -6.4)]
@@ -1372,6 +1370,21 @@ STAIR_MOVES = [
     # its stair on down to G beside it (f.py):
     (("ladder", -47.0625, -10.375), (-47.25, -44.125, -10.3125, -9.5)),
     # The firemen's way on down athwart her between D deck's flights (d.py), the passage
-    # too short along her for a flight and a lead each end.
-    (("firemen's spiral staircase", 100.375, -0.75), (101.4375, 102.4375, -0.8125, 2.375, "starboard")),
+    # too short along her for a flight and a lead each end. 1/16 m aft of the middle between
+    # them, so F deck's passage forward of it keeps a body's lane between its high end and
+    # No. 1 hatch's trunk (0.93 m), the way to the greasers' quarters and the W.C.s
+    # starboard (#531).
+    (("firemen's spiral staircase", 100.375, -0.75), (101.375, 102.375, -0.8125, 2.375, "starboard")),
+    # The ladder down to F deck by the store forward of D's line, where F deck's plate draws its
+    # treads (f.py, px 8145-8240, 71.0-73.5 m): this view, which draws no bulkhead here, reads
+    # it 0.5 m further aft, and run on aft from there it stood over F deck's squash stairway
+    # behind bulkhead D, solid to that floor and across the stairway, its door shut off from
+    # the racquet court's stair (#531, rows 5 and 7). Its head aft at bulkhead D's line, run
+    # on forward under the pantry to 3.06 m (HOLE_ENDS).
+    (("ladder", 70.0625, 3.1875), (70.875, 73.9375, 3.1875, 4.375)),
 ]
+# Flights run on under a room's floor on this deck, cut only back to that room's edge, the
+# flight a body's headroom under it there (deck.py, #531): the ladder by N, its foot under
+# the passage aft of N's floor between the rooms off it (the passage's way out); the ladder
+# under the pantry by D's line.
+HOLE_ENDS = [((-90.5, -5.3), -91.6875), ((72.0, 3.8), 73.25)]

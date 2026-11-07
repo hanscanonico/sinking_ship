@@ -1075,6 +1075,12 @@ STAIRS = [
 
 # Lines moved off the plate so a door fits (deck.py's NUDGES, DOOR_MOVES; DOOR_LEAST 1 m):
 NUDGES = [
+    # The ladderway's after line, between it and the passage aft of B, 5/16 m aft: G deck's
+    # ladder's hole reaches 0.25 m past the plate's line (its run longer than the room), and
+    # opened over the hole (#514), its join with the passage was no floor to cross. Walled
+    # again, the wall stands clear of the hole, and the passage's door into the ladderway
+    # moves with it (#531).
+    (0, 92.5625, 92.25, 4.25, 7.25),
     (0, -21.375, -21.875, -8.875, -6.0),  # the stewards' wall at the head of E's ladder, not under its treads
     # The cross passages and vestibule the plate draws over where P's line stands (it draws
     # no P here), aft of it, so no way through parts in two under a door's width.
@@ -1122,21 +1128,29 @@ DOOR_MOVES = [
     ((78.9375, -6.75), (78.4375, -10.0)),
     # The ladderway's door from the passage aft of it, to starboard of the railing round G
     # deck's ladder's hole: its own, given none, stood in that railing (#514).
-    (None, (92.5625, 6.625)),
+    (None, (92.25, 6.625)),
 ]
 # Each saloon's bay aft of the casing keeps its own way in, a pier in the wide join:
 SHUT = [(4.5625, -6.0)]
+# The ladderway's join with the passage forward of it, open only aft of E deck's ladder's
+# row (OPENED): a body coming down E deck's ladder steps off its foot on the ladderway's
+# landing beside the passage, and open on to her side the walk graph found the join's way
+# through on the landing's other side, past G deck's ladder's railed hole, so no route
+# reached the landing (#531).
+SHUT += [(95.19, 6.0)]
 OPENED = [
+    # The ladderway's landing into the passage forward of it, beside E deck's ladder's foot
+    # (SHUT); and the passage's into the passage aft of B, which the plate draws open, one
+    # passage from the ladderway to the cabins forward: a partition there shut the passage's
+    # starboard end and the four-berth room off it from any way in, E deck's ladder over the
+    # passage between them (#531).
+    (95.1775, 95.1975, 4.25, 5.875), (96.49, 96.51, 4.25, 7.1875),
     (4.5525, 4.5725, -9.5625, -6.125),
     (4.5525, 4.5725, -5.875, -3.25),
     (72.9275, 72.9475, -5.75, -4.375),  # the linen room's two pieces
     # The engineers' stair box's whole forward end, where E deck's ladder comes down and
     # the stair on down to G deck comes up side by side (#514):
     (-44.4475, -44.4275, -10.375, -8.6875),
-    # The ladderway's after wall over G deck's ladder's hole, which reaches past it into the
-    # passage (no wall left hanging over its hole): with the ladderway's door moved clear
-    # of the railing round it (DOOR_MOVES) the wall stood across the hole (#514).
-    (92.5525, 92.5725, 4.625, 5.75),
 ]
 # The passage two flights fill side by side; the engineers' stairway its stair fills; the
 # passage along L's ladder fills.
@@ -1174,4 +1188,8 @@ STAIR_MOVES = [
     # Rising forward, its foot in G deck's passage clear of her side's rooms, inside G deck's
     # rooms' wall (g.py): the plate draws no way it rises.
     (("third-class ladder", 92.3125, 4.8125), (92.3125, 95.125, 4.6875, 5.6875, "fore")),
+    # The stair down to the post office 1/16 m forward, its head where E deck's ladder down,
+    # laid where this plate draws it aft of it (e.py), comes down: the two one flight from
+    # E deck to G as the plate lines them up, clear of the squash stairway behind D (#531).
+    (("stair", 73.875, 3.25), (73.9375, 76.875, 3.25, 4.25)),
 ]

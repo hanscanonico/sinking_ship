@@ -352,3 +352,8 @@ WALLED_SOLIDS = [(-52.0, -5.4, "fore"), (-52.0, 5.6, "fore")]
 # No. 2 hold's starboard strip forward of the after hold ladder's foot, which the ladder up
 # to the orlop fills but 0.69 m of where her side narrows it: no body's (#514).
 NOT_ROOMS = [(96.7, 2.4)]
+# The firemen's passage's forward end round the spirals' feet, walled off the passage: the
+# straight flights the game lays for the spirals (orlop.py) come down aft of it, their
+# high ends across the passage, so no body reached its floor (#531).
+NOT_ROOMS += [(101.0, 0.5)]
+SHUT = [(100.19, 0.2)]

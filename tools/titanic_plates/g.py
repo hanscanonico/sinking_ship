@@ -591,9 +591,15 @@ DOOR_MOVES = [
 # The pieces of Ls her side leaves narrower than a body, or past one (each room whole without).
 MADE_SOLID = [(-91.3, -9.4), (-90.0, -9.5), (-98.6, -7.5), (-98.6, 7.7)]
 # F deck's ladder's foot, in the passage beside its own:
-OPENED = [(92.4275, 92.4475, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -6.5), (91.25, 92.4375, 5.74, 5.76)]
+# The passage aft of C's join with the passage forward of it, open its length (#531): only
+# F deck's stair's foot's lane open, the passage behind the stair's side had no way out,
+# the two cabins off it with it.
+OPENED = [(92.4275, 92.4475, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -5.625), (91.25, 92.4375, 5.74, 5.76)]
 # The stub's join her side leaves no stub for (OPENED has its way):
 SHUT = [(91.84, 7.55)]
+# The passage aft of C's join along F deck's stair down's side, the stair's side all its
+# length (#514's last example of a doorway no body goes through): walled (#531).
+SHUT += [(74.3, -7.625)]
 STAIR_MOVES = [
     # The stores' stair down to the orlop to port of F deck's flight down to this deck, which
     # the plates draw over the same treads: under it, its head was F deck's flight's foot, a
