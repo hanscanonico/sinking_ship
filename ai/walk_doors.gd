@@ -24,6 +24,9 @@ var _doors: Array[Array] = []
 ## of, held as that room's: its floor's area, and the room.
 var _depth_areas: Array[Rect2] = []
 var _depth_rooms := PackedInt32Array()
+## The pieces the graph reads its rooms' floors in: a doorway leads into the one a body's
+## width inside it stands in.
+var pieces: WalkPieces
 
 
 func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
@@ -51,10 +54,10 @@ func find_depths(graph: WalkGraph) -> void:
 	for room in _doors.size():
 		for door: ShipRoom.Door in _doors[room]:
 			var other := _gives_onto(graph, room, door)
-			if other == NONE or other >= _layout.rooms.size():
+			if other == NONE or graph.room_of(other) == NONE:
 				continue
 			var axis := 0 if door.outward.y == 0.0 else 1
-			var past := _layout.rooms[other].area
+			var past := _layout.rooms[graph.room_of(other)].area
 			var edge := past.position[axis] if door.outward[axis] > 0.0 else past.end[axis]
 			var depth := (edge - door.middle()[axis]) * door.outward[axis]
 			if depth <= WalkGraph.EDGE:
@@ -89,7 +92,7 @@ func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 				var other := int(lanes[lane])
 				var low := lanes[lane + 1]
 				var high := lanes[lane + 2]
-				var deck := other >= _layout.rooms.size()
+				var deck := graph.room_of(other) == NONE
 				var ways := 2 if deck else 1
 				var offs := WayThrough.crossings(
 					_surfaces, rules, door, floor_height, low, high, ways
@@ -97,7 +100,9 @@ func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 				for way in ways:
 					if not is_nan(offs[way]):
 						var at := WayThrough.across(door, offs[way], floor_height)
-						var ends := Vector2i(room, other) if way == 0 else Vector2i(other, room)
+						var inside := Vector2(at.x, at.z) - door.outward * _lead
+						var mine := pieces.zone(room, inside)
+						var ends := Vector2i(mine, other) if way == 0 else Vector2i(other, mine)
 						var out := door.outward if way == 0 else -door.outward
 						var wide := 2.0 * minf(offs[way] - low, high - offs[way])
 						found.append(WalkGraph.Portal.new(ends, at, at, out, wide, NONE))
@@ -116,7 +121,7 @@ func _gives_onto(graph: WalkGraph, room: int, door: ShipRoom.Door) -> int:
 		var off := WayThrough.STRIDE * ceili(index * 0.5) * (1.0 if index % 2 == 1 else -1.0)
 		var other := _onto(graph, door, off, floor_height)
 		if other != NONE and other != ON_A_RAMP:
-			return NONE if other == room else other
+			return NONE if graph.room_of(other) == room else other
 	return NONE
 
 
@@ -141,7 +146,7 @@ func _lanes(graph: WalkGraph, room: int, door: ShipRoom.Door) -> PackedFloat64Ar
 		if index < onto.size() and onto[index] == onto[first]:
 			continue
 		var zone := onto[first]
-		if zone != room and zone != ON_A_RAMP and zone != NONE:
+		if zone != ON_A_RAMP and zone != NONE and graph.room_of(zone) != room:
 			var low := -half if first == 0 else (first - steps) * WayThrough.STRIDE - gap
 			var last := index - 1
 			var high := half if index == onto.size() else (last - steps) * WayThrough.STRIDE + gap

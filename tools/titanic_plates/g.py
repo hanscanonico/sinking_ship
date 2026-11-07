@@ -561,7 +561,11 @@ NUDGES = [
     (2, -3.125, -3.375, 99.6, 103.3),  # the leading firemen's door
     (2, -2.25, -1.875, 103.4, 108.4),  # the leading firemen's two parts' join, her side taking it
     (2, 7.5625, 5.75, 86.3, 91.3),  # the eight-berth room along her side, which hers would leave none
-    (0, -43.0625, -43.5625, -10.6, -8.6),  # the engine oil tanks, no gaps a body can't take
+    # The engine oil tanks, no gaps a body can't take: the first one's after face forward,
+    # so the passage between the brine tank room and the paint store opens onto the passage
+    # along the casing a door's metre wide, where the plate leaves 0.5 m (#501); closed, the
+    # stores forward were reached by no way at all.
+    (0, -43.0625, -42.5, -10.6, -8.6),
     (0, -38.625, -38.0, -10.6, -8.6),
     (2, 8.0625, 7.9375, -93.2, -91.0),  # the four-berth room's, off its passage's end
     (2, 5.9375, 5.75, 92.5, 95.1),  # the six-berth room's, F deck's ladder's foot beside it
