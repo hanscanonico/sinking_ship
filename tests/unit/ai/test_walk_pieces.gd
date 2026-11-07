@@ -84,8 +84,9 @@ func _assert_held_whole(layout: ShipLayout, one: Vector3, other: Vector3) -> voi
 ## Every piece of a room on the Titanic and on her sisters is one a route from her main deck
 ## reaches: her layout leaves no pocket to put back into its room (#531).
 func test_no_piece_of_the_titanic_or_her_sisters_is_put_back() -> void:
-	for path: String in [TITANIC, BRITANNIC, OLYMPIC]:
-		var layout: ShipLayout = load(path)
+	var ships: Array[ShipLayout] = [load(TITANIC), load(BRITANNIC), load(OLYMPIC)]
+	for layout: ShipLayout in ships:
+		var path := layout.resource_path
 		var graph := WalkGraph.new(layout, Surfaces.new(layout), _rules)
 		var pieces := 0
 		for zone in graph.zone_count():
@@ -95,7 +96,10 @@ func test_no_piece_of_the_titanic_or_her_sisters_is_put_back() -> void:
 			pieces += 1
 			assert_true(
 				_reached(graph, layout, zone),
-				"%s: a piece of %s at %s" % [path.get_file(), layout.rooms[room].name, layout.rooms[room].area]
+				(
+					"%s: a piece of %s at %s"
+					% [path.get_file(), layout.rooms[room].name, layout.rooms[room].area]
+				)
 			)
 		assert_gt(pieces, 0, "%s read in pieces" % path.get_file())
 
