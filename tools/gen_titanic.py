@@ -2151,13 +2151,15 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
             for j, (p, q) in enumerate(zip(cuts, cuts[1:])):
                 box("%s_%s" % (sid, side) + ("_u%d" % j if len(cuts) > 2 else ""), p, q, sz0, sz1,
                     level((p + q) * 0.5), over((p + q) * 0.5))
-        # And a side across it at each break or line her cells part the room along, where the
-        # room it stands in is two (No. 4 hatch on D deck, over bulkhead N's step; the third-
-        # class women's W.C.s on D deck, over P's line): its floor inside is no one's, but the
-        # two rooms' join ran on through it, a doorway a body reaches only inside it (#531).
-        for j, v in enumerate(v for v in sorted(set(breaks) | set(parted_at)) if x0 + 2 * T < v < x1 - 2 * T):
-            box("%s_across_%d" % (sid, j), v - h, v + h, z0 - h, z1 + h, min(level(v - 2 * T), level(v + 2 * T)),
-                min(over(v - 2 * T), over(v + 2 * T)))
+        # And a side across it where her floor steps at a break under it, the room it stands in
+        # two (No. 4 hatch's trunks on D deck, over bulkhead N's step): its floor inside is no
+        # one's, but the two rooms' join ran on through it, a doorway a body reaches only
+        # inside the shaft (#531). Its face on the line and its thickness forward of it, so the
+        # sliver of the room aft of it inside the shaft keeps a body's width clear.
+        for j, v in enumerate(v for v in sorted(breaks) if x0 + 2 * T < v < x1 - 2 * T
+                              and abs(level(v - 2 * T) - level(v + 2 * T)) > 1e-6):
+            box("%s_across_%d" % (sid, j), v - h / 4, v + 7 * h / 4, z0 - h, z1 + h,
+                min(level(v - 2 * T), level(v + 2 * T)), min(over(v - 2 * T), over(v + 2 * T)))
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.raised):
         box("%s_raised_%d" % (prefix, k), x0, x1, z0, z1, floor, floor + top - 2 * T)
 
@@ -3869,7 +3871,9 @@ x0, x1 = COMP["forepeak"]
 cell("forepeak_tank", x0, x1, KEEL, ORLOP_FWD, -HALF, HALF, "VOID")
 cell("forepeak", x0, x1, ORLOP_FWD, d_at(x0 + 0.01), -HALF, HALF, "STORES")
 cell("forepeak_d", x0, x1, d_at(x0 + 0.01), c_at(x0 + 0.01), -HALF, HALF, "ACCOMMODATION")
-PASSAGE_FWD_X, PASSAGE_FWD_Z = next((r[1], (r[3], r[4])) for r in TT_PLAN.rooms if r[0] == "firemen's passage, forward end")
+# (The passage's forward end is a solid since #531, no body reaching its floor: its cell stays.)
+PASSAGE_FWD_X, PASSAGE_FWD_Z = next((r[1], (r[3], r[4])) for r in TT_PLAN.solids
+                                    if r[0] == "firemen's passage" and r[1] > BX["C"])
 x0, x1 = COMP["hold_1"]
 cell("hold_1", x0, x1, TANK_TOP, G_DECK, -HALF, HALF, "CARGO", HOLD)
 cell("hold_1_tween", UPPER["B"], x1, G_DECK, d_at(x1 - 0.01), -HALF, HALF, "ACCOMMODATION")

@@ -853,8 +853,9 @@ STAIR_MOVES = [
     # The port one rising to starboard, run on over its head into the passage: rising to
     # port, its head stood against the side of C deck's crew's stair run on down over the
     # passage's port end (c.py), no floor off it on this deck (#531, row 21); its foot on E
-    # deck in the store aft of the firemen's wash place (e.py).
-    (("firemen's spiral staircase", 100.375, -2.5), (100.25, 101.375, -4.0, -0.8125, "starboard")),
+    # deck in the store aft of the firemen's wash place (e.py), 1/16 m in from its port wall so
+# a body's lead clears it.
+    (("firemen's spiral staircase", 100.375, -2.5), (100.25, 101.375, -3.9375, -0.75, "starboard")),
     (("firemen's spiral staircase", 100.375, 0.5), (102.5, 103.5, 0.5625, 3.75, "starboard")),
 ]
 # The W.C.s forward of the third-class lavatories aft of O, whose faces those rooms only

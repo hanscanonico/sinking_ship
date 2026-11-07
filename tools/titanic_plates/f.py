@@ -1084,6 +1084,9 @@ NUDGES = [
     # again, the wall stands clear of the hole, and the passage's door into the ladderway
     # moves with it (#531).
     (0, 92.5625, 92.25, 4.25, 7.25),
+    # And the passage's leg forward of it 3/16 m wider aft, into the eight-berth room, so its
+    # join with the passage keeps a doorway's metre past that line (#531).
+    (0, 91.375, 91.1875, 7.3, 8.6),
     (0, -21.375, -21.875, -8.875, -6.0),  # the stewards' wall at the head of E's ladder, not under its treads
     # The cross passages and vestibule the plate draws over where P's line stands (it draws
     # no P here), aft of it, so no way through parts in two under a door's width.
