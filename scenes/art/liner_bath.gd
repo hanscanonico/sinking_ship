@@ -73,6 +73,9 @@ const LANTERN := 0.2
 const LANTERN_DROP := 0.1
 const LANTERN_MODEL := "bath_lantern"
 const LANTERN_BOX := AABB(Vector3(-0.185, -0.62, -0.185), Vector3(0.37, 0.62, 0.37))
+## How far round a piece a stair keeps it off: a body's reach from the stair's edge, as
+## a body climbing it rises past HEADROOM.
+const BESIDE := 0.5
 
 ## The colours of the baths: white glazed tile on the walls, pale tile underfoot, the
 ## blue course; the water; the Turkish bath's deep blue and green tile, and bronze.
@@ -274,9 +277,19 @@ func _niche(mesh: ShipMesh, wall: RoomDressing.Wall, along: float) -> void:
 
 ## A Moorish brass lantern round the pendant hung from [param hang] in [param room]
 ## (LANTERN_MODEL): a pierced band round its globe on four ribs from a canopy under
-## the ceiling, and a drop under it — none where it would hang under HEADROOM.
+## the ceiling, and a drop under it — none where it would hang under HEADROOM, nor
+## within BESIDE of a stair, where a body climbing it meets it (#514: the Turkish bath
+## lobby's, by its stair up to E deck).
 func _lantern(mesh: ShipMesh, room: ShipRoom, hang: Vector3) -> void:
 	if hang.y + LANTERN_BOX.position.y < room.floor_height + HEADROOM + ShipMesh.SLIVER:
+		return
+	var box := Rect2(
+		hang.x + LANTERN_BOX.position.x,
+		hang.z + LANTERN_BOX.position.z,
+		LANTERN_BOX.size.x,
+		LANTERN_BOX.size.z
+	)
+	if RoomDressing.over_a_ramp(_space.layout, box.grow(BESIDE), room.floor_height - 0.01, hang.y):
 		return
 	mesh.model(ShipModel.named(LANTERN_MODEL), Transform3D(Basis.IDENTITY, hang))
 
