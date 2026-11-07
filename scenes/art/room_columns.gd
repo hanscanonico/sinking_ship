@@ -76,7 +76,12 @@ static func _open(structure: ShipStructure, layout: ShipLayout, masked: Array[AA
 		for at in rooms.size():
 			var room := rooms[at]
 			var area := room.area.grow(-CellBoxes.INSET)
-			if room.floor_height >= cell.high.y or not area.intersects(footprint):
+			# A room no wider or deeper than twice INSET holds none: a sliver a piece's
+			# layout keeps where a cut runs through a room (#538), grown in to less than
+			# nothing.
+			if not area.has_area() or room.floor_height >= cell.high.y:
+				continue
+			if not area.intersects(footprint):
 				continue
 			# The most of the room the cell may hold, from its floor to the cell's top: most
 			# often in one of its boxes whole, whatever roofs the room.
