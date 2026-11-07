@@ -9,16 +9,15 @@ extends GutTest
 
 ## gen_titanic.py's SHAPE_WHOLE.
 const SHAPE_WHOLE := 0.9999
-const SHIPS: Array[String] = [
-	"res://data/ships/titanic.tres",
-	"res://tests/fixtures/ships/titanic_olympic_1913.tres",
-	"res://tests/fixtures/ships/titanic_britannic.tres",
-]
+const TITANIC := "res://data/ships/titanic.tres"
+const OLYMPIC := "res://tests/fixtures/ships/titanic_olympic_1913.tres"
+const BRITANNIC := "res://tests/fixtures/ships/titanic_britannic.tres"
 
 
 func test_no_cell_of_hers_is_a_hair_under_whole() -> void:
-	for path: String in SHIPS:
-		var layout: ShipLayout = load(path)
+	var ships := {TITANIC: load(TITANIC), OLYMPIC: load(OLYMPIC), BRITANNIC: load(BRITANNIC)}
+	for path: String in ships:
+		var layout: ShipLayout = ships[path]
 		var near := []
 		for cell: FloodCell in layout.structure.cells:
 			if cell.shape >= SHAPE_WHOLE and cell.shape < 1.0:
@@ -28,7 +27,7 @@ func test_no_cell_of_hers_is_a_hair_under_whole() -> void:
 
 ## Her deck chair store's box her sections fill but for the fourth decimal: whole.
 func test_her_deck_chair_store_is_whole() -> void:
-	var layout: ShipLayout = load(SHIPS[0])
+	var layout: ShipLayout = load(TITANIC)
 	var found := false
 	for cell: FloodCell in layout.structure.cells:
 		if cell.name == &"deck_chair_store":
