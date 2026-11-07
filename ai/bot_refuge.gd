@@ -88,7 +88,7 @@ func wade_out(
 		return none
 	var trapped := (
 		refuge != WalkGraph.NONE
-		and _graph.is_room(refuge)
+		and _graph.room_of(refuge) != WalkGraph.NONE
 		and _graph.lowest_above_water(refuge, pose) < _clear_by
 	)
 	if not trapped and not (wading and goal != zone):

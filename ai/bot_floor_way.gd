@@ -9,8 +9,9 @@ extends RefCounted
 ## that walk on a floor, or the leg's own stair, clear of all that holds a body back — the
 ## bot walks straight there; else round by the floor: the shortest way to the portal, or the
 ## target, over a grid of CELL squares, each one a body could stand on, never a stair but its
-## own — through whatever zones the floor runs through — then along that way as far as it
-## could walk straight. It looks once a think, the bot's own think_period, and walks at what
+## own — through whatever zones the floor runs through, and over squares FINER of CELL
+## across where none is found over CELL's — then along that way as far as it could walk
+## straight. It looks once a think, the bot's own think_period, and walks at what
 ## it found in between. Asked of the Surfaces of the frame it stands in; nothing here rolls
 ## the bot's stream. The search runs in the game's extension where it is loaded, square for
 ## square (NativeSurfaces.floor_way, #410): its GDScript is the web's, and the twin the
@@ -24,6 +25,14 @@ const LOOK := 2.0
 const MARGIN := 6.0
 ## The most squares a search for a way round settles before it gives up.
 const MOST := 4096
+## The side of a square, as a part of CELL, a way round none was found for over CELL's
+## squares is looked for again over, as far round: a doorway the #360 rule's 0.9 m clear
+## leaves a body's middle a lane narrower than CELL, which no square's middle need fall in.
+const FINER := 0.5
+## How near its end a way none was found to over CELL's squares must be for it to look
+## again over FINER's: a doorway's clear width is what keeps a near end from a body, and a
+## search over a far one's floor finer still settles too many squares to find it.
+const NARROW := MARGIN
 ## How near the way round it found the bot keeps to it: further off, it looks again — and how
 ## far its target may move off the end of a way round to it before that way is for where the
 ## target stood.
@@ -58,8 +67,10 @@ var _aim := Vector3.INF
 var _way := PackedVector3Array()
 var _way_leg: WalkGraph.Portal = null
 var _finds := FINDS
-## What the extension's search is handed of these and the rules (NativeSurfaces.floor_way).
+## What the extension's search is handed of these and the rules (NativeSurfaces.floor_way):
+## over CELL's squares, and over FINER's.
 var _native_rules: PackedFloat64Array
+var _native_fine: PackedFloat64Array
 ## How many squares its last search in GDScript settled (test_floor_way_native).
 var _settled := 0
 
@@ -73,6 +84,9 @@ func _init(walk_graph: WalkGraph, rules: BrawlRules, think_period: int) -> void:
 	_native_rules = PackedFloat64Array(
 		[CELL, MARGIN, MOST, _snug, rules.step_height, rules.body_height, rules.crawl_height]
 	)
+	_native_fine = _native_rules.duplicate()
+	_native_fine[0] = CELL * FINER
+	_native_fine[2] = MOST / (FINER * FINER)
 
 
 ## Where a body at [param from] on [param surface] walks to go on along [param leg] toward
@@ -120,7 +134,10 @@ func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> V
 		_way.clear()
 		if _finds == 0 or _walks(from, to, keep, LOOK):
 			return Vector3.INF
-		_way = _find(from, to if leg == null else leg.entry, keep)
+		var end := to if leg == null else leg.entry
+		_way = _find(from, end, keep)
+		if _way.is_empty() and _flat(from, end) <= NARROW:
+			_way = _find(from, end, keep, true)
 		var ends := _way.is_empty() and _stands(from, surface, keep, _snug)
 		_finds = 0 if ends else _finds - 1
 		if _way.is_empty():
@@ -191,19 +208,24 @@ func _stands(point: Vector3, surface: int, keep: PackedInt32Array, radius: float
 ## body could stand on with its feet at [param from]'s height (_stands, [param keep]), eight
 ## ways — never across a corner — as points from the middle of its first square on to
 ## [param end]; empty when the search settles MOST squares, or all it can reach, before it
-## comes within a square and a half of [param end].
-func _find(from: Vector3, end: Vector3, keep: PackedInt32Array) -> PackedVector3Array:
+## comes within a square and a half of [param end]. [param fine], over squares FINER of
+## CELL across, as many more of them as cover as much floor.
+func _find(
+	from: Vector3, end: Vector3, keep: PackedInt32Array, fine := false
+) -> PackedVector3Array:
 	var mirror := _surfaces.native
 	if mirror != null:
-		return mirror.floor_way(from, end, keep, _native_rules)
+		return mirror.floor_way(from, end, keep, _native_fine if fine else _native_rules)
+	var side := CELL * FINER if fine else CELL
+	var most := int(MOST / (FINER * FINER)) if fine else MOST
 	var start := Vector2(from.x, from.z)
 	var goal := Vector2(end.x, end.z)
 	var box := Rect2(start, Vector2.ZERO).expand(goal).grow(MARGIN)
-	var origin := (box.position / CELL).floor() * CELL
-	var width := ceili((box.end.x - origin.x) / CELL)
-	var height := ceili((box.end.y - origin.y) / CELL)
+	var origin := (box.position / side).floor() * side
+	var width := ceili((box.end.x - origin.x) / side)
+	var height := ceili((box.end.y - origin.y) / side)
 	var cells := width * height
-	var first := _cell(start, origin, width)
+	var first := _cell(start, origin, width, side)
 	# Per square: 0 not yet asked, 1 a body stands there, 2 it does not; the cost to it, the
 	# square it was reached from, and whether it is settled.
 	var stands := PackedByteArray()
@@ -222,13 +244,13 @@ func _find(from: Vector3, end: Vector3, keep: PackedInt32Array) -> PackedVector3
 	open.push(start.distance_to(goal), first)
 	var settled := 0
 	var reached := -1
-	while not open.is_empty() and settled < MOST:
+	while not open.is_empty() and settled < most:
 		var cell := open.pop()
 		if done[cell] == 1:
 			continue
 		done[cell] = 1
 		settled += 1
-		if _middle(cell, origin, width).distance_to(goal) <= CELL * 1.5:
+		if _middle(cell, origin, width, side).distance_to(goal) <= side * 1.5:
 			reached = cell
 			break
 		var x := cell % width
@@ -240,23 +262,23 @@ func _find(from: Vector3, end: Vector3, keep: PackedInt32Array) -> PackedVector3
 				if dx == 0 and dz == 0 or nx < 0 or nz < 0 or nx >= width or nz >= height:
 					continue
 				var next := nz * width + nx
-				if done[next] == 1 or not _square(next, origin, width, from.y, stands, keep):
+				if done[next] == 1 or not _square(next, origin, width, side, from.y, stands, keep):
 					continue
 				# Never across a corner: both squares it passes between stand too.
 				if (
 					dx != 0
 					and dz != 0
 					and not (
-						_square(z * width + nx, origin, width, from.y, stands, keep)
-						and _square(nz * width + x, origin, width, from.y, stands, keep)
+						_square(z * width + nx, origin, width, side, from.y, stands, keep)
+						and _square(nz * width + x, origin, width, side, from.y, stands, keep)
 					)
 				):
 					continue
-				var through := cost[cell] + CELL * Vector2(dx, dz).length()
+				var through := cost[cell] + side * Vector2(dx, dz).length()
 				if through < cost[next]:
 					cost[next] = through
 					came[next] = cell
-					open.push(through + _middle(next, origin, width).distance_to(goal), next)
+					open.push(through + _middle(next, origin, width, side).distance_to(goal), next)
 	_settled = settled
 	var way := PackedVector3Array()
 	if reached == -1:
@@ -264,7 +286,7 @@ func _find(from: Vector3, end: Vector3, keep: PackedInt32Array) -> PackedVector3
 	way.append(end)
 	var back := reached
 	while back != -1:
-		var middle := _middle(back, origin, width)
+		var middle := _middle(back, origin, width, side)
 		way.append(Vector3(middle.x, from.y, middle.y))
 		back = came[back]
 	way.reverse()
@@ -272,18 +294,19 @@ func _find(from: Vector3, end: Vector3, keep: PackedInt32Array) -> PackedVector3
 
 
 ## Whether a body could stand on square [param cell] of the grid from [param origin],
-## [param width] squares wide, with its feet at [param feet] (_stands): asked once, then
-## read from [param stands].
+## [param width] squares wide, each [param side] across, with its feet at [param feet]
+## (_stands): asked once, then read from [param stands].
 func _square(
 	cell: int,
 	origin: Vector2,
 	width: int,
+	side: float,
 	feet: float,
 	stands: PackedByteArray,
 	keep: PackedInt32Array
 ) -> bool:
 	if stands[cell] == 0:
-		var middle := _middle(cell, origin, width)
+		var middle := _middle(cell, origin, width, side)
 		var point := Vector3(middle.x, feet, middle.y)
 		var surface := _surfaces.under(point, _rules.step_height)
 		stands[cell] = 1 if _stands(point, surface, keep, _snug) else 2
@@ -294,11 +317,11 @@ static func _flat(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
 
 
-static func _cell(point: Vector2, origin: Vector2, width: int) -> int:
-	var at := ((point - origin) / CELL).floor()
+static func _cell(point: Vector2, origin: Vector2, width: int, side: float) -> int:
+	var at := ((point - origin) / side).floor()
 	return int(at.y) * width + int(at.x)
 
 
-static func _middle(cell: int, origin: Vector2, width: int) -> Vector2:
+static func _middle(cell: int, origin: Vector2, width: int, side: float) -> Vector2:
 	var at := Vector2(cell % width, floori(float(cell) / width))
-	return origin + (at + Vector2(0.5, 0.5)) * CELL
+	return origin + (at + Vector2(0.5, 0.5)) * side

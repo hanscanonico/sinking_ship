@@ -408,7 +408,11 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
 	_bonus_score = _bonuses.choose(seen, me, found, _walk_graph, pose)
 	# Going for a bonus, it reads its floor as it read its way: by the water in her now.
-	var low := floor_height if _bonuses.spot == -1 else _bonuses.floor_held(my_zone, my_pos, pose)
+	var low := (
+		floor_height
+		if _bonuses.spot == -1
+		else _bonuses.floor_held(_walk_graph.room_of(my_zone), my_pos, pose)
+	)
 	var mark := view.entry(target)
 	# It climbs until it stands where it was making for — off its feet, it stands
 	# nowhere — or, the ship not yet foundering, on a floor a body's height out of the
