@@ -6,7 +6,8 @@ extends GutTest
 ## door's mouth, so every passage opens both ways onto the rooms at its ends.
 
 const TITANIC := "res://data/ships/titanic.tres"
-const D_DECK := -3.1875
+## D deck aft of bulkhead N, stepped up to her sheer there (D_SHEER_AFT).
+const D_DECK_AFT := -2.9375
 const E_DECK := -5.9375
 const F_DECK := -8.5625
 const G_DECK := -11.0
@@ -18,7 +19,7 @@ const E_FLIGHT := Vector2(-91.5, 2.1)
 const F_FLIGHT := Vector2(-91.0, -1.8)
 ## On D deck in the after second-class entrance, aft of the stairway's well, and on G deck
 ## in its entrance.
-const ON_D_DECK := Vector3(-94.0, D_DECK, 0.15625)
+const ON_D_DECK := Vector3(-94.0, D_DECK_AFT, 0.15625)
 const ON_G_DECK := Vector3(-89.0, G_DECK, -1.0)
 ## How far off a flight's end a body stands on the deck there.
 const OFF_THE_END := 0.45
