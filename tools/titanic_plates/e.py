@@ -1359,11 +1359,12 @@ STAIR_MOVES = [
     # it this one had 0.74 m over it (#514). The ladderway's port side a lane past both, the
     # four-berth room's and the men's lavatory's way in.
     (("third-class ladder", 78.25, -6.25), (78.25, 81.375, -6.5625, -5.5625)),
-    # The main third-class stairway's flight down to F deck 0.69 m forward of the plate's,
+    # The main third-class stairway's flight down to F deck 1.06 m forward of the plate's,
     # its head forward of the mouth of F deck's passage to the third-class rooms aft of O,
-    # which it stood in the way of; and the ladder down by N 0.44 m aft, its head aft of the
-    # mouth of F deck's passage aft of N (#514).
-    (("third-class stairway", -114.625, 0.5625), (-113.9375, -110.8125, 0.5625, 2.875)),
+    # which it stood in the way of, its foot at the cross passage forward of the entrance it
+    # comes down into; and the ladder down by N 0.44 m aft, its head aft of the mouth of F
+    # deck's passage aft of N (#514).
+    (("third-class stairway", -114.625, 0.5625), (-113.5625, -110.4375, 0.5625, 2.875)),
     (("ladder", -91.8125, -6.0), (-92.25, -89.0625, -6.0, -4.625)),
     # A body's lead clear of the wall before each end (the layout lint):
     (("ladder", -69.3125, -10.6875), (-70.0625, -66.875, -10.6875, -9.75)),
