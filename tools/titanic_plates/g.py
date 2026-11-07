@@ -565,6 +565,9 @@ NUDGES = [
     (0, -38.625, -38.0, -10.6, -8.6),
     (2, 8.0625, 7.9375, -93.2, -91.0),  # the four-berth room's, off its passage's end
     (2, 5.9375, 5.75, 92.5, 95.1),  # the six-berth room's, F deck's ladder's foot beside it
+    # The ice cream store's side 0.75 m to port, the passage by it widened for the stair down
+    # to the orlop's stores laid beside F deck's flight down to it (STAIR_MOVES):
+    (2, -10.0, -10.75, -71.3, -66.7),
 ]
 DOOR_MOVES = [
     ((-45.9375, -10.6875), (-47.75, -10.625)),  # the brine tank room's, clear of F deck's stair
@@ -586,6 +589,11 @@ OPENED = [(92.4275, 92.4475, 4.5625, 5.75), (75.3025, 75.3225, -7.625, -6.5), (9
 # The stub's join her side leaves no stub for (OPENED has its way):
 SHUT = [(91.84, 7.55)]
 STAIR_MOVES = [
+    # The stores' stair down to the orlop to port of F deck's flight down to this deck, which
+    # the plates draw over the same treads: under it, its head was F deck's flight's foot, a
+    # body walking down it taken onto that flight (#514). Under E deck's ladder down to F
+    # deck instead, 2.4 m over this deck:
+    (("stair", -69.75, -9.8125), (-69.75, -66.75, -10.6875, -9.875)),
     # Clear of the orlop's wall along it (her estimated orlop, #379):
     (("hold ladder", -113.5, 0.8125), (-113.5, -110.5, 0.625, 1.5625)),
     # Her spirals' feet in their trunk on the orlop, at the run her orlop's height there leaves

@@ -1,6 +1,6 @@
 extends GutTest
-## The walk graph's portals are only where a body could get through (WayThrough, #501). On
-## the Titanic a flight stacked under another in one well is no way, and a doorway onto a
+## The walk graph's portals are only where a body could get through (WayThrough, #501). A
+## flight stacked under another in one well is no way, and on the Titanic a doorway onto a
 ## stair hole's railing lets a body out, pushed on by the railing, and none in. A doorway
 ## opening onto a stair's high end lets none through either way: the layout's fault, it keeps
 ## its portal, so that no room is sealed off. Her other ships lose no portal.
@@ -8,14 +8,13 @@ extends GutTest
 const TITANIC := "res://data/ships/titanic.tres"
 const B_DECK := 2.75
 const E_DECK := -5.9375
-const F_DECK := -8.5625
-const G_DECK := -11.0
-## Between bulkheads L and K, inside the engineers' stair box: E deck's ladder down to F
-## stands over F deck's stair down to G there, both the box's width.
-const IN_THE_STAIR_BOX := Vector2(-45.6, -9.78)
-## In the passage on F deck aft of K, by the box's door, and in the paint store on G deck.
-const BY_THE_BOX := Vector3(-43.8, F_DECK, -10.4)
-const IN_THE_PAINT_STORE := Vector3(-40.0, G_DECK, -12.5)
+## The stacked well's decks (_stacked_well), and its flights: one up from the hold to the
+## tween deck, one on up from it to the top deck, in one footprint; and another way down.
+const TWEEN := 2.5
+const TOP := 5.0
+const UNDER := 0
+const OVER_IT := 1
+const ANOTHER_WAY := 2
 ## The doorway from the second-class entrance on E deck into the passage aft of M, under
 ## the high end of the stair up to D deck; a point in the entrance forward of its lift, clear
 ## of its stairs.
@@ -25,6 +24,21 @@ const IN_THE_ENTRANCE := Vector3(-67.0, E_DECK, 0.0)
 ## hole of its stair down to C deck; and its doorway to starboard.
 const ONTO_THE_RAILED_HOLE := Vector3(-90.375, B_DECK, -2.875)
 const THE_WAY_TO_STARBOARD := Vector3(-90.375, B_DECK, 3.0)
+## E deck aft of bulkhead C, to port: the doorway between the passage aft of the ladder down
+## to F deck and the passage along it, which the ladder hole's railing once ran across, the
+## passage widened into its well; and off the port after ladderway's lane, the four-berth
+## room's doorway and the men's lavatory's, which D deck's ladder down, run on forward over
+## their landing, once stood in (#514).
+const AFT_OF_C: Array[Vector3] = [
+	Vector3(72.1875, E_DECK, -5.75),
+	Vector3(81.25, E_DECK, -7.75),
+	Vector3(82.25, E_DECK, -7.15625),
+]
+## In the passage by the cross passage's ladder down to F deck, the four-berth room and the
+## men's lavatory.
+const BY_THE_LADDER := Vector3(73.5, E_DECK, -4.4)
+const IN_THE_FOUR_BERTH_ROOM := Vector3(81.25, E_DECK, -9.6)
+const IN_THE_LAVATORY := Vector3(83.5, E_DECK, -8.8)
 
 var _layout: ShipLayout
 var _surfaces: Surfaces
@@ -40,14 +54,6 @@ func before_all() -> void:
 	_dry = HeldPose.flooded(_layout, -_layout.freeboard, {})
 
 
-func _ramp_over(point: Vector2, base: float) -> int:
-	for index in _layout.ramps.size():
-		var ramp := _layout.ramps[index]
-		if ramp.area.has_point(point) and is_equal_approx(ramp.base(), base):
-			return index
-	return WalkGraph.NONE
-
-
 func _zone(at: Vector3) -> int:
 	return _graph.zone_at(at, _surfaces.under(at, SimFixtures.rules().step_height))
 
@@ -60,24 +66,71 @@ func _doorways_at(at: Vector3) -> int:
 	return found
 
 
+## A hold, a tween deck over it and a landing over that — test data. Two flights stand in
+## one well of the tween deck, x -2…4: one up from the hold rising forward to the tween deck
+## (UNDER), one on up from the tween deck rising aft to the landing (OVER_IT), its wedge over
+## the first's, as the Titanic's engineers' stair box once stacked E deck's ladder down to F
+## over F deck's stair on down to G (#514). Aft of the well, x -10…-4, another flight up from
+## the hold rises aft to the tween deck (ANOTHER_WAY).
+func _stacked_well() -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 6.0
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [
+		[&"hold", Rect2(-12.0, -4.0, 24.0, 8.0), 0.0],
+		[&"tween deck aft", Rect2(-12.0, -4.0, 2.0, 8.0), TWEEN],
+		[&"tween deck forward", Rect2(4.0, -4.0, 8.0, 8.0), TWEEN],
+		[&"tween deck to port", Rect2(-10.0, -4.0, 14.0, 3.0), TWEEN],
+		[&"tween deck to starboard", Rect2(-10.0, 1.0, 14.0, 3.0), TWEEN],
+		[&"tween deck between", Rect2(-4.0, -1.0, 2.0, 2.0), TWEEN],
+		[&"landing", Rect2(-4.0, -1.0, 2.0, 2.0), TOP],
+	]:
+		var platform := ShipPlatform.new()
+		platform.name = row[0]
+		platform.area = row[1]
+		platform.height = row[2]
+		platforms.append(platform)
+	layout.platforms = platforms
+	var ramps: Array[ShipRamp] = []
+	for row: Array in [
+		[Rect2(-2.0, -1.0, 6.0, 2.0), 0.0, TWEEN],
+		[Rect2(-2.0, -1.0, 6.0, 2.0), TOP, TWEEN],
+		[Rect2(-10.0, -1.0, 6.0, 2.0), TWEEN, 0.0],
+	]:
+		var ramp := ShipRamp.new()
+		ramp.area = row[0]
+		ramp.axis = ShipRamp.Axis.X
+		ramp.start_height = row[1]
+		ramp.end_height = row[2]
+		ramps.append(ramp)
+	layout.ramps = ramps
+	return layout
+
+
 func test_a_flight_stacked_under_another_in_one_well_is_no_way() -> void:
-	var under := _ramp_over(IN_THE_STAIR_BOX, G_DECK)
-	var over := _ramp_over(IN_THE_STAIR_BOX, F_DECK)
-	assert_ne(under, WalkGraph.NONE, "F deck's stair down to G stands in the box")
-	assert_ne(over, WalkGraph.NONE, "E deck's ladder down to F stands over it")
+	var layout := _stacked_well()
+	var surfaces := Surfaces.new(layout)
 	var rules := SimFixtures.rules()
-	assert_false(WayThrough.flight(_surfaces, rules, _layout, under), "the stair is no way")
-	assert_true(WayThrough.flight(_surfaces, rules, _layout, over), "the ladder over it is")
+	assert_false(WayThrough.flight(surfaces, rules, layout, UNDER), "the flight under is no way")
+	assert_true(WayThrough.flight(surfaces, rules, layout, OVER_IT), "the flight over it is")
+	assert_true(WayThrough.flight(surfaces, rules, layout, ANOTHER_WAY), "nor is the other one")
+	var graph := WalkGraph.new(layout, surfaces, rules)
 	var along := {}
-	for portal: WalkGraph.Portal in _graph.portals():
+	for portal: WalkGraph.Portal in graph.portals():
 		along[portal.ramp] = true
-	assert_false(along.has(under), "no portal runs along the stair under the ladder")
-	assert_true(along.has(over), "the ladder over it is still a way")
-	var on := _surfaces.under(BY_THE_BOX, rules.step_height)
-	var legs := _graph.route(BY_THE_BOX, on, _zone(IN_THE_PAINT_STORE), _dry)
-	assert_false(legs.is_empty(), "the paint store is reached another way")
+	assert_false(along.has(UNDER), "no portal runs along the flight under the other")
+	assert_true(along.has(OVER_IT), "the flight over it is still a way")
+	var start := Vector3(8.0, TWEEN, 0.0)
+	var on := surfaces.under(start, rules.step_height)
+	var hold := Vector3(0.0, 0.0, -3.0)
+	var goal := graph.zone_at(hold, surfaces.under(hold, rules.step_height))
+	var sink := SinkSchedule.new(
+		SimFixtures.calm(), layout.freeboard, SeedStreams.derive(1, "sink")
+	)
+	var legs := graph.route(start, on, goal, sink.pose_at(0))
+	assert_false(legs.is_empty(), "the hold is reached another way")
 	for leg: WalkGraph.Portal in legs:
-		assert_ne(leg.ramp, under, "and never down the stair under the ladder")
+		assert_ne(leg.ramp, UNDER, "and never down the flight under the other")
 
 
 ## The doorway of hers whose middle stands at [param at], or null.
@@ -104,6 +157,51 @@ func test_a_doorway_no_body_gets_through_keeps_its_portal_at_its_middle() -> voi
 	var from := _surfaces.under(IN_THE_ENTRANCE, rules.step_height)
 	var passage := _zone(UNDER_THE_STAIR_HEAD + Vector3(0.0, 0.0, -0.8))
 	assert_false(_graph.route(IN_THE_ENTRANCE, from, passage, _dry).is_empty(), "a way in")
+
+
+func test_e_deck_s_doorways_aft_of_c_let_a_body_through_both_ways() -> void:
+	var rules := SimFixtures.rules()
+	for at: Vector3 in AFT_OF_C:
+		var door := _door_at(at)
+		assert_not_null(door, "a doorway at %s" % at)
+		if door == null:
+			continue
+		for out: Vector2 in [door.outward, -door.outward]:
+			var off := WayThrough.doorway(_surfaces, rules, door, E_DECK, out)
+			assert_false(is_nan(off), "a body goes through the doorway at %s, %s" % [at, out])
+		assert_eq(_doorways_at(at), 2, "a portal through it either way")
+
+
+## Whether the body in [param sim]'s seat 0, steered along the graph's way to [param goal],
+## stands in it off any stair within [param seconds].
+func _walks(sim: MatchSim, goal: int, seconds: float) -> bool:
+	for _tick in Ticks.from_seconds(seconds):
+		var walker := sim.state.seats[0]
+		if (
+			_graph.zone_at(walker.pos, walker.surface) == goal
+			and not sim.surfaces.is_ramp(walker.surface)
+		):
+			return true
+		var toward := _graph.steer(walker.pos, walker.surface, goal, _dry)
+		var move := Vector2.ZERO
+		if not toward.is_empty():
+			move = Vector2(toward[0].x - walker.pos.x, toward[0].z - walker.pos.z).normalized()
+		SimFixtures.step(sim, {0: SimFixtures.frame(0, move)})
+	return false
+
+
+func test_a_body_at_rest_walks_into_e_deck_s_rooms_aft_of_c_and_back_out() -> void:
+	# Along the ladderway's lane, past E deck's ladder down to F and D deck's ladder down.
+	var sim := SimFixtures.sim(2, null, _layout)
+	SimFixtures.place(sim, 1, Vector3.ZERO)
+	HeldPose.hold(sim, _dry)
+	for walk: Array in [
+		[BY_THE_LADDER, IN_THE_FOUR_BERTH_ROOM],
+		[BY_THE_LADDER, IN_THE_LAVATORY],
+		[IN_THE_FOUR_BERTH_ROOM, BY_THE_LADDER],
+	]:
+		SimFixtures.place(sim, 0, walk[0])
+		assert_true(_walks(sim, _zone(walk[1]), 15.0), "from %s to %s" % walk)
 
 
 func test_a_doorway_onto_a_railed_stair_hole_lets_a_body_out_and_none_in() -> void:

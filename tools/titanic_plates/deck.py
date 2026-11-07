@@ -540,6 +540,7 @@ class Deck:
             if _passage(room[0]) or any(on_edge(x, z, room) for x, z in self.doors):
                 continue
             best = None
+            joined = False
             for axis, at, a, b in edges_of(room):
                 for way in ways:
                     for w_axis, w_at, w_a, w_b in edges_of(way):
@@ -548,13 +549,18 @@ class Deck:
                         # Of the edge they share, the stretches no solid's side stands on
                         # and no OPEN opens: an open edge is no wall for a door.
                         s0, s1 = max(a, w_a), min(b, w_b)
-                        gaps = self._covered(axis, at, s0, s1, solid_boxes) + [
-                            (max(o0, s0), min(o1, s1)) for o0, o1 in self._open_on(axis, at) if o1 > s0 and o0 < s1]
+                        opens = [(max(o0, s0), min(o1, s1)) for o0, o1 in self._open_on(axis, at) if o1 > s0 and o0 < s1]
+                        joined = joined or bool(opens)
+                        gaps = self._covered(axis, at, s0, s1, solid_boxes) + opens
                         for lo, hi in _minus(s0, s1, gaps):
                             if hi - lo > 0.9 and (best is None or hi - lo > best[0]):
                                 mid = (lo + hi) * 0.5
                                 best = (hi - lo, (at, mid) if axis == 0 else (mid, at))
-            if best is not None:
+            # A well its flights fill (NOT_ROOMS) that an OPEN joins to a passage: the join is
+            # its way in, and a door in another of its walls would open onto a flight's side
+            # (#514: F deck's engineers' stair box, open at its forward end).
+            well = any(room[1] < x < room[2] and room[3] < z < room[4] for x, z in self.not_rooms)
+            if best is not None and not (joined and well):
                 out.append(best[1])
         return out
 
