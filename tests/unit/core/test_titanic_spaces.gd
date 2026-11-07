@@ -123,12 +123,14 @@ func test_a_deep_gash_under_no_1_hold_s_narrowing_floor_opens_its_double_bottom(
 
 
 func test_a_bite_at_the_firemen_s_passage_s_forward_end_holes_it() -> void:
-	# Where the passage is widest and her bilge closes on it: a bite the night's depth.
+	# Where the passage is widest and her bilge closes on it: a bite the night's depth. No
+	# body's place: the straight flights the game lays for the spirals fill the passage aft
+	# of it, so no body walks there (tanktop.py, #531).
 	var deep := _mapped(_hit(1, 100.5, 101.5, 7.0, 1.5))
 	var passage := _into(deep, &"firemens_passage_fwd")
 	assert_not_null(passage, "a bite past the hold's forward part holes the passage")
 	if passage != null:
-		assert_true(_layout.opens_place(passage), "where the stokers walk")
+		assert_false(_layout.opens_place(passage), "where no body walks")
 
 
 func test_no_2_hold_s_starboard_part_is_a_place() -> void:

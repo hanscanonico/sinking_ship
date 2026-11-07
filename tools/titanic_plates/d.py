@@ -447,12 +447,15 @@ ROOMS = [
     # into the T.R.S., which the plate draws at the ladders' feet (c.py), so that lane opens
     # into it, and is no room — its floor is all under the ladder, the well it comes down
     # (#369's lay); the one down to E deck goes from the landing down the forward one.
-    ("passage, D deck", 9400, 3360.5, 9490, 3422),
+    # The landing's after lane is the T.R.S.'s, C deck's ladder's head over it: as the
+    # passage's, its join with the T.R.S. ran under the ladder, a doorway no body went
+    # through (#531).
+    ("passage, D deck", 9445, 3360.5, 9490, 3422),
     ("passage, D deck", 9445, 3422, 9490, 3528),
     ("third-class open space", 9400, 3587, 9431, 3861),
     # The T.R.S. round the after lane C deck's ladder comes down (c.py), its floor at the
     # ladder's foot, in two (est.: the lane alone, all under the ladder, is no room).
-    ("T.R.S.", 9400, 3422, 9445, 3587),
+    ("T.R.S.", 9400, 3360.5, 9445, 3587),
     ("T.R.S.", 9445, 3528, 9490, 3587),
     # Abaft the firemen's quarters, the landing at the heads of the two spiral staircases
     # down to their tunnel (BOT: "On each side of the middle line immediately abaft the
@@ -740,8 +743,8 @@ OPEN = [
     (8212.5, 3655.5, 8224.5, 3694), (8224.5, 3694, 8293, 3706),
     # The open space's steps, its strips forward, and the bay's mouth.
     (8741.5, 3028, 8753.5, 3937.5), (8981, 3051, 8993, 3910.5), (9177.5, 3078, 9189.5, 3881),
-    (9394, 3103, 9406, 3354.5), (9394, 3366.5, 9406, 3415), (9394, 3593, 9406, 3855),
-    (9406, 3354.5, 9435, 3366.5), (9406, 3416, 9439, 3428), (9451, 3416, 9484, 3428), (9439, 3534, 9451, 3581),
+    (9394, 3103, 9406, 3354.5), (9394, 3593, 9406, 3855),
+    (9406, 3354.5, 9435, 3366.5), (9439, 3366.5, 9451, 3416), (9451, 3416, 9484, 3428), (9439, 3534, 9451, 3581),
     # The wash place's and the W.C.s' pieces.
     (9447, 3275.5, 9484, 3287.5), (9512, 3125, 9524, 3275.5),
     (9514, 3689, 9526, 3831.5), (9437, 3677, 9484, 3689),
@@ -847,7 +850,12 @@ STAIR_MOVES = [
     (("third-class ladder", 78.0625, 5.0625), (78.0625, 81.3125, 5.0625, 7.6875)),
     # The firemen's spirals as straight flights athwart her, either side of E deck's flight
     # on down (e.py): the passage is too short along her for a flight and a lead each end.
-    (("firemen's spiral staircase", 100.375, -2.5), (100.25, 101.375, -4.0, -0.8125, "port")),
+    # The port one rising to starboard, run on over its head into the passage: rising to
+    # port, its head stood against the side of C deck's crew's stair run on down over the
+    # passage's port end (c.py), no floor off it on this deck (#531, row 21); its foot on E
+    # deck in the store aft of the firemen's wash place (e.py), 1/16 m in from its port wall so
+# a body's lead clears it.
+    (("firemen's spiral staircase", 100.375, -2.5), (100.25, 101.375, -3.9375, -0.75, "starboard")),
     (("firemen's spiral staircase", 100.375, 0.5), (102.5, 103.5, 0.5625, 3.75, "starboard")),
 ]
 # The W.C.s forward of the third-class lavatories aft of O, whose faces those rooms only
