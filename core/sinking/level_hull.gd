@@ -14,8 +14,17 @@ var _areas := PackedFloat64Array()
 var _growth := PackedFloat64Array()
 var _volumes := PackedFloat64Array()
 
+## For tests and probes: every LevelHull made while this is set is built in GDScript, as
+## where the game's extension is not loaded (test_hull_native).
+static var native_off := false
+
 
 func _init(sections: Array[HullSection]) -> void:
+	# Every height of every section against every section: hundreds of sections where
+	# her hull is cut fine take the extension's (NativeLevelHull), the same bits.
+	if not native_off and ClassDB.class_exists(&"NativeLevelHull"):
+		_built(ClassDB.instantiate(&"NativeLevelHull"), sections)
+		return
 	var lines: Array[PackedFloat64Array] = []
 	for section: HullSection in sections:
 		lines.append(_breadth_lines(section))
@@ -48,6 +57,24 @@ func _init(sections: Array[HullSection]) -> void:
 		_growth.append(growth)
 		var rise := _heights[index + 1] - foot
 		_volumes.append(_volumes[index] + area * rise + growth * rise * rise * 0.5)
+
+
+## Built by [param native], a NativeLevelHull, from [param sections]: the count of
+## heights, then the heights, the stretches' areas and growths and the volumes.
+func _built(native: Object, sections: Array[HullSection]) -> void:
+	var points := PackedVector2Array()
+	var first := PackedInt32Array([0])
+	var lengths := PackedFloat64Array()
+	for section: HullSection in sections:
+		points.append_array(section.outline)
+		first.append(points.size())
+		lengths.append(section.length)
+	var made: PackedFloat64Array = native.build(points, first, lengths)
+	var count := int(made[0])
+	_heights = made.slice(1, 1 + count)
+	_areas = made.slice(1 + count, 2 * count)
+	_growth = made.slice(2 * count, 3 * count - 1)
+	_volumes = made.slice(3 * count - 1, 4 * count - 1)
 
 
 ## The volume under a level sea [param height] up her hull, in m³.

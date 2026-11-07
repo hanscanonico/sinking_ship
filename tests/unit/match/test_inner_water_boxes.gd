@@ -106,8 +106,8 @@ func test_a_cell_drawn_round_its_rooms_reaches_the_bulkheads_it_shares() -> void
 			assert_false(box.intersects(top), "its stack keeps off its top box at %s" % box)
 
 
-## A cell whose rooms end where a section of her shell ends is drawn in one box round
-## them: her sections' ends are rounded, and the one past that end is not over them for
+## A cell whose rooms end where a section of her shell ends is held to the sections over
+## them alone: her sections' ends are rounded, and the one past that end is not over them for
 ## the fraction of a millimetre its rounding has it reach in — the Titanic's D deck over
 ## her electric engine room, its rooms from bulkhead N to bulkhead M, where her sections
 ## end. Read as over them, the next section's shell would have it drawn room by room,
@@ -115,7 +115,7 @@ func test_a_cell_drawn_round_its_rooms_reaches_the_bulkheads_it_shares() -> void
 ## first, under B deck's tapered end; laid as her plate draws it, out to her shell, it
 ## is drawn room by room.) D deck's walls on a bulkhead's line stand on the 1/128 m grid
 ## her decks are cut on, within a millimetre of it.
-func test_rooms_ending_where_a_section_ends_are_drawn_in_one_box() -> void:
+func test_rooms_ending_where_a_section_ends_are_held_to_the_sections_over_them() -> void:
 	var layout := Fleet.layout(&"titanic")
 	var structure := layout.structure
 	var index := structure.cell_named(&"electric_room_d")
@@ -127,8 +127,20 @@ func test_rooms_ending_where_a_section_ends_are_drawn_in_one_box() -> void:
 	for section: HullSection in structure.sections:
 		ends = ends or absf(section.x + section.length * 0.5 - cell.low.x) < 1e-3
 	assert_true(ends, "where a section of her shell ends")
-	for stack: Array in CellBoxes.stacked(structure, layout.rooms):
-		assert_ne(stack[0], index, "it is drawn in one box, not room by room")
+	# Her shell over its rooms is the sections' standing over them, not the one past its
+	# end. (Her sections cut finer where she tapers, #318, the shell over its after end is
+	# narrower than its rooms are wide, and it is drawn room by room: rightly, as her lines
+	# narrow there.)
+	var round := CellBoxes._round_rooms(cell, layout.rooms)
+	var within := AABB(
+		round.position + Vector3(CellBoxes.SHELL_NEAR, 0.0, 0.0),
+		round.size - Vector3(CellBoxes.SHELL_NEAR * 2.0, 0.0, 0.0)
+	)
+	assert_eq(
+		CellBoxes._shell(structure, round, CellBoxes.SHELL_NEAR),
+		CellBoxes._shell(structure, within),
+		"her shell over it, not past its end"
+	)
 
 
 ## Each of a cell's boxes, on any ship of the fleet, stands inside the cell's own box:

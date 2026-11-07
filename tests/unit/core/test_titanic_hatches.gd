@@ -6,7 +6,8 @@ extends GutTest
 ## forecastle (c.py), no way from D deck's space into it. No. 1 trunked from G deck up to its
 ## cover (g.py, f.py, e.py draw its sides on each deck): a cell of its own, open down into its
 ## hold through G deck (orlop.py: "open down to the holds under them"), shut off from the
-## 'tween round it. None of the open hatchways her generator laid there is left.
+## 'tween round it. None of the open hatchways her generator laid there is left. And the
+## 'tweens her trunks part keep their ports: the Britannic's open where the 'tween's are.
 
 const SHIP := "res://data/ships/titanic.tres"
 const COVERS: Dictionary[StringName, Array] = {
@@ -24,6 +25,11 @@ const G_DECK := -11.0
 const HATCHWAYS: Array[StringName] = [
 	&"stair_hold_1_tween", &"stair_hold_2_tween", &"stair_hold_1_d", &"stair_hold_1"
 ]
+## The Britannic, and the mine that sank her with her lower decks' ports open.
+const BRITANNIC := "res://tests/fixtures/ships/titanic_britannic.tres"
+const PORTS_OPEN := "res://tests/fixtures/sinking/hits/titanic_britannic_mine_ports.tres"
+## A piece her trunks part a 'tween into, by the 'tween's name (gen_titanic.py's part_round).
+const PIECE := "_(port|starboard|aft|fore)_tween$"
 const LEAK_HEAD := 0.3
 const COLLAPSE_HEAD := 1.0
 const LEAK_AREA := 0.05
@@ -102,3 +108,22 @@ func test_each_forward_hatch_is_trunked_from_its_hold_up_to_its_cover() -> void:
 		for cover_name: StringName in COVERS:
 			if (COVERS[cover_name] as Array)[0] == trunk_name:
 				assert_has(covers, cover_name, "%s shut by %s" % [trunk_name, cover_name])
+
+
+func test_the_pieces_of_a_tween_round_a_trunk_open_their_ports_with_it() -> void:
+	var structure := (load(BRITANNIC) as ShipLayout).structure
+	var hit := load(PORTS_OPEN) as IcebergHit
+	var ports: Dictionary[StringName, StringName] = {}
+	for opening: ShipOpening in structure.openings:
+		if opening.kind == ShipOpening.Kind.PORTHOLE:
+			ports[opening.name] = opening.joins[0]
+	var piece := RegEx.create_from_string(PIECE)
+	var opened: Dictionary[String, bool] = {}
+	for port: StringName in hit.left_open:
+		assert_true(ports.has(port), "%s, one of the Britannic's ports" % port)
+		if ports.has(port):
+			opened[piece.sub(String(ports[port]), "_tween")] = true
+	for port: StringName in ports:
+		var tween := piece.sub(String(ports[port]), "_tween")
+		if opened.has(tween):
+			assert_has(hit.left_open, port, "%s, open with %s's other ports" % [port, tween])
