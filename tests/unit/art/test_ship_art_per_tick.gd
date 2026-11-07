@@ -114,3 +114,27 @@ func test_a_pose_that_turns_her_wakes_the_lamps_asleep() -> void:
 	art.show_power(turned)
 	for lamp: ShipLamp in lamps:
 		assert_true(lamp.awake(), "%s: woken as she turns" % lamp.name)
+
+
+## A pane's glass is shown broken as each new pose has it given way (BrokenGlass, #410):
+## only the panes a pose has failed are asked of, and one shown broken by the last pose
+## is whole again under a pose that has it whole — leaking only, or not failed at all.
+func test_a_pane_is_shown_broken_as_each_pose_has_it_given_way() -> void:
+	var art := _art()
+	var panes := art.find_children("Broken_*", "Node3D", true, false)
+	assert_gt(panes.size(), 1, "her glass can break")
+	var first := String(panes[0].name).trim_prefix("Broken_")
+	var gone := _pose(ShipPower.Power.MAIN)
+	gone.opened[StringName(first)] = 2
+	gone.opened[&"no_such_opening"] = 2
+	art.show_power(gone)
+	assert_true((panes[0] as Node3D).visible, "given way: broken")
+	for pane: Node3D in panes.slice(1):
+		assert_false(pane.visible, "%s: whole" % pane.name)
+	var leaking := _pose(ShipPower.Power.MAIN)
+	leaking.opened[StringName(first)] = 1
+	art.show_power(leaking)
+	assert_false((panes[0] as Node3D).visible, "a pose that has it leaking only: whole")
+	art.show_power(gone)
+	art.show_power(_pose(ShipPower.Power.MAIN))
+	assert_false((panes[0] as Node3D).visible, "a pose that has it whole: whole")
