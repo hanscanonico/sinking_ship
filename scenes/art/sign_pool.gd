@@ -5,8 +5,13 @@ extends Node3D
 ## every node in her tree moves as she does. Each sign keeps its own Label3D, out of the
 ## tree until the eye comes within READ of it, nearest first and MOST at once, and taken
 ## out again once it is further: past READ its letters stand under two pixels high, and its
-## enamel plate, drawn with her walls, stays.
+## enamel plate, drawn with her walls, stays. A stretch of a broken hull's art (ShipArt.span)
+## draws only the signs whose plates stand on its stretch, as its paints draw only the
+## plates there (PieceClip): each letter rides the piece its plate does.
 
+## Where a sign's plate stands, in its own space: a Vector3 meta its maker sets on the
+## letters (RoomDressing, VehicleDeck), which ride the stretch the plate's middle stands on.
+const PLATE := &"plate"
 ## How near the eye a sign's letters are drawn, in metres, and the most drawn at once.
 const READ := 24.0
 const MOST := 128
@@ -15,28 +20,52 @@ const MOST := 128
 const AGAIN := 1.0
 const CUBE := 8.0
 
-## Every sign it holds, where it stands, and the cubes they stand in: Vector3i ->
-## PackedInt32Array of their indices.
+## Every sign it holds, how far along her its plate stands, and the cubes those on its
+## stretch stand in: Vector3i -> PackedInt32Array of their indices.
 var _signs: Array[Label3D] = []
+var _plates := PackedFloat64Array()
 var _cubes := {}
+## The stretch along her, x from aft to fore, whose signs it draws (keep_to).
+var _span := Vector2(-INF, INF)
 ## The signs drawn now, by index, and the eye they were chosen for (INF before any).
 var _drawn := {}
 var _eye := Vector3.INF
 
 
-## Holds each of [param labels], taken out of the tree: drawn as the eye nears it.
+## A pool of every sign's letters under [param dressed] (take), put under it as Signs and
+## kept to [param span] (keep_to): what a packed art draws them by (ShipArt.pack).
+static func under(dressed: Node3D, span: Vector2) -> SignPool:
+	var labels: Array[Label3D] = []
+	for child: Node in dressed.get_children():
+		if child is Label3D:
+			labels.append(child)
+	var pool := SignPool.new()
+	pool.name = "Signs"
+	dressed.add_child(pool)
+	pool._span = span
+	pool.take(labels)
+	return pool
+
+
+## Holds each of [param labels], taken out of the tree: drawn as the eye nears it, if its
+## plate stands on the stretch it is kept to.
 func take(labels: Array[Label3D]) -> void:
 	for label: Label3D in labels:
 		if label.get_parent() != null:
 			label.get_parent().remove_child(label)
-		var index := _signs.size()
 		_signs.append(label)
-		if not label.visible:
-			continue
-		var cube := Vector3i((label.position / CUBE).floor())
-		var filed: PackedInt32Array = _cubes.get(cube, PackedInt32Array())
-		filed.append(index)
-		_cubes[cube] = filed
+		_plates.append((label.get_meta(PLATE, label.position) as Vector3).x)
+	_file()
+
+
+## Draws from now only the signs whose plates stand on [param span] along her, x from
+## aft to fore (PieceClip.holds) — the stretch its art is kept to (ShipArt.show_span) —
+## those drawn off it taken out at once.
+func keep_to(span: Vector2) -> void:
+	_span = span
+	_file()
+	if _eye.is_finite():
+		show_near(_eye)
 
 
 ## Every sign it holds, drawn or not: their letters, where they stand under it.
@@ -76,6 +105,19 @@ func show_near(eye: Vector3) -> void:
 		if not _drawn.has(index):
 			add_child(_signs[index])
 			_drawn[index] = true
+
+
+## Files every sign shown (visible) whose plate stands on its stretch in its cube.
+func _file() -> void:
+	_cubes.clear()
+	for index in _signs.size():
+		var label := _signs[index]
+		if not label.visible or not PieceClip.holds(_span, _plates[index]):
+			continue
+		var cube := Vector3i((label.position / CUBE).floor())
+		var filed: PackedInt32Array = _cubes.get(cube, PackedInt32Array())
+		filed.append(index)
+		_cubes[cube] = filed
 
 
 func _process(_delta: float) -> void:
