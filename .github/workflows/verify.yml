@@ -178,7 +178,7 @@ jobs:
         run: make import
 
       - name: Cross-check native against GDScript
-        run: make test JOBS=1 TESTS="tests/unit/ai/test_walk_search_native.gd tests/unit/ai/test_water_native.gd tests/unit/core/test_sink_native.gd tests/unit/core/test_sink_native_stages.gd tests/unit/core/test_motion_native.gd tests/unit/core/test_contacts_native.gd tests/unit/ai/test_floor_way_native.gd tests/unit/art/test_ship_mesh_native.gd tests/unit/match/test_water_fx_native.gd"
+        run: make test JOBS=1 TESTS="tests/unit/ai/test_walk_search_native.gd tests/unit/ai/test_water_native.gd tests/unit/core/test_sink_native.gd tests/unit/core/test_sink_native_stages.gd tests/unit/core/test_motion_native.gd tests/unit/core/test_contacts_native.gd tests/unit/ai/test_floor_way_native.gd tests/unit/art/test_ship_mesh_native.gd tests/unit/match/test_water_fx_native.gd tests/unit/art/test_lamp_swing.gd"
         env:
           SINKING_NATIVE_REQUIRED: "1"
 

@@ -4,6 +4,9 @@ extends GutTest
 ## does, frame by frame: swinging as she turns, coming to rest and woken by a new tick,
 ## fading as the eye wants it or not, flickering as its power drops, a fire wavering
 ## and drowned, a lamp wrecked — while none of the lamps it carries processes as a node.
+## Its lamps only swinging are swung in the game's extension (NativeSwing) where it is
+## loaded, and in GDScript on the web: both alike to the bit. CI sets
+## SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const FRAMES := 160
 ## Lamps a side: pendants and cargo lamps drawn by LampGlobes, every fourth a fire.
@@ -93,6 +96,20 @@ func before_each() -> void:
 
 
 func test_a_carried_lamp_hangs_and_burns_as_one_processing_alone() -> void:
+	if ClassDB.class_exists(&"NativeSwing"):
+		assert_not_null(_swing.native, "swung natively")
+	elif OS.get_environment("SINKING_NATIVE_REQUIRED") == "1":
+		fail_test("the extension is not loaded: make native, then make import")
+	await _alike()
+
+
+func test_a_lamp_carried_in_gdscript_hangs_and_burns_as_one_processing_alone() -> void:
+	_swing.native = null
+	await _alike()
+
+
+## Every pair of lamps alike, frame after frame.
+func _alike() -> void:
 	await wait_frames(FRAMES)
 	assert_gte(_frame, FRAMES - 2, "every frame checked")
 	assert_eq(_mismatches.size(), 0, "\n".join(_mismatches.slice(0, 5)))

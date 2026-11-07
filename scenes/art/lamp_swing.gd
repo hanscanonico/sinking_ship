@@ -40,6 +40,9 @@ var _drawn_by: LampGlobes
 var _downs := PackedVector3Array()
 var _down_known := PackedByteArray()
 var _early: Early
+## The swing of the lamps only swinging, in the game's extension (NativeSwing, #410), or
+## null where the GDScript swings them: each hangs to the bit alike (test_lamp_swing).
+var native: Object = ArtNative.made(&"NativeSwing")
 
 
 ## Lets go of every lamp, and stands its Early under [param art], the node that steps it.
@@ -130,6 +133,11 @@ func step(delta: float) -> void:
 	var placing := PackedInt32Array()
 	var placed: Array[Transform3D] = []
 	var shown := PackedByteArray()
+	var swung := _swung(delta) if native != null else _none_swung()
+	var bases: Array = swung[0]
+	var globes_at: Array = swung[1]
+	var going: PackedByteArray = swung[2]
+	var at := 0
 	for slot in _awake:
 		if _state[slot] != State.AWAKE:
 			_listed[slot] = 0
@@ -140,6 +148,15 @@ func step(delta: float) -> void:
 			on = lamp.step(delta)
 			if lamp.settled() and lamp.kind() != ShipLamp.Kind.FIRE:
 				_take(slot)
+		elif native != null:
+			# Swung in the extension, in this order, ahead of the loop (_swung).
+			lamp.basis = bases[at]
+			on = going[at] == 1
+			if _globe[slot] != -1:
+				placing.append(_globe[slot])
+				placed.append(globes_at[at])
+				shown.append(1 if lamp.visible else 0)
+			at += 1
 		else:
 			_clock[slot] += delta
 			var parent := _parent_of[slot]
@@ -174,6 +191,41 @@ func step(delta: float) -> void:
 	_awake = awake
 	if not placing.is_empty():
 		_drawn_by.place_all(placing, placed, shown)
+
+
+## Swings every lamp awake and only swinging by [param delta] seconds in the extension,
+## in the order step reaches them, each toward the world's down under the node it hangs
+## from: per lamp swung, its new basis, its globe's transform and whether it swings on.
+## A slow lamp step reaches first never swings here this frame, though it is taken.
+func _swung(delta: float) -> Array:
+	var slots := PackedInt32Array()
+	var downs_of := PackedInt32Array()
+	for slot in _awake:
+		if _state[slot] != State.AWAKE or _fast[slot] == 0:
+			continue
+		var parent := _parent_of[slot]
+		if _down_known[parent] == 0:
+			_down_known[parent] = 1
+			var under := _parents[parent].global_basis.inverse()
+			_downs[parent] = (under * Vector3.DOWN).normalized()
+		slots.append(slot)
+		downs_of.append(parent)
+	if slots.is_empty():
+		return _none_swung()
+	var rules := PackedFloat64Array([delta, ShipLamp.STIFFNESS, ShipLamp.DAMPING, ShipLamp.STILL])
+	var found: Array = native.swing(
+		slots, downs_of, _downs, _hang, _swing, _clock, _since, _at, rules
+	)
+	_hang = found[0]
+	_swing = found[1]
+	_clock = found[2]
+	_since = found[3]
+	return [found[5], found[6], found[4]]
+
+
+## What _swung finds when it swings none.
+static func _none_swung() -> Array:
+	return [[], [], PackedByteArray()]
 
 
 ## The lamps woken over the last frame come awake: before any node's frame, as a node

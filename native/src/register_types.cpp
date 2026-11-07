@@ -7,6 +7,7 @@
 #include "motion_native.h"
 #include "sink_native.h"
 #include "still_native.h"
+#include "swing_native.h"
 #include "walk_search_native.h"
 #include "water_fx_native.h"
 #include "water_native.h"
@@ -37,6 +38,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeCrates);
 	GDREGISTER_CLASS(NativeWaterFx);
 	GDREGISTER_CLASS(NativeStill);
+	GDREGISTER_CLASS(NativeSwing);
 }
 
 static void uninitialize_sinking_native(ModuleInitializationLevel p_level) {
