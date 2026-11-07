@@ -4954,7 +4954,9 @@ for name, x0, x1, y0, y1, z0, z1, kind, permeability in CELLS:
         f.append(("kind", str(KINDS.index(kind))))
     if permeability is not None:
         f.append(("permeability", num(permeability)))
-    fill = inside / box_volume
+    # Read as written, to num()'s four decimals: a fill a hair under SHAPE_WHOLE would
+    # otherwise be written as it, 0.9999, the very cell the round-up keeps out (#365).
+    fill = round(inside / box_volume, 4)
     f.append(("shape", num(1.0 if fill >= SHAPE_WHOLE else fill)))
     if z1 - z0 >= WIDE_CELL:
         f.append(("sideways", num(WIDE_SIDEWAYS)))
