@@ -1591,6 +1591,19 @@ def efg_plans(cuts=()):
 #   passages along her keep to its sides' lines from bulkhead D to C: G's racquet court
 #   and baggage store, F's passages along the court and the rooms by C, E's (e.py) once
 #   held to F's and G's.
+# Each deck's plate read round each hatch (#503: walls drawn round it, a trunk; drawn bare,
+# a hatchway open to the space under it), in plate px:
+# - the orlop (V): Nos. 1 and 2 bare, square outlines in the holds' cargo (9346-9490 x
+#   3507-3648; 8684-8886 x 3459-3693), open as her holds' cells are over the orlop; the
+#   bunker hatch walled, its doors into the baggage, mail and specie rooms (8498-8544 at
+#   3462, 8490-8544 at 3693, 8567-8578 by 3640), one space with hold_3 through them;
+# - G (V): walled, No. 1 by the quarters' walls round it (9381-9528 x 2215-2383), No. 2 a
+#   casing against C drawn as F's and E's are (8722-8924 x 2193-2435), the bunker hatch
+#   a casing with a door in each side (8528-8582 at 2194.5, 8520-8574 at 2435.5; laid
+#   shut, the trunk enclosed as the plates draw it);
+# - F (V) and E (IV): walled, each a casing the rooms stand against.
+# So each trunk from G, the first deck walled round it (the bunker hatch's orlop casing,
+# open through its doors into hold_3, is the space its foot at G opens into).
 # Nos. 4 to 6 aft, from G up to C, stay open into their 'tweens (est.).
 TRUNKED = ("No. 1 hatch", "No. 2 hatch", "bunker hatch")
 ALONG = ("bunker hatch",)
