@@ -122,6 +122,8 @@ var _space: ShipSpace
 ## Her roofed space under her lowest weather deck, painted as indoors (_outdoors).
 var _roofed: RoofedIndoors
 var _dressing: RoomDressing
+## Its door signs' letters, drawn near the eye when packed (pack), or null.
+var _signs: SignPool
 ## The deck's and the walls' faces, in the linings of the rooms they look into.
 var _lined: LinedFaces
 var _smoke: CPUParticles3D
@@ -251,6 +253,7 @@ func build_frame(
 	_lamp_sight = LampSight.new(_space)
 	_lamp_sight.show_graphics(_graphics)
 	_smoke = null
+	_signs = null
 	_wrecks.clear()
 	_wrecked.clear()
 	_breakups.clear()
@@ -419,14 +422,7 @@ func _pack(chunks: PackedChunks, dressed: Node3D) -> void:
 	globes.name = "Globes"
 	add_child(globes)
 	globes.take(_lamps)
-	var labels: Array[Label3D] = []
-	for child: Node in dressed.get_children():
-		if child is Label3D:
-			labels.append(child)
-	var signs := SignPool.new()
-	signs.name = "Signs"
-	dressed.add_child(signs)
-	signs.take(labels)
+	_signs = SignPool.under(dressed, span)
 
 
 ## Shows [param node] or hides it. Hidden, it stands apart from her (top level), so her
@@ -486,6 +482,8 @@ func show_span(kept: Vector2) -> void:
 	for own: Dictionary in _flashes.values():
 		materials.append(own)
 	PieceClip.show(materials, span)
+	if _signs != null:
+		_signs.keep_to(span)
 	if _occluders != null:
 		_occluders.cut(_space, _falls, span, cut_above)
 

@@ -916,8 +916,10 @@ func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 				continue
 			var rim := half + Vector2.ONE * 0.012
 			panel(mesh, centre + normal * 0.01, right, rim, normal, ShipPaints.brass)
-			panel(mesh, centre + normal * 0.014, right, half, normal, ShipPaints.enamel)
+			var enamel := centre + normal * 0.014
+			panel(mesh, enamel, right, half, normal, ShipPaints.enamel)
 			var letters := Label3D.new()
+			letters.set_meta(SignPool.PLATE, enamel)
 			letters.text = text
 			letters.font_size = SIGN_FONT
 			letters.pixel_size = SIGN_PIXEL
