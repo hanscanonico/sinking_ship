@@ -297,12 +297,14 @@ func test_a_bot_on_the_titanic_goes_round_the_stairs_in_a_passage_for_a_bonus() 
 	assert_true(took, "it went round the stairs and took it: at %s" % bot.pos)
 
 
-## A room's area runs out to the middle of its walls, and at the Titanic's shell that lies
+## A room's area runs out to the middle of its walls, and at the Titanic's shell that lay
 ## past her cells, where the sea outside her reads: her CO2 evaporator room on the orlop has a
-## corner there. Held dry, with no hit, the room stands clear of any water in her where a body
-## can stand in it, and a normal bot in her second-class dining saloon sets out for the Double
-## life lying there (#491). On main the corner read the sea, 3.4 m over the floor, and no bot
-## went for any bonus whose way passed a room like it.
+## corner there, within a body's radius of her shell (her sections cut finer where she
+## tapers, #318, hold it inside her now). Held dry, with no hit, the room stands clear of
+## any water in her where a body can stand in it, and a normal bot in her second-class
+## dining saloon sets out for the Double life lying there (#491). On main the corner read
+## the sea, 3.4 m over the floor, and no bot went for any bonus whose way passed a room
+## like it.
 func test_a_bot_reads_a_room_at_her_shell_by_where_a_body_stands() -> void:
 	var sinking: SinkScenario = load(TITANIC_SINKING).duplicate()
 	sinking.hit = null
@@ -314,7 +316,10 @@ func test_a_bot_reads_a_room_at_her_shell_by_where_a_body_stands() -> void:
 	var room := layout.bonus_spots[spot].room
 	var area := layout.rooms[room].area
 	var corner := Vector3(area.position.x, layout.rooms[room].floor_height, area.position.y)
-	assert_eq(sim.pose().cell_at(corner), CellMap.NONE, "a corner of its area is past her cells")
+	var shell := layout.structure.half_breadth(corner.x, corner.y, -1)
+	assert_gt(
+		absf(corner.z), shell - sim.config.rules.body_radius, "a corner of its area at her shell"
+	)
 	SimFixtures.bring_aboard(sim, spot)
 	var profile := _tier(&"normal")
 	var bonuses := BotBonuses.new(0, profile, sim.config.rules, layout, sim.config.bonus_rules)

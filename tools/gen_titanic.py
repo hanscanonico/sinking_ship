@@ -782,12 +782,12 @@ def breadth(x, y):
     """Her half breadth at (x, y): under her lowest plan, Fig. 22's bilge carried out to the
     plan's side and in to her estimated keel run, never fuller than her lines scaled to that
     side; from it up to F deck, or to E deck where F deck widened her, her plates; over that
-    her lines and her counter."""
+    her lines and her counter, and her forecastle head's flare out to Plate IV's side."""
     if y < KEEL or x >= stem_x(y) or x <= stern_x(y):
         return 0.0
     ys, zs = low_nodes(x)
     if y >= ys[-1]:
-        return lines_half(x, y)
+        return lines_half(x, y) + head_flare(x, y)
     if y >= ys[0]:
         side = fair(ys, zs, y)
         # Over her load waterline forward, never in from her lines: F deck's rooms stand.
@@ -851,6 +851,24 @@ POOP = q(B_DECK + 0.56)                    # SB-III: C's sheer at x −107…−
 # Each (from x, the deck's height forward of it).
 D_SHEER = [(B_RUN[1], -1.25)]
 C_SHEER = [(B_RUN[1], 1.5625)]
+# Her forecastle head's side as Plate IV draws it (forecastle.py's SIDE, #469), 0.3-0.6 m
+# fuller at its deck than her lines (est.) there (the owner's ruling of 2026-11-06: the plate
+# is truth). Up her forecastle's side from C deck's sheer forward, under which her plates
+# and the rooms traced off them stand as they did, her lines take the plate's excess over
+# theirs at the head in proportion, so her side flares out to the plate's at her forecastle
+# head, from the foot of the step up to it (FC_RAMP), so the step stands as wide as the
+# head it climbs to.
+FCSL_PLAN = plates.load("forecastle")
+FLARE_FOOT = C_SHEER[0][1]
+
+def head_flare(x, y):
+    """How much fuller than her lines her side stands at (x, y) up her forecastle head."""
+    if x < FC_RAMP[0] or y <= FLARE_FOOT:
+        return 0.0
+    side = station(FCSL_PLAN.side, x)
+    if side is None:
+        return 0.0
+    return max(side - lines_half(x, FCSL[1]), 0.0) * min((y - FLARE_FOOT) / (FCSL[1] - FLARE_FOOT), 1.0)
 
 # Her sheer aft (#399): D deck aft of bulkhead N laid where her plates stand it, as forward
 # and as far as it may. Her bulkhead tops measured off Plate III are the truth again
@@ -1667,20 +1685,186 @@ def section_spans(longest):
     return sum(math.ceil((b - a) / longest - 1e-9) for a, b in zip(FRAME_BREAKS, FRAME_BREAKS[1:]))
 
 SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 100) >= SECTION_COUNT)
+def shell_top(x):
+    return A_DECK if B_HOUSE[0] <= x <= B_HOUSE[1] else top_at(x)
+
+def bottom(x):
+    """Her lowest point at x: her keel, or her forefoot or her counter over it. Her keel only
+    where she is more than SECTION_TOLERANCE out from her centre line along it: a flat
+    narrower than that, where her forefoot's V and her run close on her keel, is within her
+    sections' tolerance of nothing, and a section held to it would carry a keel a few
+    centimetres wide out to her stem and her sternpost (#318)."""
+    if breadth(x, KEEL + 1e-6) > SECTION_TOLERANCE or breadth(x, KEEL + 0.05) > SECTION_TOLERANCE:
+        return KEEL
+    low, high = KEEL, shell_top(x)
+    for _ in range(48):
+        middle = (low + high) * 0.5
+        if breadth(x, middle) > SECTION_TOLERANCE:
+            high = middle
+        else:
+            low = middle
+    return high
+
+SIDE_POINTS = 24
+
+def section_outline(x, houses=True):
+    """Everything enclosed at x, counter-clockwise in (z, y): from her keel up her
+    starboard side, over her houses (unless not houses), down her port side."""
+    low, top = bottom(x), shell_top(x)
+    side = []
+    # (Every section samples her side at its plans' heights too, where it turns.)
+    heights = {top - (top - low) * math.sin(math.pi * 0.5 * i / SIDE_POINTS) for i in range(SIDE_POINTS + 1)}
+    heights |= {y for y in low_nodes(x)[0] if low < y < top}
+    for y in sorted(heights, reverse=True):
+        # (Off her keel her side closes to her centre line at her lowest point, as her
+        # forefoot's V and her run do: no flat there as wide as bottom() looks for.)
+        if y > low or low <= KEEL:
+            side.append((breadth(x, min(max(y, low + 1e-6), top)), y))
+    side.reverse()
+    points = [(0.0, low)] + side
+    # Over the houses standing on her shell's top here, if she has any: A deck's over B
+    # deck's house and the boat deck's on it; on her after promenade, B deck's.
+    if houses:
+        points += stacked(x, top)
+    points += [(-z, y) for z, y in reversed(side)]
+    outline = []
+    for z, y in points:
+        point = (round(z, 4) + 0.0, round(y, 4) + 0.0)
+        if not outline or point != outline[-1]:
+            outline.append(point)
+    if outline[-1] == outline[0]:
+        outline.pop()
+    return simplified(outline, OUTLINE_TOLERANCE)
+
+OUTLINE_TOLERANCE = 0.02
+
+def simplified(outline, tolerance):
+    """Douglas–Peucker on a closed outline, as the steamer's generator does it."""
+    def far(a, b, chain):
+        best, at = -1.0, None
+        dz, dy = b[0] - a[0], b[1] - a[1]
+        length = math.hypot(dz, dy)
+        for k, p in enumerate(chain):
+            if length > 0.0:
+                off = abs(dz * (p[1] - a[1]) - dy * (p[0] - a[0])) / length
+            else:
+                off = math.hypot(p[0] - a[0], p[1] - a[1])
+            if off > best:
+                best, at = off, k
+        return best, at
+
+    def keep(a, b, chain):
+        if not chain:
+            return []
+        off, at = far(a, b, chain)
+        if off <= tolerance:
+            return []
+        return keep(a, chain[at], chain[:at]) + [chain[at]] + keep(chain[at], b, chain[at + 1:])
+
+    start = outline[0]
+    split = max(range(len(outline)), key=lambda k: math.hypot(outline[k][0] - start[0],
+                                                             outline[k][1] - start[1]))
+    first, second = outline[1:split], outline[split + 1:]
+    return ([start] + keep(start, outline[split], first) + [outline[split]]
+            + keep(outline[split], start, second))
+
+# Each section's shell is taken at its middle and held all along it (HullSection), so where
+# she tapers its wide end stood inside her lines — which her art (ShipStructure.half_breadth),
+# her decks' strips and the rooms traced off her plates follow — and its narrow end past them:
+# a room at her taper stood past its section by up to 1.66 m (her windlass machinery room, held
+# to her shell at x 127.05 where she is ±1.73 m; #318). So a stretch of her is halved, and its
+# halves halved, until each section's shell — her side, keel to top, without the houses on it,
+# whose ends are breaks anyway — stays within SECTION_TOLERANCE of her shell at every one of
+# SECTION_ALONG points along it, both ways (apart()). 5 cm: half of T, half a wall's thickness,
+# so a room laid to her lines keeps its walls' inner faces inside her section; over her
+# outlines' simplifying (OUTLINE_TOLERANCE), which it would otherwise only measure. Where she is parallel a section
+# stays whole; none is cut under SECTION_LEAST, so at her stem and her counter's tip, where her
+# lines close to nothing, the last section holds what its middle reaches. Her structure carries
+# the tolerance (ShipStructure.section_tolerance).
+SECTION_TOLERANCE = 0.05
+SECTION_ALONG = 5
+SECTION_LEAST = 0.25
+
+def apart(outline, other):
+    """How far outline's furthest point stands from other's edges."""
+    worst = 0.0
+    for p in outline:
+        near = math.inf
+        for i, a in enumerate(other):
+            b = other[(i + 1) % len(other)]
+            dz, dy = b[0] - a[0], b[1] - a[1]
+            span = dz * dz + dy * dy
+            t = 0.0 if span == 0.0 else min(max(((p[0] - a[0]) * dz + (p[1] - a[1]) * dy) / span, 0.0), 1.0)
+            near = min(near, math.hypot(p[0] - a[0] - dz * t, p[1] - a[1] - dy * t))
+        worst = max(worst, near)
+    return worst
+
+@functools.lru_cache(maxsize=None)
+def shell_outline(x):
+    """Her shell's outline at x, without the houses on it; None where she has none."""
+    try:
+        outline = section_outline(x, houses=False)
+    except IndexError:
+        return None
+    return outline if len(outline) >= 3 else None
+
+def held_off(a, b):
+    """How far the shell of a section from a to b, its middle's, stands off hers along it."""
+    held = shell_outline((a + b) * 0.5)
+    worst = 0.0
+    for k in range(SECTION_ALONG):
+        there = shell_outline(a + 1e-3 + (b - a - 2e-3) * k / (SECTION_ALONG - 1))
+        if there is not None:
+            worst = max(worst, apart(held, there), apart(there, held))
+    return worst
+
+def outlined_to(inside, outside):
+    """The furthest x from inside towards outside her shell has an outline at, to a mm (in
+    by two, so a section's middle set on the fourth decimal stands inside it)."""
+    while abs(outside - inside) > 1e-3:
+        middle = (inside + outside) * 0.5
+        if shell_outline(round(middle, 4)) is None:
+            outside = middle
+        else:
+            inside = middle
+    return inside
+
+def halved(a, b):
+    """The after ends of the sections from a to b, halved till each holds her shell. Past
+    her stem's last outline, or her counter's, the end section is cut to stand its middle
+    on it."""
+    h = (a + b) * 0.5
+    if b - a < 2 * SECTION_LEAST or held_off(a, b) <= SECTION_TOLERANCE:
+        return [a]
+    if shell_outline((h + b) * 0.5) is None:
+        cut = 2 * (outlined_to(h, (h + b) * 0.5) - 2e-3) - b
+        return halved(a, round(cut, 4)) + [round(cut, 4)] if cut - a >= SECTION_LEAST else [a]
+    if shell_outline((a + h) * 0.5) is None:
+        cut = 2 * (outlined_to(h, (a + h) * 0.5) + 2e-3) - a
+        return [a] + halved(round(cut, 4), b) if b - cut >= SECTION_LEAST else [a]
+    return halved(a, h) + halved(h, b)
+
+@functools.lru_cache(maxsize=None)
+def section_cuts(a, b):
+    """The after ends of the sections from break a to break b: as many alike as make none
+    longer than SECTION_MAX, each halved where she tapers."""
+    count = math.ceil((b - a) / SECTION_MAX - 1e-9)
+    return tuple(end for k in range(count) for end in halved(a + (b - a) * k / count, a + (b - a) * (k + 1) / count))
+
 # Her forecastle head forward of that to her stem as Plate IV draws her side (forecastle.py's
 # SIDE), never past her shell: her sections' (HullSection, ShipStructure.half_breadth),
 # each its middle's breadth, lerped between their middles and closing onto her stem past
-# the last (#469). Her plate draws her 0.3-0.6 m fuller than her shell there (est., her lines
-# over E deck), so her shell holds the deck in. In strips FC_HEAD_STRIP long, each as wide
+# the last (#469). Her shell there flares out to the plate's side (head_flare()), so the deck
+# takes the plate's width, her sections' lerp between their middles holding it in by a few
+# centimetres where she narrows fastest. In strips FC_HEAD_STRIP long, each as wide
 # as both let it be at its forward end, so it narrows as she does; to where it stands
 # FC_HEAD_LEAST wide either side of her centre line, a few tenths short of her stem.
-FCSL_PLAN = plates.load("forecastle")
 FC_HEAD_STRIP = 0.5
 FC_HEAD_LEAST = 0.15
 FC_HEAD_MARGIN = 0.05
 HEAD_BREAKS = sorted({b for b in FRAME_BREAKS if b > FC_RAMP[1] + 1e-6} | {FC_RAMP[1]})
-HEAD_MIDDLES = [a + (b - a) * (k + 0.5) / n for a, b in zip(HEAD_BREAKS, HEAD_BREAKS[1:])
-                for n in [math.ceil((b - a) / SECTION_MAX - 1e-9)] for k in range(n)]
+HEAD_ENDS = [end for a, b in zip(HEAD_BREAKS, HEAD_BREAKS[1:]) for end in section_cuts(a, b)] + [HEAD_BREAKS[-1]]
+HEAD_MIDDLES = [(a + b) * 0.5 for a, b in zip(HEAD_ENDS, HEAD_ENDS[1:])]
 
 def head_shell(x):
     """Her shell's half breadth at x on her forecastle head, as her sections stand it."""
@@ -3438,9 +3622,6 @@ HOUSES = ([A_HOUSE_TOP] + [house_cell(house) for house in BOAT_PLAN.houses]
 HOUSE_CELLS = (["a_deck"] + [house[0] for house in BOAT_PLAN.houses] + [house[0] for house in B_PLAN.houses]
                + ["c_deck_aft" + ("" if k == 0 else "_%d" % (k + 1)) for k in range(len(C_AFT_HOUSES))])
 
-def shell_top(x):
-    return A_DECK if B_HOUSE[0] <= x <= B_HOUSE[1] else top_at(x)
-
 def stacked(x, foot):
     """The outline over x of the houses standing at foot there, starboard first, each up
     its side, over the houses on its roof and down its other side."""
@@ -3449,78 +3630,6 @@ def stacked(x, foot):
                                                 key=lambda h: -h[3]):
         points += [(z1, h_foot), (z1, roof)] + stacked(x, roof) + [(z0, roof), (z0, h_foot)]
     return points
-
-def bottom(x):
-    """Her lowest point at x: her keel, or her forefoot or her counter over it."""
-    if breadth(x, KEEL + 1e-6) > 0.0 or breadth(x, KEEL + 0.05) > 0.0:
-        return KEEL
-    low, high = KEEL, shell_top(x)
-    for _ in range(48):
-        middle = (low + high) * 0.5
-        if breadth(x, middle) > 0.0:
-            high = middle
-        else:
-            low = middle
-    return high
-
-SIDE_POINTS = 24
-
-def section_outline(x):
-    """Everything enclosed at x, counter-clockwise in (z, y): from her keel up her
-    starboard side, over her houses, down her port side."""
-    low, top = bottom(x), shell_top(x)
-    side = []
-    # (Every section samples her side at its plans' heights too, where it turns.)
-    heights = {top - (top - low) * math.sin(math.pi * 0.5 * i / SIDE_POINTS) for i in range(SIDE_POINTS + 1)}
-    heights |= {y for y in low_nodes(x)[0] if low < y < top}
-    for y in sorted(heights, reverse=True):
-        side.append((breadth(x, min(max(y, low + 1e-6), top)), y))
-    side.reverse()
-    points = [(0.0, low)] + side
-    # Over the houses standing on her shell's top here, if she has any: A deck's over B
-    # deck's house and the boat deck's on it; on her after promenade, B deck's.
-    points += stacked(x, top)
-    points += [(-z, y) for z, y in reversed(side)]
-    outline = []
-    for z, y in points:
-        point = (round(z, 4) + 0.0, round(y, 4) + 0.0)
-        if not outline or point != outline[-1]:
-            outline.append(point)
-    if outline[-1] == outline[0]:
-        outline.pop()
-    return simplified(outline, OUTLINE_TOLERANCE)
-
-OUTLINE_TOLERANCE = 0.02
-
-def simplified(outline, tolerance):
-    """Douglas–Peucker on a closed outline, as the steamer's generator does it."""
-    def far(a, b, chain):
-        best, at = -1.0, None
-        dz, dy = b[0] - a[0], b[1] - a[1]
-        length = math.hypot(dz, dy)
-        for k, p in enumerate(chain):
-            if length > 0.0:
-                off = abs(dz * (p[1] - a[1]) - dy * (p[0] - a[0])) / length
-            else:
-                off = math.hypot(p[0] - a[0], p[1] - a[1])
-            if off > best:
-                best, at = off, k
-        return best, at
-
-    def keep(a, b, chain):
-        if not chain:
-            return []
-        off, at = far(a, b, chain)
-        if off <= tolerance:
-            return []
-        return keep(a, chain[at], chain[:at]) + [chain[at]] + keep(chain[at], b, chain[at + 1:])
-
-    start = outline[0]
-    split = max(range(len(outline)), key=lambda k: math.hypot(outline[k][0] - start[0],
-                                                             outline[k][1] - start[1]))
-    first, second = outline[1:split], outline[split + 1:]
-    return ([start] + keep(start, outline[split], first) + [outline[split]]
-            + keep(outline[split], start, second))
 
 # Every house's ends among them too, however near another break, so each is lofted to
 # its ends: a house no section's middle stood in would be a cell with no room in her,
@@ -3540,8 +3649,7 @@ SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUS
 # as the sea outside her (CellMap).
 SECTION_ENDS = []  # each section's after end, in ten-thousandths of a metre, then her stem's
 for a, b in zip(SECTION_BREAKS, SECTION_BREAKS[1:]):
-    count = math.ceil((b - a) / SECTION_MAX - 1e-9)
-    SECTION_ENDS += [round((a + (b - a) * k / count) * 10000) for k in range(count)]
+    SECTION_ENDS += [round(end * 10000) for end in section_cuts(a, b)]
 SECTION_ENDS.append(round(SECTION_BREAKS[-1] * 10000))
 SECTION_NUDGES = [1]  # how far aft of its break each end stands, in the same units
 for lo, hi in zip(SECTION_ENDS, SECTION_ENDS[1:]):
@@ -4798,7 +4906,8 @@ spots = [sub("Weak_" + name, "18_weak", [("name", '&"%s"' % name), ("x", num(x))
          for name, x, share in WEAK_SPOTS]
 sub("Structure", "9_structure", [
     ("waterline_y", num(WATERLINE)), ("keel_y", num(KEEL)),
-    ("sections", arr("10_section", section_ids)), ("cells", arr("11_cell", cell_ids)),
+    ("sections", arr("10_section", section_ids)), ("section_tolerance", num(SECTION_TOLERANCE)),
+    ("cells", arr("11_cell", cell_ids)),
     ("walls", arr("12_wall", wall_ids)), ("openings", arr("13_opening", opening_ids)),
     ("mass", arr("14_mass", mass_ids))] + [(k, num(v)) for k, v in MOTION] + [
     ("fittings", arr("16_fitting", fitting_ids)),

@@ -17,6 +17,10 @@ const HULL_SLACK := 0.001
 @export var keel_y: float
 ## Aft to fore, each standing for its own stretch of the hull.
 @export var sections: Array[HullSection] = []
+## How far a section's shell, taken at its middle and held all along it, may stand off
+## her lines anywhere along it: her generator cuts them finer where she tapers until
+## each keeps to it (#318). 0 for a hull not cut to one.
+@export var section_tolerance: float = 0.0
 @export var cells: Array[FloodCell] = []
 @export var walls: Array[ShipWall] = []
 @export var openings: Array[ShipOpening] = []
