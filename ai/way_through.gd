@@ -1,26 +1,29 @@
 class_name WayThrough
 extends RefCounted
 ## Where the walk graph's portals stand, so that a route goes where a body could get through
-## (§7, #501). Along a flight, no other flight over it takes a body off it. Through a
+## (§7, #501). Along a flight, no other flight over it takes a body off it, and it has the
+## headroom to crawl at least. Through a
 ## doorway one way, somewhere across its width a body BotFloorWay.SNUG of its radius round
 ## stands on its floor a body's depth inside, clear of everything the sim holds a body back
 ## by, and walks straight out as deep past its line with nothing pushing it back the way it
 ## came.
 ##
 ## Where neither is true, a route through walks a bot into it for good: there is no way round
-## to find. Two flights stacked in one well, the lower one under the upper's wedge: a body
-## walking down the upper one walks on along the lower one's head (the layout lint holds
-## every ship's flights clear of it since #514). A railing holds a body only from its own
+## to find, so the graph leaves it out. Two flights stacked in one well, the lower one under
+## the upper's wedge: a body walking down the upper one walks on along the lower one's head.
+## A flight under a deck too low to crawl under. A railing holds a body only from its own
 ## deck's side, so a doorway onto a railed hole's edge lets a body out onto her open deck,
-## pushed on its way, and never back in, as the Titanic's do. Neither is a way for the graph.
-## Where something else holds a body back — a stair's high end in a doorway, machinery or
-## furniture against it, a railing in a doorway between two rooms — the layout is at fault
-## (#514), and the portal stays where it always stood, so that no room is sealed off the
-## graph (test_no_sealed_room). Asked of Surfaces once, as the graph is built, before any
-## crate or broken railing is honoured.
+## pushed on its way, and never back in. A stair's high end in a doorway, machinery or
+## furniture against it, a railing in a doorway between two rooms. The layout lint holds
+## every ship's rooms to a way out and back in that a body takes (#514), so none is sealed
+## off the graph by what it leaves out (test_no_sealed_room). Asked of Surfaces once, as the
+## graph is built, before any crate or broken railing is honoured.
 
 ## How far apart along a flight's middle, and across a doorway, a body is tried, in metres.
 const STRIDE := 0.125
+## How far apart across a doorway a body is tried again where no body got through it every
+## STRIDE: a way through can lie between them (No. 1 hold's join on the orlop, #514).
+const FINE := 0.03125
 ## How much higher than the flight another flight must stand over a point of it to take a
 ## body off it there: two flights meeting end to end at one height do not.
 const OVER := 0.01
@@ -30,19 +33,20 @@ const BACK := 0.5
 
 
 ## Whether a body could walk [param layout]'s ramp [param index] from end to end along its
-## middle, never taken off it onto a higher flight between its ends (Surfaces.under).
+## middle (flight_fault).
 static func flight(surfaces: Surfaces, rules: BrawlRules, layout: ShipLayout, index: int) -> bool:
-	var ramp := layout.ramps[index]
+	return flight_fault(surfaces, rules, layout, index) == ""
+
+
+## Why no body could walk [param layout]'s ramp [param index] from end to end along its
+## middle, or "" when one could: taken off it onto a higher flight between its ends
+## (Surfaces.under), else, somewhere along it, too little headroom over it even to crawl.
+static func flight_fault(
+	surfaces: Surfaces, rules: BrawlRules, layout: ShipLayout, index: int
+) -> String:
 	var surface := surfaces.ramp_surface(index)
-	var along_x := ramp.axis == ShipRamp.Axis.X
-	var length := ramp.area.size.x if along_x else ramp.area.size.y
-	var middle := ramp.area.get_center()
-	var steps := ceili(length / STRIDE)
-	for step in range(1, steps):
-		var share := float(step) / steps
-		var x := ramp.area.position.x + ramp.area.size.x * share if along_x else middle.x
-		var z := middle.y if along_x else ramp.area.position.y + ramp.area.size.y * share
-		var feet := Vector3(x, ramp.height_at(x, z), z)
+	var points := _along(layout.ramps[index])
+	for feet: Vector3 in points:
 		var on := surfaces.under(feet, rules.step_height)
 		if (
 			on != surface
@@ -50,47 +54,78 @@ static func flight(surfaces: Surfaces, rules: BrawlRules, layout: ShipLayout, in
 			and surfaces.is_ramp(on)
 			and surfaces.height_at(on, feet) > feet.y + OVER
 		):
-			return false
-	return true
+			return "stacked under another flight"
+	for feet: Vector3 in points:
+		var over := surfaces.ceiling(feet, rules.step_height) - feet.y
+		if over < rules.crawl_height:
+			return "%.2f m over %s, too low to crawl" % [over, feet]
+	return ""
+
+
+## The points along [param ramp]'s middle a body is tried at, every STRIDE between its ends.
+static func _along(ramp: ShipRamp) -> PackedVector3Array:
+	var along_x := ramp.axis == ShipRamp.Axis.X
+	var length := ramp.area.size.x if along_x else ramp.area.size.y
+	var middle := ramp.area.get_center()
+	var steps := ceili(length / STRIDE)
+	var points := PackedVector3Array()
+	for step in range(1, steps):
+		var share := float(step) / steps
+		var x := ramp.area.position.x + ramp.area.size.x * share if along_x else middle.x
+		var z := middle.y if along_x else ramp.area.position.y + ramp.area.size.y * share
+		points.append(Vector3(x, ramp.height_at(x, z), z))
+	return points
 
 
 ## Where the walk graph's portals through [param door], out of its room's floor at
 ## [param floor_height] and back in, stand: as offsets from its middle toward its
-## [code]to[/code] end (doorway). NAN for a way a railing holds a body back from, and none
-## else does, through a doorway onto her open deck ([param deck]); the middle for any other
-## way a body is held back from.
+## [code]to[/code] end (doorway), tried every STRIDE across it, then, where no body got
+## through, every FINE; only offsets from [param low] to [param high] — the lane of a wide
+## doorway that gives onto the floor past it, not onto a stair beside it (WalkDoors); NAN
+## for a way no body goes, which the graph leaves out. Only the way out where [param ways]
+## is 1.
 static func crossings(
-	surfaces: Surfaces, rules: BrawlRules, door: ShipRoom.Door, floor_height: float, deck: bool
+	surfaces: Surfaces,
+	rules: BrawlRules,
+	door: ShipRoom.Door,
+	floor_height: float,
+	low := -INF,
+	high := INF,
+	ways := 2
 ) -> PackedFloat64Array:
 	var offs := PackedFloat64Array()
-	for out: Vector2 in [door.outward, -door.outward]:
-		var off := doorway(surfaces, rules, door, floor_height, out)
-		if (
-			is_nan(off)
-			and (not deck or is_nan(doorway(surfaces, rules, door, floor_height, out, false)))
-		):
-			off = 0.0
+	for out: Vector2 in [door.outward, -door.outward].slice(0, ways):
+		var off := doorway(surfaces, rules, door, floor_height, out, true, STRIDE, low, high)
+		if is_nan(off):
+			off = doorway(surfaces, rules, door, floor_height, out, true, FINE, low, high)
 		offs.append(off)
 	return offs
 
 
 ## Where along [param door] a body could go out through it from its room's floor at
 ## [param floor_height] the way [param out] (its outward, or back in): how far from its
-## middle toward its [code]to[/code] end, tried at the middle, then every STRIDE out from it
-## either way, as far as a body's radius in from each jamb (_crosses), held back by railings
-## too unless [param rails] is false; NAN where nowhere.
+## middle toward its [code]to[/code] end, tried at the middle, then every [param stride] out
+## from it either way, as far as a body's radius in from each jamb (_crosses), and only from
+## [param low] to [param high], held back by railings too unless [param rails] is false;
+## NAN where nowhere. A [param stride] finer than STRIDE skips the points STRIDE apart, which
+## crossings has tried already.
 static func doorway(
 	surfaces: Surfaces,
 	rules: BrawlRules,
 	door: ShipRoom.Door,
 	floor_height: float,
 	out: Vector2,
-	rails := true
+	rails := true,
+	stride := STRIDE,
+	low := -INF,
+	high := INF
 ) -> float:
 	var room := maxf(door.width() * 0.5 - rules.body_radius, 0.0)
-	var steps := floori(room / STRIDE)
+	var steps := floori(room / stride)
 	for index in range(0, steps * 2 + 1):
-		var off := STRIDE * ceili(index * 0.5) * (1.0 if index % 2 == 1 else -1.0)
+		var off := stride * ceili(index * 0.5) * (1.0 if index % 2 == 1 else -1.0)
+		if off < low or off > high or (stride < STRIDE and is_zero_approx(fmod(off, STRIDE))):
+			continue
 		var at := across(door, off, floor_height)
 		if _crosses(surfaces, rules, Vector2(at.x, at.z), out, floor_height, rails):
 			return off

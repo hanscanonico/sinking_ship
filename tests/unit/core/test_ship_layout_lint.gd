@@ -103,24 +103,9 @@ func _flight_problems(layout: ShipLayout) -> PackedStringArray:
 	var surfaces := Surfaces.new(layout)
 	var found := PackedStringArray()
 	for index in layout.ramps.size():
-		var ramp := layout.ramps[index]
-		var named := "ramp %d at %s" % [index, ramp.area.position]
-		if not WayThrough.flight(surfaces, rules, layout, index):
-			found.append(named + ": stacked under another flight")
-			continue
-		var along_x := ramp.axis == ShipRamp.Axis.X
-		var length := ramp.area.size.x if along_x else ramp.area.size.y
-		var middle := ramp.area.get_center()
-		var steps := ceili(length / WayThrough.STRIDE)
-		for step in range(1, steps):
-			var share := float(step) / steps
-			var x := ramp.area.position.x + ramp.area.size.x * share if along_x else middle.x
-			var z := middle.y if along_x else ramp.area.position.y + ramp.area.size.y * share
-			var feet := Vector3(x, ramp.height_at(x, z), z)
-			var over := surfaces.ceiling(feet, rules.step_height) - feet.y
-			if over < rules.crawl_height:
-				found.append("%s: %.2f m over %s, too low to crawl" % [named, over, feet])
-				break
+		var fault := WayThrough.flight_fault(surfaces, rules, layout, index)
+		if fault != "":
+			found.append("ramp %d at %s: %s" % [index, layout.ramps[index].area.position, fault])
 	return found
 
 

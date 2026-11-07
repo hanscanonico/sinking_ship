@@ -769,7 +769,16 @@ A_ROOMS = [("verandah", "verandah café", A_RUN[0], -69.1), ("smoking", "first-c
            (None, "cabins", GS[1], A_HOUSE[1])]
 for k, (rid, name, x0, x1) in enumerate(A_ROOMS):
     if rid is None:
-        box("a_block_%d" % k, x0 + T, x1 - T, -A_HOUSE[2] + T, A_HOUSE[2] - T, A_DECK, BOAT)
+        # A casing's end is a wall where a room stands against it, as Plate III draws its
+        # bulkheads, a wall's half thickness into the room as every wall of hers stands: a
+        # block stopped that short of the room left 0.1 m of open deck between them that
+        # read as a doorway no body goes through (#514).
+        aft = x0 - T if k > 0 and A_ROOMS[k - 1][0] is not None else x0 + T
+        fwd = x1 + T if k + 1 < len(A_ROOMS) and A_ROOMS[k + 1][0] is not None else x1 - T
+        # Its sides run into the house's side walls where it reaches into a room, so that
+        # nothing opens at the room's corners between its end and their faces.
+        side = A_HOUSE[2] if (aft, fwd) != (x0 + T, x1 - T) else A_HOUSE[2] - T
+        box("a_block_%d" % k, aft, fwd, -side, side, A_DECK, BOAT)
         continue
     room(rid, name, x0, x1, -A_HOUSE[2], A_HOUSE[2], A_DECK)
     for tag, z in [("p", -A_HOUSE[2]), ("s", A_HOUSE[2])]:
@@ -1901,13 +1910,13 @@ for k, x in enumerate([-13.2, -4.4]):
                     ("px", "mx"))
 # And a settee against its after wall, funnel 3's casing, either side of its centre line,
 # a table before it.
-LOUNGE_AFT = -16.4
+LOUNGE_AFT = -16.4 + T  # the face of the casing's end
 for tag, s in [("p", -1), ("s", 1)]:
     settee("lounge_aft_%s" % tag, LOUNGE_AFT + SETTEE[1] / 2, s * 4.5, A_DECK, along_x=False)
     table_group("lounge_aft_%s" % tag, LOUNGE_AFT + SETTEE[1] + CHAIR_GAP + 0.35, s * 4.5, A_DECK, 0.35, 0.7, ())
 # The reading and writing room: writing desks against its forward wall, each with its
 # chair, and a settee either side of its after door.
-READING_FORE = 7.8
+READING_FORE = 7.8 - T  # the face of the casing's end
 for tag, s in [("p", -1), ("s", 1)]:
     for k, z in enumerate([3.0, 6.6]):
         piece("desk_reading_%d%s" % (k, tag), READING_FORE - DESK[1], READING_FORE, s * z - DESK[0] / 2,
@@ -1929,7 +1938,7 @@ for tag, s in [("p", -1), ("s", 1)]:
         table_group("reception_wall_%d%s" % (k, tag), x, s * 10.6, D_DECK, 0.4, 0.7, ("px", "mx"))
 # The after entrance: a settee either side of the clock on its forward wall.
 for tag, s in [("p", -1), ("s", 1)]:
-    settee("entrance_%s" % tag, -38.9 - SETTEE[1] / 2, s * 4.0, A_DECK, along_x=False)
+    settee("entrance_%s" % tag, -38.9 - T - SETTEE[1] / 2, s * 4.0, A_DECK, along_x=False)
 
 # Her crew's rooms and working spaces (SB-IV, est.): mess tables in the seamen's quarters
 # under the forecastle and in the crew quarters on E deck — a bench along each long side
