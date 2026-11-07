@@ -9,9 +9,13 @@
 #
 # It asks every CI_WAIT_POLL seconds (30), for CI_WAIT_MINUTES (90) at most, and takes
 # CI as finished once two answers in a row hold no pending check, as a job that needs
-# others (verify) is only reported once they end. Exits 0 when every check passed or
-# was skipped, 1 when one failed or was cancelled, 3 when the time ran out first, 2
-# when there is no such PR.
+# others (verify) is only reported once they end. A head that still has no check after
+# CI_WAIT_GRACE minutes (3), two answers in a row, has it ask why, as GitHub runs no CI
+# at all on a PR that conflicts with its base: rather than wait out the time, it says so
+# in one line when the PR conflicts, when no workflow ran for the head (skipped), or
+# when every run on it ended without a check. Exits 0 when every check passed or was
+# skipped, 1 when one failed or was cancelled, 3 when the time ran out first, 4 when no
+# CI is coming for the head, 2 when there is no such PR.
 #
 # Usage:  tools/ci_wait.sh [PR]
 
@@ -19,6 +23,7 @@ set -uo pipefail
 
 poll=${CI_WAIT_POLL:-30}
 minutes=${CI_WAIT_MINUTES:-90}
+grace=${CI_WAIT_GRACE:-3}
 pr=${1-}
 if [[ -z "$pr" ]]; then
 	pr=$(gh pr view --json number --jq .number 2>/dev/null) || {
@@ -46,8 +51,39 @@ failed_lines() {
 		grep -v -e '##\[error\]Process completed' | awk '!seen[$0]++' | head -40
 }
 
+# Why the head has no check past the grace. Returns while a workflow run for it is still
+# on its way, or while GitHub has not yet worked out whether the PR merges (for four asks
+# more); else says why no CI is coming and exits 4. gh finds a commit's runs by its whole
+# SHA only.
+unsure=0
+no_ci() {
+	local info sha state base branch runs
+	info=$(gh pr view "$pr" --json headRefOid,mergeable,baseRefName,headRefName \
+		--jq '"\(.headRefOid)\t\(.mergeable)\t\(.baseRefName)\t\(.headRefName)"' 2>/dev/null) || return 0
+	IFS=$'\t' read -r sha state base branch <<<"$info"
+	[[ -n "$sha" ]] || return 0
+	runs=$(gh run list --commit "$sha" --json status,name,conclusion \
+		--jq '.[] | "\(.status)\t\(.name)\t\(.conclusion)"' 2>/dev/null) || return 0
+	[[ -n "$runs" ]] && grep -qv '^completed' <<<"$runs" && return 0
+	local at="ci-wait: PR #$pr at ${sha:0:7}"
+	if [[ "$state" == CONFLICTING ]]; then
+		echo "$at has no CI run: it conflicts with $base; merge $base"
+	elif [[ -n "$runs" ]]; then
+		echo "$at has no checks: every run on its head ended without one" \
+			"($(awk -F'\t' '{ printf "%s%s: %s", (NR > 1 ? ", " : ""), $2, $3 }' <<<"$runs"))"
+	elif [[ "$state" == UNKNOWN ]] && ((++unsure <= 4)); then
+		return 0
+	else
+		echo "$at has no CI run: no workflow ran for its head (skipped?);" \
+			"push a new commit, or start one: gh workflow run verify.yml --ref $branch"
+	fi
+	exit 4
+}
+
 deadline=$((SECONDS + minutes * 60))
+ask_why=$((SECONDS + grace * 60))
 settled=0
+bare=0
 while :; do
 	now=$(checks)
 	if [[ -n "$now" ]] && ! grep -q '^pending' <<<"$now"; then
@@ -56,9 +92,15 @@ while :; do
 	else
 		settled=0
 	fi
+	# Two answers in a row, as a gh that fails answers nothing too.
+	if [[ -n "$now" ]]; then bare=0; else bare=$((bare + 1)); fi
+	if ((bare >= 2 && SECONDS >= ask_why)); then
+		no_ci
+	fi
 	if ((SECONDS >= deadline)); then
-		echo "ci-wait: PR #$pr still running after $minutes min:" \
-			"$(grep '^pending' <<<"$now" | cut -f2 | paste -sd, -)"
+		running=$(grep '^pending' <<<"$now" | cut -f2 | paste -sd, -)
+		[[ -n "$now" ]] || running="no check reported yet"
+		echo "ci-wait: PR #$pr still running after $minutes min: $running"
 		exit 3
 	fi
 	sleep "$poll"
