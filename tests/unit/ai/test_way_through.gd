@@ -53,7 +53,7 @@ const OFF_THE_FLIGHTS: Array[Vector3] = [
 	Vector3(-114.375, F_DECK, 2.875),
 	Vector3(-65.0, E_DECK, -10.875),
 	Vector3(100.8125, E_DECK, 3.375),
-	Vector3(92.5625, F_DECK, 6.625),
+	Vector3(92.25, F_DECK, 6.625),
 	Vector3(-94.0275, ORLOP_AFT, -2.75),
 	Vector3(110.0, DOUBLE_BOTTOM, 0.0),
 ]
