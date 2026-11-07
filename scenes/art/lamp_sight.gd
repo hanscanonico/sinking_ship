@@ -51,6 +51,10 @@ var _near: Dictionary[Vector2i, PackedInt32Array] = {}
 var _filed := false
 var _looked := PackedInt32Array()
 var _unhanded := true
+## Its choice in the game's extension (NativeSight, #410), or null where the GDScript
+## makes it: the same rooms lit either way (test_lamp_sight). Her rooms are laid out for
+## it each time they are filed.
+var native: Object = ArtNative.made(&"NativeSight")
 
 
 func _init(space: ShipSpace) -> void:
@@ -112,13 +116,46 @@ func choose(eye: Vector3) -> void:
 				_burning[_rooms[index]] += 1
 	if not _filed:
 		_file_near()
-	# Every room but those looked at is unlit and out of reach: the last choice's go back
-	# to that before this one looks at its own.
+		if native != null:
+			_lay_out()
 	var looked_before := _looked
+	_looked = _near.get(_square(eye), PackedInt32Array())
+	var handing := PackedInt32Array()
+	if native != null:
+		var found: Array = native.choose(
+			eye, looked_before, _looked, _burning, limit, _lit, _reach, _handed
+		)
+		_lit = found[0]
+		_reach = found[1]
+		handing = found[2]
+	else:
+		_choose_here(eye, looked_before)
+	if _unhanded:
+		_unhanded = false
+		for room in _lit.size():
+			_hand(room)
+		return
+	if native != null:
+		# The rooms whose choice changed, in the order the GDScript hands them.
+		for each: int in handing:
+			var room := each >> 1
+			_handed[room] = each & 1
+			for index: int in _room_lamps[room]:
+				_lamps[index].wanted = each & 1 == 1
+		return
+	for room: int in looked_before:
+		_hand(room)
+	for room: int in _looked:
+		_hand(room)
+
+
+## The choice for the eye at [param eye], made here: every room but those looked at is
+## unlit and out of reach — [param looked_before], the last choice's, go back to that
+## before this one looks at its own (_looked).
+func _choose_here(eye: Vector3, looked_before: PackedInt32Array) -> void:
 	for room: int in looked_before:
 		_lit[room] = 0
 		_reach[room] = INF
-	_looked = _near.get(_square(eye), PackedInt32Array())
 	var burning := 0
 	for room: int in _looked:
 		var box := _boxes[room]
@@ -139,15 +176,6 @@ func choose(eye: Vector3) -> void:
 			break
 		_lit[next] = 1
 		burning += _burning[next]
-	if _unhanded:
-		_unhanded = false
-		for room in _lit.size():
-			_hand(room)
-		return
-	for room: int in looked_before:
-		_hand(room)
-	for room: int in _looked:
-		_hand(room)
 
 
 ## Hands room [param room]'s lamps the last choice for it, when it changed.
@@ -183,6 +211,39 @@ func _file_near() -> void:
 				var filed: PackedInt32Array = _near.get(at, PackedInt32Array())
 				filed.append(room)
 				_near[at] = filed
+
+
+## Lays her rooms out for the extension: each one's box and area, and its doorways'
+## lines and ways out.
+func _lay_out() -> void:
+	var box_positions := PackedVector3Array()
+	var box_sizes := PackedVector3Array()
+	var area_positions := PackedVector2Array()
+	var area_sizes := PackedVector2Array()
+	var doors_from := PackedInt32Array()
+	var lines := PackedVector2Array()
+	var ways := PackedVector2Array()
+	for room in _boxes.size():
+		box_positions.append(_boxes[room].position)
+		box_sizes.append(_boxes[room].size)
+		var area := _space.layout.rooms[room].area
+		area_positions.append(area.position)
+		area_sizes.append(area.size)
+		doors_from.append(lines.size())
+		lines.append_array(_door_lines[room])
+		ways.append_array(_door_ways[room])
+	doors_from.append(lines.size())
+	native.lay_out(
+		box_positions,
+		box_sizes,
+		area_positions,
+		area_sizes,
+		doors_from,
+		lines,
+		ways,
+		ShipLamp.REACH,
+		ShipLamp.STOREY_MARGIN
+	)
 
 
 ## Whether the last choice lit room [param room]'s lamps.
