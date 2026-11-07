@@ -848,3 +848,6 @@ STAIR_MOVES = [
     (("firemen's spiral staircase", 100.375, -2.5), (100.25, 101.375, -4.0, -0.8125, "port")),
     (("firemen's spiral staircase", 100.375, 0.5), (102.5, 103.5, 0.5625, 3.75, "starboard")),
 ]
+# The W.C.s forward of the third-class lavatories aft of O, whose faces those rooms only
+# touch: walled, or a hair's gap reads as a doorway onto them (#514).
+WALLED_SOLIDS = [(-116.0, -8.0, "aft"), (-115.7, 8.0, "aft")]

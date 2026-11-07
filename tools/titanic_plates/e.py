@@ -1300,6 +1300,10 @@ OPENED = [
 # ladder down (#514).
 # The lockers' faces only touch the passage's edge: walled like any other, its fittings' depth holds.
 WALLED_SOLIDS = [(-64.2, -7.6), (-64.2, -5.8)]
+# Faces the rooms by them only touch, so a hair's gap read as a doorway onto the solid
+# (#514): the reciprocating engine casing's forward end on K's line, and the W.C.s by the
+# bathrooms aft of H and of C.
+WALLED_SOLIDS += [(-38.0, -2.0, "fore"), (-38.0, 5.0, "fore"), (-14.0, -10.0, "starboard"), (85.5, -7.0, "starboard")]
 NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
              (79.5, 6.0), (80.0, -4.9)]
 # The store her stem takes: no floor of hers reaches it (E_STEM).

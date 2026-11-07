@@ -1135,6 +1135,9 @@ GONE = [(126.0, 0.0), (122.0, 0.0)]
 GONE += [(75.0, 0.0)]
 # Two closets whose faces only touch the rooms over them: walled, or those rooms read open.
 WALLED_SOLIDS = [(-101.3, -8.0), (-97.6, -8.0)]
+# Likewise (#514): the reciprocating engine casing's forward end on K's line, the boiler
+# casings by the third-class dining saloons and the linen drying room, the hot air tanks.
+WALLED_SOLIDS += [(-38.0, 0.0, "fore"), (-11.5, 0.0, "port"), (14.0, 0.0, "port"), (21.0, 7.5, "aft"), (48.0, 0.0, "port")]
 # The junior second engineer's L's leg over the stair box, which the box widened to port
 # (NUDGES) leaves no room for its door (DOOR_LEAST): a closet. His room is its other part.
 MADE_SOLID = [(-45.3, -10.9)]

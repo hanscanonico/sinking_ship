@@ -341,6 +341,8 @@ OPENED = [(99.3025, 99.3225, -1.0625, 1.4375)]
 # The lobby 0.5 m wider into it, for the foot of G deck's stair down (g.py's STAIR_MOVES,
 # beside F deck's flight down to G, #514).
 MADE_SOLID = [(-68.0, -10.95)]
+# The trunk the after hold's forward end only touches: walled (#514).
+WALLED_SOLIDS = [(-118.2, 0.0, "fore")]
 NUDGES = [(2, -10.25, -10.75, -71.3, -64.8)]
 
 STAIR_MOVES = [
