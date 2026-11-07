@@ -834,7 +834,11 @@ STAIRS = [
 STAIR_MOVES = [
     # Its head clear of the storekeepers' wall, whose cornice would hang over its treads:
     (("stewards' staircase", -27.4375, -2.25), (-27.4375, -26.4375, -1.625, 2.25)),
-    (("third-class ladder", 78.0, -7.75), (78.0, 81.3125, -7.4375, -4.875)),
+    # The port after ladderway's ladder down to E deck, one of its two ladders 4 ft wide
+    # (BOT) as one flight 1.1 m wide on its starboard side, E deck's on down to F beside it
+    # (e.py), and a lane to port of both on E deck to the rooms forward of them, which its
+    # run on forward over the landing left no way in (#514):
+    (("third-class ladder", 78.0, -7.75), (78.0, 81.3125, -5.5625, -4.4375)),
     (("third-class ladder", 78.0625, 5.0625), (78.0625, 81.3125, 5.0625, 7.6875)),
     # The firemen's spirals as straight flights athwart her, either side of E deck's flight
     # on down (e.py): the passage is too short along her for a flight and a lead each end.
