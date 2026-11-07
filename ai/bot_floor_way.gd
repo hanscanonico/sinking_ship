@@ -29,6 +29,10 @@ const MOST := 4096
 ## squares is looked for again over, as far round: a doorway the #360 rule's 0.9 m clear
 ## leaves a body's middle a lane narrower than CELL, which no square's middle need fall in.
 const FINER := 0.5
+## How near its end a way none was found to over CELL's squares must be for it to look
+## again over FINER's: a doorway's clear width is what keeps a near end from a body, and a
+## search over a far one's floor finer still settles too many squares to find it.
+const NARROW := MARGIN
 ## How near the way round it found the bot keeps to it: further off, it looks again — and how
 ## far its target may move off the end of a way round to it before that way is for where the
 ## target stood.
@@ -132,7 +136,7 @@ func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> V
 			return Vector3.INF
 		var end := to if leg == null else leg.entry
 		_way = _find(from, end, keep)
-		if _way.is_empty():
+		if _way.is_empty() and _flat(from, end) <= NARROW:
 			_way = _find(from, end, keep, true)
 		var ends := _way.is_empty() and _stands(from, surface, keep, _snug)
 		_finds = 0 if ends else _finds - 1
