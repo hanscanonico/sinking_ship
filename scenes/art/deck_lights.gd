@@ -106,9 +106,13 @@ var _space: ShipSpace
 var _reach: float
 ## Her glass (ShipFittings.panes), which a bulkhead lamp keeps clear of.
 var _panes: Array[Array] = []
-## Per light, its glass's own material, and the glow it was last shown at.
+## Per light, its glass's own material, and the glow it was last shown at — in doubles,
+## so a glow shown is one kept, not shown again every pose (#410).
 var _materials: Array[StandardMaterial3D] = []
-var _glows := PackedFloat32Array()
+var _glows := PackedFloat64Array()
+## The points each light's power is read at, the cell of each found once per cell map
+## (StillPoints, #410).
+var _behind_points: StillPoints
 
 
 ## Finds where [param space]'s lights go: a lamp over each of [param break_doors]
@@ -203,19 +207,28 @@ func build(art: Node3D, materials: Dictionary, cut_above: float, span: Vector2) 
 ## dimmer on her emergency power, out on nothing (ShipPose.lit) — and puts out each the
 ## water of that cell has reached. A pose without cells leaves them as they were.
 func show_power(pose: ShipPose) -> void:
-	if pose.lit.is_empty():
+	# A pose that keeps no cells has no light in one (ShipPose.cell_at).
+	if pose.lit.is_empty() or pose.levels.is_empty():
 		return
-	for index in kinds.size():
-		var cell := pose.cell_at(behinds[index])
+	if _behind_points == null or _behind_points.size() != behinds.size():
+		_behind_points = StillPoints.new(behinds)
+	_behind_points.read(pose)
+	var cells := _behind_points.cells()
+	# Every glass's height in the world at once, as ShipPose.world_height has each.
+	var world := pose.transform * glasses
+	var lit := pose.lit
+	var levels := pose.levels
+	for index in cells.size():
+		var cell := cells[index]
 		if cell == CellMap.NONE:
 			continue
 		var glow := 0.0
-		match pose.lit[cell]:
+		match lit[cell]:
 			ShipPower.Power.MAIN:
 				glow = 1.0
 			ShipPower.Power.EMERGENCY:
 				glow = ShipLamp.EMERGENCY_GLOW
-		if pose.levels[cell] >= pose.world_height(glasses[index]):
+		if levels[cell] >= world[index].y:
 			glow = 0.0
 		_show(index, glow)
 
