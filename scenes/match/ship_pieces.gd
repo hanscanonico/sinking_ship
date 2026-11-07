@@ -257,6 +257,7 @@ func flood_with(sea: ShaderMaterial, first: InnerWater) -> void:
 		water.setup(
 			structure,
 			layout.rooms,
+			layout,
 			_kept(_schedule.passages(), structure, _spans[at]),
 			_kept(_schedule.failing(), structure, _spans[at]),
 			sea,

@@ -205,13 +205,15 @@ var _unmade := PackedInt32Array()
 
 
 ## Draws the water in [param structure], round [param rooms] where her cells poke out
-## of her (CellBoxes), with [param sea]'s material, pouring through [param passages] — the
+## of her and up to whatever roofs them in [param layout], whose rooms they are
+## (CellBoxes), with [param sea]'s material, pouring through [param passages] — the
 ## openings water can pass after the hit — and through [param failing] once each has
 ## given way (SinkSchedule.failing), and its doors' leaves in [param paints]
 ## (ShipArt.paints), none without them.
 func setup(
 	structure: ShipStructure,
 	rooms: Array[ShipRoom],
+	layout: ShipLayout,
 	passages: Array[ShipOpening],
 	failing: Array[ShipOpening],
 	sea: ShaderMaterial,
@@ -240,7 +242,7 @@ func setup(
 	_stack_cells.clear()
 	_cell_stacks.clear()
 	_stack_bounds.clear()
-	for stack: Array in CellBoxes.stacked(structure, rooms):
+	for stack: Array in CellBoxes.stacked(structure, rooms, layout):
 		var cell: int = stack[0]
 		var box: AABB = stack[1]
 		if _stack_cells.is_empty() or _stack_cells[-1] != cell:

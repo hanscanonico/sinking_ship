@@ -71,6 +71,7 @@ func test_her_water_is_drawn_alike_as_she_sinks() -> void:
 			water.setup(
 				config.ship.structure,
 				config.ship.rooms,
+				config.ship,
 				schedule.passages(),
 				schedule.failing(),
 				sea,
@@ -182,6 +183,7 @@ func test_her_water_on_its_edges_is_drawn_and_heard_alike() -> void:
 			water.setup(
 				config.ship.structure,
 				config.ship.rooms,
+				config.ship,
 				schedule.passages(),
 				schedule.failing(),
 				sea,

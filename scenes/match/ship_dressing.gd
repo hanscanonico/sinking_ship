@@ -393,7 +393,7 @@ func _ship_maps() -> void:
 	SeaAndSky.maps_of(_ship, _shared)
 	DeckWetness.out_on_deck(_ship, _shared)
 	if _ship.structure != null:
-		CellBoxes.boxes(_ship.structure, _ship.rooms)
+		CellBoxes.stacked(_ship.structure, _ship.rooms, _ship)
 
 
 ## Draws her art's frame (ShipArt.build_frame) as her sinking is baked: as it is drawn

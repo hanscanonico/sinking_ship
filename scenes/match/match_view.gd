@@ -353,7 +353,9 @@ func flood_with(sea: ShaderMaterial) -> void:
 		_drawn_pieces.flood_with(sea, _inner)
 		return
 	var paints: Dictionary = {} if _greybox.visible else _art.paints()
-	_inner.setup(_structure, _rooms, _schedule.passages(), _schedule.failing(), sea, paints)
+	_inner.setup(
+		_structure, _rooms, _layout, _schedule.passages(), _schedule.failing(), sea, paints
+	)
 
 
 ## How far the world point [param eye] stands above the water it is in — its cell's,
