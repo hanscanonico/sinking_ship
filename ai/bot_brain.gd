@@ -631,7 +631,10 @@ func _aim(seen: Dictionary) -> PackedVector3Array:
 
 
 ## Along the route to what it goes to take, [param aim] (_aim); there, to where it stands
-## to take it, looking at it — or, that gone from its view, hunting.
+## to take it, by the floor (BotFloorWay: a manhole's ladder opens in the floor it crosses),
+## at a pace that would bring it there in two of its view's lags — reckoned on by its seen
+## velocity it stands a lag's walk off however it turns, so at a walk it would carry on round
+## where it stands for good (#537) — looking at it; or, that gone from its view, hunting.
 func _take(
 	steer: Steer,
 	aim: PackedVector3Array,
@@ -647,11 +650,17 @@ func _take(
 		return
 	var stand := aim[0]
 	var at := aim[1]
-	var wish := Vector2(stand.x - now_pos.x, stand.z - now_pos.z)
 	steer.watch = Vector2(at.x - now_pos.x, at.z - now_pos.z)
-	if wish.length() > _rules.body_radius * 0.5:
-		steer.move = _footing.clear_heading(
-			now_pos, wish.normalized(), PackedInt32Array(), PackedInt32Array()
+	var off := _flat(now_pos, stand)
+	if off > _rules.body_radius * 0.5:
+		var on := _surfaces.under(now_pos, _rules.step_height)
+		var surface: int = me["surface"] if on == Surfaces.NONE else on
+		var way := _floor_way.toward(now_pos, surface, null, stand)
+		var wish := Vector2(way.x - now_pos.x, way.z - now_pos.z).normalized()
+		var lags := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK * _rules.walk_speed * 2.0
+		steer.move = (
+			_footing.clear_heading(now_pos, wish, PackedInt32Array(), PackedInt32Array())
+			* minf(1.0, off / lags)
 		)
 
 

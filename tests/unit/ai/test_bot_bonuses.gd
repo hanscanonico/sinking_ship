@@ -28,6 +28,11 @@ const G_DECK_TWO_BERTH := Vector3(-116.8438, -11.0, 0.0)
 ## Where in the Titanic's second-class dining saloon on D deck a bot sets out from for the
 ## CO2 evaporator room, two decks down, whose area runs past her cells at her shell.
 const DINING_SALOON := Vector3(-70.54295, -3.1875, -8.19375)
+## The Titanic's firemen's passage on her tank top, forward of boiler room 6: its bonus spot,
+## and a point just aft of the head of the manhole ladder down to No. 3 hold's double bottom,
+## which opens in the middle of its floor from x 71.76 to 73.76, railed along its sides.
+const FIREMENS_PASSAGE := Vector3(85.6727, -18.1875, 0.2188)
+const AFT_OF_THE_MANHOLE := Vector3(71.2, -18.1875, -0.05)
 
 
 func _tier(tier: StringName) -> BotProfile:
@@ -295,6 +300,80 @@ func test_a_bot_on_the_titanic_goes_round_the_stairs_in_a_passage_for_a_bonus() 
 	assert_true(_until(runner, 1.0, going), "it sets out")
 	var took := _until(runner, 40.0, func() -> bool: return bot.bonus != -1)
 	assert_true(took, "it went round the stairs and took it: at %s" % bot.pos)
+
+
+## In the Titanic's firemen's passage, aft of the head of the manhole ladder down to No. 3
+## hold's double bottom that opens in the middle of its floor, a bot goes for the Double life
+## lying forward of it: the bonus is in the zone it stands in, and it walks round the manhole's
+## railed side by the floor (BotFloorWay), never down the ladder, and takes it (#537). On main
+## it walked straight at it, down the ladder, back up by the route, and down again, for good.
+func test_a_bot_walks_round_a_manhole_in_its_floor_to_a_bonus() -> void:
+	var sinking: SinkScenario = load(TITANIC_SINKING).duplicate()
+	sinking.hit = null
+	sinking.explicit_hit = null
+	var sim := SimFixtures.bonus_sim(SimFixtures.bonus_rules(600.0), 3, load(TITANIC), sinking)
+	var spot := _spot_at(sim, FIREMENS_PASSAGE)
+	assert_ne(spot, -1, "a spot there")
+	SimFixtures.bring_aboard(sim, spot)
+	SimFixtures.place(sim, 0, AFT_OF_THE_MANHOLE, 0.0)
+	var bot := sim.state.seats[0]
+	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+	var runner := _runner(sim, source)
+	var going := func() -> bool: return source.brain.intent == BotBrain.Intent.TAKE_BONUS
+	assert_true(_until(runner, 1.0, going), "it sets out")
+	var lowest := INF
+	for _tick in Ticks.from_seconds(20.0):
+		runner.step()
+		lowest = minf(lowest, bot.pos.y)
+		if bot.bonus != -1:
+			break
+	assert_ne(bot.bonus, -1, "it took it: at %s" % bot.pos)
+	assert_almost_eq(lowest, FIREMENS_PASSAGE.y, 0.05, "never down the manhole")
+
+
+## Seat 0's stick, walking it the way [param walk] points — its look along it — until it
+## stands [param past] along that way; from then on its bot's.
+class Walked:
+	extends InputSource
+	var bot: BotInputSource
+	var body: PlayerState
+	var walk: Vector2
+	var past: float
+	var handed := false
+
+	func next_frame(tick: int) -> InputFrame:
+		handed = handed or Vector2(body.pos.x, body.pos.z).dot(walk) >= past
+		if handed:
+			return bot.next_frame(tick)
+		var stick := InputFrame.quantize(walk)
+		return InputFrame.new(0, tick, stick, 0, InputFrame.quantize_yaw(walk.angle()))
+
+	func observe(snapshot: Dictionary, pose: ShipPose) -> void:
+		bot.observe(snapshot, pose)
+
+
+## A bot walking along the hold at a walk, 1.2 to 1.5 m to one side of the bonus lying in its
+## middle, turns in for it from just short of abreast of it and takes it at once. On main it
+## walked at it at a walk from where its view, a lag behind, carried it on: it went round and
+## round the bonus half a metre off, its look a lag behind the turn, and never took it (#537).
+func test_a_bot_walking_past_a_bonus_turns_in_and_takes_it() -> void:
+	var layout := _long_hold()
+	var spot_at := Vector3(-20.0, SimFixtures.HOLD_FLOOR, 0.0)
+	layout.bonus_spots[0].point = spot_at
+	for passing: Vector2 in [Vector2(1.2, -1.0), Vector2(1.2, 0.0), Vector2(1.5, -0.5)]:
+		var sim := _in_the_hold(0.0, null, layout)
+		SimFixtures.place(sim, 0, spot_at + Vector3(-10.0, 0.0, passing.x), 0.0)
+		var walked := Walked.new()
+		walked.bot = BotInputSource.new(0, _tier(&"normal"), sim.config)
+		walked.body = sim.state.seats[0]
+		walked.walk = Vector2(1.0, 0.0)
+		walked.past = spot_at.x + passing.y
+		var sources: Array[InputSource] = [walked, InputSource.new(), InputSource.new()]
+		var runner := MatchRunner.new(sim, sources)
+		assert_true(_until(runner, 3.0, func() -> bool: return walked.handed), "walked there")
+		var took := _until(runner, 1.0, func() -> bool: return walked.body.bonus != -1)
+		var where := "%.1f m off, from %.1f m" % [passing.x, passing.y]
+		assert_true(took, "%s: took it, at %s" % [where, walked.body.pos])
 
 
 ## A room's area runs out to the middle of its walls, and at the Titanic's shell that lay
