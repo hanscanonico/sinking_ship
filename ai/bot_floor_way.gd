@@ -129,10 +129,11 @@ func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> V
 	var keep := PackedInt32Array([surface])
 	if leg != null and leg.ramp != WalkGraph.NONE:
 		keep.append(_surfaces.ramp_surface(leg.ramp))
+	var heads := _heads(from, leg, to)
 	var near := _nearest(from)
 	if near == -1:
 		_way.clear()
-		if _finds == 0 or _walks(from, to, keep, LOOK):
+		if _finds == 0 or _holds(from, to, heads, keep):
 			return Vector3.INF
 		var end := to if leg == null else leg.entry
 		_way = _find(from, end, keep)
@@ -147,10 +148,38 @@ func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> V
 	for ahead: int in AHEAD:
 		var at := mini(near + ahead, last)
 		if _walks(from, _way[at], keep, INF):
-			if at == last and _walks(from, to, keep, LOOK):
+			if at == last and _holds(from, to, heads, keep):
 				return Vector3.INF
 			return _way[at]
 	return _way[mini(near + 1, last)]
+
+
+## Whether a walk straight from [param from] at [param to] holds, as far as LOOK (_walks), and
+## walked on to [param heads] (_heads), as far as LOOK, never steps onto a stair not of
+## [param keep] (_strays): off a stair's foot or head a walk is taken up or down it, into a
+## zone whose route is back the way it came.
+func _holds(from: Vector3, to: Vector3, heads: Vector3, keep: PackedInt32Array) -> bool:
+	if not _walks(from, to, keep, LOOK):
+		return false
+	return heads == to or not _strays(from, heads, keep, LOOK)
+
+
+## Where a body at [param from] walking at [param to], the point the walk graph gives it for
+## [param leg] (WalkGraph.toward), heads: in front of the leg's way through, that point stays
+## a body's width on along the body's own line, which it walks on to where that line crosses
+## the way through (WalkGraph._line); else [param to] itself, and [param to] once it lies
+## further.
+func _heads(from: Vector3, leg: WalkGraph.Portal, to: Vector3) -> Vector3:
+	if leg == null:
+		return to
+	var offset := Vector2(from.x - leg.entry.x, from.z - leg.entry.z)
+	if offset.dot(leg.along) >= 0.0:
+		return to
+	var room := maxf(leg.half_width - _rules.body_radius * 2.0, 0.0)
+	var across := leg.along.orthogonal()
+	var side := across * clampf(offset.dot(across), -room, room)
+	var crossing := leg.entry + Vector3(side.x, 0.0, side.y)
+	return crossing if _flat(from, crossing) > _flat(from, to) else to
 
 
 ## The index of the point of the way round held that lies nearest [param from], within
@@ -187,6 +216,26 @@ func _walks(from: Vector3, to: Vector3, keep: PackedInt32Array, reach: float) ->
 			return false
 		feet = _surfaces.height_at(surface, point)
 	return true
+
+
+## Whether a walk straight from [param from] at [param to], as far as [param reach] metres of
+## it, its feet carried along it a step at a time as _walks carries them, steps onto a stair
+## not of [param keep] before it leaves every surface.
+func _strays(from: Vector3, to: Vector3, keep: PackedInt32Array, reach: float) -> bool:
+	var flat := Vector2(to.x - from.x, to.z - from.z)
+	var length := minf(flat.length(), reach)
+	var steps := ceili(length / (_lean * 2.0))
+	var feet := from.y
+	for index in range(1, steps + 1):
+		var at := Vector2(from.x, from.z) + flat.normalized() * (length * index / steps)
+		var point := Vector3(at.x, feet, at.y)
+		var surface := _surfaces.under(point, _rules.step_height)
+		if surface == Surfaces.NONE:
+			return false
+		if _surfaces.is_ramp(surface) and not surface in keep:
+			return true
+		feet = _surfaces.height_at(surface, point)
+	return false
 
 
 ## Whether a body [param radius] round could stand with its feet at [param point] on
