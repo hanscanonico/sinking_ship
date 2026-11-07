@@ -196,3 +196,19 @@ func test_the_dressed_ship_puts_her_lights_out_with_her_power() -> void:
 	assert_gt(glass.emission_energy_multiplier, 0.0, "lit")
 	art.show_power(_pose(config, ShipPower.Power.DARK))
 	assert_eq(glass.emission_energy_multiplier, 0.0, "out once her power is gone")
+
+
+## A glow is kept as it was shown (#410): on her emergency power a light's glow is the
+## lamp's own share, not a float32 of it that the next pose's never matches, so a light
+## dimmed once is not dimmed again pose after pose.
+func test_a_dimmed_light_keeps_the_glow_it_was_shown() -> void:
+	var config := RunMatch.default_config(1701, 0, &"steamer")
+	var lights := _lights(&"steamer")
+	var emergency := _pose(config, ShipPower.Power.EMERGENCY)
+	lights.show_power(emergency)
+	var dimmed := 0
+	for index in lights.kinds.size():
+		if emergency.cell_at(lights.behinds[index]) != CellMap.NONE:
+			assert_eq(lights.glow_of(index), ShipLamp.EMERGENCY_GLOW, "as shown")
+			dimmed += 1
+	assert_gt(dimmed, 0, "some read a cell")

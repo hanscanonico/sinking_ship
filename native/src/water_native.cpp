@@ -277,7 +277,41 @@ double NativeWater::share(const PackedFloat64Array &p_areas, const PackedByteArr
 	return whole > 0.0 ? flooded / whole : 0.0;
 }
 
+// LampPower._changed: per lamp in a cell (p_cells, NONE for none), its power p_lit[cell]
+// and whether the cell's water p_levels[cell] has reached it, standing at p_world[index].y,
+// as power * 2 + drowned; the lamps whose state differs from p_shown, in order, and every
+// lamp's state after.
+Array NativeWater::lamps_shown(const PackedInt32Array &p_cells, const PackedByteArray &p_lit,
+		const PackedFloat64Array &p_levels, const PackedVector3Array &p_world, const PackedInt32Array &p_shown) const {
+	PackedInt32Array changed;
+	PackedInt32Array shown = p_shown;
+	int32_t *out = shown.ptrw();
+	const int32_t *cells = p_cells.ptr();
+	const uint8_t *lit = p_lit.ptr();
+	const double *levels = p_levels.ptr();
+	const Vector3 *world = p_world.ptr();
+	for (int64_t index = 0; index < p_cells.size(); index++) {
+		const int32_t cell = cells[index];
+		if (cell == NONE) {
+			continue;
+		}
+		const bool drowned = levels[cell] >= double(world[index].y);
+		const int32_t state = int32_t(lit[cell]) * 2 + (drowned ? 1 : 0);
+		if (state == out[index]) {
+			continue;
+		}
+		out[index] = state;
+		changed.push_back(int32_t(index));
+	}
+	Array found;
+	found.push_back(changed);
+	found.push_back(shown);
+	return found;
+}
+
 void NativeWater::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("lamps_shown", "cells", "lit", "levels", "world", "shown"),
+			&NativeWater::lamps_shown);
 	ClassDB::bind_method(D_METHOD("wet_all", "world", "cells", "keeps", "levels", "world_own_floors", "highest",
 								 "dry"),
 			&NativeWater::wet_all);

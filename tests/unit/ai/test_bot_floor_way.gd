@@ -26,6 +26,12 @@ const FOREMAST_FORE_SIDE := 95.875
 const BY_NO_1_HATCH := Vector3(103.2, FORECASTLE, -1.8)
 const IN_NO_1_HATCH := Vector3(105.5, FORECASTLE, 0.0)
 const ON_HER_HEAD := Vector3(113.0, 4.9375, 5.0)
+## D deck's third-class open space forward of B: just off the foot of the ladder down from the
+## third-class ladderway on C deck, which rises aft from x 96.375 to 92.6875 over z -7.0 to
+## -4.625; and past the open space's 8 m join aft, x 91.875, behind the ladder.
+const D_DECK := -1.25
+const LADDER_FOOT := Vector3(97.2, D_DECK, -5.9)
+const BEHIND_THE_LADDER := Vector3(90.5, D_DECK, -6.75)
 ## How far round its feet a walk's step is looked at for what stands on her deck: a way round
 ## is walked straight as far as a body LEAN of its radius round gets, and between the points
 ## a straight walk is looked at, a step may graze what that body would slide along.
@@ -91,6 +97,37 @@ func test_a_bot_goes_round_the_stairs_in_the_passage_to_its_door() -> void:
 		assert_false(surfaces.is_ramp(surface), "on no stair at %s" % point)
 		furthest_round = minf(furthest_round, point.z)
 	assert_lt(furthest_round, -0.625, "round the far side of the stair from F deck")
+
+
+## Off the foot of the ladder it came down, a bot's route goes on through a join 8 m wide
+## behind that ladder, whose point (WalkGraph.toward) stays a body's width ahead along the
+## bot's own line: a walk straight at it holds for that body's width, and the ladder's foot
+## lies just past it. It goes round the ladder by the floor, every step on her D deck's floor,
+## to the join. On main it looked only as far as the point, walked on up the ladder it had no
+## way along, turned back off its foot, and paced there for good (#501 rows 20 and 21).
+func test_a_bot_goes_round_the_ladder_it_came_down_to_a_wide_join_behind_it() -> void:
+	var leg := _portal(LADDER_FOOT, BEHIND_THE_LADDER)
+	assert_not_null(leg, "the join aft")
+	assert_gt(leg.half_width, 2.0, "a wide one")
+	var surfaces := _graph.surfaces()
+	var step := SimFixtures.rules().step_height
+	var way := BotFloorWay.new(_graph, SimFixtures.rules(), 1)
+	var at := LADDER_FOOT
+	var through := false
+	for _look in 160:
+		var surface := surfaces.under(at, step)
+		var aim := way.toward(at, surface, leg, _graph.toward(leg, at, surface))
+		var flat := Vector2(aim.x - at.x, aim.z - at.z)
+		at += Vector3(flat.x, 0.0, flat.y).limit_length(0.25)
+		var under := surfaces.under(at, step)
+		assert_ne(under, Surfaces.NONE, "on a floor at %s" % at)
+		assert_false(surfaces.is_ramp(under), "on no stair at %s" % at)
+		if under == Surfaces.NONE or surfaces.is_ramp(under):
+			break
+		through = Vector2(at.x - leg.entry.x, at.z - leg.entry.z).dot(leg.along) > 0.0
+		if through:
+			break
+	assert_true(through, "through the join, at %s" % at)
 
 
 ## Where a walk straight at the route's point holds, it is the point the bot walks to.

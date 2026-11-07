@@ -7,6 +7,7 @@
 #pragma once
 
 #include <godot_cpp/classes/ref_counted.hpp>
+#include <godot_cpp/variant/array.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_float64_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
@@ -18,6 +19,8 @@ class NativeWater : public RefCounted {
 	GDCLASS(NativeWater, RefCounted)
 
 public:
+	Array lamps_shown(const PackedInt32Array &p_cells, const PackedByteArray &p_lit, const PackedFloat64Array &p_levels,
+			const PackedVector3Array &p_world, const PackedInt32Array &p_shown) const;
 	PackedByteArray wet_all(const PackedVector3Array &p_world, const PackedInt32Array &p_cells,
 			bool p_keeps, const PackedFloat64Array &p_levels,
 			const PackedVector3Array &p_world_own_floors, double p_highest, double p_dry) const;

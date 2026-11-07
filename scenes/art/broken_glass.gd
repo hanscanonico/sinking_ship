@@ -18,8 +18,10 @@ const SHARD_REACH := Vector2(0.25, 0.55)
 ## art-lint's tolerance (tools/art_lint.gd's PANE_TOLERANCE).
 const NEAR := 0.05
 
-## Per opening that can break, by name, the node its broken look hangs from.
+## Per opening that can break, by name, the node its broken look hangs from; and those
+## shown broken, as the pose last shown had them.
 var _nodes := {}
+var _broken: Dictionary[StringName, bool] = {}
 
 
 ## The broken look of every pane of [param panes] (ShipFittings.panes) that is a window
@@ -55,13 +57,26 @@ func _init(layout: ShipLayout, panes: Array[Array], art: Node3D, paints: Diction
 		_nodes[glass[found[0]].name] = node
 
 
-## Shows each pane [param pose] has given way broken.
+## Shows each pane [param pose] has given way broken: of hers, only those it has failed
+## (ShipPose.opened) and those shown broken before are asked of (#410).
 func show(pose: ShipPose) -> void:
-	for opening: StringName in _nodes:
-		var node: Node3D = _nodes[opening]
-		var broken: bool = pose.opened.get(opening, 0) == 2
-		if node.visible != broken:
-			ShipArt.show_apart(node, broken)
+	var broken: Dictionary[StringName, bool] = {}
+	for opening: StringName in pose.opened:
+		if pose.opened[opening] == 2 and _nodes.has(opening):
+			broken[opening] = true
+	for opening: StringName in _broken:
+		if not broken.has(opening):
+			_show(opening, false)
+	for opening: StringName in broken:
+		_show(opening, true)
+	_broken = broken
+
+
+## Shows the pane of [param opening] [param broken], or whole.
+func _show(opening: StringName, broken: bool) -> void:
+	var node: Node3D = _nodes[opening]
+	if node.visible != broken:
+		ShipArt.show_apart(node, broken)
 
 
 ## A porthole's glass gone at [param centre], facing [param normal] into its room: the
