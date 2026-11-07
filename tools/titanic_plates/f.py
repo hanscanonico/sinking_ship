@@ -1133,6 +1133,10 @@ OPENED = [
     # The engineers' stair box's whole forward end, where E deck's ladder comes down and
     # the stair on down to G deck comes up side by side (#514):
     (-44.4475, -44.4275, -10.375, -8.6875),
+    # The ladderway's after wall over G deck's ladder's hole, which reaches past it into the
+    # passage (no wall left hanging over its hole): with the ladderway's door moved clear
+    # of the railing round it (DOOR_MOVES) the wall stood across the hole (#514).
+    (92.5525, 92.5725, 4.625, 5.75),
 ]
 # The passage two flights fill side by side; the engineers' stairway its stair fills; the
 # passage along L's ladder fills.
