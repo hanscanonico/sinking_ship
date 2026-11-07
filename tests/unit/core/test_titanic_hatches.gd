@@ -6,10 +6,13 @@ extends GutTest
 ## forecastle (c.py), no way from D deck's space into it. No. 1 trunked from G deck up to its
 ## cover (g.py, f.py, e.py draw its sides on each deck): a cell of its own, open down into its
 ## hold through G deck (orlop.py: "open down to the holds under them"), shut off from the
-## 'tween round it. None of the open hatchways her generator laid there is left. And the
-## 'tweens her trunks part keep their ports: the Britannic's open where the 'tween's are.
+## 'tween round it but for its casing's seams, which weep (#513). None of the open hatchways
+## her generator laid there is left. And the 'tweens her trunks part keep their ports: the
+## Britannic's open where the 'tween's are.
 
 const SHIP := "res://data/ships/titanic.tres"
+## The most a casing's face weeps through its seams, in m² (tools/titanic_leakage.py).
+const SEAMS := 0.05
 const COVERS: Dictionary[StringName, Array] = {
 	&"cover_no_1_hatch_port": [&"no_1_hatch_trunk", &"hold_1_d"],
 	&"cover_no_1_hatch_starboard": [&"no_1_hatch_trunk", &"hold_1_d"],
@@ -100,6 +103,11 @@ func test_each_forward_hatch_is_trunked_from_its_hold_up_to_its_cover() -> void:
 				assert_almost_eq(opening.centre.y, G_DECK, 1e-4, "%s's foot in G deck" % trunk_name)
 			elif COVERS.has(StringName(cover)):
 				covers.append(opening.name)
+			elif opening.kind == ShipOpening.Kind.LEAK:
+				# Its casing's seams weep into the 'tween beside it (#513): a leak, never a way.
+				assert_lt(
+					opening.flow_area(), SEAMS, "%s: %s only weeps" % [trunk_name, opening.name]
+				)
 			else:
 				fail_test(
 					"%s: %s, a way out but to its hold or its cover" % [trunk_name, opening.name]

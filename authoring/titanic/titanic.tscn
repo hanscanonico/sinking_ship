@@ -125446,6 +125446,66 @@ metadata/joins = Array[StringName]([&"forecastle", &"sky"])
 metadata/starts = "SHUT"
 metadata/collapse_head = 2.0
 
+[node name="Opening_seams_hold_1_aft_tween_no_1_hatch_trunk" type="CSGBox3D" parent="Structure/Openings" unique_id=1544140229]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.1875, -6.125, 0.0625)
+size = Vector3(0, 9.75, 3.875)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"seams_hold_1_aft_tween_no_1_hatch_trunk"
+metadata/kind = "LEAK"
+metadata/joins = Array[StringName]([&"hold_1_aft_tween", &"no_1_hatch_trunk"])
+metadata/area = 0.0049
+
+[node name="Opening_seams_hold_1_port_tween_no_1_hatch_trunk" type="CSGBox3D" parent="Structure/Openings" unique_id=573521893]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -6.125, -1.875)
+size = Vector3(3, 9.75, 0)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"seams_hold_1_port_tween_no_1_hatch_trunk"
+metadata/kind = "LEAK"
+metadata/joins = Array[StringName]([&"hold_1_port_tween", &"no_1_hatch_trunk"])
+metadata/area = 0.0034
+
+[node name="Opening_seams_hold_1_starboard_tween_no_1_hatch_trunk" type="CSGBox3D" parent="Structure/Openings" unique_id=781493373]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -6.125, 2)
+size = Vector3(3, 9.75, 0)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"seams_hold_1_starboard_tween_no_1_hatch_trunk"
+metadata/kind = "LEAK"
+metadata/joins = Array[StringName]([&"hold_1_starboard_tween", &"no_1_hatch_trunk"])
+metadata/area = 0.0034
+
+[node name="Opening_seams_hold_1_tween_no_1_hatch_trunk" type="CSGBox3D" parent="Structure/Openings" unique_id=11344104]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.1875, -6.125, 0.0625)
+size = Vector3(0, 9.75, 3.875)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"seams_hold_1_tween_no_1_hatch_trunk"
+metadata/kind = "LEAK"
+metadata/joins = Array[StringName]([&"hold_1_tween", &"no_1_hatch_trunk"])
+metadata/area = 0.0049
+
+[node name="Opening_seams_staircase_house_officers_house" type="CSGBox3D" parent="Structure/Openings" unique_id=1014045569]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 35.4375, 9.6875, 0.1875)
+size = Vector3(0, 2.625, 13.575)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"seams_staircase_house_officers_house"
+metadata/kind = "LEAK"
+metadata/joins = Array[StringName]([&"staircase_house", &"officers_house"])
+metadata/area = 0.0048
+
+[node name="Opening_seams_after_entrance_house_smoking_room_house" type="CSGBox3D" parent="Structure/Openings" unique_id=892300580]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -86.6875, 4.125, 0.0625)
+size = Vector3(0, 2.75, 6.075)
+material = SubResource("StandardMaterial3D_nubv8")
+metadata/ship = &"opening"
+metadata/name = &"seams_after_entrance_house_smoking_room_house"
+metadata/kind = "LEAK"
+metadata/joins = Array[StringName]([&"after_entrance_house", &"smoking_room_house"])
+metadata/area = 0.0023
+
 [node name="Mass" type="Node3D" parent="Structure" unique_id=1603486576]
 
 [node name="Mass_hull_steel" type="Marker3D" parent="Structure/Mass" unique_id=1461213012]

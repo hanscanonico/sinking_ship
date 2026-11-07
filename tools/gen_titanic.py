@@ -4711,6 +4711,81 @@ def windows():
 for skipped in sorted(set(windows())):
     print("no cell holds %s: its windows left out" % skipped, file=sys.stderr)
 
+# Leakage through her boundaries that are not watertight (#513; titanic_leakage.py gives each
+# gap's size and its source): every face two of her cells share, standing up, with no
+# watertight wall over it and no opening through it, is one of these.
+# - A hatch trunk's casing (TRUNKS): riveted steel, not caulked; its seams leak, a joint
+#   where it meets each deck from its foot to its head. A door the plate draws in a casing
+#   (CASING_DOORS) is shut that night (est.: a walled deck is an enclosed trunk, the ruling
+#   on #512), and weeps through its gaps besides.
+# - The end wall two of her deckhouses share (HOUSE_CELLS): est. her houses' steel plating,
+#   seamed as a casing is, a joint at its deck and at its roof.
+# - Steel her model already makes tight, or weep by openings of its own, named in TIGHT with
+#   why. Any other face fails the generator, so no boundary is left watertight unsaid.
+# No face between two of her cells is a cabin's panelled partition: her cells hold each of
+# her spaces whole, so the partitions inside one already pass water freely.
+from titanic_leakage import casing_seams, door_gaps  # noqa: E402
+
+CASING_DOORS = {"bunker hatch": [(G_DECK, 1.39)]}  # Plate V: a door in each side's middle on G, 1.39 m
+TIGHT = [
+    # A coal bunker's face and its plating round the tunnels, and the firemen's passage's:
+    # steel her bunkers' own leaks (leak_bunker_*, scuttle_bunker_*) and the passage's
+    # (leak_passage_*, door_passage_*) stand for.
+    (lambda a, b: a.startswith("bunker_") or b.startswith("bunker_"), "a bunker's plating"),
+    (lambda a, b: "firemens_passage" in a + b, "the firemen's passage's plating"),
+    # A step in a deck: the deck's own steel, standing up where it steps.
+    (lambda a, b: {unsplit(a), unsplit(b)} in ({"d_deck_forward", "c_deck"}, {"hold_3_upper", "d_deck"}),
+     "a step in her deck"),
+]
+def unsplit(name):
+    """A cell's name before a sister's raised bulkheads cut it (piece) or a trunk parted it."""
+    name = re.sub(r"_\d+$", "", name)
+    return re.sub(r"_(port|starboard|aft|fore)$", "", name) if name.startswith("hold_3_upper") else name
+
+DECK_LEVELS = [ORLOP_FWD, ORLOP, G_DECK, F_DECK, E_DECK, D_DECK, 0.0, B_DECK, A_DECK, BOAT]
+
+def shared_faces():
+    """Every face two cells share standing up: (a, b, axis, at, (y0, y1), (along0, along1))."""
+    found = []
+    for i, ca in enumerate(CELLS):
+        for cb in CELLS[i + 1:]:
+            for axis, lo, hi, olo, ohi in [(0, 1, 2, 5, 6), (2, 5, 6, 1, 2)]:
+                if abs(ca[hi] - cb[lo]) < 1e-4 or abs(cb[hi] - ca[lo]) < 1e-4:
+                    at = ca[hi] if abs(ca[hi] - cb[lo]) < 1e-4 else ca[lo]
+                    y0, y1 = max(ca[3], cb[3]), min(ca[4], cb[4])
+                    s0, s1 = max(ca[olo], cb[olo]), min(ca[ohi], cb[ohi])
+                    if y1 - y0 > 1e-3 and s1 - s0 > 1e-3:
+                        found.append((ca[0], cb[0], axis, at, (y0, y1), (s0, s1)))
+    return found
+
+def walled(a, b, axis, at):
+    return any(w[1] == ("ACROSS" if axis == 0 else "ALONG") and abs(w[2] - at) < 1e-3 and a in w[7] and b in w[7]
+               for w in walls)
+
+def joints(y0, y1):
+    """A face's joints with her decks: its foot, its head and each deck it passes."""
+    return 2 + sum(1 for h in DECK_LEVELS if y0 + 0.05 < h < y1 - 0.05)
+
+joined = {frozenset(o[2]) for o in openings}
+trunk_cells = {slug(what) + "_trunk": what for what in TRUNKED}
+for a, b, axis, at, (y0, y1), (s0, s1) in shared_faces():
+    if frozenset((a, b)) in joined or walled(a, b, axis, at):
+        continue
+    width, height = s1 - s0, y1 - y0
+    middle = [at, (y0 + y1) * 0.5, (s0 + s1) * 0.5] if axis == 0 else [(s0 + s1) * 0.5, (y0 + y1) * 0.5, at]
+    extent = [0.0, height, width] if axis == 0 else [width, height, 0.0]
+    trunk = trunk_cells.get(a) or trunk_cells.get(b)
+    if trunk or a in HOUSE_CELLS and b in HOUSE_CELLS:
+        opening("seams_%s_%s" % (a, b), "LEAK", a, b, middle, extent,
+                area=round(casing_seams(width, height, joints(y0, y1)), 5), starts="OPEN")
+        # A door the plate draws in this side of the casing, in its middle, on its deck.
+        for floor, door in CASING_DOORS.get(trunk, []):
+            if axis == 2 and y0 - 1e-3 <= floor < y1:
+                opening("door_gaps_%s_%s" % (a, b), "LEAK", a, b, (middle[0], floor + LINTEL * 0.5, at),
+                        (door, LINTEL, 0), area=round(door_gaps(door, LINTEL), 5), starts="OPEN")
+        continue
+    assert any(test(a, b) for test, _why in TIGHT), ("a boundary neither watertight nor leaking", a, b, axis, at)
+
 # Mass (est. throughout, but her displacement and her stability, which are the night's):
 # where her weight sits. Her water ballast is what the generator settles: as heavy as
 # she must be to float at the night's draught, and where along and across her it puts
