@@ -26,14 +26,19 @@ const ONTO_THE_RAILED_HOLE := Vector3(-90.375, B_DECK, -2.875)
 const THE_WAY_TO_STARBOARD := Vector3(-90.375, B_DECK, 3.0)
 ## E deck aft of bulkhead C, to port: the doorway between the passage aft of the ladder down
 ## to F deck and the passage along it, which the ladder hole's railing once ran across, the
-## passage widened into its well; and off the passage along D deck's ladder down, the
-## four-berth room's doorway and the men's lavatory's, which the ladder's foot, run on over
+## passage widened into its well; and off the port after ladderway's lane, the four-berth
+## room's doorway and the men's lavatory's, which D deck's ladder down, run on forward over
 ## their landing, once stood in (#514).
 const AFT_OF_C: Array[Vector3] = [
 	Vector3(72.1875, E_DECK, -5.75),
 	Vector3(81.25, E_DECK, -7.75),
 	Vector3(82.25, E_DECK, -7.15625),
 ]
+## In the passage by the cross passage's ladder down to F deck, the four-berth room and the
+## men's lavatory.
+const BY_THE_LADDER := Vector3(73.5, E_DECK, -4.4)
+const IN_THE_FOUR_BERTH_ROOM := Vector3(81.25, E_DECK, -9.6)
+const IN_THE_LAVATORY := Vector3(83.5, E_DECK, -8.8)
 
 var _layout: ShipLayout
 var _surfaces: Surfaces
@@ -165,6 +170,38 @@ func test_e_deck_s_doorways_aft_of_c_let_a_body_through_both_ways() -> void:
 			var off := WayThrough.doorway(_surfaces, rules, door, E_DECK, out)
 			assert_false(is_nan(off), "a body goes through the doorway at %s, %s" % [at, out])
 		assert_eq(_doorways_at(at), 2, "a portal through it either way")
+
+
+## Whether the body in [param sim]'s seat 0, steered along the graph's way to [param goal],
+## stands in it off any stair within [param seconds].
+func _walks(sim: MatchSim, goal: int, seconds: float) -> bool:
+	for _tick in Ticks.from_seconds(seconds):
+		var walker := sim.state.seats[0]
+		if (
+			_graph.zone_at(walker.pos, walker.surface) == goal
+			and not sim.surfaces.is_ramp(walker.surface)
+		):
+			return true
+		var toward := _graph.steer(walker.pos, walker.surface, goal, _dry)
+		var move := Vector2.ZERO
+		if not toward.is_empty():
+			move = Vector2(toward[0].x - walker.pos.x, toward[0].z - walker.pos.z).normalized()
+		SimFixtures.step(sim, {0: SimFixtures.frame(0, move)})
+	return false
+
+
+func test_a_body_at_rest_walks_into_e_deck_s_rooms_aft_of_c_and_back_out() -> void:
+	# Along the ladderway's lane, past E deck's ladder down to F and D deck's ladder down.
+	var sim := SimFixtures.sim(2, null, _layout)
+	SimFixtures.place(sim, 1, Vector3.ZERO)
+	HeldPose.hold(sim, _dry)
+	for walk: Array in [
+		[BY_THE_LADDER, IN_THE_FOUR_BERTH_ROOM],
+		[BY_THE_LADDER, IN_THE_LAVATORY],
+		[IN_THE_FOUR_BERTH_ROOM, BY_THE_LADDER],
+	]:
+		SimFixtures.place(sim, 0, walk[0])
+		assert_true(_walks(sim, _zone(walk[1]), 15.0), "from %s to %s" % walk)
 
 
 func test_a_doorway_onto_a_railed_stair_hole_lets_a_body_out_and_none_in() -> void:

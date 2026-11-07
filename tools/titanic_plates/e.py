@@ -672,7 +672,10 @@ ROOMS = [
     # W.PL).
     ("masters-at-arms' room, E deck", 8526.5, 4333, 8601, 4508),
     ("four-berth third-class room, E deck", 8601, 4340, 8668, 4508),
-    ("passage, E deck", 8526.5, 4508, 8668, 4628),
+    # The ladderway's passage as two: its lane to port and E deck's ladder on down to F
+    # beside it, and D deck's ladder's strip, walled between them (#514).
+    ("passage, E deck", 8526.5, 4508, 8668, 4583),
+    ("passage, E deck", 8526.5, 4583, 8668, 4628),
     ("passage, E deck", 8668, 4543, 8698, 4628),
     ("men's lavatory, E deck", 8668, 4348.5, 8769, 4543),
     ("men's lavatory, E deck", 8698, 4543, 8769, 4628),
@@ -1276,20 +1279,29 @@ DOOR_MOVES = [
     (None, (-64.9375, 12.4)),  # the passage behind M's ladder, through the room it served
 ]
 # Less than a door's width either side of D's line; the store her stem takes; the joins
-# over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below.
-SHUT = [(69.0, -7.8125), (126.4, 0.2), (-1.0, -3.125), (-45.0, -9.125)]
+# over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below;
+# the port after ladderway's joins with the passage aft of it, opened beside its well below,
+# and with the passage along it, D deck's ladder down standing between them (#514).
+SHUT = [(69.0, -7.8125), (126.4, 0.2), (-1.0, -3.125), (-45.0, -9.125), (78.25, -6.0), (80.25, -4.3125)]
 OPENED = [
     (-117.8225, -117.8025, 1.0, 2.125),  # her stern passage, on to its last piece
     (-2.8125, -0.875, -3.135, -3.115),  # the head of the 20 ft ladderway
     (2.4375, 4.625, -3.135, -3.115),  # past the foot of its well, forward of G
     (-44.125, -42.625, -9.135, -9.115),  # past the foot of the engineers' ladder
+    # The port after ladderway's lane to port, to the four-berth room and the men's
+    # lavatory, and D deck's ladder's foot; between them, the end of the hole of the
+    # ladder on down to F walled: open whole, the join's middle stood on D deck's ladder
+    # and the walk graph found no way through it into the lane (#514).
+    (78.24, 78.26, -7.75, -6.5625),
+    (78.24, 78.26, -5.5, -4.3125),
 ]
 # Ladderways the flight fills; a landing whose every door opens over its well; a strip
-# narrower than a body the lavatory leaves.
+# narrower than a body the lavatory leaves; the port after ladderway's strip under D deck's
+# ladder down (#514).
 # The lockers' faces only touch the passage's edge: walled like any other, its fittings' depth holds.
 WALLED_SOLIDS = [(-64.2, -7.6), (-64.2, -5.8)]
 NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
-             (79.5, 6.0)]
+             (79.5, 6.0), (80.0, -4.9)]
 # The store her stem takes: no floor of hers reaches it (E_STEM).
 GONE = [(127.5, 0.0)]
 # A bathroom by J's line and a store too small for a door; a store her stem takes.
