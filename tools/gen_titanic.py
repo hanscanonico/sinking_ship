@@ -2625,6 +2625,22 @@ for k, r in enumerate((r for r in TT_PLAN.rooms if r[0].startswith("boiler room"
             if aft - r[1] >= LOW_LANE + 0.5 else False]
     assert any(ways), ("no way up out of boiler room", k)
 
+def door_past_head(plan, up, lane, head, sign):
+    """Whether a body stepping off a flight's head, up along it and across it in lane, walks
+    to a doorway of the room plan draws round it without crossing the flight's hole: the room
+    has a door on the head's side of the hole, or none drawn. The brine tank room's door stood
+    aft of the CO2 flat's two flights, rising forward, and their holes cut the room's after
+    part off from their heads (#514)."""
+    for r in plan.rooms:
+        if not (r[1] <= up[0] and up[1] <= r[2] and r[3] <= lane[0] and lane[1] <= r[4]):
+            continue
+        doors = [(at, g) if axis == 0 else (g, at) for axis, at, w0, w1, _kind, gaps in plan.walls for g in gaps
+                 if (axis == 0 and min(abs(at - r[1]), abs(at - r[2])) < 0.15 and r[3] <= g <= r[4])
+                 or (axis != 0 and min(abs(at - r[3]), abs(at - r[4])) < 0.15 and r[1] <= g <= r[2])]
+        if doors and not any((x - head) * sign >= 0.0 for x, _z in doors):
+            return False
+    return True
+
 def low_flight(sid, x0, x1, z0, z1, low, high, plan_low, plan_up, wells, width=1.0):
     """A flight along her from floor low up to high, in plan_low's room over x0..x1, z0..z1,
     where its floor is clear and plan_up lets its head come up in a room: whether."""
@@ -2644,7 +2660,8 @@ def low_flight(sid, x0, x1, z0, z1, low, high, plan_low, plan_up, wells, width=1
                                     and max(r[5], r[6]) >= low - 0.5 for r in ramp_geo)
                         and all(any(r[1] <= v <= r[2] and r[3] <= lane[0] and lane[1] <= r[4] for r in plan_low.rooms) for v in (a, b))
                         and any(r[1] <= up[0] and up[1] <= r[2] and r[3] <= lane[0] and lane[1] <= r[4] for r in plan_up.rooms)
-                        and head_clear(plan_up, wells(), up[0], up[1], lane[0], lane[1], True)):
+                        and head_clear(plan_up, wells(), up[0], up[1], lane[0], lane[1], True)
+                        and door_past_head(plan_up, up, lane, head, sign)):
                     if high == G_DECK:
                         head_flight(sid, x_low, head, lane[0], lane[1], low)
                     else:
