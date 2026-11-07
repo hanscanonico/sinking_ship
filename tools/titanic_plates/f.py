@@ -1120,6 +1120,9 @@ DOOR_MOVES = [
     # eight-berth room's onto the passage aft of it.
     ((74.125, -5.6875), (74.125, -4.375)),
     ((78.9375, -6.75), (78.4375, -10.0)),
+    # The ladderway's door from the passage aft of it, to starboard of the railing round G
+    # deck's ladder's hole: its own, given none, stood in that railing (#514).
+    (None, (92.5625, 6.625)),
 ]
 # Each saloon's bay aft of the casing keeps its own way in, a pier in the wide join:
 SHUT = [(4.5625, -6.0)]

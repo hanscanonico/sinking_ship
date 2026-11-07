@@ -1303,6 +1303,12 @@ DOOR_MOVES = [
 # the port after ladderway's joins with the passage aft of it, opened beside its well below,
 # and with the passage along it, D deck's ladder down standing between them (#514).
 SHUT = [(69.0, -7.8125), (126.4, 0.2), (-1.0, -3.125), (-45.0, -9.125), (78.25, -6.0), (80.25, -4.3125)]
+# The stewards' lobby's join with the passage along D deck's stair down in it, the stair's
+# side all its length: its foot's own way out is aft of it (#514).
+SHUT += [(37.4, -5.75)]
+# The passage aft of L's join beside the head of D deck's stair down by M's starboard
+# passage: walled, 1/32 m clear of the stair; its other join is its way round (#514).
+SHUT += [(-64.9375, 0.0)]
 OPENED = [
     (-117.8225, -117.8025, 1.0, 2.125),  # her stern passage, on to its last piece
     (-2.8125, -0.875, -3.135, -3.115),  # the head of the 20 ft ladderway
@@ -1330,6 +1336,9 @@ NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6
 # and the firemen's port spiral's head through the store aft of their wash place: each
 # room the flight's well, no body's (#514).
 NOT_ROOMS += [(-26.9, -0.2), (100.9, -4.0)]
+# The 20 ft ladderway's well aft of H, its head's landing open to the passage (OPENED); and
+# the stewards' lobby's sliver aft of F, its stair down's (#514).
+NOT_ROOMS += [(-1.5, 0.0), (36.2, -6.4)]
 # The store her stem takes: no floor of hers reaches it (E_STEM).
 GONE = [(127.5, 0.0)]
 # A bathroom by J's line and a store too small for a door; a store her stem takes.
