@@ -77,6 +77,12 @@ func native(surfaces: Surfaces) -> Object:
 	var down := s._fallen.native_down()
 	_native.felled(down[0], down[1], down[2])
 	_native.lidded(s.stands.lids)
+	# Her floors and their clearances, for Surfaces.under's own (BotFloorWay's search).
+	var floors := SpatialIndex.flattened(s._floors)
+	var clearances := PackedFloat64Array()
+	for cell: PackedFloat64Array in s._floor_clearances:
+		clearances.append_array(cell)
+	_native.floors(floors[0], floors[1], clearances)
 	return _native
 
 
