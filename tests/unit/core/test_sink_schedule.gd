@@ -207,6 +207,28 @@ func test_phase_is_named_from_where_she_stands() -> void:
 	assert_false("By the stern" in named, "never by the stern")
 
 
+func test_her_leans_are_read_as_her_pose_has_them_without_building_it() -> void:
+	# The phase banner asks her leans every frame (#410): read alone, they are her pose's
+	# to the bit, before the hit, through it and every tick after, to past her end.
+	var layout := SimFixtures.steamer()
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING).duplicate()
+	scenario.explicit_hit = SimFixtures.explicit_hit(1, 4.0, 19.0, 1.0, 0.1, 1.5)
+	scenario.explicit_hit.moment = 20.0
+	var schedule := SinkSchedule.new(
+		scenario, layout.freeboard, SeedStreams.derive(SEED, "sink"), layout.structure
+	)
+	var mismatches := PackedStringArray()
+	var leaning := 0
+	for tick in schedule.end_tick() + Ticks.RATE:
+		var pose := schedule._physical(tick)
+		var leans := schedule.leans_at(tick)
+		if var_to_bytes([leans[0], leans[1]]) != var_to_bytes([pose.trim_deg, pose.heel_deg]):
+			mismatches.append("tick %d: %s vs %s, %s" % [tick, leans, pose.trim_deg, pose.heel_deg])
+		leaning += 1 if absf(pose.trim_deg) >= SinkSchedule.TRIMMED_DEG else 0
+	assert_eq(mismatches.size(), 0, ", ".join(mismatches.slice(0, 5)))
+	assert_gt(leaning, Ticks.RATE, "she leans past her mark for more than a second")
+
+
 func test_a_physics_lurch_is_warned_before_it_swings() -> void:
 	# Struck forward and sinking by the head, she loses her stability and lurches over
 	# as her deck goes under, warned a second or more ahead — the horn players hear, the
