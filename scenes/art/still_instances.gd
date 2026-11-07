@@ -10,7 +10,9 @@ extends Node
 ## her transform times its own, which is the identity. A stretch of her riding its piece
 ## once she has broken is a ShipArt of its own, so each piece's instances follow it.
 ## The call is the extension's (NativeStill) where it is loaded, else the GDScript's,
-## handing RenderingServer the same transform, one instance at a time (the web).
+## handing RenderingServer the same transform, one instance at a time (the web). It places
+## its groups too (StillGroup): instances hung each at its own transform under a node of
+## her, her lamps' globes and her signs' letters, each where that node stands.
 
 ## Where it last placed them: none yet (NaN never equals itself), so the next frame does.
 const UNPLACED := Transform3D(Basis(), Vector3.ONE * NAN)
@@ -20,6 +22,7 @@ var _instances: Array[MeshInstance3D] = []
 var _rids: Array[RID] = []
 var _placed := UNPLACED
 var _native: Object = ArtNative.made(&"NativeStill")
+var _groups: Array[StillGroup] = []
 
 
 func _init() -> void:
@@ -47,6 +50,18 @@ func held() -> Array[MeshInstance3D]:
 	return _instances
 
 
+## A new group of instances hung under [param frame], a node of her, placed with these.
+func group(frame: Node3D) -> StillGroup:
+	var made := StillGroup.new(frame)
+	_groups.append(made)
+	return made
+
+
+## Its groups (group), in the order made.
+func groups() -> Array[StillGroup]:
+	return _groups
+
+
 ## Where it last placed them (UNPLACED before it first does).
 func placed() -> Transform3D:
 	return _placed
@@ -68,6 +83,8 @@ func place(at: Transform3D, native := true) -> void:
 func _enter_tree() -> void:
 	# Entering the world, each instance is handed its own node's transform: placed again.
 	_placed = UNPLACED
+	for each: StillGroup in _groups:
+		each.unplace()
 	if not RenderingServer.frame_pre_draw.is_connected(drawing):
 		RenderingServer.frame_pre_draw.connect(drawing)
 
@@ -83,3 +100,5 @@ func drawing() -> void:
 	var art := get_parent() as Node3D
 	if art != null and art.is_inside_tree():
 		place(art.global_transform)
+		for each: StillGroup in _groups:
+			each.place()
