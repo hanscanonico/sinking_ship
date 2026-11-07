@@ -120490,9 +120490,10 @@ metadata/name = &"cover_no_1_hatch_port"
 metadata/kind = "HATCH"
 metadata/joins = Array[StringName]([&"no_1_hatch_trunk", &"hold_1_d"])
 metadata/starts = "SHUT"
-metadata/leak_head = 0.3
+metadata/leak_head = 0.0762
 metadata/collapse_head = 1.0
 metadata/leak_area = 0.05
+metadata/opens_toward = &"hold_1_d"
 
 [node name="Opening_pipe_cover_no_1_hatch_port" type="CSGBox3D" parent="Structure/Openings" unique_id=208783672]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -1.25, -0.9375)
@@ -120513,9 +120514,10 @@ metadata/name = &"cover_no_1_hatch_starboard"
 metadata/kind = "HATCH"
 metadata/joins = Array[StringName]([&"no_1_hatch_trunk", &"hold_1_d"])
 metadata/starts = "SHUT"
-metadata/leak_head = 0.3
+metadata/leak_head = 0.0762
 metadata/collapse_head = 1.0
 metadata/leak_area = 0.05
+metadata/opens_toward = &"hold_1_d"
 
 [node name="Opening_pipe_cover_no_1_hatch_starboard" type="CSGBox3D" parent="Structure/Openings" unique_id=463088520]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.6875, -1.25, 1)
@@ -120536,9 +120538,10 @@ metadata/name = &"cover_no_2_hatch"
 metadata/kind = "HATCH"
 metadata/joins = Array[StringName]([&"hold_2_tween", &"d_deck_forward"])
 metadata/starts = "SHUT"
-metadata/leak_head = 0.3
+metadata/leak_head = 0.0762
 metadata/collapse_head = 1.0
 metadata/leak_area = 0.05
+metadata/opens_toward = &"d_deck_forward"
 
 [node name="Opening_pipe_cover_no_2_hatch" type="CSGBox3D" parent="Structure/Openings" unique_id=1619750828]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.25, -1.25, 0.125)
@@ -120559,9 +120562,10 @@ metadata/name = &"cover_bunker_hatch"
 metadata/kind = "HATCH"
 metadata/joins = Array[StringName]([&"hold_3_upper", &"d_deck_forward"])
 metadata/starts = "SHUT"
-metadata/leak_head = 0.3
+metadata/leak_head = 0.0762
 metadata/collapse_head = 1.0
 metadata/leak_area = 0.05
+metadata/opens_toward = &"d_deck_forward"
 
 [node name="Opening_pipe_cover_bunker_hatch" type="CSGBox3D" parent="Structure/Openings" unique_id=31422367]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82, -1.25, 0.0625)

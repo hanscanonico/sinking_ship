@@ -4381,17 +4381,30 @@ for name, x, z, size, kind in [h for h in [
 # of 2026-11-03): the covers on D deck of Nos. 1 and 2 and the bunker hatch (D_PLAN, "a hop
 # up"), each over the trunk under it (TRUNKS), as much of it as the trunk's top holds; No.
 # 1's trunk is enclosed through C deck under her forecastle (C_PLAN), so no way leads from D
-# deck's space there into it. Est., no source for their strength: each weeps 0.05 m² under
-# 0.3 m of water and gives way under 1 m, as her wells' covers, and breathes through a 100 mm
-# air pipe.
+# deck's space there into it. Each breathes through a 100 mm air pipe.
+#
+# Below her weather deck each cover is loose hatch boards (#503): wooden boards laid on
+# portable beams, with no tarpaulin, battens or locking bars, held down by their own weight
+# alone (the tarpaulins and battens are the weather deck's, C deck's wells' below). Wood
+# floats in seawater (pitch pine 0.65-0.85 t/m³ against 1.025), so the trunk's water lifts
+# the boards off once it stands about their thickness over their underside: they give way
+# toward the space above at that head. Pressed from above they bear on the beams and hold
+# to 1 m, est. as her wells' covers, weeping 0.05 m² once the water over them stands at
+# that same head, since loose boards are not caulked. Est. 3 in thick: no 1910s source found
+# for 'tween-deck hatch boards (Lloyd's, the Board of Trade, Harland & Wolff, Nicholls,
+# Todd & Whall). The thickness bounds the lift from above, since boards of any wood lighter
+# than seawater lift at their thickness times that share (0.63-0.83 for pitch pine).
+HATCH_BOARDS = 0.0762  # 3 in, est.
 for what, below in [("No. 1 hatch", "hold_1_tween"), ("No. 2 hatch", "hold_2_tween"), ("bunker hatch", "hold_3_upper")]:
     below = slug(what) + "_trunk" if what in TRUNKED else below
     t = cell_box(below)
     for _w, x0, x1, z0, z1, _h in [p for p in D_PLAN.solids if p[0] == what]:
         name = "cover_" + slug(what) + ("" if abs(z0 + z1) < 0.5 else "_port" if z0 + z1 < 0 else "_starboard")
         x0, x1, z0, z1 = max(x0, t[0]), min(x1, t[1]), max(z0, t[4]), min(z1, t[5])
-        through(name, "HATCH", (x0 + x1) * 0.5, (z0 + z1) * 0.5, x1 - x0, z1 - z0, below, starts="SHUT",
-                leak_head=0.3, collapse_head=1.0, leak_area=0.05)
+        xm, zm = (x0 + x1) * 0.5, (z0 + z1) * 0.5
+        through(name, "HATCH", xm, zm, x1 - x0, z1 - z0, below, starts="SHUT", leak_head=HATCH_BOARDS,
+                collapse_head=1.0, leak_area=0.05,
+                opens_toward=cell_at(xm, cell_box(piece(below, xm))[3] + 0.01, zm))
         through("pipe_" + name, "VENT", (x0 + x1) * 0.5, (z0 + z1) * 0.5, 0.09, 0.09, below, area=AIR_PIPE,
                 starts="OPEN")
 # The after holds under her watertight orlop deck (BOT): their hatches battened, est.
@@ -4994,6 +5007,8 @@ for name, kind, joins, centre, size, fields in openings:
     for key in ["shut_time", "leak_head", "collapse_head", "leak_area"]:
         if fields.get(key):
             f.append((key, num(fields[key])))
+    if fields.get("opens_toward"):
+        f.append(("opens_toward", '&"%s"' % fields["opens_toward"]))
     opening_ids.append(sub("Opening_" + name, "13_opening", f))
 mass_ids = []
 for name, kg, centre, reach in MASS:
