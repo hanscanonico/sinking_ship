@@ -34,8 +34,11 @@ var _glows: Array[Color] = []
 
 
 ## Draws each of [param lamps] hung straight from this node's parent, not a fire, here:
-## its model's node taken from it, and the lamp told its slot (ShipLamp.hang_in).
-func take(lamps: Array[ShipLamp]) -> void:
+## its model's node taken from it, and the lamp told its slot (ShipLamp.hang_in). Its
+## MultiMeshes stand apart from her, placed by [param still] where this node stands
+## (StillGroup), when given.
+func take(lamps: Array[ShipLamp], still: StillInstances = null) -> void:
+	var group := still.group(self) if still != null else null
 	# Per model and cell, the lamps drawn by it; and per model its mesh as drawn here.
 	var cells := {}
 	var order: Array = []
@@ -79,6 +82,8 @@ func take(lamps: Array[ShipLamp]) -> void:
 			part.free()
 			lamp.hang_in(self, _multis.size() - 1)
 		add_child(drawn)
+		if group != null:
+			group.hold(drawn)
 
 
 ## How many lamps it draws.
