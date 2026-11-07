@@ -9,6 +9,9 @@ extends RefCounted
 const NONE := -1
 ## What _onto says of a point on a ramp.
 const ON_A_RAMP := -2
+## How long along her length, in metres, the stretches are that her stairs are sorted into
+## to find the doors one comes near (_by_stairs).
+const STRETCH := 4.0
 
 var _layout: ShipLayout
 var _surfaces: Surfaces
@@ -19,6 +22,10 @@ var _step: float
 ## Per room, the gaps in its walls wide enough for a body — crawling, crawl_height tall, if
 ## it must.
 var _doors: Array[Array] = []
+## The doors a stair stands in front of, within a body's width out past their line: through
+## these, the zone a doorway gives onto is read where a walk out takes the feet (_feet);
+## through the rest, at the room's floor height, as a walk out on the level does.
+var _by_stairs := {}
 ## Per door between two rooms whose depth is in neither — a door through a bulkhead, each
 ## room stopping at its own wall — the half of that depth nearer the room it leads out
 ## of, held as that room's: its floor's area, and the room.
@@ -35,6 +42,10 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_lead = rules.body_radius * 2.0
 	_radius = rules.body_radius
 	_step = rules.step_height
+	var stairs := {}
+	for ramp: ShipRamp in layout.ramps:
+		for stretch in range(_stretch(ramp.area.position.x), _stretch(ramp.area.end.x) + 1):
+			stairs.get_or_add(stretch, []).append(ramp.area)
 	for room in layout.rooms.size():
 		var wide: Array[ShipRoom.Door] = []
 		for door: ShipRoom.Door in layout.rooms[room].doors(
@@ -42,7 +53,26 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 		):
 			if door.width() >= rules.body_radius * 2.0:
 				wide.append(door)
+				_by_stairs_of(door, stairs)
 		_doors.append(wide)
+
+
+## Holds [param door] among those a stair stands in front of (_by_stairs) where one of the
+## stairs' areas, sorted by [param stairs] into the stretches they reach, comes within a
+## body's width out past its line.
+func _by_stairs_of(door: ShipRoom.Door, stairs: Dictionary) -> void:
+	var past := Rect2(door.from, Vector2.ZERO).expand(door.to)
+	past = past.expand(door.from + door.outward * _lead).expand(door.to + door.outward * _lead)
+	for stretch in range(_stretch(past.position.x), _stretch(past.end.x) + 1):
+		for area: Rect2 in stairs.get(stretch, []):
+			if area.intersects(past, true):
+				_by_stairs[door] = true
+				return
+
+
+## The stretch (STRETCH) along her length [param x] lies in.
+static func _stretch(x: float) -> int:
+	return floori(x / STRETCH)
 
 
 ## The half nearer each room of the depth of every one of its doors onto another room —
@@ -157,16 +187,18 @@ func _lanes(graph: WalkGraph, room: int, door: ShipRoom.Door) -> PackedFloat64Ar
 
 ## The zone a body's width out through [param door] at [param off] from its middle stands
 ## in, else a body's radius out where that is on nothing (a floor turning a corner close
-## past the door): NONE where both are on nothing, ON_A_RAMP on a ramp. Its feet are walked
-## out from the door's line a step at a time: through a doorway onto a stair's foot a body
-## walks up the stair, never onto the deck under it, inside the stair's solid.
+## past the door): NONE where both are on nothing, ON_A_RAMP on a ramp. Where a stair stands
+## in front of the door (_by_stairs) its feet are walked out from the door's line a step at a
+## time: through a doorway onto a stair's foot a body walks up the stair, never onto the deck
+## under it, inside the stair's solid.
 func _onto(graph: WalkGraph, door: ShipRoom.Door, off: float, floor_height: float) -> int:
 	var at := WayThrough.across(door, off, floor_height)
 	var outside := Vector3.ZERO
 	var surface := Surfaces.NONE
+	var stairs := _by_stairs.has(door)
 	for lead: float in [_lead, _radius]:
 		var beyond := Vector2(at.x, at.z) + door.outward * lead
-		outside = Vector3(beyond.x, _feet(at, beyond), beyond.y)
+		outside = Vector3(beyond.x, _feet(at, beyond) if stairs else floor_height, beyond.y)
 		surface = _surfaces.under(outside, _step)
 		if surface != Surfaces.NONE:
 			break
