@@ -1,13 +1,20 @@
 extends GutTest
 ## The walk graph's portals are only where a body could get through (WayThrough, #501). A
 ## flight stacked under another in one well is no way, and on the Titanic a doorway onto a
-## stair hole's railing lets a body out, pushed on by the railing, and none in. A doorway
-## opening onto a stair's high end lets none through either way: the layout's fault, it keeps
-## its portal, so that no room is sealed off. Her other ships lose no portal.
+## stair hole's railing lets a body out, pushed on by the railing, and none in. A join beside
+## a flight's side lets none through either way: it keeps its portal, so that no room is
+## sealed off. Every doorway of hers that opened onto a flight's side or high end, or onto a
+## solid's face, is laid so a body goes through it, or walled (#514). Her other ships lose no
+## portal.
 
 const TITANIC := "res://data/ships/titanic.tres"
 const B_DECK := 2.75
+const D_AFT := -2.9375
 const E_DECK := -5.9375
+const F_DECK := -8.5625
+const G_DECK := -11.0
+const ORLOP_AFT := -13.4375
+const DOUBLE_BOTTOM := -19.8125
 ## The stacked well's decks (_stacked_well), and its flights: one up from the hold to the
 ## tween deck, one on up from it to the top deck, in one footprint; and another way down.
 const TWEEN := 2.5
@@ -15,11 +22,47 @@ const TOP := 5.0
 const UNDER := 0
 const OVER_IT := 1
 const ANOTHER_WAY := 2
-## The doorway from the second-class entrance on E deck into the passage aft of M, under
-## the high end of the stair up to D deck; a point in the entrance forward of its lift, clear
-## of its stairs.
-const UNDER_THE_STAIR_HEAD := Vector3(-72.0625, E_DECK, -2.875)
-const IN_THE_ENTRANCE := Vector3(-67.0, E_DECK, 0.0)
+## The join between G deck's passages aft of C, along the side of F deck's stair down; a point
+## in each passage clear of the stair.
+const BESIDE_THE_STAIR := Vector3(74.36, G_DECK, -7.625)
+const IN_THE_PASSAGE := Vector3(73.0, G_DECK, -6.2)
+const IN_THE_OTHER_PASSAGE := Vector3(76.0, G_DECK, -8.2)
+## Doorways that opened onto a flight's side or high end (#514): the second-class entrance's
+## on E deck from the passage aft of M, once under its stair up's head; the third-class
+## matron's room's and surgery's on D deck; the four-berth room's and the men's lavatory's
+## two aft of B, and the women's lavatory's, on E deck; the linen room's and an eight-berth
+## room's aft of C on F deck; the two-berth room's aft of C on G deck; the mouths of F deck's
+## passages aft of N and aft of O; the musicians' quarters' and the firemen's W.C.s' on E
+## deck; F deck's third-class ladderway's; the refrigerated hold's into No. 5 hatch's piece;
+## the double bottom's forward of No. 1 hold.
+const OFF_THE_FLIGHTS: Array[Vector3] = [
+	Vector3(-72.625, E_DECK, -2.875),
+	Vector3(-108.625, D_AFT, -2.75),
+	Vector3(-108.625, D_AFT, 3.0625),
+	Vector3(95.6875, E_DECK, 7.8713),
+	Vector3(89.4375, E_DECK, 4.6875),
+	Vector3(89.4375, E_DECK, 7.3125),
+	Vector3(84.125, E_DECK, 4.6875),
+	Vector3(74.125, F_DECK, -4.375),
+	Vector3(78.4375, F_DECK, -9.79),
+	Vector3(72.1875, G_DECK, -6.25),
+	Vector3(-88.5, F_DECK, -4.6875),
+	Vector3(-114.375, F_DECK, 2.875),
+	Vector3(-65.0, E_DECK, -10.875),
+	Vector3(100.8125, E_DECK, 3.375),
+	Vector3(92.5625, F_DECK, 6.625),
+	Vector3(-94.0275, ORLOP_AFT, -2.75),
+	Vector3(110.0, DOUBLE_BOTTOM, 0.0),
+]
+## Rooms' edges a solid stands flush against, once read as doorways onto it through a hair's
+## gap (#514): the storekeepers' quarters' on E deck against the reciprocating engine casing,
+## a third-class dining saloon's on F deck against a boiler casing, the turbine engine room's
+## into the reciprocating engine room against a thrust block.
+const AGAINST_SOLIDS: Array[Vector3] = [
+	Vector3(-27.7109, E_DECK, -3.156),
+	Vector3(13.81, F_DECK, -6.0),
+	Vector3(-48.6328, -18.1875, -5.44),
+]
 ## The after second-class entrance's doorway to port on B deck, along the railed side of the
 ## hole of its stair down to C deck; and its doorway to starboard.
 const ONTO_THE_RAILED_HOLE := Vector3(-90.375, B_DECK, -2.875)
@@ -145,18 +188,35 @@ func _door_at(at: Vector3) -> ShipRoom.Door:
 
 func test_a_doorway_no_body_gets_through_keeps_its_portal_at_its_middle() -> void:
 	var rules := SimFixtures.rules()
-	var door := _door_at(UNDER_THE_STAIR_HEAD)
-	assert_not_null(door, "the doorway under the stair's high end")
+	var door := _door_at(BESIDE_THE_STAIR)
+	assert_not_null(door, "the join beside the stair's side")
 	if door != null:
 		for out: Vector2 in [door.outward, -door.outward]:
-			var off := WayThrough.doorway(_surfaces, rules, door, E_DECK, out)
+			var off := WayThrough.doorway(_surfaces, rules, door, G_DECK, out)
 			assert_true(is_nan(off), "no body gets through it")
-		var offs := WayThrough.crossings(_surfaces, rules, door, E_DECK, false)
+		var offs := WayThrough.crossings(_surfaces, rules, door, G_DECK, false)
 		assert_eq(Array(offs), [0.0, 0.0], "its middle, both ways")
-	assert_gt(_doorways_at(UNDER_THE_STAIR_HEAD), 0, "so the passage aft of M is not sealed")
-	var from := _surfaces.under(IN_THE_ENTRANCE, rules.step_height)
-	var passage := _zone(UNDER_THE_STAIR_HEAD + Vector3(0.0, 0.0, -0.8))
-	assert_false(_graph.route(IN_THE_ENTRANCE, from, passage, _dry).is_empty(), "a way in")
+	assert_gt(_doorways_at(BESIDE_THE_STAIR), 0, "its portal stays")
+	var from := _surfaces.under(IN_THE_PASSAGE, rules.step_height)
+	var other := _zone(IN_THE_OTHER_PASSAGE)
+	assert_false(_graph.route(IN_THE_PASSAGE, from, other, _dry).is_empty(), "a way round")
+
+
+func test_doorways_once_onto_a_flight_let_a_body_through_both_ways() -> void:
+	var rules := SimFixtures.rules()
+	for at: Vector3 in OFF_THE_FLIGHTS:
+		var door := _door_at(at)
+		assert_not_null(door, "a doorway at %s" % at)
+		if door == null:
+			continue
+		for out: Vector2 in [door.outward, -door.outward]:
+			var off := WayThrough.doorway(_surfaces, rules, door, at.y, out)
+			assert_false(is_nan(off), "a body goes through the doorway at %s, %s" % [at, out])
+
+
+func test_a_room_s_edge_a_solid_stands_flush_against_is_walled() -> void:
+	for at: Vector3 in AGAINST_SOLIDS:
+		assert_null(_door_at(at), "no doorway onto the solid at %s" % at)
 
 
 func test_e_deck_s_doorways_aft_of_c_let_a_body_through_both_ways() -> void:

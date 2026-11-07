@@ -119,8 +119,10 @@ def check(name):
             if k not in reach and (links[k] & reach):
                 reach.add(k)
                 changed = True
+    # (A piece NOT_ROOMS names is no room: a well, or a closet behind a flight's run on.)
     for k in range(len(rooms)):
-        if k not in reach:
+        no_room = any(rooms[k][0] < x < rooms[k][1] and rooms[k][2] < z < rooms[k][3] for x, z in traced.not_rooms)
+        if k not in reach and not no_room:
             found.append("room %s at %s is reached from nowhere" % (traced.rooms[k][0], rooms[k]))
     return ["%s: %s" % (name, f) for f in found]
 

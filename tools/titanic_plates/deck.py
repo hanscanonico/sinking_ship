@@ -222,7 +222,8 @@ class Deck:
         room once her cells have split it, its flight taking all a body could stand on
         behind its door: its walls stay, its floor is no room's. GONE, the room or solid at
         each (x, z) her hull takes, walls and all. WALLED_SOLIDS, a
-        solid at each (x, z) whose face only touches a room's edge, the edge walled."""
+        solid at each (x, z) whose face only touches a room's edge, the edge walled: every
+        face, or (x, z, face) the one face named."""
         for axis, at, to, lo, hi in getattr(module, "NUDGES", ()):
             found = False
             for list_name in ("rooms", "solids"):
@@ -474,14 +475,25 @@ class Deck:
         return (line - 0.01, line + 0.01, a, b) if across else (a, b, line - 0.01, line + 0.01)
 
     def _covered(self, axis, at, a, b, boxes):
-        """The stretches of the line (axis, at) from a to b along that some box's side lies on."""
+        """The stretches of the line (axis, at) from a to b along that some box's side lies on,
+        but a side walled (each box's fifth item, the faces WALLED_SOLIDS walls)."""
         out = []
-        for x0, x1, z0, z1 in boxes:
-            sides = (x0, x1) if axis == 0 else (z0, z1)
+        for x0, x1, z0, z1, walled in boxes:
+            sides = ((x0, "aft"), (x1, "fore")) if axis == 0 else ((z0, "port"), (z1, "starboard"))
             lo, hi = (z0, z1) if axis == 0 else (x0, x1)
-            if any(abs(s - at) < 1e-6 for s in sides) and hi > a and lo < b:
+            if any(abs(s - at) < 1e-6 and face not in walled for s, face in sides) and hi > a and lo < b:
                 out.append((max(lo, a), min(hi, b)))
         return out
+
+    def _walled_faces(self, solid):
+        """The faces of solid WALLED_SOLIDS walls: an entry (x, z) inside it walls them all, an
+        entry (x, z, face) the one face ("aft", "fore", "port" or "starboard")."""
+        faces = set()
+        for entry in self.walled_solids:
+            x, z = entry[:2]
+            if solid[1] < x < solid[2] and solid[3] < z < solid[4]:
+                faces |= set(entry[2:]) or {"aft", "fore", "port", "starboard"}
+        return faces
 
     def _walls(self):
         """Every room's edges as walls, merged where rooms share them, less the open
@@ -490,8 +502,7 @@ class Deck:
         for k, (_name, x0, x1, z0, z1) in enumerate(self.rooms):
             for axis, at, a, b in [(0, x0, z0, z1), (0, x1, z0, z1), (2, z0, x0, x1), (2, z1, x0, x1)]:
                 edges.setdefault((axis, at), []).append((a, b, k))
-        solid_boxes = [s[1:5] for s in self.solids
-                       if not any(s[1] < x < s[2] and s[3] < z < s[4] for x, z in self.walled_solids)]
+        solid_boxes = [tuple(s[1:5]) + (self._walled_faces(s),) for s in self.solids]
         walls = []
         for (axis, at), spans in sorted(edges.items()):
             cuts = sorted({v for a, b, _k in spans for v in (a, b)})
@@ -534,7 +545,7 @@ class Deck:
             return False
 
         ways = [r for r in self.rooms if _passage(r[0])]
-        solid_boxes = [s[1:5] for s in self.solids]
+        solid_boxes = [tuple(s[1:5]) + (set(),) for s in self.solids]
         out = []
         for room in self.rooms:
             if _passage(room[0]) or any(on_edge(x, z, room) for x, z in self.doors):
@@ -556,11 +567,12 @@ class Deck:
                             if hi - lo > 0.9 and (best is None or hi - lo > best[0]):
                                 mid = (lo + hi) * 0.5
                                 best = (hi - lo, (at, mid) if axis == 0 else (mid, at))
-            # A well its flights fill (NOT_ROOMS) that an OPEN joins to a passage: the join is
-            # its way in, and a door in another of its walls would open onto a flight's side
-            # (#514: F deck's engineers' stair box, open at its forward end).
+            # A well its flights fill (NOT_ROOMS): an OPEN joining it to a passage is its way
+            # in, and a door in another of its walls would open onto a flight's side (#514: F
+            # deck's engineers' stair box, open at its forward end); nor does a body stand in
+            # one with no such join, behind a flight's run on (#514: D deck's crew stairs).
             well = any(room[1] < x < room[2] and room[3] < z < room[4] for x, z in self.not_rooms)
-            if best is not None and not (joined and well):
+            if best is not None and not well:
                 out.append(best[1])
         return out
 

@@ -346,3 +346,9 @@ OPEN = [
 #   port, px 2100-2125 by 4826-4865 (x -85.2 to -84.5, z -3.1 to -2.1) and 1462-1490 by
 #   4850-4885 (x -101.9 to -101.2, z -2.6 to -1.7).
 STAIRS = []
+# Faces the rooms by them only touch, walled (#514): the thrust blocks against bulkhead L,
+# which left L open over them.
+WALLED_SOLIDS = [(-52.0, -5.4, "fore"), (-52.0, 5.6, "fore")]
+# No. 2 hold's starboard strip forward of the after hold ladder's foot, which the ladder up
+# to the orlop fills but 0.69 m of where her side narrows it: no body's (#514).
+NOT_ROOMS = [(96.7, 2.4)]

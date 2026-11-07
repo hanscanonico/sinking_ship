@@ -3,7 +3,6 @@ extends RefCounted
 
 const KINDS := {
 	&"squash court": RoomDressing.Kind.SQUASH,
-	&"store, E deck aft": RoomDressing.Kind.HOLD,
 	&"six-berth third-class room, G deck": RoomDressing.Kind.CABIN,
 	&"four-berth third-class room, G deck, aft of O": RoomDressing.Kind.CABIN,
 	&"passage, G deck, aft of O": RoomDressing.Kind.PASSAGE,
@@ -139,7 +138,6 @@ const KINDS := {
 	&"engineers' office, E deck": RoomDressing.Kind.SERVICE,
 	&"engineers' pantry, E deck": RoomDressing.Kind.SERVICE,
 	&"engineers' room": RoomDressing.Kind.CABIN,
-	&"engineers' stewards' quarters, E deck": RoomDressing.Kind.BERTHS,
 	&"fan store, E deck": RoomDressing.Kind.HOLD,
 	&"fan tank room, E deck": RoomDressing.Kind.TANK,
 	&"fifth engineers' room": RoomDressing.Kind.CABIN,

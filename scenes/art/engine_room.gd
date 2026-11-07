@@ -27,6 +27,9 @@ const PIPE_OFFSET := 0.25
 ## Boilers stand side by side along a bulkhead this far apart at least, past their
 ## fronts' full breadth.
 const BOILER_GAP := 0.6
+## How far off its bulkhead a boiler's front stands, its steam stop valve and the pipe up
+## from it with it.
+const BOILER_DEPTH := 0.25
 ## The pipes along the hull sides run this high over the floor, and this far under any
 ## deck over them at least.
 const SIDE_PIPE := 2.1
@@ -69,7 +72,7 @@ func _init(space: ShipSpace) -> void:
 ## its engine and a fire in each boiler.
 func lights(room: ShipRoom) -> Array[RoomDressing.Light]:
 	var found := pendants(room)
-	for boiler: Array in _boilers(room):
+	for boiler: Array in boilers(room):
 		var wall: RoomDressing.Wall = boiler[0]
 		var fire := wall.at(boiler[1], FURNACE_HEIGHT)
 		found.append(RoomDressing.Light.new(fire, ShipLamp.Kind.FIRE, wall.normal))
@@ -267,7 +270,7 @@ func build(mesh: ShipMesh, room: ShipRoom) -> void:
 	for machine: ShipBlocker in _space.machinery(room):
 		var top := machine.top - (ShipArt.PLANK if _space.deck_on(machine) else 0.0)
 		_machinery(mesh, machine, top)
-	for boiler: Array in _boilers(room):
+	for boiler: Array in boilers(room):
 		_boiler(mesh, boiler)
 	for route: Array[Vector3] in steam_routes(room):
 		_steam_pipe(mesh, route)
@@ -331,7 +334,7 @@ func steam_routes(room: ShipRoom) -> Array[Array]:
 	if is_nan(inlet.y):
 		return routes
 	var beside := engine.area.grow(PIPE_OFFSET)
-	for boiler: Array in _boilers(room):
+	for boiler: Array in boilers(room):
 		var wall: RoomDressing.Wall = boiler[0]
 		var radius: float = boiler[2]
 		var valve := wall.at(boiler[1], BOILER_FOOT + radius * 2.0 + 0.04, 0.16)
@@ -437,13 +440,23 @@ func _lamp_fits(room: ShipRoom, point: Vector2, machines: Array[ShipBlocker]) ->
 	return not RoomDressing.over_a_ramp(_layout, near, globe - RoomDressing.HEADROOM, hang.y)
 
 
+## The ship-plane rectangle a boiler of [method boilers] stands in: its front's breadth
+## along its bulkhead, BOILER_DEPTH out from it.
+static func front_rect(boiler: Array) -> Rect2:
+	var wall: RoomDressing.Wall = boiler[0]
+	var along: float = boiler[1]
+	var radius: float = boiler[2]
+	return wall.rect(along - radius, along + radius, 0.0, BOILER_DEPTH)
+
+
 ## The boilers set in [param room]'s forward bulkhead: per stretch of it long enough
 ## to hold one, as many as it holds side by side, [Wall, along it, radius] — on the
 ## floor its machinery stands on, never on the galleries over it (#74).
-func _boilers(room: ShipRoom) -> Array[Array]:
+func boilers(room: ShipRoom) -> Array[Array]:
 	var found: Array[Array] = []
 	if not _space.machinery_in(room):
 		return found
+	var machines := _space.machinery(room)
 	for wall: RoomDressing.Wall in RoomDressing.walls(_space, room):
 		if wall.side != 1:
 			continue
@@ -457,7 +470,14 @@ func _boilers(room: ShipRoom) -> Array[Array]:
 		# bulkhead, unbroken by a door, holds two (#74).
 		var count := maxi(1, floori((wall.length() - 0.2) / (BOILER_RADIUS * 2.0 + BOILER_GAP)))
 		for index in count:
-			found.append([wall, lerpf(wall.from, wall.to, (index + 0.5) / count), radius])
+			var boiler := [wall, lerpf(wall.from, wall.to, (index + 0.5) / count), radius]
+			# None where a machine stands against the bulkhead: the Titanic's thrust
+			# blocks against L (#514).
+			var front := front_rect(boiler)
+			if machines.all(
+				func(machine: ShipBlocker) -> bool: return not front.intersects(machine.area)
+			):
+				found.append(boiler)
 	return found
 
 
