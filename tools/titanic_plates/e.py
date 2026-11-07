@@ -323,7 +323,10 @@ ROOMS = [
     # Starboard: the starboard passage; a ladder down to F deck along M; second-class
     # rooms off short passages, a linen locker at each one's end by her side.
     ("passage, E deck", 3075.5, 5078.5, 3748.5, 5128.5),
-    ("passage, E deck", 3075.5, 5128.5, 3112.5, 5348),
+    # Its ladder down to F deck fills it from side to side (STAIRS): the well no room
+    # (NOT_ROOMS), the passage beyond it the stateroom's (#531).
+    ("passage, E deck", 3075.5, 5128.5, 3112.5, 5248.5),
+    ("passage, E deck", 3075.5, 5248.5, 3112.5, 5348),
     ("four-berth second-class stateroom, E deck", 3112.5, 5128.5, 3222, 5229),
     ("four-berth second-class stateroom, E deck", 3112.5, 5229, 3222, 5348.5),
     ("passage, E deck", 3222, 5128.5, 3257, 5308.5),
@@ -342,7 +345,10 @@ ROOMS = [
     ("passage, E deck", 3745, 4291.5, 3791.5, 4474),
     ("engineers' office, E deck", 3791.5, 4290.5, 3876.3, 4420),
     ("engineers' pantry, E deck", 3876.3, 4289, 3976.5, 4420),
-    ("passage, E deck", 3791.5, 4420, 3976.5, 4474),
+    # The engineers' ladder down to F deck fills it from side to side (STAIRS, STAIR_MOVES):
+    # its well no room (NOT_ROOMS), the passage forward of its foot the way on (#531).
+    ("passage, E deck", 3791.5, 4420, 3918, 4474),
+    ("passage, E deck", 3918, 4420, 3976.5, 4474),
     ("engineers' mess, E deck", 3976.5, 4286, 4313.5, 4474),
     ("stewardesses' room, E deck", 4313.5, 4284.5, 4409, 4402.5),
     ("chief storekeeper's room, E deck", 4313.5, 4402.5, 4409, 4474),
@@ -1337,6 +1343,10 @@ NOT_ROOMS += [(-26.9, -0.2)]
 # The 20 ft ladderway's well aft of H, its head's landing open to the passage (OPENED); and
 # the stewards' lobby's sliver aft of F, its stair down's (#514).
 NOT_ROOMS += [(-1.5, 0.0), (36.2, -6.4)]
+# The ladder down by the second-class entrance aft of L and the engineers' aft of K, each
+# the passage's width: each head at the passage's mouth, the well no body's, the passage
+# beyond it reached from its other side (#531).
+NOT_ROOMS += [(-65.5, 10.0), (-46.0, -9.9)]
 # The store her stem takes: no floor of hers reaches it (E_STEM).
 GONE = [(127.5, 0.0)]
 # A bathroom by J's line and a store too small for a door; a store her stem takes.
@@ -1374,7 +1384,10 @@ STAIR_MOVES = [
     # them, so F deck's passage forward of it keeps a body's lane between its high end and
     # No. 1 hatch's trunk (0.93 m), the way to the greasers' quarters and the W.C.s
     # starboard (#531).
-    (("firemen's spiral staircase", 100.375, -0.75), (101.375, 102.375, -0.8125, 2.375, "starboard")),
+    # And 1/8 m to port of where it rose to its head, its high end 0.81 m short of F deck's
+    # passage's after wall under it, too narrow behind it for a body to the firemen's
+    # W.C.s' door (f.py, #531).
+    (("firemen's spiral staircase", 100.375, -0.75), (101.375, 102.375, -0.9375, 2.25, "starboard")),
     # The ladder down to F deck by the store forward of D's line, where F deck's plate draws its
     # treads (f.py, px 8145-8240, 71.0-73.5 m): this view, which draws no bulkhead here, reads
     # it 0.5 m further aft, and run on aft from there it stood over F deck's squash stairway

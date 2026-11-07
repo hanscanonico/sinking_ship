@@ -664,7 +664,10 @@ SOLIDS = [
     ("No. 5 hatch", 1678, 944, 1811, 1153.5, None),
     ("W.C.s", 1601.5, 1012.5, 1678, 1091, None),
     ("W.C.s", 2100, 926.5, 2176.75, 1030, None),
-    ("stairwell", 1920, 1014.5, 1985.5, 1079, None),
+    # (The box the plate draws between the after second-class stairway's flights is no
+    # solid here: F deck is the landing round them, the only way from the flights to the
+    # gentlemen's lavatory's door forward of them, the flights against her rooms' sides;
+    # nothing comes down the well onto it, F deck's flight down to G the port one, #531.)
     # Between N and M: No. 4 hatch's trunks either side (as D deck's), closets at the
     # passages' ends, a store aft of the stair's flights (walled round), the linen
     # lockers, the lavatories' W.C.s, the ventilators, and the second-class lift.
@@ -1111,7 +1114,8 @@ NUDGES = [
     (0, 56.75, 57.25, -8.3, -6.4),  # room for boiler room 6's flight up (est.) and a body's lead
 ]
 DOOR_MOVES = [
-    ((102.125, 3.1875), (100.75, 3.1875)),  # the firemen's W.C.s' door aft of bulkhead B's line
+    # (The firemen's W.C.s' door where the plate draws it, forward of their spirals' ends:
+    # aft of them, behind their ends, a body had no lane to it, #531.)
     ((73.0, -7.9375), (72.0, -7.9375)),  # the eight-berth room's, clear of the passages' join
     (None, (-43.25, -10.8125)),  # the third engineer's, which the plate draws no swing for (est.)
     ((92.4375, 7.9375), None),  # the two-berth room her side leaves narrower than a body

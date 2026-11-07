@@ -146,7 +146,10 @@ ROOMS = [
     ("two-berth third-class room, G deck", 1770, 2566, 1833.5, 2626),
     ("three-berth third-class room, G deck", 1695, 2626, 1833.5, 2732.5),
     ("passage, G deck", 1827, 1935, 1860.5, 2196),
-    ("passage, G deck", 1693, 2196, 1933, 2235.5),
+    # The refrigerated holds' ladder (est.) fills it from side to side (STAIRS): its well no
+    # room (NOT_ROOMS), the passage forward of its foot the way on (#531).
+    ("passage, G deck", 1693, 2196, 1815.5, 2235.5),
+    ("passage, G deck", 1815.5, 2196, 1933, 2235.5),
     ("passage, G deck", 1933, 2173.5, 2043, 2235.5),
     ("passage, G deck", 1831, 2235.5, 1864, 2447),
     ("second-class entrance, G deck", 1864, 2235.5, 2043, 2293.5),
@@ -618,3 +621,5 @@ STAIR_MOVES = [
 GONE = [(-127.0, 0.0), (-124.5, 0.0)]
 # The passages F deck's flights fill, each foot's own way out past its end.
 NOT_ROOMS = [(-90.0, -8.3), (93.8, 5.2)]
+# The refrigerated holds' ladder's well (#531).
+NOT_ROOMS += [(-96.5, -3.3)]
