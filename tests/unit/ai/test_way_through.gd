@@ -18,6 +18,7 @@ const F_DECK := -8.5625
 const G_DECK := -11.0
 const ORLOP_AFT := -13.4375
 const ORLOP_FORWARD := -12.9375
+const TANK_TOP := -18.1875
 const DOUBLE_BOTTOM := -19.8125
 ## The stacked well's decks (_stacked_well), and its flights: one up from the hold to the
 ## tween deck, one on up from it to the top deck, in one footprint; and another way down.
@@ -63,12 +64,19 @@ const OFF_THE_FLIGHTS: Array[Vector3] = [
 ## Rooms' edges a solid stands flush against, once read as doorways onto it through a hair's
 ## gap (#514): the storekeepers' quarters' on E deck against the reciprocating engine casing,
 ## a third-class dining saloon's on F deck against a boiler casing, the turbine engine room's
-## into the reciprocating engine room against a thrust block.
+## into the reciprocating engine room against a thrust block, and on the tank top the
+## firemen's passage's by its door against boiler room 6's forward bunker's coal to port.
 const AGAINST_SOLIDS: Array[Vector3] = [
 	Vector3(-27.7109, E_DECK, -3.156),
 	Vector3(13.81, F_DECK, -6.0),
 	Vector3(-48.6328, -18.1875, -5.44),
+	Vector3(69.3477, TANK_TOP, -2.3125),
 ]
+## The third-class women's lavatory on D deck aft of O, two rooms either side of P's line,
+## and its W.C.s standing over that line (#514): their join inside the W.C.s, reached only
+## from inside them; and its stretch outside them, to port.
+const INSIDE_THE_W_C_S := Vector3(-118.9688, D_AFT, 8.48)
+const BESIDE_THE_W_C_S := Vector3(-118.9688, D_AFT, 5.8)
 ## The after second-class entrance's doorway to port on B deck, along the railed side of the
 ## hole of its stair down to C deck; and its doorway to starboard.
 const ONTO_THE_RAILED_HOLE := Vector3(-90.375, B_DECK, -2.875)
@@ -227,6 +235,22 @@ func test_doorways_once_onto_a_flight_let_a_body_through_both_ways() -> void:
 func test_a_room_s_edge_a_solid_stands_flush_against_is_walled() -> void:
 	for at: Vector3 in AGAINST_SOLIDS:
 		assert_null(_door_at(at), "no doorway onto the solid at %s" % at)
+
+
+## The join of the third-class women's lavatory's two rooms on P's line runs on inside the
+## W.C.s standing over the line, where no body but one inside them gets: walled there, its
+## stretch to port of them lets a body through both ways (#514).
+func test_the_women_s_lavatory_s_join_inside_its_w_c_s_is_walled() -> void:
+	var rules := SimFixtures.rules()
+	assert_null(_door_at(INSIDE_THE_W_C_S), "no doorway inside the W.C.s")
+	var door := _door_at(BESIDE_THE_W_C_S)
+	assert_not_null(door, "the join beside the W.C.s")
+	if door == null:
+		return
+	for out: Vector2 in [door.outward, -door.outward]:
+		var off := WayThrough.doorway(_surfaces, rules, door, D_AFT, out)
+		assert_false(is_nan(off), "a body goes through the join beside the W.C.s, %s" % out)
+	assert_eq(_doorways_at(BESIDE_THE_W_C_S), 2, "a portal through it either way")
 
 
 func test_e_deck_s_doorways_aft_of_c_let_a_body_through_both_ways() -> void:
