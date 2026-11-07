@@ -830,6 +830,10 @@ DOORS = [
     (9285, 2191), (9285, 2369), (9337, 2191), (9435, 2191), (9350, 2369),
     (9420, 2132), (9460, 2132), (9640, 2132), (9736, 2132), (9600, 2191), (9848, 1977),
     (9431, 2434), (9817, 2434), (9845, 2282), (9900, 2464), (10246, 2395),
+    # The wall's door est. to port as well, mirroring the starboard one: the warping engine
+    # stands across the room forward of it, a body's way round it neither aft (0.25 m) nor
+    # forward (0.44 m), so its port side was floor no body reached (#531).
+    (10246, 2156.5),
 ]
 
 OPEN = [
@@ -894,6 +898,12 @@ OPEN = [
     (10394, 2169, 10406, 2380.5),
     (7010, 1922, 7041, 1934), (7159, 1922, 7194, 1934), (7162, 2660, 7200, 2672),
 ]
+
+# The middle crew's ladder's head 1/8 m short of its lobby's door: its run on to the
+# lobby's whole length (STAIRS) left 0.72 m between its head's wedge and D deck's wall
+# across the passage under it, less than a body (#531, row 21's mouth). 3.56 m still runs
+# its 2.81 m at 0.79.
+STAIR_MOVES = [(("crew's ladder", 97.8125, -2.3125), (97.8125, 98.625, -2.1875, 1.375))]
 
 # The well the after second-class stairway's flight down to D deck runs on into, under B
 # deck's after end: its floor all the flight's hole in her after well deck (#514), no room.

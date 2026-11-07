@@ -263,6 +263,7 @@ func _notice(
 	var plate := centre + wall.normal * 0.014
 	RoomDressing.panel(mesh, plate, wall.right, half, wall.normal, ShipPaints.enamel)
 	var letters := Label3D.new()
+	letters.set_meta(SignPool.PLATE, plate)
 	letters.text = text
 	letters.font_size = NOTICE_FONT
 	letters.pixel_size = RoomDressing.SIGN_PIXEL

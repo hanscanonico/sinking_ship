@@ -322,8 +322,10 @@ STAIRS = [
     ("hold ladder", 8881, 3400, 9124, 3440, "fore", "tanktop", "orlop"),
     ("hold ladder", 8881, 3717, 9124, 3757, "fore", "tanktop", "orlop"),
     ("hold ladder", 9520, 3448, 9623, 3488.5, "aft", "lower_orlop", "orlop"),
-    # A second, est.: every deck under her main deck has two ways up.
-    ("hold ladder", 9525, 3627, 9627.5, 3665, "aft", "lower_orlop", "orlop"),
+    # A second, est.: every deck under her main deck has two ways up. Rising forward, its
+    # foot by the door in from the lower orlop's starboard after part: rising aft, its head
+    # stood 0.7 m before that door, the floor between a landing no route reached (#531).
+    ("hold ladder", 9525, 3627, 9627.5, 3665, "fore", "lower_orlop", "orlop"),
     # The CO2 evaporator room's ladder down to the reciprocating engine room's floor, est.:
     # 5.44 m for its 4.5 m, along the room's inboard wall, out of the door at its head
     # (DOORS), down the 1 m aisle Plate VIII leaves between the refrigerating engines under
@@ -349,8 +351,16 @@ WALLED_SOLIDS = [(-118.2, 0.0, "fore")]
 NUDGES = [(2, -10.25, -10.75, -71.3, -64.8)]
 
 STAIR_MOVES = [
-    # In from her side at the lower orlop's height, under the orlop her G deck leaves room for:
-    (("hold ladder", 107.8125, -3.375), (107.9375, 110.5625, -2.5, -1.5)),
+    # The spirals' flights 5/16 m forward, their heads 0.44 m inside the trunk: just inside
+    # it, the top of each flight within a step of the orlop stood over the cargo hold's
+    # floor, behind its railings, a landing in the hold no body reached from it (#531).
+    (("firemen's spiral staircase", 93.1875, -1.0625), (93.5, 99.75, -1.0625, -0.0625)),
+    (("firemen's spiral staircase", 93.1875, 0.4375), (93.5, 99.75, 0.4375, 1.4375)),
+    # In from her side at the lower orlop's height, under the orlop her G deck leaves room for,
+    # and inboard of the door in from the lower orlop's port after part, which its head stood
+    # 0.7 m before, the floor between a landing no route reached (#531): the door's way on
+    # forward beside it.
+    (("hold ladder", 107.8125, -3.375), (107.9375, 110.5625, -1.5, -0.5)),
     # Inside her side at the tank top, each foot on its half's floor:
     (("hold ladder", 91.375, -4.6875), (91.375, 97.625, -3.25, -2.25)),
     (("hold ladder", 91.375, 3.625), (91.375, 97.625, 2.25, 3.25)),
