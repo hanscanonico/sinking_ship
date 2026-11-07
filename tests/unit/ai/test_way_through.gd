@@ -372,7 +372,8 @@ func test_a_wide_doorway_whose_middle_gives_onto_a_stair_gives_onto_the_deck_bes
 	# A cabin, x -4…0 and z -4…0, walled but for its forward side, 4 m wide, on a deck — test
 	# data. A flight rises forward from 0.4 m off the doorway's middle, a metre wide, to a
 	# landing: a body's width out through the doorway's middle is on the flight, either side
-	# of it on the deck.
+	# of it on the deck. A way out onto the deck stands, as wide as it is, either side of the
+	# flight, never across it: a body walking out over the flight's foot is on the flight.
 	var rules := SimFixtures.rules()
 	var layout := ShipLayout.new()
 	layout.freeboard = 6.0
@@ -403,6 +404,20 @@ func test_a_wide_doorway_whose_middle_gives_onto_a_stair_gives_onto_the_deck_bes
 			ways[Vector2i(portal.from_zone, portal.to_zone)] = true
 	assert_true(ways.has(Vector2i(0, deck)), "out of the cabin onto the deck")
 	assert_true(ways.has(Vector2i(deck, 0)), "and back in")
+	var sides := {}
+	for portal: WalkGraph.Portal in graph.portals():
+		if portal.ramp == WalkGraph.NONE and portal.from_zone == 0:
+			var near := portal.entry.z + portal.half_width
+			var far := portal.entry.z - portal.half_width
+			assert_true(
+				near < -2.4 or far > -1.6,
+				(
+					"the way out at z %.2f, %.2f wide, keeps off the flight"
+					% [portal.entry.z, portal.half_width * 2.0]
+				)
+			)
+			sides[signf(portal.entry.z + 2.0)] = true
+	assert_eq(sides.size(), 2, "a way out either side of the flight")
 	var start := Vector3(-3.0, 0.0, 4.0)
 	var legs := graph.route(start, surfaces.under(start, rules.step_height), 0, _level(layout))
 	assert_false(legs.is_empty(), "so the cabin is not sealed")

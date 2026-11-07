@@ -80,15 +80,24 @@ static func _along(ramp: ShipRamp) -> PackedVector3Array:
 ## Where the walk graph's portals through [param door], out of its room's floor at
 ## [param floor_height] and back in, stand: as offsets from its middle toward its
 ## [code]to[/code] end (doorway), tried every STRIDE across it, then, where no body got
-## through, every FINE; NAN for a way no body goes, which the graph leaves out.
+## through, every FINE; only offsets from [param low] to [param high] — the lane of a wide
+## doorway that gives onto the floor past it, not onto a stair beside it (WalkDoors); NAN
+## for a way no body goes, which the graph leaves out. Only the way out where [param ways]
+## is 1.
 static func crossings(
-	surfaces: Surfaces, rules: BrawlRules, door: ShipRoom.Door, floor_height: float
+	surfaces: Surfaces,
+	rules: BrawlRules,
+	door: ShipRoom.Door,
+	floor_height: float,
+	low := -INF,
+	high := INF,
+	ways := 2
 ) -> PackedFloat64Array:
 	var offs := PackedFloat64Array()
-	for out: Vector2 in [door.outward, -door.outward]:
-		var off := doorway(surfaces, rules, door, floor_height, out)
+	for out: Vector2 in [door.outward, -door.outward].slice(0, ways):
+		var off := doorway(surfaces, rules, door, floor_height, out, true, STRIDE, low, high)
 		if is_nan(off):
-			off = doorway(surfaces, rules, door, floor_height, out, true, FINE)
+			off = doorway(surfaces, rules, door, floor_height, out, true, FINE, low, high)
 		offs.append(off)
 	return offs
 
@@ -96,8 +105,10 @@ static func crossings(
 ## Where along [param door] a body could go out through it from its room's floor at
 ## [param floor_height] the way [param out] (its outward, or back in): how far from its
 ## middle toward its [code]to[/code] end, tried at the middle, then every [param stride] out
-## from it either way, as far as a body's radius in from each jamb (_crosses), held back by
-## railings too unless [param rails] is false; NAN where nowhere.
+## from it either way, as far as a body's radius in from each jamb (_crosses), and only from
+## [param low] to [param high], held back by railings too unless [param rails] is false;
+## NAN where nowhere. A [param stride] finer than STRIDE skips the points STRIDE apart, which
+## crossings has tried already.
 static func doorway(
 	surfaces: Surfaces,
 	rules: BrawlRules,
@@ -105,12 +116,16 @@ static func doorway(
 	floor_height: float,
 	out: Vector2,
 	rails := true,
-	stride := STRIDE
+	stride := STRIDE,
+	low := -INF,
+	high := INF
 ) -> float:
 	var room := maxf(door.width() * 0.5 - rules.body_radius, 0.0)
 	var steps := floori(room / stride)
 	for index in range(0, steps * 2 + 1):
 		var off := stride * ceili(index * 0.5) * (1.0 if index % 2 == 1 else -1.0)
+		if off < low or off > high or (stride < STRIDE and is_zero_approx(fmod(off, STRIDE))):
+			continue
 		var at := across(door, off, floor_height)
 		if _crosses(surfaces, rules, Vector2(at.x, at.z), out, floor_height, rails):
 			return off
