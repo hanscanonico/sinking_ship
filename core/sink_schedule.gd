@@ -472,6 +472,21 @@ func _physical(tick: int) -> ShipPose:
 	return pose
 
 
+## Her trim and heel at [param tick], in degrees, as her bake has them (leans_of): her
+## first piece's, which her pose at the tick has (_physical), read the same way but
+## without the rest of the pose — what the HUD's phase banner asks each frame (#410).
+func leans_at(tick: int) -> PackedFloat64Array:
+	var frame := 0
+	var weight := 0.0
+	if tick > _hit_tick:
+		frame = _timeline.frame_at(_seconds_at(tick))
+		weight = _weight(frame, tick)
+	var next := mini(frame + 1, _timeline.count() - 1)
+	var seconds := _seconds_at(tick) if tick > _hit_tick else 0.0
+	var leaf := _timeline.leaf_of(_standing(0, seconds))
+	return leans_of(Basis(_timeline.blend(frame, next, weight, leaf)))
+
+
 ## Piece [param piece]'s pose [param weight] of the way from kept state [param frame] to
 ## [param next], [param seconds] of physics after the hit (_physical): where the piece of
 ## her standing then that it is part of — or, once it has broken, the first it broke
@@ -683,15 +698,17 @@ func _physical_phase(tick: int) -> String:
 
 ## The phase [param tick] has from how she leans — or else from her water.
 func _leaning_phase(tick: int) -> String:
-	var pose := _physical(tick)
-	var listing := absf(pose.heel_deg) / LISTING_DEG
-	var trimmed := absf(pose.trim_deg) / TRIMMED_DEG
-	if absf(pose.heel_deg) >= CAPSIZING_DEG:
+	var leans := leans_at(tick)
+	var trim := leans[0]
+	var heel := leans[1]
+	var listing := absf(heel) / LISTING_DEG
+	var trimmed := absf(trim) / TRIMMED_DEG
+	if absf(heel) >= CAPSIZING_DEG:
 		return "Capsizing"
 	if listing >= 1.0 and listing >= trimmed:
 		return "Listing"
 	if trimmed >= 1.0:
-		return "By the head" if pose.trim_deg > 0.0 else "By the stern"
+		return "By the head" if trim > 0.0 else "By the stern"
 	return "Flooding" if _flooding_tick != -1 and tick >= _flooding_tick else "Holed"
 
 
