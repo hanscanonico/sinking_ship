@@ -1,15 +1,15 @@
 extends GutTest
-## The Titanic's forward cargo hatches shut where her plates draw them shut (#399): the covers
-## on D deck of Nos. 1 and 2 and the bunker hatch (tools/titanic_plates/d.py), each a shut
-## cover between the cells it parts, an air pipe through it: loose hatch boards (#503), which
-## the water under them floats off at about their thickness (est. 3 in) toward the space over
-## them, while pressed from above they weep at that head and hold to 1 m (est.); and No. 1's trunk enclosed through C deck under her
-## forecastle (c.py), no way from D deck's space into it. No. 1 trunked from G deck up to its
-## cover (g.py, f.py, e.py draw its sides on each deck): a cell of its own, open down into its
-## hold through G deck (orlop.py: "open down to the holds under them"), shut off from the
-## 'tween round it but for its casing's seams, which weep (#513). None of the open hatchways
-## her generator laid there is left. And the 'tweens her trunks part keep their ports: the
-## Britannic's open where the 'tween's are.
+## The Titanic's forward cargo hatches shut where her plates draw them shut (#399): the covers on D
+## deck of Nos. 1 and 2 and the bunker hatch (tools/titanic_plates/d.py), each a shut cover between
+## the cells it parts, an air pipe through it: loose hatch boards (#503), which the water under them
+## floats off at about their thickness (est. 3 in) toward the space over them, while pressed from
+## above they weep at that head and hold to 1 m (est.); and No. 1's trunk enclosed through C deck
+## under her forecastle (c.py), no way from D deck's space into it. No. 1 trunked from G deck up to
+## its cover (g.py, f.py, e.py draw its sides on each deck): a cell of its own, open down into its
+## hold through G deck (orlop.py: "open down to the holds under them"), shut off from the 'tween
+## round it but for its casing's seams, which weep (#513). None of the open hatchways her generator
+## laid there is left. And the 'tweens her trunks part keep their ports: the Britannic's open where
+## the 'tween's are.
 
 const SHIP := "res://data/ships/titanic.tres"
 ## The most a casing's face weeps through its seams, in m² (tools/titanic_leakage.py).
