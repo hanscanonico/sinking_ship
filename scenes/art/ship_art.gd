@@ -36,8 +36,6 @@ const FURNISHING := &"furnishing"
 const HUNG_AT := &"hung_at"
 ## A deck's planking: its top is the platform's height.
 const PLANK := 0.06
-## How near the eye a lamp is woken to swing as she turns, in metres (_wake_lamps).
-const LAMP_WAKE_REACH := 40.0
 ## The boot line, above the waterline of a level, unsunk ship.
 const BOOT_ABOVE := 0.35
 ## The tallest a stair's step rises: the stair's top stands within half of it of
@@ -174,12 +172,9 @@ var _lamp_sight: LampSight
 var _lamps: Array[ShipLamp] = []
 var _lamp_swing := LampSwing.new()
 var _lamp_at := PackedVector3Array()
-## Per lamp, the power and drowning last handed it (power * 2 + drowned), -1 before any:
-## each lamp is handed only what changed, not 2,700 of them every tick on the Titanic.
-var _lamp_shown := PackedInt32Array()
-## The same points, their cells found once a cell map and their heights worked out
-## together each pose (StillPoints); null until show_power first asks.
-var _lamp_points: StillPoints
+## What lights them as each pose has their cells (LampPower); null until show_power
+## first asks.
+var _lamp_power: LampPower
 ## Per funnel the sinking can fell, by its fitting's name, the node its standing part
 ## hangs from, turned about its foot as it falls (show_falls).
 var _funnels := {}
@@ -275,8 +270,7 @@ func build_frame(
 	_lamps.clear()
 	_lamp_swing.reset(self)
 	_lamp_at.clear()
-	_lamp_shown.clear()
-	_lamp_points = null
+	_lamp_power = null
 	_funnels.clear()
 	_felled = false
 	var hull := SectionHull.of(_space, railing_height)
@@ -563,48 +557,33 @@ func show_power(pose: ShipPose) -> void:
 	_powered = pose
 	if pose.lit.is_empty():
 		return
-	if _lamp_points == null or _lamp_points.size() != _lamp_at.size():
-		_lamp_points = StillPoints.new(_lamp_at)
-	_lamp_points.read(pose)
-	if _lamp_shown.size() != _lamps.size():
-		_lamp_shown.resize(_lamps.size())
-		_lamp_shown.fill(-1)
-	# A pose that keeps no cells has no lamp in one (ShipPose.cell_at).
-	var levels := pose.levels
-	var lit := pose.lit
-	# The cell each hangs in as the pose has her cells — a piece's own, once she breaks —
-	# and where each hangs in the world: every lamp's at once (#410).
-	var cells := _lamp_points.cells() if not levels.is_empty() else PackedInt32Array()
-	var world := _lamp_points.world_points() if not levels.is_empty() else PackedVector3Array()
-	for index in cells.size():
-		var cell := cells[index]
-		if cell == CellMap.NONE:
-			continue
-		var power: int = lit[cell]
-		var drowned := levels[cell] >= world[index].y
-		var shown := power * 2 + (1 if drowned else 0)
-		if shown == _lamp_shown[index]:
-			continue
-		_lamp_shown[index] = shown
-		var lamp := _lamps[index]
-		lamp.power = power
-		lamp.drowned = drowned
+	# A pose that keeps no cells has no lamp in one (ShipPose.cell_at). The cell each
+	# hangs in is the pose's — a piece's own, once she breaks.
+	if not pose.levels.is_empty():
+		_lamp_powered().show(pose)
 	if _deck_lights != null:
 		_deck_lights.show_power(pose)
 	if _broken_glass != null:
 		_broken_glass.show(pose)
 
 
-## Wakes every lamp within LAMP_WAKE_REACH of the eye drawing her — every one with no
-## eye — to swing as she turns: the Titanic hangs 897 a piece, and a lamp further off
+## Wakes every lamp within LampPower.WAKE_REACH of the eye drawing her — every one with
+## no eye — to swing as she turns: the Titanic hangs 897 a piece, and a lamp further off
 ## catches up as the eye nears it, the next tick she turns.
 func _wake_lamps() -> void:
 	var camera := get_viewport().get_camera_3d() if is_inside_tree() else null
-	var eye := to_local(camera.global_position) if camera != null else Vector3.INF
-	var reach := LAMP_WAKE_REACH * LAMP_WAKE_REACH
-	for index in _lamps.size():
-		if camera == null or _lamp_at[index].distance_squared_to(eye) <= reach:
+	if camera == null:
+		for index in _lamps.size():
 			_lamp_swing.wake(index)
+		return
+	for index in _lamp_powered().near(to_local(camera.global_position)):
+		_lamp_swing.wake(index)
+
+
+func _lamp_powered() -> LampPower:
+	if _lamp_power == null:
+		_lamp_power = LampPower.new(_lamps, _lamp_at)
+	return _lamp_power
 
 
 ## Turns each funnel [param falls] (ShipPose.falls) names about its foot as far as it has
