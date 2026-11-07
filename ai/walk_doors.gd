@@ -123,9 +123,10 @@ func _gives_onto(graph: WalkGraph, room: int, door: ShipRoom.Door) -> int:
 ## The lanes of [param door] out of [param room]: what a body's width out through it stands
 ## on, read every WayThrough.STRIDE across it as far as a body's radius in from each jamb, in
 ## runs of one zone of [param graph] each — a point on a ramp or on nothing (over a stair's
-## hole) no zone's, so that a stair beside the floor a wide doorway opens onto splits it. Per run whose zone is not the room again, from the [code]from[/code] end: the
-## zone, and the offsets from the door's middle its lane spans — to a jamb where the run
-## reaches it, else half a STRIDE past its last point.
+## hole) no zone's, so that a stair beside the floor a wide doorway opens onto splits it.
+## Per run whose zone is not the room again, from the [code]from[/code] end: the zone, and
+## the offsets from the door's middle its lane spans — to a jamb where the run reaches it,
+## else half a STRIDE past its last point.
 func _lanes(graph: WalkGraph, room: int, door: ShipRoom.Door) -> PackedFloat64Array:
 	var floor_height := _layout.rooms[room].floor_height
 	var steps := floori(maxf(door.width() * 0.5 - _radius, 0.0) / WayThrough.STRIDE)
