@@ -348,6 +348,11 @@ MADE_SOLID = [(-68.0, -10.95)]
 DOOR_MOVES = [((-96.6875, -2.75), (-94.0, -2.75))]
 # The trunk the after hold's forward end only touches: walled (#514).
 WALLED_SOLIDS = [(-118.2, 0.0, "fore")]
+# Boiler room 6's forward cross bunker's forward face, bulkhead D, along the baggage room and
+# the mail room: the bunker stands on no floor of this deck (gen_titanic.py's on_floor), so
+# without its face walled nothing of this deck's own closed their after sides, only the tank
+# top's coal and walls standing up through it (#514).
+WALLED_SOLIDS += [(69.0, 0.0, "fore")]
 NUDGES = [(2, -10.25, -10.75, -71.3, -64.8)]
 
 STAIR_MOVES = [
