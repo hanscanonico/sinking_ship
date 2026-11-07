@@ -331,6 +331,51 @@ func test_a_bot_walks_round_a_manhole_in_its_floor_to_a_bonus() -> void:
 	assert_almost_eq(lowest, FIREMENS_PASSAGE.y, 0.05, "never down the manhole")
 
 
+## Seat 0's stick, walking it the way [param walk] points — its look along it — until it
+## stands [param past] along that way; from then on its bot's.
+class Walked:
+	extends InputSource
+	var bot: BotInputSource
+	var body: PlayerState
+	var walk: Vector2
+	var past: float
+	var handed := false
+
+	func next_frame(tick: int) -> InputFrame:
+		handed = handed or Vector2(body.pos.x, body.pos.z).dot(walk) >= past
+		if handed:
+			return bot.next_frame(tick)
+		var stick := InputFrame.quantize(walk)
+		return InputFrame.new(0, tick, stick, 0, InputFrame.quantize_yaw(walk.angle()))
+
+	func observe(snapshot: Dictionary, pose: ShipPose) -> void:
+		bot.observe(snapshot, pose)
+
+
+## A bot walking along the hold at a walk, 1.2 to 1.5 m to one side of the bonus lying in its
+## middle, turns in for it from just short of abreast of it and takes it at once. On main it
+## walked at it at a walk from where its view, a lag behind, carried it on: it went round and
+## round the bonus half a metre off, its look a lag behind the turn, and never took it (#537).
+func test_a_bot_walking_past_a_bonus_turns_in_and_takes_it() -> void:
+	var layout := _long_hold()
+	var spot_at := Vector3(-20.0, SimFixtures.HOLD_FLOOR, 0.0)
+	layout.bonus_spots[0].point = spot_at
+	for passing: Vector2 in [Vector2(1.2, -1.0), Vector2(1.2, 0.0), Vector2(1.5, -0.5)]:
+		var sim := _in_the_hold(0.0, null, layout)
+		SimFixtures.place(sim, 0, spot_at + Vector3(-10.0, 0.0, passing.x), 0.0)
+		var walked := Walked.new()
+		walked.bot = BotInputSource.new(0, _tier(&"normal"), sim.config)
+		walked.body = sim.state.seats[0]
+		walked.walk = Vector2(1.0, 0.0)
+		walked.past = spot_at.x + passing.y
+		var sources: Array[InputSource] = [walked, InputSource.new(), InputSource.new()]
+		var runner := MatchRunner.new(sim, sources)
+		assert_true(_until(runner, 3.0, func() -> bool: return walked.handed), "walked there")
+		var took := _until(runner, 1.0, func() -> bool: return walked.body.bonus != -1)
+		var where := "%.1f m off, from %.1f m" % [passing.x, passing.y]
+		assert_true(took, "%s: took it, at %s" % [where, walked.body.pos])
+
+
 ## A room's area runs out to the middle of its walls, and at the Titanic's shell that lay
 ## past her cells, where the sea outside her reads: her CO2 evaporator room on the orlop has a
 ## corner there, within a body's radius of her shell (her sections cut finer where she
