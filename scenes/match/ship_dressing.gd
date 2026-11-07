@@ -255,6 +255,11 @@ static func finish_all() -> void:
 			_flush()
 
 
+## How many dressings are under way, their tasks not yet seen through (finish_all).
+static func under_way() -> int:
+	return _under_way.size()
+
+
 ## Waits for, and forgets, every dressing under way whose task is over.
 static func _see_through() -> void:
 	for dressing: ShipDressing in _under_way.duplicate():

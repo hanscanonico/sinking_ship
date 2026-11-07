@@ -507,7 +507,7 @@ func _find_wet(then: ShipPose, now: ShipPose, levels: PackedFloat64Array) -> voi
 		if pours or crosses:
 			_wet.append(index)
 			continue
-		if _pours[index].visible:
+		if not _pours[index].top_level:
 			_hide_pour(index)
 		var last := _last_heads[index]
 		var head_first := heads[first]
@@ -525,15 +525,25 @@ func _find_wet(then: ShipPose, now: ShipPose, levels: PackedFloat64Array) -> voi
 			_last_heads[index] = Vector2(head_first, head_second)
 
 
-## Hides opening [param index]'s pour, its froth and its crossing.
+## Hides opening [param index]'s pour, its froth and its crossing, each apart from her
+## (_stow).
 func _hide_pour(index: int) -> void:
-	var pour := _pours[index]
-	if pour.visible:
-		pour.visible = false
-		_landings[index].visible = false
+	_stow(_pours[index])
+	_stow(_landings[index])
 	var crossing := _crossings[index]
-	if crossing != null and crossing.visible:
-		crossing.visible = false
+	if crossing != null:
+		_stow(crossing)
+
+
+## Hides [param sheet] standing apart from her (top level), so her moving every frame
+## spends nothing on it — the Titanic has hundreds of openings gone dry or never pouring —
+## until it is hung or laid again (_hang, _lay), which sets where it is drawn first. One
+## standing apart is always hidden.
+static func _stow(sheet: MeshInstance3D) -> void:
+	if sheet.top_level:
+		return
+	sheet.visible = false
+	sheet.top_level = true
 
 
 ## Makes opening [param index]'s pour, its crossing — through a floor or a porthole —
@@ -546,6 +556,7 @@ func _pour_for(index: int) -> void:
 	if opening.facing() == 1 or opening.kind == ShipOpening.Kind.PORTHOLE:
 		_crossings[index] = _pour()
 	_landings[index] = _froth()
+	_hide_pour(index)
 
 
 ## The world height cell [param cell]'s water stands at under [param pose]: its box's
@@ -883,6 +894,8 @@ func _hang(
 	thrown: Vector3,
 	outdoor: float
 ) -> void:
+	if pour.top_level:
+		pour.top_level = false
 	pour.transform = Transform3D(basis, middle)
 	_param(pour, &"extent", Vector2(basis.x.length(), basis.y.length()))
 	_param(pour, &"strength", strength)
@@ -895,6 +908,8 @@ func _hang(
 ## [param strength] says — a burst of air [param burst] of the way through, or below 0
 ## for a pour's landing.
 func _lay(froth: MeshInstance3D, basis: Basis, at: Vector3, strength: float, burst: float) -> void:
+	if froth.top_level:
+		froth.top_level = false
 	froth.transform = Transform3D(basis, at)
 	_param(froth, &"extent", Vector2(basis.x.length(), basis.z.length()))
 	_param(froth, &"strength", strength)
