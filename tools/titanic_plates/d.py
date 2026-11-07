@@ -489,10 +489,12 @@ ROOMS = [
 
 SOLIDS = [
     # Aft: a trunk in the third-class centre passage (est. a ventilator's: the plate's box
-    # of three, 0.8 m from the passage's sides); the third-class W.C.s, the main
-    # lavatories' rows of them between the third-class and second-class lavatories, and a
-    # W.C. off the ladies' lavatory.
-    ("trunk", 948, 3525, 1068, 3578, None),
+    # of three, 0.8 m from the passage's sides, drawn 1 m across so a body takes the
+    # passage round it, 0.95 m clear each side by #360's rule, where the drawn 1.4 m left
+    # none a way past: the cabins aft of it were reached by no way at all, #501); the
+    # third-class W.C.s, the main lavatories' rows of them between the third-class and
+    # second-class lavatories, and a W.C. off the ladies' lavatory.
+    ("trunk", 948, 3533, 1068, 3570, None),
     ("W.C.s", 1174, 3131, 1256, 3311, None),
     ("W.C.s", 1184.5, 3796.5, 1266.5, 3968, None),
     ("W.C.s", 1286, 3113, 1350, 3355, None),

@@ -100,7 +100,7 @@ func test_a_cell_drawn_round_its_rooms_reaches_the_bulkheads_it_shares() -> void
 	var top := drawn[structure.cell_named(&"hold_1")]
 	assert_almost_eq(top.end.x, orlop.area.end.x, 1e-5, "No. 1 hold's keeps to its orlop")
 	assert_lt(top.end.x, hold_1.high.x - 1.0, "short of the bulkhead forward of it")
-	for stack: Array in CellBoxes.stacked(structure, layout.rooms):
+	for stack: Array in CellBoxes.stacked(structure, layout.rooms, layout):
 		var box: AABB = stack[1]
 		if structure.cells[stack[0]] == hold_1:
 			assert_false(box.intersects(top), "its stack keeps off its top box at %s" % box)
@@ -220,7 +220,7 @@ func _drawn(layout: ShipLayout) -> Array:
 	var drawn: Array = []
 	for index in boxes.size():
 		drawn.append([index, boxes[index]])
-	drawn.append_array(CellBoxes.stacked(layout.structure, layout.rooms))
+	drawn.append_array(CellBoxes.stacked(layout.structure, layout.rooms, layout))
 	return drawn
 
 

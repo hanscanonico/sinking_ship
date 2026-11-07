@@ -9,6 +9,7 @@ const LIFT := 50.0
 
 var _structure: ShipStructure
 var _rooms: Array[ShipRoom]
+var _layout: ShipLayout
 var _schedule: SinkSchedule
 
 
@@ -16,6 +17,7 @@ func before_all() -> void:
 	var config := RunMatch.default_config(1701)
 	_structure = config.ship.structure
 	_rooms = config.ship.rooms
+	_layout = config.ship
 	_schedule = config.schedule()
 
 
@@ -23,7 +25,7 @@ func _water() -> InnerWater:
 	var water: InnerWater = add_child_autofree(InnerWater.new())
 	var sea := ShaderMaterial.new()
 	sea.shader = InnerWater.WATER_SHADER
-	water.setup(_structure, _rooms, _schedule.passages(), _schedule.failing(), sea, {})
+	water.setup(_structure, _rooms, _layout, _schedule.passages(), _schedule.failing(), sea, {})
 	return water
 
 

@@ -226,9 +226,11 @@ OPEN = [
 
 STAIRS = [
     # Down off its after end's first step to B deck's open end, port and starboard: the
-    # plate's ladders, as stairs.
-    ("ladder", 2312, 4600, 2442, 4640, "fore", "b", "a"),
-    ("ladder", 2312, 5118, 2442, 5158, "fore", "b", "a"),
+    # plate's ladders against the step's face, as stairs, run on aft no further than a body
+    # climbs (the generator's RUN_ON). Run on from px 2312, each filled B deck from the step
+    # to her after rail, and a body walked round its foot only along a lane 4 cm wide (#505).
+    ("ladder", 2427, 4600, 2442, 4640, "fore", "b", "a"),
+    ("ladder", 2427, 5118, 2442, 5158, "fore", "b", "a"),
     # The second-class flight down to B deck, starboard of the lift, from the landing
     # aft. The plate draws 82 px of treads (2.2 m) for 9 ft of rise; a body climbs no
     # steeper than tools/gen_titanic.py's STEEPEST, so it runs on 43 px into what the

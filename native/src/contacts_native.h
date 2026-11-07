@@ -135,6 +135,9 @@ public:
 	int64_t under(const Vector3 &p_ship_point, double p_step, int64_t p_except_prop) const;
 	PackedVector3Array floor_way(const Vector3 &p_from, const Vector3 &p_end, const PackedInt32Array &p_keep,
 			const PackedFloat64Array &p_rules) const;
+	// WalkPieces._read's squares (floor_way_native.cpp).
+	PackedByteArray stands_grid(const Vector2 &p_origin, int64_t p_width, int64_t p_depth, double p_side,
+			double p_height, const Rect2 &p_within, const PackedFloat64Array &p_rules) const;
 
 protected:
 	static void _bind_methods();

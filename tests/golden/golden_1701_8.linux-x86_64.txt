@@ -4,18 +4,39 @@ must 2 thrown · 1 bakes · drawn
 00:17.1 forepeak flooding
 00:20.0 High jump aboard · spot 19
 00:20.9 hold_bilge flooding
-00:36.9 seat 6 out · cold · place 8
-01:00.2 seat 5 out · cold · place 7
+00:25.1 railing 3 broke
+00:27.2 seat 6 out · cold · place 8
+00:29.9 seat 2 out · cold · place 7
+00:32.9 seat 1 out · cold · place 6
 01:16.5 Steady aboard · spot 10
-01:27.9 seat 4 out · cold · place 6
+01:21.4 seat 0 takes Steady · spot 10
+01:24.2 seat 7 takes High jump · spot 19
 01:31.2 hold flooding
-01:38.1 railing 18 broke
-01:42.9 seat 3 out · cold · place 5
-01:45.2 seat 1 out · cold · place 4
-01:45.9 seat 0 out · cold · place 3
 01:46.0 hold_bilge lamps drowned
-01:46.1 seat 7 out · cold · place 2
-winner seat 2 at 01:46.1 · digest f8aa6d11858f187e
-sinking at the end of the match: physics 0:02:11 (on the paced clock, Q20) · seen 15% · sea 0.61 m up her · trim +3.4° · list +5.3° · hold_bilge 3.16 m · hold 0.12 m · hold_wing_s 3.42 m · forepeak 1.19 m
+01:57.7 Strong arms aboard · spot 12
+02:00.2 seat 3 out · cold · place 5
+02:09.7 seat 0 out · cold · place 4
+02:10.4 hold_bilge full
+02:11.2 hold_wing_p flooding
+02:12.4 seat 5 takes Strong arms · spot 12
+02:35.3 seat 5 out · cold · place 3
+02:45.6 panel_bulkhead_hold_engine_bilge_s_hold_wing_s gave way
+02:45.9 engine_bilge_s flooding
+02:46.7 engine_bilge_s lamps drowned
+02:47.1 engine_room flooding
+02:47.4 engine_bilge_s full
+02:50.8 railing 13 broke
+02:51.3 prop 1 lost
+02:52.4 prop 0 lost
+02:54.4 Strong arms aboard · spot 23
+03:25.0 hold_wing_s lamps drowned
+03:45.1 engine_bilge_p flooding
+03:49.6 Double life aboard · spot 8
+03:52.2 Strong arms lost · spot 23
+04:01.3 water through over_bulkhead_hold_to_hold_wing_s
+04:05.0 seat 4 grabs prop 4
+04:06.0 seat 7 out · cold · place 2
+winner seat 4 at 04:06.0 · digest 3ca5f6c80ba885dd
+sinking at the end of the match: physics 0:12:12 (on the paced clock, Q20) · seen 83% · sea 1.47 m up her · trim +8.1° · list +11.0° · engine_bilge_p 0.75 m · engine_bilge_s full · engine_room 2.32 m · hold_bilge full · hold 2.43 m · hold_wing_p 1.11 m · hold_wing_s 6.35 m · forepeak 5.25 m
 not played: gone at 0:14:38 · trim +87.6° · list -17.9° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x -5.5 m, hogging

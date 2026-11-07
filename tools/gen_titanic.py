@@ -1935,11 +1935,10 @@ outline_rails("a", A_PIECES, a_deck, heads + [(0, A_RUN[1], z0, z1) for z0, z1 i
 # B deck's: her open after end and her assembling area forward, but where her house stands
 # to her side (B_HOUSE), a gap at the head of each ladder down to her wells, and none
 # under A deck's ladders, whose flights come down past her front from A deck's. A deck's
-# after ladders come down onto her where her side steps in, as both plates draw them:
-# a gap at each one's foot.
+# after ladders come down onto her inside her after rail, against A deck's step as the
+# plate draws them (#505), and it runs on behind their feet.
 b_heads = [(0, s[2] if s[5] == "fore" else s[1], s[3], s[4]) for s in B_OUTLINE.stairs if s[7] == "b" and s[5] in ("fore", "aft")]
-a_feet = [(0, s[1] if s[5] == "fore" else s[2], s[3], s[4]) for s in A_PLAN.stairs if s[6] == "b" and s[5] in ("fore", "aft")]
-outline_rails("b", B_PIECES, b_deck, b_heads + a_feet + [(0, B_RUN[1], z0, z1) for z0, z1 in lanes_of("a_fwd_")]
+outline_rails("b", B_PIECES, b_deck, b_heads + [(0, B_RUN[1], z0, z1) for z0, z1 in lanes_of("a_fwd_")]
               + [(2, z, max(x0, B_HOUSE[0]), min(x1, B_HOUSE[1])) for x0, x1, z0, z1 in B_PIECES
                  if x0 < B_HOUSE[1] and x1 > B_HOUSE[0] for z in (z0, z1)])
 rail_line("well_port", well, 2, -CW, WELL[0], WELL[1])
@@ -4971,7 +4970,9 @@ for name, x0, x1, y0, y1, z0, z1, kind, permeability in CELLS:
         f.append(("kind", str(KINDS.index(kind))))
     if permeability is not None:
         f.append(("permeability", num(permeability)))
-    fill = inside / box_volume
+    # Read as written, to num()'s four decimals: a fill a hair under SHAPE_WHOLE would
+    # otherwise be written as it, 0.9999, the very cell the round-up keeps out (#365).
+    fill = round(inside / box_volume, 4)
     f.append(("shape", num(1.0 if fill >= SHAPE_WHOLE else fill)))
     if z1 - z0 >= WIDE_CELL:
         f.append(("sideways", num(WIDE_SIDEWAYS)))

@@ -25,10 +25,11 @@ const MEET := 1e-4
 ## (_bands), held to its narrowest at the band's top or bottom.
 const LEAN := 0.05
 
-## Per structure, [its rooms, its boxes, its stacks], made the first time they are asked
-## for (boxes, stacked), on whatever thread asks: her sea, her water and her effects each
-## ask, and a liner's take seconds (#492). Read off her structure and rooms alone, so
-## the same however often asked.
+## Per structure, [its rooms, its boxes, its cells' stacks] and then [its layout, its
+## stacks with her rooms' columns (RoomColumns)], made the first time they are asked for
+## (boxes, stacked), on whatever thread asks: her sea, her water and her effects each
+## ask, and a liner's take seconds (#492). Read off her structure and layout
+## alone, so the same however often asked.
 static var _made := {}
 static var _made_guard := Mutex.new()
 
@@ -88,9 +89,19 @@ static func _boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AA
 ## its floor up to the floor of the one over each part of it or the cell's top (_under),
 ## the first in boxes(), and out to the bulkheads it shares (_to_bulkheads), then what
 ## her shell's narrowest over each leaves out of it and its stairwells (_room_boxes),
-## less what the cell's other boxes hold (_less); each as [cell, box].
-static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
-	return (_made_of(structure, rooms)[2] as Array).duplicate(true)
+## less what the cell's other boxes hold (_less); and each part of [param layout]'s
+## rooms, from its floor to whatever roofs it, standing in such a cell but in no box of
+## it (RoomColumns); each as [cell, box], each cell's together, in her cells' order.
+## [param rooms] are [param layout]'s.
+static func stacked(structure: ShipStructure, rooms: Array[ShipRoom], layout: ShipLayout) -> Array:
+	var made := _made_of(structure, rooms)
+	if made.size() < 5 or not is_same(made[3], layout):
+		var joined := RoomColumns.joined(structure, layout, made[1], made[2])
+		made = [made[0], made[1], made[2], layout, joined]
+		_made_guard.lock()
+		_made[structure] = made
+		_made_guard.unlock()
+	return (made[4] as Array).duplicate(true)
 
 
 static func _stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:

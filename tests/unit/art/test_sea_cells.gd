@@ -14,6 +14,13 @@ const SMALL_TITANIC := "res://data/ships/small_titanic.tres"
 ## box's INSET from her side (CellBoxes) — and how far apart.
 const INWARD := 0.3
 const STEP := 0.5
+## How far over a room's floor the cells and boxes it may stand in are looked for: past
+## the highest any deck roofs one of hers.
+const OVER_ANY_ROOF := 40.0
+## The Titanic, her smaller sister and her sisters, by name (Fleet).
+const TITANICS: Array[StringName] = [
+	&"titanic", &"small_titanic", &"titanic_olympic_1913", &"titanic_britannic"
+]
 ## How far in from a doorway's edges its points are read, and how far apart through
 ## its bulkhead; and how far past a door the room it leads into is looked for, past
 ## any bulkhead's walls — and its floor walked, where it leads into none.
@@ -212,32 +219,78 @@ func test_rooms_under_a_stairwell_never_look_up_it_into_the_sea() -> void:
 	)
 
 
-## Per room of [param layout] named in [param names], the first point found of it, from
-## its floor to whatever roofs it, inside one of her cells but in no box the sea leaves
-## out (CellBoxes.boxes and stacked); every one of the names a room of hers.
-func _open_points(layout: ShipLayout, names: Array[StringName]) -> Array:
+## No room of the Titanic's, her smaller sister's or her sisters' ever looks into the
+## sea, wherever in her it stands: every point of every room, from its floor to whatever
+## roofs it, inside one of her cells, is in a box the sea leaves out (#318). A room laid
+## past its cell — her sisters' D deck grand staircase into the cell forward of it, their
+## G deck stores out into the engine room's wing — or standing up into the cell over it
+## with no deck between — her smaller sister's E deck working passages into the voids
+## over her after holds, her turbine engine room into the tween over it, her D deck
+## saloons' sides up past C deck's edge — is drawn there up to the deck over it
+## (RoomColumns), where the sea was once drawn inside the room.
+func test_no_room_of_a_titanic_looks_into_the_sea() -> void:
+	for ship: StringName in TITANICS:
+		assert_eq(
+			_open_points(Fleet.layout(ship)), [], "points of %s's rooms the sea is drawn in" % ship
+		)
+
+
+## Per room of [param layout] named in [param names] — every room of hers, with none
+## named — the first point found of it, from its floor to whatever roofs it, inside one of
+## her cells but in no box the sea leaves out (CellBoxes.boxes and stacked); every one of
+## the names a room of hers.
+func _open_points(layout: ShipLayout, names: Array[StringName] = []) -> Array:
 	var masked := _masked(layout)
+	var cells: Array[AABB] = []
+	for cell: FloodCell in layout.structure.cells:
+		cells.append(AABB(cell.low, cell.high - cell.low))
 	var space := ShipSpace.new(layout)
 	var open := []
 	var checked := {}
 	for room: ShipRoom in layout.rooms:
-		if not room.name in names:
+		if not names.is_empty() and not room.name in names:
 			continue
 		checked[room.name] = true
 		var area := room.area.grow(-INWARD)
 		if not area.has_area():
 			continue
-		for x: float in _steps(area.position.x, area.end.x):
-			for z: float in _steps(area.position.y, area.end.y):
-				var top := space.ceiling(room, x, z) - INWARD
-				for y: float in _steps(room.floor_height + INWARD, top):
-					var point := Vector3(x, y, z)
-					if _in_a_cell(layout.structure, point) and not _in_any(masked, point):
-						open.append("%s at %s" % [room.name, point.snappedf(0.01)])
-						break
+		# Only the cells and boxes over its floor, up to well past any deck over it.
+		var over := AABB(
+			Vector3(area.position.x, room.floor_height, area.position.y),
+			Vector3(area.size.x, OVER_ANY_ROOF, area.size.y)
+		)
+		var found := _first_open(space, room, _reaching(cells, over), _reaching(masked, over))
+		if found != Vector3.INF:
+			open.append("%s at %s" % [room.name, found.snappedf(0.01)])
 	for name: StringName in names:
 		assert_true(checked.has(name), "%s is hers" % name)
 	return open
+
+
+## The first point of [param room], INWARD in from its walls and floor and its roof in
+## [param space], STEP apart, inside one of [param cells] but in none of [param masked];
+## Vector3.INF for none.
+func _first_open(
+	space: ShipSpace, room: ShipRoom, cells: Array[AABB], masked: Array[AABB]
+) -> Vector3:
+	var area := room.area.grow(-INWARD)
+	for x: float in _steps(area.position.x, area.end.x):
+		for z: float in _steps(area.position.y, area.end.y):
+			var top := space.ceiling(room, x, z) - INWARD
+			for y: float in _steps(room.floor_height + INWARD, top):
+				var point := Vector3(x, y, z)
+				if _in_any(cells, point) and not _in_any(masked, point):
+					return point
+	return Vector3.INF
+
+
+## Those of [param boxes] that reach into [param over], none of them zero.
+func _reaching(boxes: Array[AABB], over: AABB) -> Array[AABB]:
+	var found: Array[AABB] = []
+	for box: AABB in boxes:
+		if box.size != Vector3.ZERO and box.grow(DOOR_IN).intersects(over):
+			found.append(box)
+	return found
 
 
 ## Per door of [param layout]'s in a wall between two of her cells, the first point
@@ -318,7 +371,7 @@ func _room_on(layout: ShipLayout, point: Vector3, floor_height: float) -> ShipRo
 ## The boxes [param layout]'s sea leaves out (CellBoxes.boxes and stacked).
 func _masked(layout: ShipLayout) -> Array[AABB]:
 	var masked := CellBoxes.boxes(layout.structure, layout.rooms)
-	for stack: Array in CellBoxes.stacked(layout.structure, layout.rooms):
+	for stack: Array in CellBoxes.stacked(layout.structure, layout.rooms, layout):
 		masked.append(stack[1])
 	return masked
 
