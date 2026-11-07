@@ -265,6 +265,51 @@ func _room_spot_problems(layout: ShipLayout) -> PackedStringArray:
 	return found
 
 
+## Every room of [param layout]'s with a doorway onto a floor but none a body goes out
+## through, or none it comes in through (WayThrough, railings held), described (#514): a
+## doorway whose mouth a flight's side or high end fills, or that opens onto a solid's face,
+## is no way. A doorway onto a flight, and a flight's end in the room, are its ways both
+## ways; a doorway onto no floor is not counted.
+func _room_way_problems(layout: ShipLayout) -> PackedStringArray:
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var found := PackedStringArray()
+	for room: ShipRoom in layout.rooms:
+		var onto_floor := false
+		var ways := {"out": false, "in": false}
+		for ramp: ShipRamp in layout.ramps:
+			for end in 2:
+				if room.holds(ramp.end_point(end), rules.step_height):
+					ways = {"out": true, "in": true}
+		for door: ShipRoom.Door in room.doors(surfaces, rules.crawl_height, rules.step_height):
+			var lead := door.middle() + door.outward * rules.body_radius * 2.0
+			var onto := surfaces.under(
+				Vector3(lead.x, room.floor_height, lead.y), rules.step_height
+			)
+			if door.width() < rules.body_radius * 2.0 or onto == Surfaces.NONE:
+				continue
+			if surfaces.is_ramp(onto):
+				ways = {"out": true, "in": true}
+				continue
+			onto_floor = true
+			for way: String in ways:
+				var out := door.outward if way == "out" else -door.outward
+				if not is_nan(WayThrough.doorway(surfaces, rules, door, room.floor_height, out)):
+					ways[way] = true
+		var missing := PackedStringArray()
+		for way: String in ways:
+			if not ways[way]:
+				missing.append(way)
+		if onto_floor and not missing.is_empty():
+			found.append(
+				(
+					"%s at %s: no doorway a body goes %s through"
+					% [room.name, room.area.position, " or ".join(missing)]
+				)
+			)
+	return found
+
+
 ## The first platform standing at the main deck's height — the origin's (D6).
 func _main_deck(layout: ShipLayout) -> int:
 	for index in layout.platforms.size():
@@ -585,6 +630,49 @@ func test_the_flight_rule_bites() -> void:
 		assert_string_contains(low[0], "too low to crawl")
 	var stacked := _flight_problems(built.call(3.0, true))
 	assert_eq(stacked, PackedStringArray(["ramp 0 at (0.0, -1.0): stacked under another flight"]))
+
+
+func test_every_room_has_a_doorway_a_body_goes_out_and_in_through() -> void:
+	# The rule bites: the flat deck with a cabin walled round over x -3…0, z -3…0, its one
+	# door to starboard, and a flight down along her outside it, test data: beside the door,
+	# its side fills the door's mouth; a metre further out, a body walks out and back in.
+	var cabin := func(flight_at: float) -> ShipLayout:
+		var layout: ShipLayout = SimFixtures.deck().duplicate()
+		var blockers: Array[ShipBlocker] = []
+		for box: Rect2 in [
+			Rect2(-3.1, -3.1, 3.2, WALL),
+			Rect2(-3.1, -3.1, WALL, 3.2),
+			Rect2(-0.1, -3.1, WALL, 3.2),
+			Rect2(-3.1, -0.1, 1.05, WALL),
+			Rect2(-0.95, -0.1, 1.05, WALL),
+		]:
+			var wall := ShipBlocker.new()
+			wall.area = box
+			wall.top = 2.5
+			blockers.append(wall)
+		layout.blockers = blockers
+		var room := ShipRoom.new()
+		room.name = &"cabin"
+		room.area = Rect2(-3.0, -3.0, 3.0, 3.0)
+		var rooms: Array[ShipRoom] = [room]
+		layout.rooms = rooms
+		var ramp := ShipRamp.new()
+		ramp.area = Rect2(-3.0, flight_at, 4.0, 1.2)
+		ramp.axis = ShipRamp.Axis.X
+		ramp.start_height = 1.6
+		ramp.end_height = 0.0
+		var ramps: Array[ShipRamp] = [ramp]
+		layout.ramps = ramps
+		return layout
+	assert_eq(
+		_room_way_problems(cabin.call(0.1)),
+		PackedStringArray(["cabin at (-3.0, -3.0): no doorway a body goes out or in through"]),
+		"the flight's side in the door's mouth"
+	)
+	assert_eq(_room_way_problems(cabin.call(1.1)), PackedStringArray(), "clear of it")
+	var layouts := _layouts()
+	for path: String in layouts:
+		assert_eq(_room_way_problems(layouts[path]), PackedStringArray(), path)
 
 
 func test_every_room_is_at_least_a_body_wide() -> void:

@@ -74,6 +74,25 @@ func test_nothing_stands_in_a_body_on_an_engine_it_could_stand_on() -> void:
 	assert_gt(stood_on, 0, "an engine a body could stand on: the freighter's")
 
 
+func test_no_boiler_is_set_where_a_machine_stands_against_its_bulkhead() -> void:
+	# The Titanic's thrust blocks stand against bulkhead L, which is walled over them
+	# (#514): a boiler there would stand in the block and its steam pipe over it.
+	var boilers := 0
+	for ship: String in Fleet.names():
+		var layout := Fleet.layout(StringName(ship))
+		var space := ShipSpace.new(layout)
+		var engine_room := EngineRoom.new(space)
+		for room: ShipRoom in layout.rooms:
+			var machines := space.machinery(room)
+			for boiler: Array in engine_room.boilers(room):
+				boilers += 1
+				var front := EngineRoom.front_rect(boiler)
+				for machine: ShipBlocker in machines:
+					var named := "%s's %s: a boiler at %s" % [ship, room.name, front.get_center()]
+					assert_false(front.intersects(machine.area), named)
+	assert_gt(boilers, 0, "the fleet's stokeholds have boilers")
+
+
 ## Where a body of the rules standing on a stair of [param layout] stands more than
 ## TOLERANCE into a pipe from [param from] to [param to]: its feet, or Vector3.INF.
 func _body_reaching(layout: ShipLayout, from: Vector3, to: Vector3) -> Vector3:

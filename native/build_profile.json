@@ -2,6 +2,7 @@
 	"enabled_classes": [
 		"Engine",
 		"OS",
-		"RefCounted"
+		"RefCounted",
+		"RenderingServer"
 	]
 }
