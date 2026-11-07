@@ -18,6 +18,7 @@ const FLOAT_SLACK := 1e-4
 
 var _structure: ShipStructure
 var _rooms: Array[ShipRoom]
+var _layout: ShipLayout
 var _schedule: SinkSchedule
 var _cells: CellMap
 ## A doorway between two of her cells that water is drawn pouring through, and its
@@ -31,6 +32,7 @@ func before_all() -> void:
 	var config := RunMatch.default_config(1701)
 	_structure = config.ship.structure
 	_rooms = config.ship.rooms
+	_layout = config.ship
 	_schedule = config.schedule()
 	_cells = _schedule.pose_at(0).cells
 	var unseen := [ShipOpening.Kind.GASH, ShipOpening.Kind.FLOOR_GAPS, ShipOpening.Kind.LEAK]
@@ -50,7 +52,7 @@ func before_all() -> void:
 
 func _water() -> InnerWater:
 	var water: InnerWater = add_child_autofree(InnerWater.new())
-	water.setup(_structure, _rooms, _schedule.passages(), _schedule.failing(), _sea(), {})
+	water.setup(_structure, _rooms, _layout, _schedule.passages(), _schedule.failing(), _sea(), {})
 	return water
 
 
@@ -363,7 +365,7 @@ func test_a_doorway_pours_only_once_one_side_stands_pours_over_the_other() -> vo
 
 
 func test_a_stacked_box_s_sheet_follows_its_cell_s_water() -> void:
-	var stacks := CellBoxes.stacked(_structure, _rooms)
+	var stacks := CellBoxes.stacked(_structure, _rooms, _layout)
 	assert_gt(stacks.size(), 0, "a cell drawn in a stack of boxes")
 	var water := _water()
 	assert_eq(water._stacks.size(), stacks.size(), "a sheet per stacked box")
