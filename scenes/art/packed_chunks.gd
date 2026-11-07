@@ -52,8 +52,10 @@ func add_glass(
 ## Every chunk filed as an instance under [param parent], as ShipMesh draws an indoor one:
 ## no shadow cast, named for its group, with the glass and the [param railings] lying
 ## inside its box; then each batch of glass lying past its chunk's box an instance of its
-## own, and the rest of [param railings] (RailingBatches.commit).
-func commit(parent: Node3D, railings: RailingBatches = null) -> void:
+## own, and the rest of [param railings] (RailingBatches.commit). Returns the chunks'
+## instances and the railings' hung under [param parent], none of which moves under her.
+func commit(parent: Node3D, railings: RailingBatches = null) -> Array[MeshInstance3D]:
+	var hung: Array[MeshInstance3D] = []
 	var apart: Array = []
 	for group: String in _order:
 		var mesh := ArrayMesh.new()
@@ -73,6 +75,7 @@ func commit(parent: Node3D, railings: RailingBatches = null) -> void:
 		if railings != null:
 			railings.into_chunk(group, instance, box)
 		parent.add_child(instance)
+		hung.append(instance)
 	for group: String in _glass:
 		apart.append_array(_glass[group])
 	for glass: Array in apart:
@@ -85,10 +88,11 @@ func commit(parent: Node3D, railings: RailingBatches = null) -> void:
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		(glass[3] as Node3D).add_child(instance)
 	if railings != null:
-		railings.commit(parent)
+		hung.append_array(railings.commit(parent))
 	_chunks.clear()
 	_order.clear()
 	_glass.clear()
+	return hung
 
 
 ## The box holding every point of [param points]; an empty one at the origin for none.

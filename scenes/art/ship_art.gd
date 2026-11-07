@@ -415,9 +415,12 @@ func build_fittings(open_ports := PackedVector3Array()) -> void:
 
 
 ## Draws what build() packs (pack): [param chunks] under it, its breakable railings with
-## them, its lamps by LampGlobes and the signs under [param dressed] by a SignPool.
+## them, its lamps by LampGlobes and the signs under [param dressed] by a SignPool; the
+## chunks and railings stand apart from her, placed where she stands (StillInstances).
 func _pack(chunks: PackedChunks, dressed: Node3D) -> void:
-	chunks.commit(self, _batched)
+	var still := StillInstances.new()
+	add_child(still, false, Node.INTERNAL_MODE_FRONT)
+	still.take(chunks.commit(self, _batched))
 	var globes := LampGlobes.new()
 	globes.name = "Globes"
 	add_child(globes)

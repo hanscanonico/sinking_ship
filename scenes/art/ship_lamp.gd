@@ -19,7 +19,8 @@ extends Node3D
 ## through it, wavering as a fire does. Each is one light, so a mesh still meets few
 ## enough. A lamp with nothing left to change — done fading, steady, hanging still —
 ## sleeps until a change of its own, or ShipArt as she turns, wakes it. ShipArt's lamps
-## do not process as nodes: its LampSwing steps them all in one loop (carried_by).
+## do not process as nodes: its LampSwing steps them all in one loop (carried_by). One its
+## globes draw stands apart from her while its light is out (_keep_apart).
 
 ## Told as [member burning] changes (LampSight counts the lamps burning by it).
 signal burning_changed
@@ -372,6 +373,27 @@ func hang_in(globes: LampGlobes, slot: int) -> void:
 	_globe = slot
 	_part = null
 	_show_globe()
+	_keep_apart()
+
+
+## Whether it stands apart from her (top level): it does while nothing of it is drawn
+## under it — its model drawn by its globes (hang_in), its light out.
+func apart() -> bool:
+	return top_level
+
+
+## Stands it apart from her while nothing of it is drawn under it, so her moving every
+## frame spends nothing on it: the Titanic hangs 2,273 lamps under her own nodes, of which
+## LampSight lights some 29 at a time (#410). Its own transform is kept as it hangs under
+## her throughout — swinging, its globe drawn from it — so taken back, it hangs from her
+## as it would have, to the bit; and so its light, shown again, does too.
+func _keep_apart() -> void:
+	var apart := _globes != null and _spot == null and (_light == null or not _light.visible)
+	if apart == top_level:
+		return
+	var hung := transform
+	top_level = apart
+	transform = hung
 
 
 func _ready() -> void:
@@ -388,7 +410,8 @@ func _process(delta: float) -> void:
 ## One frame of [param delta] seconds: it swings, fades and burns as it should; false
 ## once it has nothing left to change (still), and sleeps.
 func step(delta: float) -> bool:
-	var ship := get_parent_node_3d()
+	# Its parent's, not get_parent_node_3d(): none while it stands apart (_keep_apart).
+	var ship := get_parent() as Node3D
 	if ship == null:
 		return true
 	_clock += delta
@@ -421,6 +444,7 @@ func step(delta: float) -> bool:
 		if _spot != null:
 			_spot.light_energy = FIRE_ENERGY * energy
 			_show_light(_spot, energy > 0.0)
+		_keep_apart()
 	if level != _shown:
 		_shown = level
 		_glass.emission_energy_multiplier = level
