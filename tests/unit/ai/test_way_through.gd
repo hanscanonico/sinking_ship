@@ -1,8 +1,9 @@
 extends GutTest
 ## The walk graph's portals are only where a body could get through (WayThrough, #501). On
-## the Titanic a flight stacked under another in one well is no way, nor a doorway opening
-## onto a stair's high end; one onto its hole's railing lets a body out, pushed on by the
-## railing, and none in. Her other ships lose no portal.
+## the Titanic a flight stacked under another in one well is no way, and a doorway onto a
+## stair hole's railing lets a body out, pushed on by the railing, and none in. A doorway
+## opening onto a stair's high end lets none through either way: the layout's fault, it keeps
+## its portal, so that no room is sealed off. Her other ships lose no portal.
 
 const TITANIC := "res://data/ships/titanic.tres"
 const B_DECK := 2.75
@@ -79,15 +80,30 @@ func test_a_flight_stacked_under_another_in_one_well_is_no_way() -> void:
 		assert_ne(leg.ramp, under, "and never down the stair under the ladder")
 
 
-func test_a_doorway_under_a_stair_s_high_end_is_no_way() -> void:
-	assert_eq(_doorways_at(UNDER_THE_STAIR_HEAD), 0, "no portal through the doorway")
+## The doorway of hers whose middle stands at [param at], or null.
+func _door_at(at: Vector3) -> ShipRoom.Door:
 	var rules := SimFixtures.rules()
+	for room: ShipRoom in _layout.rooms:
+		for door: ShipRoom.Door in room.doors(_surfaces, rules.crawl_height, rules.step_height):
+			if door.middle().distance_to(Vector2(at.x, at.z)) < 0.1:
+				return door
+	return null
+
+
+func test_a_doorway_no_body_gets_through_keeps_its_portal_at_its_middle() -> void:
+	var rules := SimFixtures.rules()
+	var door := _door_at(UNDER_THE_STAIR_HEAD)
+	assert_not_null(door, "the doorway under the stair's high end")
+	if door != null:
+		for out: Vector2 in [door.outward, -door.outward]:
+			var off := WayThrough.doorway(_surfaces, rules, door, E_DECK, out)
+			assert_true(is_nan(off), "no body gets through it")
+		var offs := WayThrough.crossings(_surfaces, rules, door, E_DECK, false)
+		assert_eq(Array(offs), [0.0, 0.0], "its middle, both ways")
+	assert_gt(_doorways_at(UNDER_THE_STAIR_HEAD), 0, "so the passage aft of M is not sealed")
 	var from := _surfaces.under(IN_THE_ENTRANCE, rules.step_height)
 	var passage := _zone(UNDER_THE_STAIR_HEAD + Vector3(0.0, 0.0, -0.8))
-	assert_false(
-		_graph.route(IN_THE_ENTRANCE, from, passage, _dry).is_empty(),
-		"the passage aft of M is reached by the entrance's other doorways"
-	)
+	assert_false(_graph.route(IN_THE_ENTRANCE, from, passage, _dry).is_empty(), "a way in")
 
 
 func test_a_doorway_onto_a_railed_stair_hole_lets_a_body_out_and_none_in() -> void:

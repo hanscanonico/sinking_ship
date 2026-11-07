@@ -792,7 +792,7 @@ func _find_door_depths(doors: Array[Array]) -> void:
 
 ## A portal out through each of a room's [param doors] that gives onto another zone, and
 ## back in from an open deck — a room's own scan adds the way back from a room —, each
-## where a body could go through it that way, nearest its middle (WayThrough.doorway).
+## where a body could go through it that way, nearest its middle (WayThrough.crossings).
 func _add_doors(doors: Array[Array], rules: BrawlRules) -> void:
 	for room in doors.size():
 		var floor_height := _layout.rooms[room].floor_height
@@ -801,14 +801,14 @@ func _add_doors(doors: Array[Array], rules: BrawlRules) -> void:
 			if other == NONE:
 				continue
 			var deck := other >= _layout.rooms.size()
-			for out: Vector2 in [door.outward, -door.outward] if deck else [door.outward]:
-				var off := WayThrough.doorway(_surfaces, rules, door, floor_height, out)
-				if not is_nan(off):
-					var at := WayThrough.across(door, off, floor_height)
-					var ends := (
-						Vector2i(room, other) if out == door.outward else Vector2i(other, room)
-					)
-					_add(Portal.new(ends, at, at, out, door.width() - absf(off) * 2.0, NONE))
+			var offs := WayThrough.crossings(_surfaces, rules, door, floor_height, deck)
+			for way in 2 if deck else 1:
+				if not is_nan(offs[way]):
+					var at := WayThrough.across(door, offs[way], floor_height)
+					var ends := Vector2i(room, other) if way == 0 else Vector2i(other, room)
+					var out := door.outward if way == 0 else -door.outward
+					var wide := door.width() - absf(offs[way]) * 2.0
+					_add(Portal.new(ends, at, at, out, wide, NONE))
 
 
 ## The zone [param door] out of [param room] gives onto, a body's width out through it:
