@@ -100,10 +100,10 @@ const LAID := 0.2
 ## short of it.
 const HAWSE_IN := 0.8
 ## How much of the deck a hawse pipe a cable holder's cable is led to keeps outboard of it:
-## the pipe leads down and out through her bow to the anchor in her side (est.; the
-## Titanic's Plate IV draws her mouths' forward ends 2.2 m in from her side, and her shell
-## stands 0.6 m inside it there).
-const HAWSE_SIDE := 1.25
+## the pipe leads down and out through her bow to the anchor in her side: the Titanic's
+## Plate IV draws her mouths' forward ends 2.2 m in from her side, where her forecastle
+## head's deck stands 5 cm in from it (her shell on the plate's side since #318).
+const HAWSE_SIDE := 2.15
 const SPURLING_IN: Array[float] = [3.6, 3.0, 2.4, 1.8, 1.2]
 ## The gear a cable is worked by where a fore deck carries it (DeckFurniture.GEAR): a
 ## windlass drum, or cable holder, on its bedplate, the cable led down through it to the
@@ -672,6 +672,11 @@ static func openings_of(pane: Array, glass: Array[ShipOpening], near: float) -> 
 	var into: Vector3 = pane[2]
 	var kind := ShipOpening.Kind.PORTHOLE if pane[3] else ShipOpening.Kind.WINDOW
 	var across := 0 if absf(into.x) > absf(into.z) else 2
+	# A porthole in her shell faces across her, however far her shell turns aft round her
+	# counter — the Titanic's last ports aft, her shell's normal there more along her than
+	# across once her sections follow her lines (#318).
+	if pane[3] and not is_zero_approx(into.z):
+		across = 2
 	var along := 2 - across
 	var fits := PackedInt32Array()
 	var nearest := INF

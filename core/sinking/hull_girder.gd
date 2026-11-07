@@ -33,6 +33,13 @@ var _sag: float
 ## each station's ends then.
 var _lift := PackedFloat64Array()
 var _moments := PackedFloat64Array()
+## Where the game's extension is loaded, a NativeGirder that measures her to the same bits
+## (native/), handed her stations and cells once; else null.
+var _native: Object
+
+## For tests and probes: every HullGirder made while this is set measures in GDScript, as
+## where the game's extension is not loaded (test_hull_native).
+static var native_off := false
 
 
 ## [param structure]'s hull under [param sea], moving as [param motion] moves her.
@@ -63,12 +70,21 @@ func _init(structure: ShipStructure, sea: SeaPhysics, motion: ShipMotion) -> voi
 		_counts.append(last - first + 1)
 		_starts.append(_shares.size())
 		_shares.append_array(shares.slice(first, last + 1))
+	if not native_off and ClassDB.class_exists(&"NativeGirder"):
+		_native = ClassDB.instantiate(&"NativeGirder")
+		_native.setup(_own, _first, _counts, _starts, _shares, _bounds, _hog, _sag)
 
 
 ## Measures [param state]'s bending into it: the share of her strength at her worst
 ## station, and where along her it is (FloodState.bending, bending_x).
 func measure(state: FloodState) -> void:
 	_motion.lift_under(state.rotation, state.sea, _lift)
+	if _native != null:
+		var found: PackedFloat64Array = _native.measure(_lift, state.water, state.rotation[4])
+		state.bending = found[0]
+		state.bending_x = found[1]
+		_moments = found.slice(2)
+		return
 	var loads := _own.duplicate()
 	for cell in state.water.size():
 		var water := state.water[cell]

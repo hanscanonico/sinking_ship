@@ -97,6 +97,10 @@ const BEYOND: Array[float] = [0.25, 0.6, 1.0]
 const BEYOND_STEP := 0.5
 const END_BEYOND := 6.0
 const FLOOR_FACING := 0.7
+## How far in from a section's furthest out its side's top may stand (_side_top()).
+const SIDE_OUT := 0.05
+## How near a boarding ladder's rungs' line a point past a deck's edge is on them.
+const RUNG_NEAR := 0.1
 const SEAT_TOLERANCE := 0.001
 const CRATE_TOLERANCE := 0.001
 const SOLE_TOLERANCE := 0.02
@@ -469,6 +473,18 @@ func _dealt(faces: PackedVector3Array) -> PackedVector3Array:
 	return mine
 
 
+## Her side's top in [param outline]: its highest point within SIDE_OUT of its furthest out.
+static func _side_top(outline: PackedVector2Array) -> float:
+	var out := -INF
+	for point: Vector2 in outline:
+		out = maxf(out, point.x)
+	var top := -INF
+	for point: Vector2 in outline:
+		if point.x >= out - SIDE_OUT:
+			top = maxf(top, point.y)
+	return top
+
+
 ## Each section of [param layout]'s structure below the sheer — the hull's, not a
 ## deckhouse's — against the drawn faces: at the middle of each stretch of its
 ## outline, a face within HULL_TOLERANCE of it straight out of the outline there. The
@@ -482,8 +498,9 @@ func _check_hull(
 	for section: HullSection in layout.structure.sections:
 		_checks += 1
 		var shape := space.envelope(section.x)
-		var sheer := INF if shape.x == INF else maxf(shape.z, shape.w)
 		var outline := section.outline
+		# Her widest deck's, or her side's top under a wider deck over houses: no hull walls.
+		var sheer := INF if shape.x == INF else minf(maxf(shape.z, shape.w), _side_top(outline))
 		for index in outline.size():
 			var from := outline[index]
 			var to := outline[(index + 1) % outline.size()]
@@ -492,10 +509,13 @@ func _check_hull(
 			var middle := (from + to) * 0.5
 			# Counter-clockwise in (z, y): out of the outline is the stretch turned right.
 			var out := Vector3(0.0, -(to.x - from.x), to.y - from.y).normalized()
-			# A hair along her from the section's own x: a loft drawn from section to
-			# section has an edge there, which a ray down it can slip between.
+			# A hair either way along her from the section's x: a loft has an edge there a ray
+			# can slip between, and her keel rising steeply into the next leaves none past it.
 			var at := Vector3(section.x + HULL_NUDGE, middle.y, middle.x)
-			var off := _nearest_face(faces, cells, at, out)
+			var back := Vector3(section.x - HULL_NUDGE, middle.y, middle.x)
+			var off := minf(
+				_nearest_face(faces, cells, at, out), _nearest_face(faces, cells, back, out)
+			)
 			if off > worst:
 				worst = off
 				worst_at = at
@@ -552,8 +572,8 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 			)
 
 
-## Past each of [param layout]'s platforms' edges, wherever the rules have no stair
-## and no platform within a step down or a jump up of it, the highest face
+## Past each of [param layout]'s platforms' edges, wherever the rules have no stair,
+## no ladder and no platform within a step down or a jump up of it, the highest face
 ## [param art] shows in that band, straight down, does not face up: nothing drawn
 ## looks like deck a body could stand on where the rules have none (D6). Past an edge
 ## walled from the deck to over a jump no body goes, so nothing there is looked at: a
@@ -654,6 +674,15 @@ func _floor_near(layout: ShipLayout, point: Vector2, low: float, high: float) ->
 	for ramp: ShipRamp in layout.ramps:
 		if ramp.contains(point.x, point.y):
 			return true
+	# A boarding ladder's rungs, down her side where a body climbs them (ShipLadder).
+	for ladder: ShipLadder in layout.ladders:
+		var height := low
+		while height <= high:
+			var line := BoardingLadder.line(layout, ladder, height)
+			var near := Geometry2D.get_closest_point_to_segment(point, line[0], line[1])
+			if near.distance_to(point) <= RUNG_NEAR:
+				return true
+			height += BoardingLadder.RUNG_SPACING * 0.5
 	return false
 
 
