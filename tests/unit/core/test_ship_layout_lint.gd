@@ -94,6 +94,36 @@ func _headroom_problems(layout: ShipLayout) -> PackedStringArray:
 	return found
 
 
+## Every flight of [param layout]'s a body could not walk end to end along its middle,
+## described (#514): one stacked under another, whose wedge takes a body off it
+## (WayThrough.flight), or one under a deck with less than the rules' crawl_height over it,
+## looked every WayThrough.STRIDE along it.
+func _flight_problems(layout: ShipLayout) -> PackedStringArray:
+	var rules := SimFixtures.rules()
+	var surfaces := Surfaces.new(layout)
+	var found := PackedStringArray()
+	for index in layout.ramps.size():
+		var ramp := layout.ramps[index]
+		var named := "ramp %d at %s" % [index, ramp.area.position]
+		if not WayThrough.flight(surfaces, rules, layout, index):
+			found.append(named + ": stacked under another flight")
+			continue
+		var along_x := ramp.axis == ShipRamp.Axis.X
+		var length := ramp.area.size.x if along_x else ramp.area.size.y
+		var middle := ramp.area.get_center()
+		var steps := ceili(length / WayThrough.STRIDE)
+		for step in range(1, steps):
+			var share := float(step) / steps
+			var x := ramp.area.position.x + ramp.area.size.x * share if along_x else middle.x
+			var z := middle.y if along_x else ramp.area.position.y + ramp.area.size.y * share
+			var feet := Vector3(x, ramp.height_at(x, z), z)
+			var over := surfaces.ceiling(feet, rules.step_height) - feet.y
+			if over < rules.crawl_height:
+				found.append("%s: %.2f m over %s, too low to crawl" % [named, over, feet])
+				break
+	return found
+
+
 ## Every room of [param layout]'s narrower than a body (#414), described: a space narrower
 ## than a body is a solid block, not a room (#360). A room's clear width is its narrowest
 ## walkable span across its short side between the faces of its walls, looked across every
@@ -520,6 +550,41 @@ func test_the_headroom_rule_bites() -> void:
 		_headroom_problems(roofed.call(3.0, true)),
 		PackedStringArray(["under the roof: a crawl space with headroom to stand everywhere"])
 	)
+
+
+func test_every_flight_is_walked_end_to_end() -> void:
+	var layouts := _layouts()
+	for path: String in layouts:
+		assert_eq(_flight_problems(layouts[path]), PackedStringArray(), path)
+
+
+func test_the_flight_rule_bites() -> void:
+	# The flat deck with a flight up a metre over x 0…4 — test data — under a roof, or with
+	# another flight stacked over it on up from its head to two metres.
+	var built := func(roof_height: float, stacked: bool) -> ShipLayout:
+		var layout: ShipLayout = SimFixtures.deck().duplicate()
+		layout.platforms = layout.platforms.duplicate()
+		var roof := ShipPlatform.new()
+		roof.area = Rect2(0.0, -4.0, 4.0, 8.0)
+		roof.height = roof_height
+		layout.platforms.append(roof)
+		var ramps: Array[ShipRamp] = []
+		for heights: Vector2 in [Vector2(0.0, 1.0)] + ([Vector2(2.0, 1.0)] if stacked else []):
+			var ramp := ShipRamp.new()
+			ramp.area = Rect2(0.0, -1.0, 4.0, 2.0)
+			ramp.axis = ShipRamp.Axis.X
+			ramp.start_height = heights.x
+			ramp.end_height = heights.y
+			ramps.append(ramp)
+		layout.ramps = ramps
+		return layout
+	assert_eq(_flight_problems(built.call(3.0, false)), PackedStringArray(), "a roof high over it")
+	var low := _flight_problems(built.call(1.6, false))
+	assert_eq(low.size(), 1, "0.6 m over its head is too low for anybody")
+	if not low.is_empty():
+		assert_string_contains(low[0], "too low to crawl")
+	var stacked := _flight_problems(built.call(3.0, true))
+	assert_eq(stacked, PackedStringArray(["ramp 0 at (0.0, -1.0): stacked under another flight"]))
 
 
 func test_every_room_is_at_least_a_body_wide() -> void:

@@ -314,13 +314,19 @@ ROOMS = [
     # each pair's inner room an L reaching her side past the outer one, where that leg
     # is as wide as a body (the narrower legs are closets); a room whose label is
     # blotted (2 S...); the corridor along the casing.
+    # The stair box 0.5 m wider than the plate's to starboard, the lavatory's strip by it and
+    # the passage giving it up: E deck's ladder down (e.py) and this deck's stair on down to G
+    # (STAIRS) side by side in it, not stacked as the plates draw them, a flight being solid
+    # to the deck under it in the game (#514). Its passage's foot runs on into the box's
+    # forward end, by the stair's head.
     ("engineers' lavatory lobby", 3598.25, 622.5, 3691, 678),
-    ("engineers' lavatory", 3598.25, 678, 3721, 743),
+    ("engineers' lavatory", 3598.25, 678, 3654.5, 743),
+    ("engineers' lavatory", 3654.5, 703.8, 3721, 743),
     ("junior second engineer's room", 3691, 504, 3789.5, 598),
     ("junior second engineer's room", 3691, 598, 3765, 642),
-    ("passage, F deck", 3765, 598, 3789.5, 678),
-    ("engineers' stairway", 3691, 642, 3765, 678),
-    ("passage, F deck", 3721, 678, 3789.5, 739.5),
+    ("passage, F deck", 3765, 598, 3789.5, 703.8),
+    ("engineers' stairway", 3691, 642, 3765, 703.8),
+    ("passage, F deck", 3721, 703.8, 3789.5, 739.5),
     ("third engineer's room", 3789.5, 504, 3866.5, 638),
     ("bathroom, F deck", 3789.5, 638, 3866.5, 704),
     ("assistant electrical engineers' room", 3866.5, 622, 3993.5, 704),
@@ -947,7 +953,7 @@ OPEN = [
     (3104, 1454.5, 3128, 1466.5),     # Between L and K: the lavatory's two rectangles; the passages into each other and
     # into the corridor; each L room into its leg; the ladder's space into the starboard
     # corridor, and the passages off it.
-    (3604, 672, 3685, 684), (3769, 672, 3785, 684), (3791, 708, 3803, 735),
+    (3604, 672, 3650, 684), (3648.5, 709, 3660.5, 737), (3769, 698, 3785, 710), (3791, 708, 3803, 735),
     (3998, 698, 4030, 710), (4109, 617, 4135, 629),
         (4242, 698, 4278, 710), (4347, 630.5, 4377, 642.5),
     (3602, 1347.5, 3634, 1359.5), (3835, 1385.5, 3868, 1397.5), (4117, 1385.5, 4136, 1397.5),
@@ -1087,8 +1093,9 @@ NUDGES = [
     (2, 0.4375, 0.625, -121.3, -116.4),  # the vestibule by P's line, and the rooms off it
     (2, 1.5625, 1.75, -121.3, -116.4),  # the passage beside it, a door's width still
     (2, -6.9375, -7.1875, -88.0, -85.0),  # the bathroom's door
-    (2, -9.25, -9.1875, -46.2, -43.2),  # the engineers' stairway's door
-    (0, -46.125, -47.125, -10.3, -9.2),  # the engineers' stairway's enclosure, for its run to G deck
+    (0, -46.125, -47.125, -10.3, -8.7),  # the engineers' stairway's enclosure, for its run to G deck
+    # Its port side, so E deck's ladder down beside the stair keeps a body's width clear of it:
+    (2, -10.3125, -10.375, -46.2, -44.0),
     (2, 9.625, 9.25, 74.5, 77.3),  # the four-berth room's door
     (2, -7.3125, -7.1875, 86.2, 92.6),  # the eight-berth room's door
     (2, 7.4375, 7.25, 86.2, 92.6),  # the eight-berth room's door
@@ -1104,6 +1111,8 @@ DOOR_MOVES = [
     ((92.4375, 7.9375), None),  # the two-berth room her side leaves narrower than a body
     ((-38.0625, -10.0625), (-40.875, -8.6875)),  # the electricians', past their stair's head
     ((55.9375, -6.25), (54.625, -6.3125)),  # the four-berth room's, past boiler room 6's stair
+    ((-45.375, -8.5625), (-45.375, -8.125)),  # the engineers' lavatory's, on its side the stair box leaves
+    ((-44.1875, -9.8125), None),  # the stair box's: its forward end open (OPENED), the ladder's foot and the stair's head
     (None, (1.6875, -6.4375)),  # the saloons', either side of the ladderway's feet at H (est.)
     (None, (1.6875, 7.5)),
 ]
@@ -1113,6 +1122,9 @@ OPENED = [
     (4.5525, 4.5725, -9.5625, -6.125),
     (4.5525, 4.5725, -5.875, -3.25),
     (72.9275, 72.9475, -5.75, -4.375),  # the linen room's two pieces
+    # The engineers' stair box's whole forward end, where E deck's ladder comes down and
+    # the stair on down to G deck comes up side by side (#514):
+    (-44.4475, -44.4275, -10.375, -8.6875),
 ]
 # The passage two flights fill side by side; the engineers' stairway its stair fills; the
 # passage along L's ladder fills.
@@ -1123,14 +1135,19 @@ GONE = [(126.0, 0.0), (122.0, 0.0)]
 GONE += [(75.0, 0.0)]
 # Two closets whose faces only touch the rooms over them: walled, or those rooms read open.
 WALLED_SOLIDS = [(-101.3, -8.0), (-97.6, -8.0)]
+# The junior second engineer's L's leg over the stair box, which the box widened to port
+# (NUDGES) leaves no room for its door (DOOR_LEAST): a closet. His room is its other part.
+MADE_SOLID = [(-45.3, -10.9)]
 # A body's lead clear of the passage's forward wall at their heads (the layout lint):
 STAIR_MOVES = [
     (("firemen's spiral staircase", 100.5, -2.5625), (99.75, 102.625, -2.5625, -1.3125)),
     # Short of bulkhead M's lockers a body's lead past its head, its width kept:
     (("stair", -69.75, -9.875), (-69.875, -66.875, -9.875, -8.9375)),
-    # Aft of E deck's ladder's foot, in its enclosure run aft (NUDGES), its head short of the
-    # foot the plate stacks it under:
-    (("stair", -46.4375, -10.25), (-47.0625, -44.1875, -10.25, -9.375)),
+    # In its enclosure run aft (NUDGES), beside E deck's ladder down, not under it as the
+    # plate stacks the two: under it, a body coming off the ladder's foot walked onto its
+    # head with 0.74 m over it (#514). Its head by the ladder's foot, its foot on G deck
+    # where it was:
+    (("stair", -46.4375, -10.25), (-47.0625, -44.1875, -9.5, -8.6875)),
     # On G deck's landing the passage is too short along her for a flight and a lead each end
     # (its aft wall bulkhead B's line): athwart her, aft of her way on down (one shaft, the
     # generator's), its foot to starboard. The port one's the generator leaves out.

@@ -672,7 +672,10 @@ ROOMS = [
     # W.PL).
     ("masters-at-arms' room, E deck", 8526.5, 4333, 8601, 4508),
     ("four-berth third-class room, E deck", 8601, 4340, 8668, 4508),
-    ("passage, E deck", 8526.5, 4508, 8668, 4628),
+    # The ladderway's passage as two: its lane to port and E deck's ladder on down to F
+    # beside it, and D deck's ladder's strip, walled between them (#514).
+    ("passage, E deck", 8526.5, 4508, 8668, 4583),
+    ("passage, E deck", 8526.5, 4583, 8668, 4628),
     ("passage, E deck", 8668, 4543, 8698, 4628),
     ("men's lavatory, E deck", 8668, 4348.5, 8769, 4543),
     ("men's lavatory, E deck", 8698, 4543, 8769, 4628),
@@ -1197,15 +1200,15 @@ STAIRS = [
     #   this plate's z, 0.6-0.7 m outboard of F's drawing, still on F's floor.
     # - the stair down into the Turkish bath's lobby on F (The Shipbuilder: the Turkish
     #   bath on F deck), as F draws it, 1.69 m wide and athwart her, run on to 3.06 m; its
-    #   head to port in the grand staircase's hall, by the second row of treads this plate
-    #   draws there (px 6756-6850 x 4775-4845, a flight along her the plates do not stack
-    #   with F's: est. its upper part). D deck's flight down (d.py) passes 1.9-2.75 m over
-    #   its head.
+    #   head to starboard in the grand staircase's hall, its foot in the lobby's port end by
+    #   the electric bath rooms (f.py). Neither plate draws which way it rises. D deck's
+    #   flight down (d.py) comes down over its port metre, a wedge to E deck: headed to
+    #   port, under it, its head had 0.42 m over it (#514); its foot there has 1.9 m.
     # The second-class stewards' lobby's ladder is D deck's stair from its port entrance
     # (d.py).
     ("stewards' ladder", 6324.2, 4537.2, 6440.1, 4575, "aft", "f", "e"),
     ("linen drying room's ladder", 7502.3, 4541.9, 7616.2, 4579.6, "fore", "f", "e"),
-    ("Turkish bath stair", 6827.9, 4765.7, 6891.7, 4881.4, "port", "f", "e"),
+    ("Turkish bath stair", 6827.9, 4765.7, 6891.7, 4881.4, "starboard", "f", "e"),
     # Two ladders among the rooms forward of funnel 1's casing: to port, 106 px (2.8 m) run on
     # 12 px forward to its head at the cross passage; to starboard beside the store, 103 px
     # run on 15 px aft to its head at the landing.
@@ -1276,20 +1279,29 @@ DOOR_MOVES = [
     (None, (-64.9375, 12.4)),  # the passage behind M's ladder, through the room it served
 ]
 # Less than a door's width either side of D's line; the store her stem takes; the joins
-# over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below.
-SHUT = [(69.0, -7.8125), (126.4, 0.2), (-1.0, -3.125), (-45.0, -9.125)]
+# over the 20 ft ladderway's well and the engineers' ladder's, opened beside them below;
+# the port after ladderway's joins with the passage aft of it, opened beside its well below,
+# and with the passage along it, D deck's ladder down standing between them (#514).
+SHUT = [(69.0, -7.8125), (126.4, 0.2), (-1.0, -3.125), (-45.0, -9.125), (78.25, -6.0), (80.25, -4.3125)]
 OPENED = [
     (-117.8225, -117.8025, 1.0, 2.125),  # her stern passage, on to its last piece
     (-2.8125, -0.875, -3.135, -3.115),  # the head of the 20 ft ladderway
     (2.4375, 4.625, -3.135, -3.115),  # past the foot of its well, forward of G
     (-44.125, -42.625, -9.135, -9.115),  # past the foot of the engineers' ladder
+    # The port after ladderway's lane to port, to the four-berth room and the men's
+    # lavatory, and D deck's ladder's foot; between them, the end of the hole of the
+    # ladder on down to F walled: open whole, the join's middle stood on D deck's ladder
+    # and the walk graph found no way through it into the lane (#514).
+    (78.24, 78.26, -7.75, -6.5625),
+    (78.24, 78.26, -5.5, -4.3125),
 ]
 # Ladderways the flight fills; a landing whose every door opens over its well; a strip
-# narrower than a body the lavatory leaves.
+# narrower than a body the lavatory leaves; the port after ladderway's strip under D deck's
+# ladder down (#514).
 # The lockers' faces only touch the passage's edge: walled like any other, its fittings' depth holds.
 WALLED_SOLIDS = [(-64.2, -7.6), (-64.2, -5.8)]
 NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
-             (79.5, 6.0)]
+             (79.5, 6.0), (80.0, -4.9)]
 # The store her stem takes: no floor of hers reaches it (E_STEM).
 GONE = [(127.5, 0.0)]
 # A bathroom by J's line and a store too small for a door; a store her stem takes.
@@ -1300,11 +1312,21 @@ STAIR_MOVES = [
     # Aft of the pendant over the second-class entrance on F deck, a body under it on its foot:
     (("second-class staircase", -72.0625, 1.3125), (-72.3125, -69.1875, 1.1875, 2.25)),
     (("third-class ladder", 93.375, 5.25), (95.25, 98.4375, 4.75, 5.8125)),
-    (("ladder", 72.4375, -7.375), (72.4375, 75.625, -6.8125, -5.625)),
-    (("third-class ladder", 78.25, -6.25), (78.25, 81.375, -6.6875, -5.5625)),
+    # The ladder down by the cross passage 0.31 m forward of the plate's, its foot clear of the
+    # passage to the third-class rooms aft of it, which the plate draws 0.75 m wide beside it
+    # and WAY_LEAST widens into its well: the well's railing stood in the passage's doorway,
+    # the only way into the rooms off it (#514). Its head in the cross passage.
+    (("ladder", 72.4375, -7.375), (72.75, 75.9375, -6.8125, -5.625)),
+    # The port after ladderway's ladder on down to F deck beside D deck's ladder down to this
+    # deck (d.py), not under it: a flight is solid to the deck under it in the game, and under
+    # it this one had 0.74 m over it (#514). The ladderway's port side a lane past both, the
+    # four-berth room's and the men's lavatory's way in.
+    (("third-class ladder", 78.25, -6.25), (78.25, 81.375, -6.5625, -5.5625)),
     # A body's lead clear of the wall before each end (the layout lint):
     (("ladder", -69.3125, -10.6875), (-70.0625, -66.875, -10.6875, -9.75)),
-    (("ladder", -47.0625, -10.375), (-47.25, -44.125, -10.375, -9.375)),
+    # The engineers' ladder down to F deck along the port side of F deck's widened stair box,
+    # its stair on down to G beside it (f.py):
+    (("ladder", -47.0625, -10.375), (-47.25, -44.125, -10.3125, -9.5)),
     # The firemen's way on down athwart her between D deck's flights (d.py), the passage
     # too short along her for a flight and a lead each end.
     (("firemen's spiral staircase", 100.375, -0.75), (101.4375, 102.4375, -0.8125, 2.375, "starboard")),

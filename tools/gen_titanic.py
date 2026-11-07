@@ -1353,7 +1353,11 @@ CW = fit(WELL[0], WELL[1], 0.0, 0.2)  # (as wide as she laid it at C deck's flat
 well = deck("fwd_well", "forward well deck", WELL[0], WELL[1], -CW, CW, WELL_DECK, holes["well"])
 AFT_WELL = (POOP_TO, B_RUN[0])
 AW = fit(AFT_WELL[0], AFT_WELL[1], 0.0, 0.2)
-aft_well = deck("aft_well", "after well deck", AFT_WELL[0], AFT_WELL[1], -AW, AW, 0.0, [])
+# Cut round the holes of C deck's flights down from it: the after second-class stairway's
+# flight down to D deck comes up under B deck's after end, where the well runs forward to
+# B_RUN[0] (c.py); laid whole over it, the well left 0.78 m over its head (#514).
+aft_well = deck("aft_well", "after well deck", AFT_WELL[0], AFT_WELL[1], -AW, AW, 0.0,
+                [h for h in holes["c"] if h[0] < AFT_WELL[1] and h[1] > AFT_WELL[0]])
 # The boat deck and A deck in their traced pieces (BOAT_PLAN, A_PLAN), each as wide as her
 # hull lets it be where the plate gives it her whole breadth.
 BW = fit(BOAT_RUN[0], BOAT_RUN[1], BOAT, 0.05)
@@ -2645,7 +2649,10 @@ def low_flight(sid, x0, x1, z0, z1, low, high, plan_low, plan_up, wells, width=1
                         head_flight(sid, x_low, head, lane[0], lane[1], low)
                     else:
                         stair(sid, x_low, head, lane[0], lane[1], low, high, [])
-                        holes["orlop"].append((up[0] if sign > 0 else head, head if sign > 0 else up[0] + HEAD_RUN - lead, lane[0], lane[1]))
+                        # The deck cut over its last HEAD_RUN, either way it rises: a flight
+                        # rising aft once had its deck cut 0.65 m (HEAD_RUN less two leads),
+                        # its head under the orlop with 0.63 m over it (#514).
+                        holes["orlop"].append(((up[0], head) if sign > 0 else (head, up[1])) + (lane[0], lane[1]))
                     return True
     return False
 
