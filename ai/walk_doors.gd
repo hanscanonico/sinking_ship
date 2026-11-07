@@ -157,14 +157,16 @@ func _lanes(graph: WalkGraph, room: int, door: ShipRoom.Door) -> PackedFloat64Ar
 
 ## The zone a body's width out through [param door] at [param off] from its middle stands
 ## in, else a body's radius out where that is on nothing (a floor turning a corner close
-## past the door): NONE where both are on nothing, ON_A_RAMP on a ramp.
+## past the door): NONE where both are on nothing, ON_A_RAMP on a ramp. Its feet are walked
+## out from the door's line a step at a time: through a doorway onto a stair's foot a body
+## walks up the stair, never onto the deck under it, inside the stair's solid.
 func _onto(graph: WalkGraph, door: ShipRoom.Door, off: float, floor_height: float) -> int:
 	var at := WayThrough.across(door, off, floor_height)
 	var outside := Vector3.ZERO
 	var surface := Surfaces.NONE
 	for lead: float in [_lead, _radius]:
 		var beyond := Vector2(at.x, at.z) + door.outward * lead
-		outside = Vector3(beyond.x, floor_height, beyond.y)
+		outside = Vector3(beyond.x, _feet(at, beyond), beyond.y)
 		surface = _surfaces.under(outside, _step)
 		if surface != Surfaces.NONE:
 			break
@@ -173,3 +175,20 @@ func _onto(graph: WalkGraph, door: ShipRoom.Door, off: float, floor_height: floa
 	if _surfaces.is_ramp(surface):
 		return ON_A_RAMP
 	return graph.zone_at(outside, surface)
+
+
+## How high the feet of a walk from [param from] straight to [param to] (x/z) come, a step at
+## a time, as BotFooting.feet_at walks them: up a stair from its foot, onto it. Where the
+## walk leaves every surface, the height they had there.
+func _feet(from: Vector3, to: Vector2) -> float:
+	var start := Vector2(from.x, from.z)
+	var samples := maxi(1, ceili(start.distance_to(to) / _step))
+	var feet := from.y
+	for index in range(1, samples + 1):
+		var at := start.lerp(to, float(index) / samples)
+		var point := Vector3(at.x, feet, at.y)
+		var surface := _surfaces.under(point, _step)
+		if surface == Surfaces.NONE:
+			break
+		feet = _surfaces.height_at(surface, point)
+	return feet
