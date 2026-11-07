@@ -10,6 +10,7 @@
 
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/variant/array.hpp>
+#include <godot_cpp/variant/basis.hpp>
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_float64_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
@@ -48,6 +49,21 @@ public:
 			const PackedInt32Array &p_off_since, int64_t p_tick, int64_t p_cell_rearm,
 			int64_t p_pour_rearm) const;
 	PackedInt32Array risen(const PackedByteArray &p_now, const PackedByteArray &p_then) const;
+	PackedInt32Array held(const PackedFloat64Array &p_pockets, int64_t p_count) const;
+	Array placed(const PackedInt32Array &p_touched, const PackedInt32Array &p_cells, const PackedFloat64Array &p_levels,
+			const PackedVector3Array &p_middles, const PackedVector3Array &p_world_middles,
+			const PackedVector3Array &p_halves, const Basis &p_level) const;
+	Array pours(const PackedInt32Array &p_wet, const PackedFloat64Array &p_levels, const PackedInt32Array &p_sides,
+			const PackedVector3Array &p_centres, const PackedVector3Array &p_sizes, const PackedInt32Array &p_facings,
+			const PackedByteArray &p_drawn, const PackedByteArray &p_crossed, const PackedVector3Array &p_span_middles,
+			const PackedVector3Array &p_span_halves, const PackedVector3Array &p_world_centres,
+			const PackedVector3Array &p_world_unders, const PackedVector2Array &p_last_heads,
+			const PackedFloat64Array &p_open, const PackedFloat64Array &p_flow, const PackedVector3Array &p_cell_lows,
+			const PackedVector3Array &p_cell_highs, const PackedVector3Array &p_flats,
+			const PackedFloat64Array &p_spread) const;
+	Array inflows(const PackedFloat64Array &p_then, const PackedFloat64Array &p_now,
+			const PackedVector3Array &p_middles_then, const PackedVector3Array &p_middles_now,
+			const PackedFloat64Array &p_inflows, double p_seconds, double p_full, double p_ease, double p_calm) const;
 
 protected:
 	static void _bind_methods();
