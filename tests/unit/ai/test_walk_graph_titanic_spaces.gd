@@ -23,7 +23,7 @@ const SPACES := {
 	&"electric engine room": Vector3(-80.0, TANK_TOP, 1.0),
 	&"turbine engine room": Vector3(-50.0, TANK_TOP, 1.0),
 	&"reciprocating engine room": Vector3(-30.0, ENGINE_TANK_TOP, 0.0),
-	&"shaft tunnel, O to N": Vector3(-99.0, TANK_TOP, 0.0),
+	&"shaft tunnel, O to N": Vector3(-97.5, TANK_TOP, 0.0),
 }
 ## How finely a boiler room's floor is walked: a body's gap between boilers is wider by more.
 const FLOOR_GRID := 0.1
