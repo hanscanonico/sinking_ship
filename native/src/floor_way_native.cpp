@@ -320,3 +320,44 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 	}
 	return way;
 }
+
+// WalkPieces._read: per square of a grid from p_origin, p_width squares wide and p_depth
+// deep, each p_side across, 1 where its middle lies in p_within and a body could stand
+// with its feet there at p_height (BotFloorWay._stands, the stair it is on kept: a stair's
+// end within a step of the floor is walked across), else 0. p_rules: a square's body's
+// radius, a step's height, a body's height and how low it crawls.
+PackedByteArray NativeSurfaces::stands_grid(const Vector2 &p_origin, int64_t p_width, int64_t p_depth,
+		double p_side, double p_height, const Rect2 &p_within, const PackedFloat64Array &p_rules) const {
+	const double radius = p_rules[0];
+	const double step = p_rules[1];
+	const double body_height = p_rules[2];
+	const double crawl_height = p_rules[3];
+	FloorGrid grid;
+	grid.origin = p_origin;
+	grid.width = p_width;
+	grid.side = real_t(p_side);
+	PackedByteArray stands;
+	stands.resize(p_width * p_depth);
+	uint8_t *write = stands.ptrw();
+	for (int64_t square = 0; square < p_width * p_depth; square++) {
+		const Vector2 middle = grid.middle(square);
+		write[square] = 0;
+		if (!p_within.has_point(middle)) {
+			continue;
+		}
+		const Vector3 point(middle.x, real_t(p_height), middle.y);
+		const int32_t surface = under_at(point, step, NONE);
+		if (surface == NONE) {
+			continue;
+		}
+		const Vector3 feet(point.x, real_t(height_on(surface, double(point.x), double(point.z))), point.z);
+		std::vector<ContactHit> &found = stands_found;
+		obstacles(feet, radius, body_height, step, NONE, crawl_height, -1.0, found);
+		if (!found.empty()) {
+			continue;
+		}
+		rails(feet, radius, surface, found);
+		write[square] = found.empty() ? 1 : 0;
+	}
+	return stands;
+}

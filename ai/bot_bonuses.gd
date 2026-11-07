@@ -157,17 +157,18 @@ func spare(me: Dictionary) -> float:
 
 
 ## How high above the water there is in her now under [param pose] the floor under a body
-## at [param at] in [param zone] stands (ShipPose.above_water_held): a room's by its lowest
-## corner, where the water comes in first, an open deck's where the body stands. A dry room
+## at [param at] in the layout's room [param room_index] — NONE on an open deck — stands
+## (ShipPose.above_water_held): a room's by its lowest corner, where the water comes in
+## first, an open deck's where the body stands. A dry room
 ## on dry cells stands clear of any water, however far below the sea outside her it lies
 ## (#340); a room with water in it, or in a cell under it, as far as its floor is over that.
 ## A room's corners are where a body's middle can come to, a body's radius in from the
 ## middle of its walls its area runs out to: at her shell that middle lies past her cells,
 ## where the sea outside her would read as water in the room (#491).
-func floor_held(zone: int, at: Vector3, pose: ShipPose) -> float:
-	if zone < 0 or zone >= _layout.rooms.size():
+func floor_held(room_index: int, at: Vector3, pose: ShipPose) -> float:
+	if room_index < 0 or room_index >= _layout.rooms.size():
 		return pose.above_water_held(at)
-	var room := _layout.rooms[zone]
+	var room := _layout.rooms[room_index]
 	var size := room.area.size
 	var inset := Vector2(
 		minf(_rules.body_radius, size.x * 0.5), minf(_rules.body_radius, size.y * 0.5)
@@ -191,10 +192,11 @@ func floor_held(zone: int, at: Vector3, pose: ShipPose) -> float:
 ## [param pose] (floor_held): the water as it stands now, never as the timeline has it next.
 func _clear(graph: WalkGraph, found: WalkSearch, zone: int, at: Vector3, pose: ShipPose) -> bool:
 	var margin := _profile.bonus_margin_m
-	if floor_held(zone, at, pose) < margin:
+	if floor_held(graph.room_of(zone), at, pose) < margin:
 		return false
 	for leg: WalkGraph.Portal in graph.route_in(found, zone):
-		if graph.is_room(leg.to_zone) and floor_held(leg.to_zone, Vector3(), pose) < margin:
+		var room := graph.room_of(leg.to_zone)
+		if room != WalkGraph.NONE and floor_held(room, Vector3(), pose) < margin:
 			return false
 		for end: Vector3 in [leg.entry, leg.exit]:
 			if pose.above_water_held(end) < margin:

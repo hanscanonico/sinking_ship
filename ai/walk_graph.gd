@@ -135,6 +135,10 @@ var _zone_platforms: Array[PackedInt32Array] = []
 var _platform_rooms: Array[PackedInt32Array] = []
 ## Its doorways, and the halves of doors' depths held as rooms' (_zone_on).
 var _doors: WalkDoors
+## The pieces its rooms' floors fall into for a body, and how many zones the rooms and their
+## pieces take, the open decks numbered after them.
+var _pieces: WalkPieces
+var _room_zones := 0
 ## What the last pose asked about says of each zone and portal, worked out the first
 ## time it is asked — 0 not yet, 1 no, 2 yes — so a tick pays for each answer once,
 ## however many bots share the graph.
@@ -216,6 +220,8 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 			):
 				rooms.append(room)
 		_platform_rooms.append(rooms)
+	_pieces = WalkPieces.new(layout, surfaces, rules)
+	_room_zones = layout.rooms.size() + _pieces.extra()
 	_link_decks()
 	_out.resize(_zone_count)
 	_zone_platforms.resize(_zone_count)
@@ -226,14 +232,20 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 		_zone_platforms[_decks[platform]].append(platform)
 	_pace.resize(_zone_count)
 	_pace.fill(1.0)
-	for room in layout.rooms.size():
-		if layout.rooms[room].crawl_space:
-			_pace[room] = rules.walk_speed / rules.crawl_speed
+	for zone in _room_zones:
+		if layout.rooms[room_of(zone)].crawl_space:
+			_pace[zone] = rules.walk_speed / rules.crawl_speed
 	_doors = WalkDoors.new(layout, surfaces, rules)
+	_doors.pieces = _pieces
 	_doors.find_depths(self)
 	_add_ramps(rules)
 	for portal: Portal in _doors.portals(self, rules):
 		_add(portal)
+	if _pieces.glue(_portals, _ramp_zones, _main_deck(), _zone_count):
+		for zone in _zone_count:
+			_out[zone] = PackedInt32Array()
+		for index in _portals.size():
+			_out[_portals[index].from_zone].append(index)
 	_flooded.resize(_zone_count)
 	_doomed.resize(_zone_count)
 	_heights.resize(_zone_count)
@@ -257,8 +269,8 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 		ends.append(portal.exit)
 	_ends = StillPoints.new(ends, _water)
 	var middles := PackedVector3Array()
-	for room in layout.rooms.size():
-		middles.append(_room_middle(room))
+	for zone in _room_zones:
+		middles.append(_room_middle(room_of(zone)))
 	_middles = StillPoints.new(middles, _water)
 	# Each platform's middle at its height, where Surfaces.flooded reads its water.
 	var centres := PackedVector3Array()
@@ -269,8 +281,9 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	var corners := PackedVector3Array()
 	for zone in _zone_count:
 		_zone_corners.append(corners.size())
-		if zone < layout.rooms.size():
-			_add_corners(corners, layout.rooms[zone].area, layout.rooms[zone].floor_height)
+		if zone < _room_zones:
+			var room := layout.rooms[room_of(zone)]
+			_add_corners(corners, room.area, room.floor_height)
 		else:
 			for platform: int in _zone_platforms[zone]:
 				var deck := layout.platforms[platform]
@@ -282,6 +295,15 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	)
 
 
+## The zone of her main deck, the first platform at her datum; the first open deck's on a
+## ship with none.
+func _main_deck() -> int:
+	for index in _layout.platforms.size():
+		if is_zero_approx(_layout.platforms[index].height):
+			return _decks[index]
+	return _room_zones
+
+
 ## The Surfaces it asks.
 func surfaces() -> Surfaces:
 	return _surfaces
@@ -291,10 +313,15 @@ func zone_count() -> int:
 	return _zone_count
 
 
-## Whether [param zone] is a room — walled, so it floods from its lowest corner up —
-## rather than an open deck.
-func is_room(zone: int) -> bool:
-	return zone >= 0 and zone < _layout.rooms.size()
+## Whether [param zone] is a room, or a piece of one (WalkPieces) — walled, so it floods
+## from its lowest corner up — rather than an open deck.
+func _is_room(zone: int) -> bool:
+	return zone >= 0 and zone < _room_zones
+
+
+## The layout's room [param zone] is, or is a piece of; NONE for an open deck.
+func room_of(zone: int) -> int:
+	return _pieces.room_of(zone) if _is_room(zone) else NONE
 
 
 ## The zone of the open deck [param platform] belongs to.
@@ -364,7 +391,7 @@ func flooded(zone: int, pose: ShipPose) -> bool:
 ## platform of which the pose has collapsing or collapsed. A room never is — its
 ## floor stays when the deck over it goes.
 func doomed(zone: int, pose: ShipPose) -> bool:
-	if zone < _layout.rooms.size() or pose.collapsing.is_empty() and pose.collapsed.is_empty():
+	if zone < _room_zones or pose.collapsing.is_empty() and pose.collapsed.is_empty():
 		return false
 	_know(pose)
 	if _doomed[zone] == 0:
@@ -398,7 +425,7 @@ func open(legs: Array[Portal], pose: ShipPose) -> bool:
 func world_height(zone: int, pose: ShipPose) -> float:
 	_know(pose)
 	if is_nan(_heights[zone]):
-		if zone < _layout.rooms.size():
+		if zone < _room_zones:
 			_heights[zone] = _middles.world_height(zone)
 		else:
 			_heights[zone] = -INF
@@ -422,7 +449,7 @@ func lowest_above_water(zone: int, pose: ShipPose) -> float:
 ## stands under [param pose], as the water comes for it: a room floods from its lowest
 ## corner up, an open deck where the body stands.
 func floor_height(zone: int, at: Vector3, pose: ShipPose) -> float:
-	if is_room(zone):
+	if _is_room(zone):
 		return lowest_above_water(zone, pose)
 	return pose.above_water(at)
 
@@ -500,7 +527,7 @@ func detour(
 ) -> Array[Portal]:
 	var legs: Array[Portal] = []
 	var start := zone_at(from_pos, from_surface)
-	if start == NONE or start < _layout.rooms.size():
+	if start == NONE or start < _room_zones:
 		return legs
 	_know(pose)
 	var cost := PackedFloat64Array()
@@ -546,7 +573,7 @@ func detour(
 					best = total
 					best_portal = index
 				continue
-			if other >= _layout.rooms.size() or done[other] == 1 or _closed(other, pose):
+			if other >= _room_zones or done[other] == 1 or _closed(other, pose):
 				continue
 			if through < cost[other]:
 				cost[other] = through
@@ -711,7 +738,7 @@ func _link_decks() -> void:
 			var a := _root(parent, first)
 			var b := _root(parent, second)
 			parent[maxi(a, b)] = mini(a, b)
-	_zone_count = _layout.rooms.size()
+	_zone_count = _room_zones
 	var zone_of_root := PackedInt32Array()
 	zone_of_root.resize(platforms.size())
 	zone_of_root.fill(NONE)
@@ -761,10 +788,10 @@ func _add_ramps(rules: BrawlRules) -> void:
 ## of its rooms, is still in the room it ends in, not on an open deck no doorway joins.
 func _end_zone(platform: int, end: Vector2, outward: Vector2) -> int:
 	var zone := _zone_on(platform, end + outward * _lead)
-	if is_room(zone):
+	if _is_room(zone):
 		return zone
 	var at := _zone_on(platform, end + outward * EDGE)
-	return at if is_room(at) else zone
+	return at if _is_room(at) else zone
 
 
 func _add(portal: Portal) -> int:
@@ -781,7 +808,7 @@ func _zone_on(platform: int, point: Vector2) -> int:
 	var feet := Vector3(point.x, height, point.y)
 	for room: int in _platform_rooms[platform]:
 		if _layout.rooms[room].holds(feet, _step):
-			return room
+			return _pieces.zone(room, point)
 	var held := _doors.depth_room(point, height)
 	return held if held != NONE else _decks[platform]
 
@@ -866,7 +893,7 @@ func _closed_ways(pose: ShipPose, swim: bool, wade: bool) -> PackedByteArray:
 ## Works out flooded for every zone under the pose known at once (_flooded): the rooms'
 ## middles read together.
 func _flood_every_zone(pose: ShipPose) -> void:
-	var rooms := _layout.rooms.size()
+	var rooms := _room_zones
 	var middles := _middles.wet_all()
 	if _water != null:
 		_flooded = _water.flooded(
@@ -989,7 +1016,7 @@ func heights_all(pose: ShipPose) -> PackedFloat64Array:
 	if not _heights_known:
 		if _water != null:
 			_heights = _water.heights(
-				_layout.rooms.size(),
+				_room_zones,
 				_middles.world_all(),
 				_zone_platforms_from,
 				_zone_platforms_flat,
@@ -1016,7 +1043,7 @@ func lowest_all(pose: ShipPose) -> PackedFloat64Array:
 
 
 func _is_flooded(zone: int, pose: ShipPose) -> bool:
-	if zone < _layout.rooms.size():
+	if zone < _room_zones:
 		return _middles.wet(zone)
 	for platform: int in _zone_platforms[zone]:
 		if not _platform_under(platform, pose):

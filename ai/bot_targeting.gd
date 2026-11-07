@@ -99,7 +99,7 @@ func choose(
 			continue
 		# Not down into a room the sea is about to take: the bot would climb out of it.
 		if (
-			_walk_graph.is_room(zone)
+			_walk_graph.room_of(zone) != WalkGraph.NONE
 			and _walk_graph.floor_height(zone, entry["pos"], pose) < _profile.climb_margin_m
 		):
 			continue
