@@ -12,6 +12,7 @@ var _layout: ShipLayout
 var _surfaces: Surfaces
 ## A body's width: how far out through a doorway the zone it gives onto is read.
 var _lead: float
+var _radius: float
 var _step: float
 ## Per room, the gaps in its walls wide enough for a body — crawling, crawl_height tall, if
 ## it must.
@@ -27,6 +28,7 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_layout = layout
 	_surfaces = surfaces
 	_lead = rules.body_radius * 2.0
+	_radius = rules.body_radius
 	_step = rules.step_height
 	for room in layout.rooms.size():
 		var wide: Array[ShipRoom.Door] = []
@@ -84,7 +86,7 @@ func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 			if other == NONE:
 				continue
 			var deck := other >= _layout.rooms.size()
-			var offs := WayThrough.crossings(_surfaces, rules, door, floor_height, deck)
+			var offs := WayThrough.crossings(_surfaces, rules, door, floor_height)
 			for way in 2 if deck else 1:
 				if not is_nan(offs[way]):
 					var at := WayThrough.across(door, offs[way], floor_height)
@@ -96,12 +98,21 @@ func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 
 
 ## The zone of [param graph] that [param door] out of [param room] gives onto, a body's
-## width out through it: NONE where that is on nothing, on a ramp, or the room again.
+## width out through it: read at its middle, then every WayThrough.STRIDE out from it either
+## way as far as a body's radius in from each jamb, past where that is on nothing or on a
+## ramp — a wide doorway's middle can give onto a stair beside the floor it opens onto. NONE
+## where it is on nothing or a ramp all across, or is the room again.
 func _gives_onto(graph: WalkGraph, room: int, door: ShipRoom.Door) -> int:
-	var beyond := door.middle() + door.outward * _lead
-	var outside := Vector3(beyond.x, _layout.rooms[room].floor_height, beyond.y)
-	var surface := _surfaces.under(outside, _step)
-	if surface == Surfaces.NONE or _surfaces.is_ramp(surface):
-		return NONE
-	var other := graph.zone_at(outside, surface)
-	return NONE if other == room else other
+	var floor_height := _layout.rooms[room].floor_height
+	var steps := floori(maxf(door.width() * 0.5 - _radius, 0.0) / WayThrough.STRIDE)
+	for index in range(0, steps * 2 + 1):
+		var off := WayThrough.STRIDE * ceili(index * 0.5) * (1.0 if index % 2 == 1 else -1.0)
+		var at := WayThrough.across(door, off, floor_height)
+		var beyond := Vector2(at.x, at.z) + door.outward * _lead
+		var outside := Vector3(beyond.x, floor_height, beyond.y)
+		var surface := _surfaces.under(outside, _step)
+		if surface == Surfaces.NONE or _surfaces.is_ramp(surface):
+			continue
+		var other := graph.zone_at(outside, surface)
+		return NONE if other == room else other
+	return NONE

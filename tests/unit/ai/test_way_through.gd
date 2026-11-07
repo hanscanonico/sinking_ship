@@ -151,7 +151,7 @@ func test_a_doorway_no_body_gets_through_keeps_its_portal_at_its_middle() -> voi
 		for out: Vector2 in [door.outward, -door.outward]:
 			var off := WayThrough.doorway(_surfaces, rules, door, E_DECK, out)
 			assert_true(is_nan(off), "no body gets through it")
-		var offs := WayThrough.crossings(_surfaces, rules, door, E_DECK, false)
+		var offs := WayThrough.crossings(_surfaces, rules, door, E_DECK)
 		assert_eq(Array(offs), [0.0, 0.0], "its middle, both ways")
 	assert_gt(_doorways_at(UNDER_THE_STAIR_HEAD), 0, "so the passage aft of M is not sealed")
 	var from := _surfaces.under(IN_THE_ENTRANCE, rules.step_height)
@@ -240,3 +240,146 @@ func test_her_other_ships_lose_no_portal() -> void:
 					assert_false(
 						is_nan(off), "%s's %s has a doorway a body goes through" % [ship, room.name]
 					)
+
+
+## A platform called [param named] over [param area] at [param height].
+func _platform(named: StringName, area: Rect2, height: float) -> ShipPlatform:
+	var platform := ShipPlatform.new()
+	platform.name = named
+	platform.area = area
+	platform.height = height
+	return platform
+
+
+## A wall over [param area], from the deck at 0 up 2.5 m.
+func _wall(area: Rect2) -> ShipBlocker:
+	var wall := ShipBlocker.new()
+	wall.area = area
+	wall.top = 2.5
+	return wall
+
+
+## A flight along x over [param area] from [param start] high to [param end] high.
+func _flight(area: Rect2, start: float, end: float) -> ShipRamp:
+	var ramp := ShipRamp.new()
+	ramp.area = area
+	ramp.axis = ShipRamp.Axis.X
+	ramp.start_height = start
+	ramp.end_height = end
+	return ramp
+
+
+## Whether [param graph] has a way along [param ramp].
+func _along(graph: WalkGraph, ramp: int) -> bool:
+	for portal: WalkGraph.Portal in graph.portals():
+		if portal.ramp == ramp:
+			return true
+	return false
+
+
+func _level(layout: ShipLayout) -> ShipPose:
+	return (
+		SinkSchedule
+		. new(SimFixtures.calm(), layout.freeboard, SeedStreams.derive(1, "sink"))
+		. pose_at(0)
+	)
+
+
+func test_a_flight_under_a_deck_too_low_to_crawl_under_is_no_way() -> void:
+	# A deck at 0, x -6…6, a landing a metre up forward of x 4, and a flight up to it over
+	# x 0…4 — test data — under a roof: 0.6 m over the flight's head is too low for anybody,
+	# 2 m over it is not.
+	var rules := SimFixtures.rules()
+	for roof: float in [1.6, 3.0]:
+		var layout := ShipLayout.new()
+		layout.freeboard = 6.0
+		var platforms: Array[ShipPlatform] = [
+			_platform(&"deck", Rect2(-6.0, -4.0, 10.0, 8.0), 0.0),
+			_platform(&"landing", Rect2(4.0, -4.0, 2.0, 8.0), 1.0),
+			_platform(&"roof", Rect2(0.0, -4.0, 4.0, 8.0), roof),
+		]
+		layout.platforms = platforms
+		var ramps: Array[ShipRamp] = [_flight(Rect2(0.0, -1.0, 4.0, 2.0), 0.0, 1.0)]
+		layout.ramps = ramps
+		var surfaces := Surfaces.new(layout)
+		var walked := roof > 2.0
+		assert_eq(WayThrough.flight(surfaces, rules, layout, 0), walked, "under %.1f m" % roof)
+		var graph := WalkGraph.new(layout, surfaces, rules)
+		assert_eq(_along(graph, 0), walked, "a way along it under %.1f m" % roof)
+
+
+func test_a_wide_doorway_whose_middle_gives_onto_a_stair_gives_onto_the_deck_beside_it() -> void:
+	# A cabin, x -4…0 and z -4…0, walled but for its forward side, 4 m wide, on a deck — test
+	# data. A flight rises forward from 0.4 m off the doorway's middle, a metre wide, to a
+	# landing: a body's width out through the doorway's middle is on the flight, either side
+	# of it on the deck.
+	var rules := SimFixtures.rules()
+	var layout := ShipLayout.new()
+	layout.freeboard = 6.0
+	var platforms: Array[ShipPlatform] = [
+		_platform(&"deck", Rect2(-6.0, -6.0, 10.4, 12.0), 0.0),
+		_platform(&"landing", Rect2(4.4, -3.0, 2.0, 2.0), 1.0),
+	]
+	layout.platforms = platforms
+	var blockers: Array[ShipBlocker] = [
+		_wall(Rect2(-4.1, -4.1, 4.2, 0.2)),
+		_wall(Rect2(-4.1, -0.1, 4.2, 0.2)),
+		_wall(Rect2(-4.1, -4.1, 0.2, 4.2)),
+	]
+	layout.blockers = blockers
+	var ramps: Array[ShipRamp] = [_flight(Rect2(0.4, -2.5, 4.0, 1.0), 0.0, 1.0)]
+	layout.ramps = ramps
+	var cabin := ShipRoom.new()
+	cabin.name = &"cabin"
+	cabin.area = Rect2(-4.0, -4.0, 4.0, 4.0)
+	var rooms: Array[ShipRoom] = [cabin]
+	layout.rooms = rooms
+	var surfaces := Surfaces.new(layout)
+	var graph := WalkGraph.new(layout, surfaces, rules)
+	var deck := graph.deck_of(0)
+	var ways := {}
+	for portal: WalkGraph.Portal in graph.portals():
+		if portal.ramp == WalkGraph.NONE:
+			ways[Vector2i(portal.from_zone, portal.to_zone)] = true
+	assert_true(ways.has(Vector2i(0, deck)), "out of the cabin onto the deck")
+	assert_true(ways.has(Vector2i(deck, 0)), "and back in")
+	var start := Vector3(-3.0, 0.0, 4.0)
+	var legs := graph.route(start, surfaces.under(start, rules.step_height), 0, _level(layout))
+	assert_false(legs.is_empty(), "so the cabin is not sealed")
+
+
+func test_a_flight_s_foot_short_of_its_room_s_edge_ends_in_the_room() -> void:
+	# A hall, x -4…4, walled all round on a floor at 0 that runs on 0.4 m past its forward
+	# wall, and a deck 2 m up aft of it — test data. A flight down from the deck into the hall
+	# ends 0.44 m short of the hall's forward edge: a body's width on past its foot is past the
+	# hall's wall, on that floor but in no room. The flight is the only way in.
+	var rules := SimFixtures.rules()
+	var layout := ShipLayout.new()
+	layout.freeboard = 6.0
+	var platforms: Array[ShipPlatform] = [
+		_platform(&"deck", Rect2(-10.0, -4.0, 6.0, 8.0), 2.0),
+		_platform(&"floor", Rect2(-4.0, -4.0, 8.4, 8.0), 0.0),
+	]
+	layout.platforms = platforms
+	var blockers: Array[ShipBlocker] = [
+		_wall(Rect2(-4.1, -4.1, 8.2, 0.2)),
+		_wall(Rect2(-4.1, 3.9, 8.2, 0.2)),
+		_wall(Rect2(3.9, -4.1, 0.2, 8.2)),
+		_wall(Rect2(-4.1, -4.1, 0.2, 3.1)),
+		_wall(Rect2(-4.1, 1.0, 0.2, 3.1)),
+	]
+	layout.blockers = blockers
+	var ramps: Array[ShipRamp] = [_flight(Rect2(-4.0, -1.0, 7.56, 2.0), 2.0, 0.0)]
+	layout.ramps = ramps
+	var hall := ShipRoom.new()
+	hall.name = &"hall"
+	hall.area = Rect2(-4.0, -4.0, 8.0, 8.0)
+	var rooms: Array[ShipRoom] = [hall]
+	layout.rooms = rooms
+	var surfaces := Surfaces.new(layout)
+	var graph := WalkGraph.new(layout, surfaces, rules)
+	var foot := graph.way_off(surfaces.ramp_surface(0), 0)
+	assert_not_null(foot, "the flight's foot is in the hall")
+	var start := Vector3(-7.0, 2.0, 0.0)
+	var legs := graph.route(start, surfaces.under(start, rules.step_height), 0, _level(layout))
+	assert_false(legs.is_empty(), "so the hall is reached down it")

@@ -737,7 +737,7 @@ func _add_ramps(rules: BrawlRules) -> void:
 				continue
 			var other := ends[1 - end]
 			var outward := Vector2(ends[end].x - other.x, ends[end].z - other.z).normalized()
-			zones.append(_zone_on(joined[end], Vector2(ends[end].x, ends[end].z) + outward * _lead))
+			zones.append(_end_zone(joined[end], Vector2(ends[end].x, ends[end].z), outward))
 		_ramp_zones.append(zones)
 		var toward := PackedInt32Array([NONE, NONE])
 		if zones[0] != NONE and zones[1] != NONE and walked:
@@ -752,6 +752,19 @@ func _add_ramps(rules: BrawlRules) -> void:
 					)
 				)
 		_ramp_portals.append(toward)
+
+
+## The zone a body stepping off a flight's end at [param end] (x/z) the way [param outward]
+## stands in on [param platform], the floor that end joins: the one a body's width on past
+## the end, unless that is no room while the end itself stands in one — a foot laid less
+## than a body's width short of its room's edge, the point past it on that floor but in none
+## of its rooms, is still in the room it ends in, not on an open deck no doorway joins.
+func _end_zone(platform: int, end: Vector2, outward: Vector2) -> int:
+	var zone := _zone_on(platform, end + outward * _lead)
+	if is_room(zone):
+		return zone
+	var at := _zone_on(platform, end + outward * EDGE)
+	return at if is_room(at) else zone
 
 
 func _add(portal: Portal) -> int:
