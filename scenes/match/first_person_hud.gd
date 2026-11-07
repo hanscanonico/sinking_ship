@@ -124,21 +124,8 @@ const BANNER_SECONDS := 4.0
 const BANNER_FONT_SIZE := 30
 
 var _schedule: SinkSchedule
-## Her faces frame by frame (Faces): what the crosshair, the climb prompt and the
-## wedges ask once the match stands on a face but her decks.
-var _faces: Faces
-## Her pieces (SH33), its own as its Surfaces are: once she has broken, the eyes'
-## piece's faces and Surfaces answer for it, and every body is read in its space
-## (Pieces.seen_from).
-var _pieces: Pieces
-## Its own, honoured with the pose, broken railings and crates of the snapshot it
-## draws: what a climb, a shove or a look meets is the ship as that tick has it, and
-## the sim's stays the sim's.
-var _surfaces: Surfaces
-## The crates of the snapshot drawn, and that snapshot's crate entries they were made
-## from: made again only for another snapshot's.
-var _crates: Array[PropState] = []
-var _crates_of: Array = []
+## What the snapshot drawn answers, asked once for every frame that draws it.
+var _answers: HudAnswers
 var _rules: BrawlRules
 ## The ship's layout: what each prop is (#273); and the props a hand may hold
 ## (GrabReach.holdable_of).
@@ -155,7 +142,14 @@ var _eyes: bool
 ## Whether the view is the free camera rather than the seat's eyes: drawn as the
 ## observer's is.
 var flying := false
+## What is drawn of a snapshot alone — the dials, the chips, the banner, the plate and
+## its readouts, the crosshair and the grab prompt — drawn again only once the snapshot,
+## the seat, the view or a prompt's words change (#410); over it, what moves with the
+## eye frame by frame: the climb prompt, the chevrons and the wedges; and the one of the
+## two being drawn.
 var _canvas: Control
+var _live: Control
+var _drawing: Control
 var _font: Font
 var _snapshot: Dictionary
 var _seat := -1
@@ -195,21 +189,19 @@ func _ready() -> void:
 	_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_canvas)
 	_canvas.draw.connect(_draw_hud)
+	_live = Control.new()
+	_live.name = "Live"
+	_live.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_live.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_live)
+	_live.draw.connect(_draw_live)
 
 
 ## [param eyes] is whether the view is a seat's eyes rather than the observer's;
 ## [param prompts] names the buttons a warning asks for.
 func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPrompts) -> void:
 	_schedule = sim.schedule
-	_surfaces = Surfaces.new(sim.config.ship)
-	_faces = sim.faces
-	_pieces = Pieces.new(
-		sim.config.ship,
-		sim.schedule,
-		sim.faces,
-		sim.config.rules.brace_holds_to,
-		SeaPhysics.load_default().capsized_movement
-	)
+	_answers = HudAnswers.new(sim)
 	_rules = sim.config.rules
 	_layout = sim.config.ship
 	_holdable = GrabReach.holdable_of(_layout)
@@ -238,58 +230,51 @@ func show_view(
 	_camera = camera
 	_view = view
 	_show_frost()
-	_canvas.queue_redraw()
+	var with := [flying, _canvas.size, _prompts.word(&"grab"), _prompts.word(&"brace")]
+	if _answers.ask(snapshot, seat, with):
+		_canvas.queue_redraw()
+	_live.queue_redraw()
 
 
+## What a snapshot alone has the HUD draw (_canvas).
 func _draw_hud() -> void:
 	if _over():
 		return
+	_drawing = _canvas
 	var tick: int = _snapshot["tick"]
-	var whole := _schedule.pose_at(tick)
-	var me := _entry(_seat)
-	var piece: int = me["piece"] if not me.is_empty() else 0
-	var pose := whole.of_piece(piece)
-	# As the snapshot has them: the railings the match has broken, and its crates.
-	var broken := MatchState.broken_in(_snapshot["railing_hp"])
-	if not is_same(_crates_of, _snapshot["props"]):
-		_crates_of = _snapshot["props"]
-		_crates = PropState.from_snapshot(_snapshot, _crates)
-	var props := _crates
-	var deck := _surfaces
-	if piece == 0:
-		_surfaces.honour(whole, broken, props)
-	else:
-		_pieces.honour(piece, whole, broken, props)
-		deck = _pieces.faces(piece).surfaces(Faces.Up.DECK)
-	_draw_inclinometer(pose)
-	_draw_warnings(pose, tick)
+	var answers := _answers
+	_draw_inclinometer(answers.pose)
+	_draw_warnings(answers.pose, tick)
 	_draw_phase(tick)
-	if me.is_empty() or me["out"]:
+	if not answers.is_in:
 		return
-	# On a face but her decks the bodies' moves and looks are in its frame, and so are
-	# the crosshair's, the climb's and the wedges' answers (Faces); on a piece of her, in
-	# its space.
-	var up := MatchState.up_of(_snapshot, me)
-	var decks := up == Faces.Up.DECK
-	var faces := _faces if piece == 0 else _pieces.faces(piece)
-	var seen := Pieces.seen_from(_snapshot, piece, whole)
-	_draw_where(faces.layout(Faces.Up.DECK), me["pos"], me["surface"] if decks else Surfaces.NONE)
+	var me := answers.me
+	var decks := MatchState.up_of(_snapshot, me) == Faces.Up.DECK
+	var where := answers.faces.layout(Faces.Up.DECK)
+	_draw_where(where, me["pos"], me["surface"] if decks else Surfaces.NONE)
 	if not _eyes or flying:
 		return
-	var framed := Faces.framed_snapshot(seen, up)
-	var here := deck if decks else faces.surfaces(up)
-	_draw_crosshair(ShoveResolver.would_hit(framed, _seat, _rules, here))
-	var mine: Dictionary = framed["seats"][_seat]
-	if me["state"] == PlayerState.Body.SWIMMING:
-		_draw_climb_prompt(mine, here, faces.framed(pose, up))
-	else:
+	_draw_crosshair(ShoveResolver.would_hit(answers.framed, _seat, _rules, answers.here))
+	if me["state"] != PlayerState.Body.SWIMMING:
 		var grab := _prompts.word(&"grab")
-		var words := grab_words(framed, _seat, _reach, here, grab)
+		var words := grab_words(answers.framed, _seat, _reach, answers.here, grab)
 		if not words.is_empty():
 			_text(_canvas.size * 0.5 + PROMPT_BELOW, words, TEXT, READOUT_TEXT)
-	_draw_readouts(me, pose.world_height(me["pos"]))
-	_draw_chevrons(seen, deck, me["pos"], pose)
-	_draw_windup_wedges(mine["pos"], framed["seats"])
+	_draw_readouts(me, answers.pose.world_height(me["pos"]))
+
+
+## What moves with the eye frame by frame, over the rest (_live): the climb prompt, the
+## chevrons and the wedges.
+func _draw_live() -> void:
+	var answers := _answers
+	if _over() or not answers.is_in or not _eyes or flying:
+		return
+	_drawing = _live
+	var mine: Dictionary = answers.framed["seats"][_seat]
+	if answers.me["state"] == PlayerState.Body.SWIMMING:
+		_draw_climb_prompt(mine, answers.here, answers.framed_pose)
+	_draw_chevrons(answers.seen, answers.me["pos"])
+	_draw_windup_wedges(mine["pos"], answers.framed["seats"])
 
 
 ## Whether there is nothing to draw: no snapshot yet, or the results are up.
@@ -348,16 +333,16 @@ func _draw_inclinometer(pose: ShipPose) -> void:
 
 
 func _draw_dial(centre: Vector2, hull: PackedVector2Array, angle: float, colour: Color) -> void:
-	_canvas.draw_circle(centre, DIAL_RADIUS + 4.0, INK)
-	_canvas.draw_arc(centre, DIAL_RADIUS, 0.0, TAU, 32, Color(colour, 0.5), 1.5, true)
+	_drawing.draw_circle(centre, DIAL_RADIUS + 4.0, INK)
+	_drawing.draw_arc(centre, DIAL_RADIUS, 0.0, TAU, 32, Color(colour, 0.5), 1.5, true)
 	var level := Vector2(DIAL_RADIUS, 0.0)
-	_canvas.draw_line(centre - level, centre + level, Color(TEXT, 0.35), 1.0, true)
+	_drawing.draw_line(centre - level, centre + level, Color(TEXT, 0.35), 1.0, true)
 	var drawn := PackedVector2Array()
 	for point: Vector2 in hull:
 		drawn.append(centre + point.rotated(angle))
-	_canvas.draw_polyline(drawn, colour, 2.5, true)
+	_drawing.draw_polyline(drawn, colour, 2.5, true)
 	var mast := Vector2(0.0, -DIAL_RADIUS * 0.6).rotated(angle)
-	_canvas.draw_line(centre, centre + mast, colour, 2.0, true)
+	_drawing.draw_line(centre, centre + mast, colour, 2.0, true)
 
 
 ## Over the crosshair, one chip per telegraph [param pose] runs — what a player who
@@ -377,8 +362,8 @@ func _draw_warnings(pose: ShipPose, tick: int) -> void:
 	var at := Vector2(_canvas.size.x * 0.5, _canvas.size.y * 0.5 - 90.0)
 	for warning: String in warnings:
 		var chip := Rect2(at - Vector2(CHIP_TEXT * 0.5, 24.0), Vector2(CHIP_TEXT, 34.0))
-		_canvas.draw_rect(chip, INK)
-		_canvas.draw_rect(chip, WARNING, false, 2.5)
+		_drawing.draw_rect(chip, INK)
+		_drawing.draw_rect(chip, WARNING, false, 2.5)
 		_text(at, warning, WARNING, CHIP_TEXT)
 		at.y -= 44.0
 
@@ -399,7 +384,7 @@ func _draw_phase(tick: int) -> void:
 	if phase == "" or phase == _schedule.phase_at(tick - Ticks.from_seconds(BANNER_SECONDS)):
 		return
 	var left := Vector2(_canvas.size.x * 0.5 - READOUT_TEXT, 110.0)
-	_canvas.draw_string_outline(
+	_drawing.draw_string_outline(
 		_font,
 		left,
 		phase,
@@ -409,7 +394,7 @@ func _draw_phase(tick: int) -> void:
 		6,
 		INK
 	)
-	_canvas.draw_string(
+	_drawing.draw_string(
 		_font, left, phase, HORIZONTAL_ALIGNMENT_CENTER, READOUT_TEXT * 2.0, BANNER_FONT_SIZE, TEXT
 	)
 
@@ -421,11 +406,11 @@ func _draw_crosshair(lit: bool) -> void:
 	var gap := 7.0 if lit else 5.0
 	for direction: Vector2 in [Vector2.UP, Vector2.DOWN, Vector2.LEFT, Vector2.RIGHT]:
 		var from := centre + direction * gap
-		_canvas.draw_line(from, from + direction * 7.0, INK, 4.0, true)
-		_canvas.draw_line(from, from + direction * 7.0, colour, 2.0, true)
-	_canvas.draw_circle(centre, 1.5, colour)
+		_drawing.draw_line(from, from + direction * 7.0, INK, 4.0, true)
+		_drawing.draw_line(from, from + direction * 7.0, colour, 2.0, true)
+	_drawing.draw_circle(centre, 1.5, colour)
 	if lit:
-		_canvas.draw_arc(centre, 16.0, 0.0, TAU, 32, colour, 2.5, true)
+		_drawing.draw_arc(centre, 16.0, 0.0, TAU, 32, colour, 2.5, true)
 
 
 ## Bottom left, over the readouts and on their plate: the name of the room
@@ -457,7 +442,7 @@ func _draw_plate(named: bool, lines: int) -> void:
 	if not _eyes or flying:
 		rect.size.y = 32.0 + PLACE_LEADING * (lines - 1) if named else 0.0
 	if rect.size.y > 0.0:
-		_canvas.draw_style_box(_plate, rect)
+		_drawing.draw_style_box(_plate, rect)
 
 
 ## The whole plate behind the readouts on a screen of [param size], bottom left, for a
@@ -510,11 +495,11 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 		at.y += 30.0
 		_text(at, slot, Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 		var bar := Rect2(at + Vector2(88.0, -13.0), Vector2(140.0, 14.0))
-		_canvas.draw_rect(bar, INK)
+		_drawing.draw_rect(bar, INK)
 		var share := _stamina(me) if slot == "Stamina" else _cold(me)
 		var fill := _stamina_colour(me) if slot == "Stamina" else _cold_colour(me)
-		_canvas.draw_rect(Rect2(bar.position, Vector2(bar.size.x * share, bar.size.y)), fill)
-		_canvas.draw_rect(bar, Color(TEXT, 0.35), false, 1.5)
+		_drawing.draw_rect(Rect2(bar.position, Vector2(bar.size.x * share, bar.size.y)), fill)
+		_drawing.draw_rect(bar, Color(TEXT, 0.35), false, 1.5)
 		var lasting := (
 			warmth_words(_snapshot, _seat, _layout, _rules, _holdable) if slot == "Warmth" else ""
 		)
@@ -523,7 +508,7 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 			_text(beside, lasting, Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 		if slot == "Warmth" and spare_meter(_snapshot, _seat, _bonus_rules):
 			var strip := Vector2(bar.position.x, bar.end.y + SPARE_GAP)
-			_canvas.draw_rect(Rect2(strip, Vector2(bar.size.x, SPARE_HEIGHT)), WARM)
+			_drawing.draw_rect(Rect2(strip, Vector2(bar.size.x, SPARE_HEIGHT)), WARM)
 	var bonus := bonus_kind(_snapshot, _seat, _bonus_rules)
 	if bonus != null:
 		var under := Vector2(24.0, plate_rect(_canvas.size).end.y + BONUS_UNDER)
@@ -602,11 +587,12 @@ static func height_words(above_sea: float) -> String:
 
 
 ## A chevron in seat colour, ringed by its stamina, and the seat's name over every
-## other brawler within CHEVRON_RANGE whose eyes [param my_pos]'s see under
-## [param pose] — Surfaces.line_of_sight, what the bots' view asks too: never through a
-## wall, a floor or the hull — over its hat, laid out so none overlaps another.
-func _draw_chevrons(seen: Dictionary, deck: Surfaces, my_pos: Vector3, pose: ShipPose) -> void:
-	var eye := Vector3.UP * FirstPersonCamera.eye_height_of(_camera)
+## other brawler of [param seen] within CHEVRON_RANGE whose eyes [param my_pos]'s see
+## (HudAnswers.sees) — Surfaces.line_of_sight, what the bots' view asks too: never through
+## a wall, a floor or the hull — over its hat, laid out so none overlaps another.
+func _draw_chevrons(seen: Dictionary, my_pos: Vector3) -> void:
+	var eye_height := FirstPersonCamera.eye_height_of(_camera)
+	var eye := Vector3.UP * eye_height
 	var entries: Array[Dictionary] = []
 	var anchors := PackedVector2Array()
 	_ranks.clear()
@@ -618,7 +604,7 @@ func _draw_chevrons(seen: Dictionary, deck: Surfaces, my_pos: Vector3, pose: Shi
 		var distance := my_pos.distance_to(their_pos)
 		if distance > CHEVRON_RANGE:
 			continue
-		if not deck.line_of_sight(my_pos + eye, their_pos + eye, pose):
+		if not _answers.sees(seat, my_pos + eye, their_pos + eye, eye_height):
 			continue
 		var top := _view.seat_world_position(seat) + Vector3.UP * Brawler.headgear(seat, _rules)
 		var over := top + Vector3.UP * CHEVRON_LIFT
@@ -723,8 +709,8 @@ static func plates_apart(boxes: Array[Rect2], highest: float) -> PackedFloat32Ar
 ## A thin line in [param seat]'s colour from a lifted plate's ring at [param from]
 ## down to where it would stand, [param to].
 func _leader(from: Vector2, to: Vector2, seat: int, alpha: float) -> void:
-	_canvas.draw_line(from, to, Color(INK, INK.a * alpha), 3.0, true)
-	_canvas.draw_line(from, to, Color(ArtPalette.seat_colour(seat), alpha), 1.5, true)
+	_drawing.draw_line(from, to, Color(INK, INK.a * alpha), 3.0, true)
+	_drawing.draw_line(from, to, Color(ArtPalette.seat_colour(seat), alpha), 1.5, true)
 
 
 ## [param entry]'s chevron at [param at], ringed by its stamina, under its seat's
@@ -736,9 +722,9 @@ func _chevron(at: Vector2, entry: Dictionary, shrink: float, alpha: float) -> vo
 	var radius := RING_RADIUS * shrink
 	_ring(at, entry, radius, alpha)
 	var chevron := chevron_points(at, shrink)
-	_canvas.draw_colored_polygon(chevron, colour)
+	_drawing.draw_colored_polygon(chevron, colour)
 	chevron.append(chevron[0])
-	_canvas.draw_polyline(chevron, ink, 1.5, true)
+	_drawing.draw_polyline(chevron, ink, 1.5, true)
 	var name_at := at + Vector2(0.0, -radius - 6.0)
 	var font_size := roundi(FONT_SIZE * shrink)
 	var seat_name := UiTheme.fit(_names[seat], _font, font_size, READOUT_TEXT)
@@ -767,13 +753,13 @@ static func chevron_points(at: Vector2, shrink: float) -> PackedVector2Array:
 ## [param entry]'s stamina — its warmth in the sea — as a ring of [param radius]
 ## round [param centre], filled clockwise from the top, [param alpha] opaque.
 func _ring(centre: Vector2, entry: Dictionary, radius: float, alpha: float) -> void:
-	_canvas.draw_arc(centre, radius, 0.0, TAU, 32, Color(INK, INK.a * alpha), RING_WIDTH, true)
+	_drawing.draw_arc(centre, radius, 0.0, TAU, 32, Color(INK, INK.a * alpha), RING_WIDTH, true)
 	var swimming: bool = entry["state"] == PlayerState.Body.SWIMMING
 	var share := _cold(entry) if swimming else _stamina(entry)
 	if share > 0.0:
 		var top := -PI * 0.5
 		var fill := _cold_colour(entry) if swimming else _stamina_colour(entry)
-		_canvas.draw_arc(
+		_drawing.draw_arc(
 			centre, radius, top, top + TAU * share, 32, Color(fill, alpha), RING_WIDTH, true
 		)
 
@@ -829,12 +815,12 @@ func _draw_wedge(root: Vector2, bearing: float, colour: Color, strength: float) 
 	var clear := Color(colour, 0.0)
 	var deep := root + inward * WEDGE_DEPTH
 	for end: Vector2 in [root - along * WEDGE_HALF, root + along * WEDGE_HALF]:
-		_canvas.draw_primitive(
+		_drawing.draw_primitive(
 			PackedVector2Array([end, root, deep]), PackedColorArray([clear, lit, clear]), []
 		)
 	var line := along * WEDGE_HALF * 0.6
-	_canvas.draw_line(root - line, root + line, Color(INK, INK.a * strength), WEDGE_KEYLINE)
-	_canvas.draw_line(root - line, root + line, lit, WEDGE_LINE)
+	_drawing.draw_line(root - line, root + line, Color(INK, INK.a * strength), WEDGE_KEYLINE)
+	_drawing.draw_line(root - line, root + line, lit, WEDGE_LINE)
 	var direction := wedge_arrow(bearing)
 	var tip := root + inward * ARROW_IN
 	var base := tip - direction * ARROW_LENGTH
@@ -842,9 +828,9 @@ func _draw_wedge(root: Vector2, bearing: float, colour: Color, strength: float) 
 	var arrow := PackedVector2Array(
 		[tip, base + side, base + direction * ARROW_NOTCH, base - side, tip]
 	)
-	_canvas.draw_polyline(arrow, Color(INK, INK.a * strength), 5.0, true)
+	_drawing.draw_polyline(arrow, Color(INK, INK.a * strength), 5.0, true)
 	arrow.remove_at(arrow.size() - 1)
-	_canvas.draw_colored_polygon(arrow, Color(colour, strength))
+	_drawing.draw_colored_polygon(arrow, Color(colour, strength))
 
 
 ## The root on its side's edge of the wedge for a shove [param bearing] off the view's
@@ -952,8 +938,8 @@ func _text(
 	ink: Color = INK
 ) -> void:
 	var left := at - Vector2(width * 0.5, 0.0) if align == HORIZONTAL_ALIGNMENT_CENTER else at
-	_canvas.draw_string_outline(_font, left, text, align, width, font_size, 5, ink)
-	_canvas.draw_string(_font, left, text, align, width, font_size, colour)
+	_drawing.draw_string_outline(_font, left, text, align, width, font_size, 5, ink)
+	_drawing.draw_string(_font, left, text, align, width, font_size, colour)
 
 
 ## Under the crosshair, while [param me] swims and pressing on where it looks would
