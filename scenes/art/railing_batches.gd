@@ -93,8 +93,9 @@ func into_chunk(group: String, instance: MeshInstance3D, box: AABB) -> void:
 
 ## Draws the spans' faces no chunk took (into_chunk) under [param parent]: outdoors, all
 ## of them together in a few instances along her from aft; indoors, a span's faces in a
-## chunk an instance of their own, as ShipMesh.commit draws one.
-func commit(parent: Node3D) -> void:
+## chunk an instance of their own, as ShipMesh.commit draws one. Returns the instances.
+func commit(parent: Node3D) -> Array[MeshInstance3D]:
+	var hung: Array[MeshInstance3D] = []
 	var outdoors: Array = _waiting.get("out", [])
 	_waiting.erase("out")
 	outdoors.sort_custom(_aft_first)
@@ -103,17 +104,19 @@ func commit(parent: Node3D) -> void:
 	for part: Part in outdoors:
 		var count := _corners(part)
 		if not held.is_empty() and corners.get(part.material, 0) + count > MOST_CORNERS:
-			_hang(parent, "Railings%d" % _spans.size(), held, true)
+			hung.append(_hang(parent, "Railings%d" % _spans.size(), held, true))
 			held = []
 			corners.clear()
 		held.append(part)
 		corners[part.material] = corners.get(part.material, 0) + count
 	if not held.is_empty():
-		_hang(parent, "Railings%d" % _spans.size(), held, true)
+		hung.append(_hang(parent, "Railings%d" % _spans.size(), held, true))
 	for group: String in _waiting:
 		for part: Part in _waiting[group]:
-			_hang(parent, "Railing%d_%s" % [part.span, group.replace(" ", "_")], [part], false)
+			var name := "Railing%d_%s" % [part.span, group.replace(" ", "_")]
+			hung.append(_hang(parent, name, [part], false))
 	_waiting.clear()
+	return hung
 
 
 ## Shows span [param span] or hides it: its triangles drawn as they are, or each of its
@@ -159,8 +162,8 @@ func spans_of(instance: MeshInstance3D) -> PackedInt32Array:
 
 ## [param parts] in a new instance named [param name] under [param parent]: on the
 ## outdoor layer when [param outdoors], else casting no shadow, as ShipMesh.commit draws
-## an instance.
-func _hang(parent: Node3D, name: String, parts: Array, outdoors: bool) -> void:
+## an instance; and returns it.
+func _hang(parent: Node3D, name: String, parts: Array, outdoors: bool) -> MeshInstance3D:
 	var instance := MeshInstance3D.new()
 	instance.name = name
 	instance.mesh = ArrayMesh.new()
@@ -170,6 +173,7 @@ func _hang(parent: Node3D, name: String, parts: Array, outdoors: bool) -> void:
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_draw(instance, parts)
 	parent.add_child(instance)
+	return instance
 
 
 ## [param parts] drawn into [param instance]'s mesh: a surface per material and format,
