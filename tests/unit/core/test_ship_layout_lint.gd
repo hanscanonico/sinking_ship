@@ -97,13 +97,18 @@ func _headroom_problems(layout: ShipLayout) -> PackedStringArray:
 ## Every flight of [param layout]'s a body could not walk end to end along its middle,
 ## described (#514): one stacked under another, whose wedge takes a body off it
 ## (WayThrough.flight), or one under a deck with less than the rules' crawl_height over it,
-## looked every WayThrough.STRIDE along it.
+## looked every WayThrough.STRIDE along it; or one a solid stands in, more than a step over
+## its treads, whose face a body walks into (WayThrough.solid_in, #541).
 func _flight_problems(layout: ShipLayout) -> PackedStringArray:
 	var rules := SimFixtures.rules()
 	var surfaces := Surfaces.new(layout)
 	var found := PackedStringArray()
 	for index in layout.ramps.size():
 		var fault := WayThrough.flight_fault(surfaces, rules, layout, index)
+		if fault == "":
+			var held := WayThrough.solid_in(surfaces, rules, layout, index)
+			if held != Vector3.INF:
+				fault = "a solid stands in its run at %s" % held
 		if fault != "":
 			found.append("ramp %d at %s: %s" % [index, layout.ramps[index].area.position, fault])
 	return found
@@ -615,6 +620,18 @@ func test_the_flight_rule_bites() -> void:
 		assert_string_contains(low[0], "too low to crawl")
 	var stacked := _flight_problems(built.call(3.0, true))
 	assert_eq(stacked, PackedStringArray(["ramp 0 at (0.0, -1.0): stacked under another flight"]))
+	# And a block across its run over x 1.5…2.5, from the deck up to a metre: more than a step
+	# over the treads there, so a body walks into its face (#541).
+	var blocked: ShipLayout = built.call(3.0, false)
+	var block := ShipBlocker.new()
+	block.area = Rect2(1.5, -1.2, 1.0, 2.4)
+	block.top = 1.0
+	var blockers: Array[ShipBlocker] = [block]
+	blocked.blockers = blockers
+	var solid := _flight_problems(blocked)
+	assert_eq(solid.size(), 1, "a solid standing in its run")
+	if not solid.is_empty():
+		assert_string_contains(solid[0], "a solid stands in its run")
 
 
 func test_every_room_has_a_doorway_a_body_goes_out_and_in_through() -> void:

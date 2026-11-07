@@ -679,10 +679,15 @@ ROOMS = [
     ("masters-at-arms' room, E deck", 8526.5, 4333, 8601, 4508),
     ("four-berth third-class room, E deck", 8601, 4340, 8668, 4508),
     # The ladderway's passage as two: its lane to port and E deck's ladder on down to F
-    # beside it, and D deck's ladder's strip, walled between them (#514).
+    # beside it, and D deck's ladder's strip, walled between them (#514). Forward of them the
+    # plate draws the passage on 30 px into a recess before the lavatory's bath (8698), cut on
+    # the lane's line too: forward of the lane a closet too shallow for a body (MADE_SOLID);
+    # forward of the strip, D deck's ladder down, run on forward to 5.5 m for D deck's sheer
+    # (d.py), comes down over it, so it is the ladder's well with the strip (#541).
     ("passage, E deck", 8526.5, 4508, 8668, 4583),
     ("passage, E deck", 8526.5, 4583, 8668, 4628),
-    ("passage, E deck", 8668, 4543, 8698, 4628),
+    ("passage, E deck", 8668, 4543, 8698, 4583),
+    ("passage, E deck", 8668, 4583, 8698, 4628),
     ("men's lavatory, E deck", 8668, 4348.5, 8769, 4543),
     ("men's lavatory, E deck", 8698, 4543, 8769, 4628),
     ("passage, E deck", 8526.5, 4628, 8769, 4679.5),
@@ -1113,13 +1118,14 @@ OPEN = [
     (7968.5, 5055, 8004, 5067), (8283.5, 5051.5, 8316, 5063.5), (8418, 5009.4, 8430, 5061),
     (8418, 4585, 8430, 4688),
     # Forward of the cross passage: the cross passage's three pieces; the port ladderway into
-    # the cross passage and onto the passage under it, its two pieces, that passage into the
+    # the cross passage and onto the passage under it, its strip into the recess's piece
+    # under D deck's ladder down forward of it (#541), that passage into the
     # cross passage and the passage by the bunker hatch; the passages round the rooms ahead
     # of No. 2 hatch, the ladderway by bulkhead B onto them; the passage along the hatches
     # into the cross passage and the passages off it; the starboard landing's pieces; the
     # starboard ladderway into the cross passage and onto the passage along the hatches.
     (8424, 4673.5, 8526.5, 4685.5), (8424, 4960.5, 8524, 4972.5), (8520.5, 4515, 8532.5, 4620),
-    (8520.5, 4635, 8532.5, 4672), (8526.5, 4622, 8698, 4634), (8654, 4543, 8666, 4628),
+    (8520.5, 4635, 8532.5, 4672), (8526.5, 4622, 8698, 4634), (8654, 4583, 8666, 4628),
     (8526.5, 4673.5, 8596, 4685.5), (8727.5, 4666, 8757.5, 4678), (9028, 4703, 9205.5, 4715),
     (9028, 4783.5, 9061.5, 4795.5), (9292.5, 4703, 9340.5, 4715), (9237.5, 4798, 9249.5, 4817),
     (9286.5, 4798, 9298.5, 4817), (8590, 4914, 8602, 4964), (8727.5, 4908, 8757.5, 4920),
@@ -1347,10 +1353,16 @@ NOT_ROOMS += [(-1.5, 0.0), (36.2, -6.4)]
 # the passage's width: each head at the passage's mouth, the well no body's, the passage
 # beyond it reached from its other side (#531).
 NOT_ROOMS += [(-65.5, 10.0), (-46.0, -9.9)]
+# The port after ladderway's recess forward of its strip, under the high end of D deck's
+# ladder down: its well, as the strip is (#541).
+NOT_ROOMS += [(82.6, -4.9)]
 # The store her stem takes: no floor of hers reaches it (E_STEM).
 GONE = [(127.5, 0.0)]
-# A bathroom by J's line and a store too small for a door; a store her stem takes.
-MADE_SOLID = [(-17.0, -6.5), (-64.4, -9.1), (82.6, -5.4)]
+# A bathroom by J's line and a store too small for a door; the port after ladderway's recess
+# forward of its lane, too shallow for a body (0.75 m: its after line moved for a body's lead
+# off the head of the ladder down to F, NUDGES), and clear of D deck's ladder down beside it:
+# whole, it stood up to D deck in that ladder's run (#541).
+MADE_SOLID = [(-17.0, -6.5), (-64.4, -9.1), (82.6, -6.0)]
 # Flights the plate stacks over F deck's flights down (f.py), side by side or they'd land
 # in each other's holes:
 STAIR_MOVES = [

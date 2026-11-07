@@ -349,6 +349,9 @@ STAIRS = []
 # Faces the rooms by them only touch, walled (#514): the thrust blocks against bulkhead L,
 # which left L open over them.
 WALLED_SOLIDS = [(-52.0, -5.4, "fore"), (-52.0, 5.6, "fore")]
+# Likewise boiler room 6's forward cross bunker's coal to port of the firemen's passage
+# through it: its face on the passage's side, which read as a doorway onto the coal (#514).
+WALLED_SOLIDS += [(69.3, -5.0, "starboard")]
 # No. 2 hold's starboard strip forward of the after hold ladder's foot, which the ladder up
 # to the orlop fills but 0.69 m of where her side narrows it: no body's (#514).
 NOT_ROOMS = [(96.7, 2.4)]

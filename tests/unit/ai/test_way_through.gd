@@ -1,7 +1,8 @@
 extends GutTest
 ## The walk graph's portals are only where a body could get through (WayThrough, #501). A
-## flight stacked under another in one well is no way, nor one a solid stands in — her ladder
-## down to E deck aft of C to port (#537) — and a doorway onto a stair's foot gives onto the
+## flight stacked under another in one well is no way, nor one a solid stands in — as one
+## stood in her ladder down to E deck aft of C to port, which a body now walks both ways
+## (#537, #541) — and a doorway onto a stair's foot gives onto the
 ## stair, never the deck under it. On the Titanic a doorway onto a
 ## stair hole's railing lets a body out, pushed on by the railing, and none in. A join beside
 ## a flight's side lets none through either way: it keeps its portal, so that no room is
@@ -17,6 +18,7 @@ const F_DECK := -8.5625
 const G_DECK := -11.0
 const ORLOP_AFT := -13.4375
 const ORLOP_FORWARD := -12.9375
+const TANK_TOP := -18.1875
 const DOUBLE_BOTTOM := -19.8125
 ## The stacked well's decks (_stacked_well), and its flights: one up from the hold to the
 ## tween deck, one on up from it to the top deck, in one footprint; and another way down.
@@ -62,12 +64,19 @@ const OFF_THE_FLIGHTS: Array[Vector3] = [
 ## Rooms' edges a solid stands flush against, once read as doorways onto it through a hair's
 ## gap (#514): the storekeepers' quarters' on E deck against the reciprocating engine casing,
 ## a third-class dining saloon's on F deck against a boiler casing, the turbine engine room's
-## into the reciprocating engine room against a thrust block.
+## into the reciprocating engine room against a thrust block, and on the tank top the
+## firemen's passage's by its door against boiler room 6's forward bunker's coal to port.
 const AGAINST_SOLIDS: Array[Vector3] = [
 	Vector3(-27.7109, E_DECK, -3.156),
 	Vector3(13.81, F_DECK, -6.0),
 	Vector3(-48.6328, -18.1875, -5.44),
+	Vector3(69.3477, TANK_TOP, -2.3125),
 ]
+## The third-class women's lavatory on D deck aft of O, two rooms either side of P's line,
+## and its W.C.s standing over that line (#514): their join inside the W.C.s, reached only
+## from inside them; and its stretch outside them, to port.
+const INSIDE_THE_W_C_S := Vector3(-118.9688, D_AFT, 8.48)
+const BESIDE_THE_W_C_S := Vector3(-118.9688, D_AFT, 5.8)
 ## The after second-class entrance's doorway to port on B deck, along the railed side of the
 ## hole of its stair down to C deck; and its doorway to starboard.
 const ONTO_THE_RAILED_HOLE := Vector3(-90.375, B_DECK, -2.875)
@@ -83,7 +92,7 @@ const AFT_OF_C: Array[Vector3] = [
 	Vector3(82.25, E_DECK, -7.15625),
 ]
 ## Points on the middles of the ladders down from D deck to E deck aft of C, to port and to
-## starboard: in the port one's run stands a solid up to D deck (#537).
+## starboard: in the port one's run stood a solid up to D deck (#537, #541).
 const PORT_LADDER := Vector2(80.0, -4.9)
 const STARBOARD_LADDER := Vector2(80.0, 6.375)
 ## In the passage by the cross passage's ladder down to F deck, the four-berth room and the
@@ -226,6 +235,22 @@ func test_doorways_once_onto_a_flight_let_a_body_through_both_ways() -> void:
 func test_a_room_s_edge_a_solid_stands_flush_against_is_walled() -> void:
 	for at: Vector3 in AGAINST_SOLIDS:
 		assert_null(_door_at(at), "no doorway onto the solid at %s" % at)
+
+
+## The join of the third-class women's lavatory's two rooms on P's line runs on inside the
+## W.C.s standing over the line, where no body but one inside them gets: walled there, its
+## stretch to port of them lets a body through both ways (#514).
+func test_the_women_s_lavatory_s_join_inside_its_w_c_s_is_walled() -> void:
+	var rules := SimFixtures.rules()
+	assert_null(_door_at(INSIDE_THE_W_C_S), "no doorway inside the W.C.s")
+	var door := _door_at(BESIDE_THE_W_C_S)
+	assert_not_null(door, "the join beside the W.C.s")
+	if door == null:
+		return
+	for out: Vector2 in [door.outward, -door.outward]:
+		var off := WayThrough.doorway(_surfaces, rules, door, D_AFT, out)
+		assert_false(is_nan(off), "a body goes through the join beside the W.C.s, %s" % out)
+	assert_eq(_doorways_at(BESIDE_THE_W_C_S), 2, "a portal through it either way")
 
 
 func test_e_deck_s_doorways_aft_of_c_let_a_body_through_both_ways() -> void:
@@ -382,8 +407,8 @@ func test_a_flight_a_solid_stands_in_is_no_way() -> void:
 	# x 0…4 — test data — with, and without, a block standing across the flight's run over
 	# x 1.5…2.5, from the deck up to the landing's height: more than a step over the flight
 	# there, so that a body walking up the flight walks into its face, and one walking down it
-	# into its other, or off its top onto the flight past it. So stands the solid in the
-	# Titanic's ladder down from D deck to E deck aft of C to port, x 82.25…83.0 (#537).
+	# into its other, or off its top onto the flight past it. So stood the solid in the
+	# Titanic's ladder down from D deck to E deck aft of C to port, x 82.25…83.0 (#537, #541).
 	var rules := SimFixtures.rules()
 	for solid: bool in [false, true]:
 		var layout := ShipLayout.new()
@@ -419,19 +444,56 @@ func _ladder(point: Vector2) -> int:
 	return WalkGraph.NONE
 
 
-## Her ladder down from D deck to E deck aft of C to port has a solid standing in its run, from
-## x 82.25 to 83.0 up to D deck — a layout fault (#537): no body walks it, so the graph has no
-## way along it, and a bot no longer walks into the solid's face. Its twin to starboard is a way.
-func test_her_ladder_a_solid_stands_in_is_no_way() -> void:
+## Her ladders down from D deck to E deck aft of C, to port and to starboard, have no solid
+## standing in their runs, so the graph has a way along each. In the port one's stood a block
+## from x 82.25 to 83.0 up to D deck, the recess of E deck's ladderway passage under its high
+## end, made a store (#537, #541).
+func test_her_ladders_down_to_e_deck_aft_of_c_are_ways() -> void:
 	var rules := SimFixtures.rules()
-	var port := _ladder(PORT_LADDER)
-	var starboard := _ladder(STARBOARD_LADDER)
-	assert_ne(port, WalkGraph.NONE, "the ladder to port")
-	assert_ne(starboard, WalkGraph.NONE, "and to starboard")
-	var held := WayThrough.solid_in(_surfaces, rules, _layout, port)
-	assert_between(held.x, 82.25 - rules.body_radius, 83.0, "the solid in its run")
-	assert_false(_along(_graph, port), "no way along it")
-	assert_true(_along(_graph, starboard), "a way along its twin")
+	for at: Vector2 in [PORT_LADDER, STARBOARD_LADDER]:
+		var ladder := _ladder(at)
+		assert_ne(ladder, WalkGraph.NONE, "the ladder at %s" % at)
+		if ladder == WalkGraph.NONE:
+			continue
+		var held := WayThrough.solid_in(_surfaces, rules, _layout, ladder)
+		assert_eq(held, Vector3.INF, "no solid in the run of the ladder at %s" % at)
+		assert_true(WayThrough.flight(_surfaces, rules, _layout, ladder), "walked at %s" % at)
+		assert_true(_along(_graph, ladder), "a way along the ladder at %s" % at)
+
+
+## Whether the body in [param sim]'s seat 0, walking along x toward [param toward] at rest
+## from where it stands, stands off any stair on [param deck]'s height past x [param past]
+## within [param seconds].
+func _walks_along(sim: MatchSim, toward: float, past: float, deck: float, seconds: float) -> bool:
+	for _tick in Ticks.from_seconds(seconds):
+		var walker := sim.state.seats[0]
+		var beyond := walker.pos.x > past if toward > 0.0 else walker.pos.x < past
+		if beyond and absf(walker.pos.y - deck) < 0.05 and not sim.surfaces.is_ramp(walker.surface):
+			return true
+		SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2(toward, 0.0))})
+	return false
+
+
+## A body at rest walks up her ladder from E deck to D deck aft of C to port along its
+## middle, from the cross passage aft of its foot onto the third-class open space past its
+## head; and from rest on that open space down it into the cross passage (#541).
+func test_a_body_walks_up_and_down_her_port_ladder_to_d_deck_aft_of_c() -> void:
+	var index := _ladder(PORT_LADDER)
+	assert_ne(index, WalkGraph.NONE, "the ladder to port")
+	if index == WalkGraph.NONE:
+		return
+	var ladder := _layout.ramps[index]
+	var middle := ladder.area.get_center().y
+	var d_deck := maxf(ladder.start_height, ladder.end_height)
+	var sim := SimFixtures.sim(2, null, _layout)
+	SimFixtures.place(sim, 1, Vector3.ZERO)
+	HeldPose.hold(sim, _dry)
+	SimFixtures.place(sim, 0, Vector3(ladder.area.position.x - 0.75, E_DECK, middle))
+	var head := ladder.area.end.x + 0.5
+	assert_true(_walks_along(sim, 1.0, head, d_deck, 15.0), "up onto D deck")
+	SimFixtures.place(sim, 0, Vector3(ladder.area.end.x + 0.75, d_deck, middle))
+	var foot := ladder.area.position.x - 0.5
+	assert_true(_walks_along(sim, -1.0, foot, E_DECK, 15.0), "down into the cross passage")
 
 
 func test_a_doorway_onto_a_stair_s_foot_gives_onto_the_stair() -> void:

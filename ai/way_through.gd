@@ -12,8 +12,8 @@ extends RefCounted
 ## to find, so the graph leaves it out. Two flights stacked in one well, the lower one under
 ## the upper's wedge: a body walking down the upper one walks on along the lower one's head.
 ## A flight under a deck too low to crawl under, or with a solid standing in its run (the
-## layout lint does not ask this yet: the Titanic's ladder down to E deck aft of C to port
-## has one, #537). A railing holds a body only from its own
+## layout lint holds every ship to none of either, test_every_flight_is_walked_end_to_end,
+## #541). A railing holds a body only from its own
 ## deck's side, so a doorway onto a railed hole's edge lets a body out onto her open deck,
 ## pushed on its way, and never back in. A stair's high end in a doorway, machinery or
 ## furniture against it, a railing in a doorway between two rooms. The layout lint holds

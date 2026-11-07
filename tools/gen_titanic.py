@@ -2151,13 +2151,15 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
             for j, (p, q) in enumerate(zip(cuts, cuts[1:])):
                 box("%s_%s" % (sid, side) + ("_u%d" % j if len(cuts) > 2 else ""), p, q, sz0, sz1,
                     level((p + q) * 0.5), over((p + q) * 0.5))
-        # And a side across it where her floor steps at a break under it, the room it stands in
-        # two (No. 4 hatch's trunks on D deck, over bulkhead N's step): its floor inside is no
-        # one's, but the two rooms' join ran on through it, a doorway a body reaches only
-        # inside the shaft (#531). Its face on the line and its thickness forward of it, so the
-        # sliver of the room aft of it inside the shaft keeps a body's width clear.
-        for j, v in enumerate(v for v in sorted(breaks) if x0 + 2 * T < v < x1 - 2 * T
-                              and abs(level(v - 2 * T) - level(v + 2 * T)) > 1e-6):
+        # And a side across it where her floor steps at a break under it, or along a line her
+        # cells part the room it stands in along, the room two (No. 4 hatch's trunks on D deck,
+        # over bulkhead N's step; the third-class women's W.C.s on D deck, over P's line): its
+        # floor inside is no one's, but the two rooms' join ran on through it, a doorway a
+        # body reaches only inside the shaft (#531, #514). Its face on the line and its
+        # thickness forward of it, so the sliver of the room aft of it inside the shaft keeps
+        # a body's width clear.
+        stepped = {v for v in breaks if abs(level(v - 2 * T) - level(v + 2 * T)) > 1e-6}
+        for j, v in enumerate(v for v in sorted(stepped | set(parted_at)) if x0 + 2 * T < v < x1 - 2 * T):
             box("%s_across_%d" % (sid, j), v - h / 4, v + 7 * h / 4, z0 - h, z1 + h,
                 min(level(v - 2 * T), level(v + 2 * T)), min(over(v - 2 * T), over(v + 2 * T)))
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.raised):
