@@ -709,18 +709,56 @@ func kept(aft: float, fore: float) -> bool:
 ## Every batch as a surface of a mesh instance under [param parent]: one instance a
 ## chunk indoors, and one outdoors, a surface for each finish — a moving ship moves as
 ## few instances as she has chunks — but the glass, each finish its own instance.
+## Packed, an indoor chunk's batches go to the pack instead, her own glass with them.
 func commit(parent: Node3D, materials: Dictionary) -> void:
+	var meshes := {}
+	var groups: Array[String] = []
+	for surface: Array in taken():
+		var key: String = surface[0]
+		var finish: int = surface[1]
+		var arrays: Array = surface[2]
+		var format: int = surface[3]
+		var group := key.substr(key.find(" ") + 1)
+		var glass := finish == Finish.GLASS_IN or finish == Finish.GLASS_OUT
+		if packed != null and group.begins_with("in "):
+			if not glass:
+				packed.add(group, arrays, format, materials[finish], packed_as)
+				continue
+			# A furnishing's glass keeps its own instance, read back as a furnishing's is
+			# (FurnishingCheck).
+			if packed_as.is_empty():
+				packed.add_glass(group, key, arrays, materials[finish], parent)
+				continue
+		if glass:
+			group = key
+		if not meshes.has(group):
+			meshes[group] = ArrayMesh.new()
+			groups.append(group)
+		var mesh: ArrayMesh = meshes[group]
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, format)
+		mesh.surface_set_material(mesh.get_surface_count() - 1, materials[finish])
+	for group: String in groups:
+		var instance := MeshInstance3D.new()
+		instance.name = group.replace(" ", "_")
+		instance.mesh = meshes[group]
+		if group.contains("out"):
+			instance.layers = 1 << (OUTDOOR_LAYER - 1)
+		else:
+			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		parent.add_child(instance)
+
+
+## Every batch drawn so far as commit() draws it, in its order, each [key, finish, arrays,
+## format] — its surface's arrays (Mesh.ARRAY_*) and their format's flags — and let go:
+## for commit(), or what draws them elsewhere (RailingBatches).
+func taken() -> Array[Array]:
 	_take_native()
 	var keys := _batches.keys()
 	keys.sort()
-	var meshes := {}
-	var groups: Array[String] = []
+	var found: Array[Array] = []
 	for key: String in keys:
 		var batch: Batch = _batches[key]
 		var finish: int = _finishes[key]
-		var group := key.substr(key.find(" ") + 1)
-		if finish == Finish.GLASS_IN or finish == Finish.GLASS_OUT:
-			group = key
 		var arrays := []
 		arrays.resize(Mesh.ARRAY_MAX)
 		arrays[Mesh.ARRAY_VERTEX] = batch.vertices
@@ -739,29 +777,13 @@ func commit(parent: Node3D, materials: Dictionary) -> void:
 			)
 		if committed.is_valid():
 			committed.call(key, arrays, finish)
-		if packed != null and group.begins_with("in "):
-			packed.add(group, arrays, format, materials[finish], packed_as)
-			continue
-		if not meshes.has(group):
-			meshes[group] = ArrayMesh.new()
-			groups.append(group)
-		var mesh: ArrayMesh = meshes[group]
-		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays, [], {}, format)
-		mesh.surface_set_material(mesh.get_surface_count() - 1, materials[finish])
-	for group: String in groups:
-		var instance := MeshInstance3D.new()
-		instance.name = group.replace(" ", "_")
-		instance.mesh = meshes[group]
-		if group.contains("out"):
-			instance.layers = 1 << (OUTDOOR_LAYER - 1)
-		else:
-			instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		parent.add_child(instance)
+		found.append([key, finish, arrays, format])
 	_batches.clear()
 	_finishes.clear()
 	_placed.clear()
 	if _native != null:
 		_native.clear()
+	return found
 
 
 ## The NativeShipMesh drawing this mesh, or null where the GDScript does.
