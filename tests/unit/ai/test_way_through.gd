@@ -1,6 +1,8 @@
 extends GutTest
 ## The walk graph's portals are only where a body could get through (WayThrough, #501). A
-## flight stacked under another in one well is no way, and on the Titanic a doorway onto a
+## flight stacked under another in one well is no way, nor one a solid stands in — her ladder
+## down to E deck aft of C to port (#537) — and a doorway onto a stair's foot gives onto the
+## stair, never the deck under it. On the Titanic a doorway onto a
 ## stair hole's railing lets a body out, pushed on by the railing, and none in. A join beside
 ## a flight's side lets none through either way: it keeps its portal, so that no room is
 ## sealed off. Every doorway of hers that opened onto a flight's side or high end, or onto a
@@ -80,6 +82,10 @@ const AFT_OF_C: Array[Vector3] = [
 	Vector3(81.25, E_DECK, -7.75),
 	Vector3(82.25, E_DECK, -7.15625),
 ]
+## Points on the middles of the ladders down from D deck to E deck aft of C, to port and to
+## starboard: in the port one's run stands a solid up to D deck (#537).
+const PORT_LADDER := Vector2(80.0, -4.9)
+const STARBOARD_LADDER := Vector2(80.0, 6.375)
 ## In the passage by the cross passage's ladder down to F deck, the four-berth room and the
 ## men's lavatory.
 const BY_THE_LADDER := Vector3(73.5, E_DECK, -4.4)
@@ -369,6 +375,107 @@ func test_a_flight_under_a_deck_too_low_to_crawl_under_is_no_way() -> void:
 		assert_eq(WayThrough.flight(surfaces, rules, layout, 0), walked, "under %.1f m" % roof)
 		var graph := WalkGraph.new(layout, surfaces, rules)
 		assert_eq(_along(graph, 0), walked, "a way along it under %.1f m" % roof)
+
+
+func test_a_flight_a_solid_stands_in_is_no_way() -> void:
+	# A deck at 0, x -6…4, a landing a metre up forward of x 4, and a flight up to it over
+	# x 0…4 — test data — with, and without, a block standing across the flight's run over
+	# x 1.5…2.5, from the deck up to the landing's height: more than a step over the flight
+	# there, so that a body walking up the flight walks into its face, and one walking down it
+	# into its other, or off its top onto the flight past it. So stands the solid in the
+	# Titanic's ladder down from D deck to E deck aft of C to port, x 82.25…83.0 (#537).
+	var rules := SimFixtures.rules()
+	for solid: bool in [false, true]:
+		var layout := ShipLayout.new()
+		layout.freeboard = 6.0
+		var platforms: Array[ShipPlatform] = [
+			_platform(&"deck", Rect2(-6.0, -4.0, 10.0, 8.0), 0.0),
+			_platform(&"landing", Rect2(4.0, -4.0, 2.0, 8.0), 1.0),
+		]
+		layout.platforms = platforms
+		var ramps: Array[ShipRamp] = [_flight(Rect2(0.0, -1.0, 4.0, 2.0), 0.0, 1.0)]
+		layout.ramps = ramps
+		if solid:
+			var block := _wall(Rect2(1.5, -1.2, 1.0, 2.4))
+			block.top = 1.0
+			var blockers: Array[ShipBlocker] = [block]
+			layout.blockers = blockers
+		var surfaces := Surfaces.new(layout)
+		var held := WayThrough.solid_in(surfaces, rules, layout, 0)
+		assert_eq(held == Vector3.INF, not solid, "a solid in it: %s" % solid)
+		if solid:
+			assert_between(held.x, 1.5 - rules.body_radius, 2.5, "where the block stands")
+		assert_eq(WayThrough.flight(surfaces, rules, layout, 0), not solid, "walked: %s" % solid)
+		var graph := WalkGraph.new(layout, surfaces, rules)
+		assert_eq(_along(graph, 0), not solid, "a way along it: %s" % solid)
+
+
+## The ramp of hers whose area holds [param point] over E deck, or NONE.
+func _ladder(point: Vector2) -> int:
+	for index in _layout.ramps.size():
+		var ramp := _layout.ramps[index]
+		if ramp.area.has_point(point) and is_equal_approx(ramp.base(), E_DECK):
+			return index
+	return WalkGraph.NONE
+
+
+## Her ladder down from D deck to E deck aft of C to port has a solid standing in its run, from
+## x 82.25 to 83.0 up to D deck — a layout fault (#537): no body walks it, so the graph has no
+## way along it, and a bot no longer walks into the solid's face. Its twin to starboard is a way.
+func test_her_ladder_a_solid_stands_in_is_no_way() -> void:
+	var rules := SimFixtures.rules()
+	var port := _ladder(PORT_LADDER)
+	var starboard := _ladder(STARBOARD_LADDER)
+	assert_ne(port, WalkGraph.NONE, "the ladder to port")
+	assert_ne(starboard, WalkGraph.NONE, "and to starboard")
+	var held := WayThrough.solid_in(_surfaces, rules, _layout, port)
+	assert_between(held.x, 82.25 - rules.body_radius, 83.0, "the solid in its run")
+	assert_false(_along(_graph, port), "no way along it")
+	assert_true(_along(_graph, starboard), "a way along its twin")
+
+
+func test_a_doorway_onto_a_stair_s_foot_gives_onto_the_stair() -> void:
+	# A cabin, x -4…0 and z -2…2, walled but for its forward side, on a deck that runs on
+	# forward under a steep flight rising forward from the doorway, as wide as the doorway,
+	# 2 m up over x 0…2.4 to a landing — test data. A body walking out through the doorway
+	# walks up the flight: a body's width out its feet are on it, 0.67 m over the deck under
+	# it, inside the flight's solid, where no body stands. The doorway gives onto no zone, and
+	# the cabin's way out is up the flight — as from the Titanic's E deck passage aft of C to
+	# starboard, at the foot of the ladder down from D deck there (#537).
+	var rules := SimFixtures.rules()
+	var layout := ShipLayout.new()
+	layout.freeboard = 6.0
+	var platforms: Array[ShipPlatform] = [
+		_platform(&"deck", Rect2(-6.0, -4.0, 8.4, 8.0), 0.0),
+		_platform(&"landing", Rect2(2.4, -4.0, 2.0, 8.0), 2.0),
+	]
+	layout.platforms = platforms
+	var blockers: Array[ShipBlocker] = [
+		_wall(Rect2(-4.1, -2.1, 4.2, 0.2)),
+		_wall(Rect2(-4.1, 1.9, 4.2, 0.2)),
+		_wall(Rect2(-4.1, -2.1, 0.2, 4.2)),
+	]
+	layout.blockers = blockers
+	var ramps: Array[ShipRamp] = [_flight(Rect2(0.0, -2.0, 2.4, 4.0), 0.0, 2.0)]
+	layout.ramps = ramps
+	var cabin := ShipRoom.new()
+	cabin.name = &"cabin"
+	cabin.area = Rect2(-4.0, -2.0, 4.0, 4.0)
+	var rooms: Array[ShipRoom] = [cabin]
+	layout.rooms = rooms
+	var surfaces := Surfaces.new(layout)
+	var graph := WalkGraph.new(layout, surfaces, rules)
+	for portal: WalkGraph.Portal in graph.portals():
+		var out_of := portal.from_zone == 0 or portal.to_zone == 0
+		assert_false(
+			out_of and portal.ramp == WalkGraph.NONE,
+			"no doorway out of the cabin onto the deck under the flight, at %s" % portal.entry
+		)
+	var start := Vector3(3.4, 2.0, 0.0)
+	var legs := graph.route(start, surfaces.under(start, rules.step_height), 0, _level(layout))
+	assert_eq(legs.size(), 1, "the cabin is reached down the flight")
+	if not legs.is_empty():
+		assert_eq(legs[0].ramp, 0, "along it")
 
 
 func test_a_wide_doorway_whose_middle_gives_onto_a_stair_gives_onto_the_deck_beside_it() -> void:

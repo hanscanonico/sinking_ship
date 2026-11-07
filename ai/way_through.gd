@@ -1,8 +1,8 @@
 class_name WayThrough
 extends RefCounted
 ## Where the walk graph's portals stand, so that a route goes where a body could get through
-## (§7, #501). Along a flight, no other flight over it takes a body off it, and it has the
-## headroom to crawl at least. Through a
+## (§7, #501). Along a flight, no other flight over it takes a body off it, no solid stands in
+## its run, and it has the headroom to crawl at least. Through a
 ## doorway one way, somewhere across its width a body BotFloorWay.SNUG of its radius round
 ## stands on its floor a body's depth inside, clear of everything the sim holds a body back
 ## by, and walks straight out as deep past its line with nothing pushing it back the way it
@@ -11,7 +11,9 @@ extends RefCounted
 ## Where neither is true, a route through walks a bot into it for good: there is no way round
 ## to find, so the graph leaves it out. Two flights stacked in one well, the lower one under
 ## the upper's wedge: a body walking down the upper one walks on along the lower one's head.
-## A flight under a deck too low to crawl under. A railing holds a body only from its own
+## A flight under a deck too low to crawl under, or with a solid standing in its run (the
+## layout lint does not ask this yet: the Titanic's ladder down to E deck aft of C to port
+## has one, #537). A railing holds a body only from its own
 ## deck's side, so a doorway onto a railed hole's edge lets a body out onto her open deck,
 ## pushed on its way, and never back in. A stair's high end in a doorway, machinery or
 ## furniture against it, a railing in a doorway between two rooms. The layout lint holds
@@ -30,12 +32,42 @@ const OVER := 0.01
 ## How far a contact's normal may turn against a body's way through a doorway, as a cosine,
 ## before it pushes the body back: a jamb's, square across the way, does not.
 const BACK := 0.5
+## How much of a body's radius round its feet a flight's middle is looked at by for a solid
+## standing in its run (solid_in), as BotFooting.walled looks: the sides of a ladder's well a
+## body's width wide stand clear of it.
+const INSIDE := 0.1
 
 
 ## Whether a body could walk [param layout]'s ramp [param index] from end to end along its
-## middle (flight_fault).
+## middle (flight_fault), its feet standing in nothing anywhere along it (solid_in).
 static func flight(surfaces: Surfaces, rules: BrawlRules, layout: ShipLayout, index: int) -> bool:
-	return flight_fault(surfaces, rules, layout, index) == ""
+	return (
+		flight_fault(surfaces, rules, layout, index) == ""
+		and solid_in(surfaces, rules, layout, index) == Vector3.INF
+	)
+
+
+## The first point along [param layout]'s ramp [param index]'s middle, every STRIDE, where a
+## body's feet would stand inside something that holds it back (Surfaces.obstacle_contacts,
+## as BotFooting.walled asks it): a solid standing in the flight's run, its top more than a
+## step over the flight there — a body walking down it walks into its face, and up it into
+## its other one; Vector3.INF where nothing does.
+static func solid_in(
+	surfaces: Surfaces, rules: BrawlRules, layout: ShipLayout, index: int
+) -> Vector3:
+	for feet: Vector3 in _along(layout.ramps[index]):
+		var contacts := surfaces.obstacle_contacts(
+			feet,
+			rules.body_radius * INSIDE,
+			rules.body_height,
+			rules.step_height,
+			Surfaces.NONE,
+			rules.crawl_height,
+			rules.body_radius
+		)
+		if not contacts.is_empty():
+			return feet
+	return Vector3.INF
 
 
 ## Why no body could walk [param layout]'s ramp [param index] from end to end along its
