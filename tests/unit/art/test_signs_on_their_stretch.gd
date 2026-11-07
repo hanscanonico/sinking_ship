@@ -147,7 +147,9 @@ func test_her_whole_art_cut_down_draws_what_her_stretch_built_to_it_does() -> vo
 	_whole.show_span(_aft.span)
 	var signs := _pool(_whole).signs()
 	for index in signs.size():
-		assert_eq(_draws(_whole, index), _draws(_aft, index), signs[index].text)
+		var drawn := _draws(_whole, index)
+		assert_eq(drawn, PieceClip.holds(_aft.span, _plate(signs[index]).x), signs[index].text)
+		assert_eq(drawn, _draws(_aft, index), "as built to it: %s" % signs[index].text)
 	_whole.show_span(Vector2(-INF, INF))
 	for index in signs.size():
 		assert_true(_draws(_whole, index), "all of her again: %s" % signs[index].text)
