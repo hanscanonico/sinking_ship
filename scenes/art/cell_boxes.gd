@@ -25,6 +25,13 @@ const MEET := 1e-4
 ## (_bands), held to its narrowest at the band's top or bottom.
 const LEAN := 0.05
 
+## Per structure, [its rooms, its boxes, its stacks], made the first time they are asked
+## for (boxes, stacked), on whatever thread asks: her sea, her water and her effects each
+## ask, and a liner's take seconds (#492). Read off her structure and rooms alone, so
+## the same however often asked.
+static var _made := {}
+static var _made_guard := Mutex.new()
+
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
 ## inside her, where people go: a room's, the deckhouse's, an open well's deck — each
@@ -36,6 +43,25 @@ const LEAN := 0.05
 ## stands up into it (_opened); a zero box for a cell whose water is not drawn — a void
 ## nobody sees into, a peak — in her cells' order.
 static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AABB]:
+	var found: Array[AABB] = []
+	found.assign(_made_of(structure, rooms)[1])
+	return found
+
+
+## Both of [param structure]'s lists for [param rooms] (_made): [rooms, boxes, stacks].
+static func _made_of(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
+	_made_guard.lock()
+	var made: Array = _made.get(structure, [])
+	_made_guard.unlock()
+	if made.is_empty() or not is_same(made[0], rooms):
+		made = [rooms, _boxes(structure, rooms), _stacked(structure, rooms)]
+		_made_guard.lock()
+		_made[structure] = made
+		_made_guard.unlock()
+	return made
+
+
+static func _boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AABB]:
 	var found: Array[AABB] = []
 	for cell: FloodCell in structure.cells:
 		var open := cell.kind == FloodCell.Kind.OPEN_WELL
@@ -64,6 +90,10 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 ## her shell's narrowest over each leaves out of it and its stairwells (_room_boxes),
 ## less what the cell's other boxes hold (_less); each as [cell, box].
 static func stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
+	return (_made_of(structure, rooms)[2] as Array).duplicate(true)
+
+
+static func _stacked(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 	var found := []
 	for index in structure.cells.size():
 		var cell := structure.cells[index]
@@ -228,8 +258,11 @@ static func _kept(box: AABB) -> bool:
 ## section's sheer that held its box to nothing (her windlass machinery room).
 static func _wings(structure: ShipStructure, whole: AABB, box: AABB) -> Array[AABB]:
 	var found: Array[AABB] = []
-	for section: HullSection in structure.sections:
+	for index in range(_first_past(structure, whole.position.x), structure.sections.size()):
+		var section := structure.sections[index]
 		var half := section.length * 0.5
+		if section.x - half >= whole.end.x:
+			break
 		var from := maxf(whole.position.x, section.x - half)
 		var to := minf(whole.end.x, section.x + half)
 		if to - from <= 2.0 * SHELL_NEAR:
@@ -447,12 +480,14 @@ static func _within(structure: ShipStructure, box: AABB, touching := 0.0) -> boo
 ## is not over it.
 static func _shell(structure: ShipStructure, box: AABB, touching := 0.0) -> Vector2:
 	var narrowest := Vector2(INF, INF)
-	for section: HullSection in structure.sections:
+	var from := box.position.x + touching
+	for index in range(_first_past(structure, from), structure.sections.size()):
+		var section := structure.sections[index]
 		var half := section.length * 0.5
-		if section.x + half <= box.position.x + touching:
+		if section.x + half <= from:
 			continue
 		if section.x - half >= box.end.x - touching:
-			continue
+			break
 		var heights := PackedFloat32Array([box.position.y + SHELL_IN, box.end.y - SHELL_IN])
 		for point: Vector2 in section.outline:
 			if point.y > box.position.y and point.y < box.end.y:
@@ -463,6 +498,23 @@ static func _shell(structure: ShipStructure, box: AABB, touching := 0.0) -> Vect
 			narrowest.x = minf(narrowest.x, 0.0 if is_nan(port) else port)
 			narrowest.y = minf(narrowest.y, 0.0 if is_nan(starboard) else starboard)
 	return narrowest
+
+
+## The first of [param structure]'s sections that ends past [param from]: her sections
+## run aft to fore end to end, so those over a stretch of her follow on from it, and a
+## liner cut fine where she tapers has hundreds to pass over (#492).
+static func _first_past(structure: ShipStructure, from: float) -> int:
+	var sections := structure.sections
+	var low := 0
+	var high := sections.size()
+	while low < high:
+		var middle := (low + high) >> 1
+		var section := sections[middle]
+		if section.x + section.length * 0.5 <= from:
+			low = middle + 1
+		else:
+			high = middle
+	return low
 
 
 ## The part of [param cell]'s box over the floors of its rooms among [param rooms]:

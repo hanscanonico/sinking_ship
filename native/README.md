@@ -7,7 +7,8 @@ the bots' reads of the water (`core/still_points.gd`, `ai/walk_graph.gd`,
 (`core/sinking/sink_stepper.gd`, #411), and around them each opening's share open, the
 cells a step holds stiff and her failures' heads across what can give way
 (`core/sinking/sink_failures.gd`, #411), her lift and her water's load as she moves
-(`core/sinking/ship_motion.gd`, #411), the floating furniture's contacts: where her
+(`core/sinking/ship_motion.gd`, #411), her level hull's build and her girder's bending
+(`core/sinking/level_hull.gd`, `core/sinking/hull_girder.gd`, #492), the floating furniture's contacts: where her
 props stand (`core/prop_stands.gd`), what holds a circle back
 (`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`) and the
 cargo's contact passes (`Hazards._move`, `core/hazards.gd`), the dressed ship's face
@@ -20,7 +21,8 @@ water's effects' walks of her cells, openings and decks (`scenes/art/inner_water
 
 - `src/` — the extension's sources: `walk_search_native.{h,cpp}` (`NativeWalkGraph`,
   `NativeWalkSearch`), `water_native.{h,cpp}` (`NativeWater`), `sink_native.{h,cpp}`
-  and `sink_step_native.cpp` (`NativeSink`), `motion_native.{h,cpp}` (`NativeMotion`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
+  and `sink_step_native.cpp` (`NativeSink`), `motion_native.{h,cpp}` (`NativeMotion`), `hull_native.{h,cpp}` (`NativeLevelHull`,
+  `NativeGirder`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
   `NativeCrates`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `register_types.cpp`
   (the entry, `sinking_native_init`).

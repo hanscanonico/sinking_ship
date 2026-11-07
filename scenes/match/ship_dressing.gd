@@ -381,11 +381,14 @@ func _sinking_waited() -> bool:
 
 ## Her sea's maps of her rooms, which her match's sea takes as it starts: a liner's take
 ## seconds (SeaAndSky.maps_of); and which of her decks stand in her rooms, which the sea's
-## wetness and white water on them ask (DeckWetness.out_on_deck). Hers whatever her
-## sinking does, each made once.
+## wetness and white water on them ask (DeckWetness.out_on_deck); and the boxes her
+## cells' water is drawn in, which her sea, her water and her effects read as her match
+## starts (CellBoxes). Hers whatever her sinking does, each made once.
 func _ship_maps() -> void:
 	SeaAndSky.maps_of(_ship, _shared)
 	DeckWetness.out_on_deck(_ship, _shared)
+	if _ship.structure != null:
+		CellBoxes.boxes(_ship.structure, _ship.rooms)
 
 
 ## Draws her art's frame (ShipArt.build_frame) as her sinking is baked: as it is drawn
