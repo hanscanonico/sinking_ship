@@ -2151,10 +2151,11 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
             for j, (p, q) in enumerate(zip(cuts, cuts[1:])):
                 box("%s_%s" % (sid, side) + ("_u%d" % j if len(cuts) > 2 else ""), p, q, sz0, sz1,
                     level((p + q) * 0.5), over((p + q) * 0.5))
-        # And a side across it at each break, where the room it stands in is two (No. 4
-        # hatch on D deck, over bulkhead N's step): its floor inside is no one's, but the two
-        # rooms' join ran on through it, a doorway a body reaches only inside the shaft (#531).
-        for j, v in enumerate(v for v in sorted(breaks) if x0 + 2 * T < v < x1 - 2 * T):
+        # And a side across it at each break or line her cells part the room along, where the
+        # room it stands in is two (No. 4 hatch on D deck, over bulkhead N's step; the third-
+        # class women's W.C.s on D deck, over P's line): its floor inside is no one's, but the
+        # two rooms' join ran on through it, a doorway a body reaches only inside it (#531).
+        for j, v in enumerate(v for v in sorted(set(breaks) | set(parted_at)) if x0 + 2 * T < v < x1 - 2 * T):
             box("%s_across_%d" % (sid, j), v - h, v + h, z0 - h, z1 + h, min(level(v - 2 * T), level(v + 2 * T)),
                 min(over(v - 2 * T), over(v + 2 * T)))
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.raised):

@@ -3,20 +3,17 @@ extends GutTest
 ## passage at the foot of E deck's after stairs is cut by three flights side by side: a route
 ## through it from one side to the other walked a bot into them for good, so each side is a
 ## zone of its own, each one a route reaches. A piece no route from her main deck reaches is
-## put back into its room as it was: the windlass machinery room under her forecastle, its
-## starboard side shut off by the machinery from the doorway aft of it, and the steamer's
-## aft stores, between the railed wells of her stairs down to the lower aft stores.
+## put back into its room as it was: the steamer's aft stores, between the railed wells of her
+## stairs down to the lower aft stores. The Titanic and her sisters leave none (#531).
 
 const TITANIC := "res://data/ships/titanic.tres"
 const E_DECK := -5.9375
-const FORECASTLE_DECK := 1.5625
 ## E deck's after passage: off the foot of the stair up to D deck forward of B, and off the
 ## head of the stair down to F deck, beside the stair down from D deck aft of B.
 const OFF_THE_STAIR_UP := Vector3(103.0, E_DECK, -2.55)
 const OFF_THE_STAIR_DOWN := Vector3(101.9375, E_DECK, 3.0)
-## The windlass machinery room's forward end, starboard and port of the machinery.
-const STARBOARD_OF_THE_WINDLASS := Vector3(122.5, FORECASTLE_DECK, -2.75)
-const PORT_OF_THE_WINDLASS := Vector3(122.5, FORECASTLE_DECK, 2.75)
+const BRITANNIC := "res://tests/fixtures/ships/titanic_britannic.tres"
+const OLYMPIC := "res://tests/fixtures/ships/titanic_olympic_1913.tres"
 ## The steamer's aft stores: between her wells, and by the foot of a stair down into them.
 const STEAMER_STORES := -3.1
 const BETWEEN_THE_WELLS := Vector3(-17.5, STEAMER_STORES, 0.0)
@@ -84,8 +81,23 @@ func _assert_held_whole(layout: ShipLayout, one: Vector3, other: Vector3) -> voi
 	assert_true(_reached(graph, layout, _zone(graph, one)), "a route to it")
 
 
-func test_a_room_whose_side_no_route_reaches_is_held_whole() -> void:
-	_assert_held_whole(load(TITANIC), STARBOARD_OF_THE_WINDLASS, PORT_OF_THE_WINDLASS)
+## Every piece of a room on the Titanic and on her sisters is one a route from her main deck
+## reaches: her layout leaves no pocket to put back into its room (#531).
+func test_no_piece_of_the_titanic_or_her_sisters_is_put_back() -> void:
+	for path: String in [TITANIC, BRITANNIC, OLYMPIC]:
+		var layout: ShipLayout = load(path)
+		var graph := WalkGraph.new(layout, Surfaces.new(layout), _rules)
+		var pieces := 0
+		for zone in graph.zone_count():
+			var room := graph.room_of(zone)
+			if room == WalkGraph.NONE or zone == room:
+				continue
+			pieces += 1
+			assert_true(
+				_reached(graph, layout, zone),
+				"%s: a piece of %s at %s" % [path.get_file(), layout.rooms[room].name, layout.rooms[room].area]
+			)
+		assert_gt(pieces, 0, "%s read in pieces" % path.get_file())
 
 
 func test_a_room_cut_between_railed_wells_is_held_whole() -> void:

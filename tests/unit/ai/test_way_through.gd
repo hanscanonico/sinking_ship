@@ -14,6 +14,7 @@ const E_DECK := -5.9375
 const F_DECK := -8.5625
 const G_DECK := -11.0
 const ORLOP_AFT := -13.4375
+const ORLOP_FORWARD := -12.9375
 const DOUBLE_BOTTOM := -19.8125
 ## The stacked well's decks (_stacked_well), and its flights: one up from the hold to the
 ## tween deck, one on up from it to the top deck, in one footprint; and another way down.
@@ -22,11 +23,13 @@ const TOP := 5.0
 const UNDER := 0
 const OVER_IT := 1
 const ANOTHER_WAY := 2
-## The join between G deck's passages aft of C, along the side of F deck's stair down; a point
-## in each passage clear of the stair.
-const BESIDE_THE_STAIR := Vector3(74.36, G_DECK, -7.625)
-const IN_THE_PASSAGE := Vector3(73.0, G_DECK, -6.2)
-const IN_THE_OTHER_PASSAGE := Vector3(76.0, G_DECK, -8.2)
+## The join between the orlop's cargo hold forward of B and its starboard after piece, along
+## the well of the hold ladder up from No. 2 hold's tank top; a point in each clear of it. (G
+## deck's join along the side of F deck's stair down aft of C, which was this, is walled,
+## #531.)
+const BESIDE_THE_STAIR := Vector3(94.09, ORLOP_FORWARD, 3.0)
+const IN_THE_PASSAGE := Vector3(94.0, ORLOP_FORWARD, 5.0)
+const IN_THE_OTHER_PASSAGE := Vector3(92.5, ORLOP_FORWARD, -2.0)
 ## Doorways that opened onto a flight's side or high end (#514): the second-class entrance's
 ## on E deck from the passage aft of M, once under its stair up's head; the third-class
 ## matron's room's and surgery's on D deck; the four-berth room's and the men's lavatory's
@@ -192,9 +195,9 @@ func test_a_doorway_no_body_gets_through_has_no_portal_and_a_way_round() -> void
 	assert_not_null(door, "the join beside the stair's side")
 	if door != null:
 		for out: Vector2 in [door.outward, -door.outward]:
-			var off := WayThrough.doorway(_surfaces, rules, door, G_DECK, out)
+			var off := WayThrough.doorway(_surfaces, rules, door, BESIDE_THE_STAIR.y, out)
 			assert_true(is_nan(off), "no body gets through it")
-		var offs := WayThrough.crossings(_surfaces, rules, door, G_DECK)
+		var offs := WayThrough.crossings(_surfaces, rules, door, BESIDE_THE_STAIR.y)
 		assert_true(is_nan(offs[0]) and is_nan(offs[1]), "no way either way")
 	assert_eq(_doorways_at(BESIDE_THE_STAIR), 0, "no portal through it")
 	var from := _surfaces.under(IN_THE_PASSAGE, rules.step_height)
