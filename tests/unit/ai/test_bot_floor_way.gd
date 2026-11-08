@@ -224,10 +224,10 @@ func test_a_look_from_where_no_body_stands_leaves_the_leg_its_ways_round() -> vo
 
 ## Beside the head of B deck's stair aft, a walk straight at the head runs across the railing
 ## along the stair's side: the bot walks at a point of a way round by the floor instead, and
-## not across a railing. On main a walk was looked along a step of 0.4 m at a time, and one
+## not across a railing. A walk is looked along a step of 0.4 m at a time: before #555 one
 ## step stood on the floor short of the railing, the next on the stair past it, where none of
-## the floor's railings holds a body: the walk held, and the bot walked into the railing
-## (#550).
+## the floor's railings held a body, and the walk held; the bot walked into the railing and on
+## into the pocket between its end and the wall's, 0.68 m apart (#550).
 func test_a_bot_beside_a_stair_s_head_never_walks_across_its_railing() -> void:
 	var surfaces := _graph.surfaces()
 	var step := SimFixtures.rules().step_height

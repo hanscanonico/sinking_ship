@@ -200,11 +200,11 @@ func test_a_bot_through_a_doorway_turns_onto_the_stair_beside_it() -> void:
 
 
 ## From beside the head of B deck's stair aft, a bot going for G deck's two-berth third-class
-## room goes round the walls beside the head, onto the stair and down within 3.5 s. On main its
-## way over the floor held a walk straight at the head across the railing along the stair's
-## side, its steps stepping over the railing's line: it walked into the pocket between the
-## railing's end and the end of the wall beside the head, 0.68 m apart, and none of these was
-## down in 3.5 s, the first not for 8 s (#550).
+## room goes round the walls beside the head, onto the stair and down within 3.5 s. Before #555
+## its way over the floor held a walk straight at the head across the railing along the
+## stair's side, its steps stepping over the railing's line onto the stair: it walked into the
+## pocket between the railing's end and the end of the wall beside the head, 0.68 m apart, and
+## none of these was down in 3.5 s, the first not for 8 s (#550).
 func test_a_bot_beside_a_stair_s_head_goes_round_onto_it() -> void:
 	for from: Vector3 in BESIDE_B_DECK_S_STAIR:
 		var sim := _sim(TWO_BERTH_ROOM, from)
