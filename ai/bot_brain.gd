@@ -812,7 +812,8 @@ func _walk_at(steer: Steer, me: Dictionary, mark: Dictionary, now: Vector3, pose
 		var mark_vel: Vector3 = mark["vel"]
 		var ahead := _lead * _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
 		mark_pos += Vector3(mark_vel.x, 0.0, mark_vel.z) * ahead
-	var goal := _floor_way.toward(my_pos, me["surface"], null, _approach(my_pos, mark_pos, pose))
+	var at := _footing.approach(my_pos, mark_pos, pose)
+	var goal := _floor_way.toward(my_pos, me["surface"], null, at)
 	var wish := Vector2(goal.x - my_pos.x, goal.z - my_pos.z).normalized().rotated(_aim_offset)
 	var on := _surfaces.under(now, _rules.step_height)
 	steer.move = _footing.clear_heading(
@@ -1045,19 +1046,6 @@ func _waypoint(
 	if _legs.is_empty():
 		return PackedVector3Array()
 	return PackedVector3Array([_walk_graph.toward(_legs[0], my_pos, my_surface)])
-
-
-## Where to walk to reach [param target_pos]: straight at it, except past the
-## grip angle, where the bot first gets uphill of it so that its shove goes
-## downhill.
-func _approach(my_pos: Vector3, target_pos: Vector3, pose: ShipPose) -> Vector3:
-	if not _footing.slides(pose):
-		return target_pos
-	var gravity := pose.ship_gravity(_rules.gravity)
-	var uphill := -Vector3(gravity.x, 0.0, gravity.z).normalized()
-	if (my_pos - target_pos).dot(uphill) >= 0.0:
-		return target_pos
-	return target_pos + uphill * (_rules.body_radius * 2.0 + _rules.shove_reach)
 
 
 ## Turns [param steer]'s walk out of the path of a crate seen sliding at the bot, and
