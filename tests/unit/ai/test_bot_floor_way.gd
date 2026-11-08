@@ -32,6 +32,20 @@ const ON_HER_HEAD := Vector3(113.0, 4.9375, 5.0)
 const D_DECK := -1.25
 const LADDER_FOOT := Vector3(97.2, D_DECK, -5.9)
 const BEHIND_THE_LADDER := Vector3(90.5, D_DECK, -6.75)
+## B deck's second-class entrance aft, by the head of the stair down to C deck: its railing
+## along the stair's starboard side runs at z -1.625 from the head aft. Beside it, short of a
+## body's width aft of the head, a body stands at each of these, and a walk straight at the
+## head from there runs across that railing; the last is where a bot setting out for G deck's
+## two-berth third-class room in #491's sample (row 2) stands once the wall beside it has
+## pushed it clear. Off the stair's foot, on C deck.
+const B_DECK := 2.75
+const BESIDE_THE_STAIR_HEAD: Array[Vector3] = [
+	Vector3(-90.3, B_DECK, -0.6),
+	Vector3(-90.2, B_DECK, -0.2),
+	Vector3(-90.0, B_DECK, 0.3),
+	Vector3(-90.3, B_DECK, 0.2),
+]
+const OFF_THE_STAIR_FOOT := Vector3(-86.6, 0.0, -2.1)
 ## How far round its feet a walk's step is looked at for what stands on her deck: a way round
 ## is walked straight as far as a body LEAN of its radius round gets, and between the points
 ## a straight walk is looked at, a step may graze what that body would slide along.
@@ -206,3 +220,26 @@ func test_a_look_from_where_no_body_stands_leaves_the_leg_its_ways_round() -> vo
 	to = _graph.toward(leg, BY_NO_1_HATCH, by)
 	assert_ne(way.toward(BY_NO_1_HATCH, by, leg, to), to, "round the hatch")
 	assert_true(way.holds(leg, BY_NO_1_HATCH), "on its way round")
+
+
+## Beside the head of B deck's stair aft, a walk straight at the head runs across the railing
+## along the stair's side: the bot walks at a point of a way round by the floor instead, and
+## not across a railing. A walk is looked along a step of 0.4 m at a time: before #555 one
+## step stood on the floor short of the railing, the next on the stair past it, where none of
+## the floor's railings held a body, and the walk held; the bot walked into the railing and on
+## into the pocket between its end and the wall's, 0.68 m apart (#550).
+func test_a_bot_beside_a_stair_s_head_never_walks_across_its_railing() -> void:
+	var surfaces := _graph.surfaces()
+	var rules := SimFixtures.rules()
+	for from: Vector3 in BESIDE_THE_STAIR_HEAD:
+		var leg := _portal(from, OFF_THE_STAIR_FOOT)
+		assert_not_null(leg, "the stair down from %s" % from)
+		var way := BotFloorWay.new(_graph, rules, 1)
+		var on := surfaces.under(from, rules.step_height)
+		var aim := way.toward(from, on, leg, leg.entry)
+		var under := surfaces.under(aim, rules.step_height)
+		var across := (
+			surfaces.railed(from, aim, on, rules) or surfaces.railed(from, aim, under, rules)
+		)
+		assert_false(across, "from %s: across a railing to %s" % [from, aim])
+		assert_true(way.holds(leg, from), "from %s: on a way round" % from)
