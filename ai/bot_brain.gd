@@ -186,8 +186,8 @@ var _reckoning: BotReckoning
 ## grip angle by its seen velocity too — the same place on a deck that grips.
 var _edge_from := Vector3.ZERO
 var _edge_also := Vector3.ZERO
-## The tick its view was taken at this tick: nearing a stair, it follows its route from
-## where its walks since have stepped it, but past the grip angle (_follow_route).
+## The tick of its view, from which it steps its walks since nearing a stair (_follow_route);
+## -1 while it is seen held at its start, where no walk has moved it.
 var _seen_tick := 0
 ## How hard it fights, as the last think found the match: how much it presses and its
 ## spar margin.
@@ -256,7 +256,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	var slides := _footing.slides(pose)
 	_edge_from = _reckoning.by_walks(me, seen["tick"], now_pos)
 	_edge_also = now_pos if slides else _edge_from
-	_seen_tick = seen["tick"]
+	_seen_tick = -1 if seen["phase"] == MatchState.Phase.COUNTDOWN else seen["tick"]
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
 		return _swim_out(me, now_pos, pose, tick)
@@ -777,7 +777,8 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 	# where its walks have stepped it (BotStair.nears): turning at the head, it is where it
 	# turned to, not where the walk it turned from would have taken it (#543). Off the
 	# foot of a stair there, it is off the stair, whatever the view still says.
-	if not _legs.is_empty() and _legs[0].ramp != WalkGraph.NONE and not _footing.slides(pose):
+	var stairs := _seen_tick >= 0 and not _legs.is_empty() and _legs[0].ramp != WalkGraph.NONE
+	if stairs and not _footing.slides(pose):
 		var stepped := _reckoning.by_steps(me, _seen_tick, now_pos)
 		if _stair.nears(_legs[0], stepped):
 			now_pos = stepped
