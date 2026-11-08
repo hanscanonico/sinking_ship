@@ -1955,7 +1955,10 @@ PLATING = 0.1
 def shell_line(sid, plats, axis, at, a, b, beyond):
     """Her plating along the line where x (axis 0) or z (axis 2) is at, from a to b along the
     other axis, on whichever of plats has that edge: a box PLATING thick inside it, beyond the way
-    out (±1), from that deck up to the deck over it there (top_at)."""
+    out (±1), from that deck up to the deck over it there (top_at). Where the deck over stands
+    inside it, its edge short of her side's line there, the plating stops more than a step
+    under that deck, so its top is no floor past that deck's edge (the art lint's false floor):
+    still a wall no body on the deck under gets over."""
     k = 0
     for index in plats:
         x0, x1, z0, z1, h = plat_geo[index]
@@ -1967,8 +1970,27 @@ def shell_line(sid, plats, axis, at, a, b, beyond):
             continue
         inner = sorted((at, at - beyond * PLATING))
         top = top_at(at if axis == 0 else (p0 + p1) * 0.5)
-        box("%s_%d" % (sid, k), *(inner + [p0, p1] if axis == 0 else [p0, p1] + inner), h, top)
-        k += 1
+        overs = [o for o in plat_geo if abs(o[4] - top) < 1e-6]
+
+        def footprint(q0, q1):
+            return inner + [q0, q1] if axis == 0 else [q0, q1] + inner
+
+        def covered(q0, q1):
+            fx0, fx1, fz0, fz1 = footprint(q0, q1)
+            return any(o[0] <= fx0 + 1e-6 and o[1] >= fx1 - 1e-6 and o[2] <= fz0 + 1e-6 and o[3] >= fz1 - 1e-6
+                       for o in overs)
+
+        along = sorted({p0, p1} | {v for o in overs for v in (o[2:4] if axis == 0 else o[0:2]) if p0 < v < p1})
+        runs = []
+        for q0, q1 in zip(along, along[1:]):
+            height = top if covered(q0, q1) else round(top - rule("step_height") - PLATING, 4)
+            if runs and runs[-1][2] == height:
+                runs[-1][1] = q1
+            else:
+                runs.append([q0, q1, height])
+        for q0, q1, height in runs:
+            box("%s_%d" % (sid, k), *footprint(q0, q1), h, height)
+            k += 1
 
 def outline_rails(rid, pieces, plats, gaps=(), shell=(), walls=None):
     """Railings round the outside of a deck laid in pieces (x0, x1, z0, z1) as plats:

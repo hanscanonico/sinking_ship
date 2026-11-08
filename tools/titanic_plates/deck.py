@@ -73,6 +73,9 @@ JOIN = 0.3
 SIDE_REACH = 0.3
 BODY_WIDTH = 0.8
 DOOR_CLEAR = 1.0 + 2 * 0.03  # the lint's least door, between two partitions' faces
+# A step's least length (Deck's steps): a body's width clear between the steel walls at
+# its ends, 0.1 m either side of their middles, and a hand to spare (the lint's clear width).
+STEP_LEAST = BODY_WIDTH + 2 * 0.1 + 0.05
 # A piece's end this near a deck's end over it, in metres, is that end's (Deck's ends),
 # unless the load gives a reach of its own.
 END_REACH = 0.2
@@ -180,11 +183,11 @@ class Deck:
 
     steps, when given with side, is (words, lines): a room whose name holds words and that
     reaches her side is laid out to it in steps — split along each of lines (ship x, where
-    the generator's floor under it changes breadth) at least lead from its ends and from
-    each other, each part held to her side over its own stretch, open to the next across
-    the breadth both share. A space the plate draws out to her side lines in a few steps,
-    held whole to its narrowest floor, left the floor her side widens to beside it outside
-    it, behind its wall and open to the void past that floor's edge (#573)."""
+    the generator's floor under it changes breadth) at least lead, and STEP_LEAST, from its
+    ends and from each other, each part held to her side over its own stretch, open to the
+    next across the breadth both share. A space the plate draws out to her side lines in a
+    few steps, held whole to its narrowest floor, left the floor her side widens to beside it
+    outside it, behind its wall and open to the void past that floor's edge (#573)."""
 
     def __init__(self, name, side=None, ends=(), reach=END_REACH, lead=0.0, steps=None):
         module = _module(name)
@@ -420,8 +423,9 @@ class Deck:
 
     def _stepped(self, side, words, lines, lead):
         """Every room named with words that reaches her side split along lines (Deck's steps),
-        each part at least lead long; parts her side gives the same breadth stay one. The
-        (room, x) of every split, for _step_joins once each part is held."""
+        each part at least lead long, and STEP_LEAST; parts her side gives the same breadth stay
+        one. The (room, x) of every split, for _step_joins once each part is held."""
+        least = max(lead, STEP_LEAST)
         rooms, splits = [], []
         for room in self.rooms:
             name, x0, x1, z0, z1 = room
@@ -431,7 +435,7 @@ class Deck:
                 continue
             cuts = [x0]
             for v in sorted(lines):
-                if cuts[-1] + lead <= v <= x1 - lead:
+                if cuts[-1] + least <= v <= x1 - least:
                     cuts.append(v)
             cuts.append(x1)
             # (A line past which her side gives the part the same breadth parts nothing.)
