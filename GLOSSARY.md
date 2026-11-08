@@ -45,7 +45,7 @@ _Avoid_: crouch, crawlway, duct
 
 **Seat rules**:
 The rules as they stand for one seat: the brawl rules, but for the few that what the seat
-has may change — what holding the prop in its hands costs it, and its bonus. Worked out
+has may change — what holding the prop in its hands costs it, and its bonuses. Worked out
 from what the seat has, never kept in the snapshot.
 _Avoid_: stats, modifiers, buffs
 
@@ -91,14 +91,15 @@ _Avoid_: disarmed, dropped
 Something that comes aboard during a match at a bonus spot in a dry room below her main
 deck. A Grab press takes it and uses it up at once, giving the seat that took it an edge,
 through a rule there already is, until that seat is out (Double life: until it is spent).
-A seat has one at a time. One nobody takes is lost when the sea gets to it: water at its
+Bonuses add up: one taken replaces none the seat has, and two of a kind give twice what one
+does, up to the most of a kind a seat holds — a press reaches no more of it. One nobody takes is lost when the sea gets to it: water at its
 spot, her turned past its floor, or the piece of her it lies in gone.
 _Avoid_: power-up, pickup, item, perk, buff, boon, loot, stores (a room's name and a flood
 cell's kind)
 
 **Bonus kind**:
-What a kind of bonus is, the same for every one of it: its title, its size and mark, and
-what it changes for its taker. One data file each, as prop kinds are.
+What a kind of bonus is, the same for every one of it: its title, its size, its mark and its
+icon, and what it changes for its taker. One data file each, as prop kinds are.
 
 **Bonus spot**:
 A point on a floor in a room below her main deck, one per such room, put there by her
