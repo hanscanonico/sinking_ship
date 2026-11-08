@@ -126,7 +126,7 @@ func danger_toward(
 		heed_drops
 		and direction.dot(stair_ahead) <= 0.0
 		and _surfaces.drops(my_pos, probe, _rules.step_height)
-		and not _surfaces.railed(my_pos, probe, my_surface)
+		and not _surfaces.railed(my_pos, probe, my_surface, _rules)
 		and not _lined_up(my_pos, probe, mark)
 	)
 
@@ -192,7 +192,7 @@ func edge_toward(
 ## [param from] to [param to].
 func _railed(from: Vector3, to: Vector3, surfaces: Array[int]) -> bool:
 	for surface: int in surfaces:
-		if _surfaces.railed(from, to, surface):
+		if _surfaces.railed(from, to, surface, _rules):
 			return true
 	return false
 
