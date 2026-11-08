@@ -14,6 +14,10 @@ It writes, as every sound of assets/audio/ is kept (assets/LICENSES.md) — mono
                                         chunk, which Godot's import reads as it is
     assets/audio/bonus/double_life.wav  a Double life spent: four notes rising, each struck
                                         as a small bell is, the last ringing longest
+    assets/audio/bonus/seek.wav         the finder's ping toward the nearest bonus aboard
+                                        (BonusSeeker): a detector's short clean blip, a sine
+                                        with a little of its octave, struck quickly and dying
+                                        away fast
 """
 import math
 import os
@@ -38,6 +42,15 @@ ATTACK = 0.004
 LAST_RINGS = 1.6
 LENGTH = 1.6
 FADE = 0.06
+
+# The finder's ping: its partials, each its frequency in hertz and loudness; how long a
+# strike takes to sound fully, the seconds it takes to die to 1/e, how long it lasts and
+# the fade closing it.
+SEEK_PARTIALS = [(1200.0, 1.0), (2400.0, 0.2)]
+SEEK_ATTACK = 0.004
+SEEK_DECAY = 0.035
+SEEK_LENGTH = 0.16
+SEEK_FADE = 0.02
 
 
 def hum():
@@ -71,6 +84,22 @@ def double_life():
     return samples
 
 
+def seek():
+    """The finder's ping's samples."""
+    count = int(SEEK_LENGTH * RATE)
+    fade = int(SEEK_FADE * RATE)
+    samples = []
+    for i in range(count):
+        t = i / RATE
+        swell = min(t / SEEK_ATTACK, 1.0) * math.exp(-t / SEEK_DECAY)
+        if i >= count - fade:
+            swell *= (count - 1 - i) / (fade - 1)
+        samples.append(
+            swell * sum(loud * math.sin(2.0 * math.pi * freq * t) for freq, loud in SEEK_PARTIALS)
+        )
+    return samples
+
+
 def pcm(samples):
     """[samples] peak-normalised to PEAK, as 16-bit little-endian PCM."""
     top = max(abs(s) for s in samples)
@@ -101,3 +130,4 @@ def write(name, samples, loop=False):
 if __name__ == "__main__":
     write("hum.wav", hum(), loop=True)
     write("double_life.wav", double_life())
+    write("seek.wav", seek())

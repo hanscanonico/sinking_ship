@@ -4,7 +4,8 @@ extends Node3D
 ## two snapshots and the pose into cues, and they play — in the head for the seat
 ## whose eyes the view is in, from where they happen for everyone and everything
 ## else — and each bonus aboard the latest snapshot hums where it lies, a voice looping
-## for as long as it is there (CuePlanner.hums). Under them the sea, the wind and the
+## for as long as it is there (CuePlanner.hums), while the finder pings from the one
+## nearest the seat heard through, quicker the nearer it is (BonusSeeker). Under them the sea, the wind and the
 ## sea rushing in follow the listener's height above the water and the sinking's pace,
 ## and the room's reverb and the hull's muffling follow whether the seat heard through
 ## stands in a room, easing across a doorway rather than snapping; with its eyes under
@@ -51,6 +52,9 @@ var _head: Array[AudioStreamPlayer] = []
 ## One voice per bonus aboard, humming where it lies (_keep_humming), by where its hum
 ## comes from in ship space: no two bonuses lie at one spot.
 var _hums: Dictionary[Vector3, AudioStreamPlayer3D] = {}
+## The finder's voice, pinging from the bonus sought (_seek), and its pace.
+var _seek: AudioStreamPlayer3D
+var _seeker := BonusSeeker.new()
 var _next_placed := 0
 var _next_head := 0
 var _listener: AudioListener3D
@@ -104,6 +108,13 @@ func _ready() -> void:
 		var head := AudioStreamPlayer.new()
 		add_child(head)
 		_head.append(head)
+	_seek = AudioStreamPlayer3D.new()
+	_seek.name = "Seek"
+	_seek.bus = SoundBank.ROOM_BUS
+	_seek.volume_db = SoundBank.db(AudioCue.Kind.SEEK)
+	_seek.unit_size = SoundBank.near(AudioCue.Kind.SEEK)
+	_seek.max_distance = SoundBank.far(AudioCue.Kind.SEEK)
+	add_child(_seek)
 	_sea = _bed(SEA, &"Sea")
 	_wind = _bed(WIND, &"Ambience")
 	_rush = _bed(RUSH, SoundBank.ROOM_BUS)
@@ -175,6 +186,7 @@ func _process(delta: float) -> void:
 		return
 	_listener.global_transform = camera.global_transform
 	_keep_humming(_planner.hums(_driver.current), _view)
+	_keep_seeking(_driver.current, delta)
 	# The sea is the world plane (D7), so the ears' height is their distance to it.
 	var above_sea := camera.global_position.y - FirstPersonCamera.eye_height_of(camera)
 	var tick: int = _driver.current["tick"]
@@ -323,8 +335,29 @@ func _keep_humming(hums: Array[AudioCue], view: MatchView) -> void:
 	_hums = kept
 
 
-## Stops every cue still sounding, and every hum.
+## Pings, [param delta] seconds on, from the bonus aboard [param snapshot] nearest the seat
+## heard through (BonusSeeker.sought) where [member _view] draws it, at the pace and pitch
+## its distance gives; nothing for none.
+func _keep_seeking(snapshot: Dictionary, delta: float) -> void:
+	var layout := _sim.config.ship
+	var seat := _planner.listener_seat
+	var sought := BonusSeeker.sought(snapshot, layout, seat)
+	if sought == -1:
+		_seeker.ping(delta, INF)
+		return
+	var at := layout.bonus_spots[snapshot["bonuses"][sought]["spot"]].point
+	var distance: float = (snapshot["seats"][seat]["pos"] as Vector3).distance_to(at)
+	_seek.global_position = _view.lying_to_world(at) * at
+	if _seeker.ping(delta, distance) and SoundBank.audible():
+		if _seek.stream == null:
+			_seek.stream = load(SoundBank.DIR + SoundBank.files(AudioCue.Kind.SEEK)[0])
+		_seek.pitch_scale = BonusSeeker.pitch(distance)
+		_seek.play()
+
+
+## Stops every cue still sounding, every hum, and the finder's ping.
 func _silence() -> void:
+	_seek.stop()
 	for voice: AudioStreamPlayer3D in _placed:
 		voice.stop()
 	for voice: AudioStreamPlayer in _head:
