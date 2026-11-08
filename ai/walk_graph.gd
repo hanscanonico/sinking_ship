@@ -660,8 +660,9 @@ func steer(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> P
 ## [param leg]. Lined up in front of it, a point just past it; further out in front,
 ## a point a body's width further along its axis than the body is, so the walk
 ## closes on the axis rather than circling a point — no further than the portal, but for
-## a body within a stair's width at its head: that one walks on onto the stair as it
-## closes, not square to the head's middle first (#543); just past it within its width,
+## a body within a stair's width at its head that walking on lines up by the head
+## (_lines_up_at_head): that one walks on onto the stair as it closes, not square to the
+## head's middle first (#543); just past it within its width,
 ## the point past it too, never back to it; beside it, the middle of its near edge, so the
 ## body turns in rather than doubling back. On the leg's ramp, the point
 ## past its far end; under it or behind its high end, out to its nearer side first, so
@@ -685,7 +686,7 @@ func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 		return past
 	if ahead < 0.0:
 		var onto := ahead + _lead
-		if leg.ramp == NONE or absf(aside) >= leg.half_width:
+		if not _lines_up_at_head(leg, ahead, aside, line):
 			onto = minf(onto, 0.0)
 		return leg.entry + along * onto + line
 	if leg.ramp != NONE and ahead > _lead and absf(aside) < leg.half_width:
@@ -693,6 +694,18 @@ func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 		var out := leg.entry + along * ahead
 		return out + Vector3(side.x, 0.0, side.y) * (leg.half_width + _lead)
 	return leg.entry
+
+
+## Whether a body [param ahead] of [param leg]'s stair head and [param aside] of its axis,
+## within the stair's width, walking on toward [param line] a body's width further along,
+## is lined up by the time it reaches the head: a body's width inside the stair's sides,
+## so its shoulder never clips their ends (#543).
+func _lines_up_at_head(leg: Portal, ahead: float, aside: float, line: Vector3) -> bool:
+	if leg.ramp == NONE or absf(aside) >= leg.half_width:
+		return false
+	var line_aside := Vector2(line.x, line.z).cross(leg.along)
+	var at_head := lerpf(aside, line_aside, -ahead / _lead)
+	return absf(at_head) <= maxf(leg.half_width - _body_radius, 0.0)
 
 
 ## How far off [param leg]'s axis, across it, a body [param aside] of it walks through it:

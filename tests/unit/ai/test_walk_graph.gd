@@ -256,7 +256,9 @@ func test_paths_cross_walls_only_through_doors() -> void:
 ## deck, within its width but a hand outside the line a body walks down it lined up, a body
 ## walks on onto the stair, closing on that line as it goes: it is at the head (#543). On
 ## main it turned square to the stair there, to the middle of its head, and a bot down off
-## the bridge reversed its walk at the head on its way on down.
+## the bridge reversed its walk at the head on its way on down. A body as far short of the
+## head but too far out to the side to line up by it, its shoulder over the stair's side,
+## still goes to the head's middle first.
 func test_a_body_at_a_stair_s_head_within_its_width_walks_on_onto_it() -> void:
 	var layout := SimFixtures.steamer()
 	var surfaces := Surfaces.new(layout)
@@ -277,6 +279,10 @@ func test_a_body_at_a_stair_s_head_within_its_width_walks_on_onto_it() -> void:
 	var walk := Vector2(aim.x - at.x, aim.z - at.z).normalized()
 	assert_gt(walk.dot(leg.along), 0.8, "on along the stair: %s" % walk)
 	assert_lt(walk.y * signf(at.z - head.z), 0.0, "closing on its line")
+	var out := head + Vector3(-0.05, 0.0, leg.half_width - 0.05)
+	aim = graph.toward(leg, out, surfaces.under(out, SimFixtures.rules().step_height))
+	walk = Vector2(aim.x - out.x, aim.z - out.z).normalized()
+	assert_lt(walk.dot(leg.along), 0.5, "from further out, to the head's middle: %s" % walk)
 
 
 func test_path_avoids_a_ramp_whose_foot_is_under() -> void:
