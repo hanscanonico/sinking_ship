@@ -20,15 +20,14 @@ must 0 thrown · 1 bakes · drawn
 01:15.1 Double life lost · spot 24
 01:15.7 aft_bilge_s lamps drowned
 01:22.3 aft_cabins flooding
+01:25.6 seat 7 out · cold · place 8
 01:26.1 Steady aboard · spot 18
 01:28.6 hold flooding
 01:29.1 water through over_girder_aft_cabins
-01:40.6 seat 4 takes Steady · spot 18
-01:43.9 seat 1 out · cold · place 8
-01:43.9 seat 3 out · cold · place 7
+01:38.7 seat 3 out · cold · place 7
+01:40.7 seat 1 takes Steady · spot 18
 01:44.2 water through over_bulkhead_hold_to_hold_wing_s
 01:44.2 aft_bilge_s full
-01:44.6 seat 2 out · cold · place 6
 01:46.9 Sure footing aboard · spot 11
 01:47.3 engine_bilge_p flooding
 02:07.8 generator running again
@@ -49,7 +48,6 @@ must 0 thrown · 1 bakes · drawn
 04:12.6 deckhouse_hall flooding
 04:17.6 deckhouse_cabins flooding
 04:22.1 hold_wing_p flooding
-04:23.2 seat 7 out · cold · place 5
 04:26.1 prop 1 afloat
 04:27.4 prop 0 afloat
 04:32.9 the plunge
@@ -61,6 +59,7 @@ must 0 thrown · 1 bakes · drawn
 04:41.1 prop 2 afloat
 04:42.4 prop 0 lost
 04:46.5 water through stair_engine_room_deckhouse_hall
+04:46.9 seat 2 out · cold · place 6
 04:54.0 door_hold_fwd_top_s gave way
 04:55.9 hold lamps drowned
 04:56.3 engine_room lamps drowned
@@ -68,8 +67,8 @@ must 0 thrown · 1 bakes · drawn
 04:57.3 prop 3 lost
 04:58.2 hatch_hold gave way
 04:58.2 prop 2 lost
+05:02.3 seat 0 out · cold · place 5
 05:03.0 air trapped in hold_fwd_top
-05:03.3 seat 0 out · cold · place 4
 05:04.3 hold full
 05:04.6 water through over_bulkhead_hold_to_hold_wing_p
 05:04.7 wtd_engine leaking
@@ -79,13 +78,14 @@ must 0 thrown · 1 bakes · drawn
 05:06.8 air trapped in engine_bilge_s
 05:06.8 air trapped in engine_room
 05:06.8 air trapped in hold_wing_p
-05:11.6 seat 6 grabs prop 4
 05:14.1 panel_hold_side_p_hold_wing_p_hold leaking
 05:15.7 water through stair_aft_cabins_sky
 05:16.6 panel_bulkhead_engine_aft_bilge_s_engine_bilge_s leaking
 05:16.8 port_hold_wing_p_p6 leaking
+05:17.7 seat 1 out · cold · place 4
 05:18.3 port_hold_wing_p_p5 leaking
 05:19.8 saloon lamps drowned
+05:20.7 seat 6 out · cold · place 3
 05:21.3 port_hold_wing_p_p4 leaking
 05:22.3 wheelhouse flooding
 05:23.5 port_hold_wing_p_p3 leaking
@@ -104,7 +104,6 @@ must 0 thrown · 1 bakes · drawn
 05:29.9 engine_bilge_s lamps drowned
 05:32.7 lurched · heel +24°
 05:32.7 forepeak lamps drowned
-05:32.9 seat 5 out · cold · place 3
 05:33.2 panel_bulkhead_hold_engine_bilge_s_hold_bilge gave way
 05:33.5 saloon full
 05:33.9 funnel falling
@@ -117,11 +116,13 @@ must 0 thrown · 1 bakes · drawn
 05:38.8 air trapped in deckhouse_hall
 05:38.8 aft_peak lamps drowned
 05:41.8 wheelhouse lamps drowned
-05:44.4 seat 4 out · cold · place 2
-05:44.5 prop 4 lost
-05:44.5 seat 6 out · cold · place 1
-all out at 05:44.5 · digest fa07096bb1be8df0
-4 of 8 seats in at the plunge 04:32.9
-sinking at the end of the match: physics 0:02:26 (on the paced clock × 2.0, Q20) · seen 90% · sea 8.62 m up her · trim +19.6° · list +35.2° · aft_peak 8.28 m · poop_space 2.26 m · aft_bilge_p full · aft_bilge_s full · aft_cabins 5.11 m · engine_bilge_p 2.66 m · engine_bilge_s 4.99 m · engine_room 9.15 m · hold_bilge full · hold full · hold_wing_p 4.26 m · hold_wing_s full · hold_fwd_top 4.50 m · forepeak 9.94 m · deckhouse_cabins 4.80 m · deckhouse_hall 5.94 m · saloon full · wheelhouse 3.72 m
+05:44.3 seat 5 out · cold · place 2
+05:47.3 wheelhouse full
+05:49.2 Steady lost · spot 4
+05:50.8 aft_cabins lamps drowned
+05:53.3 seat 4 out · cold · place 1
+all out at 05:53.3 · digest b81911b19ccb067c
+6 of 8 seats in at the plunge 04:32.9
+sinking at the end of the match: physics 0:02:28 (on the paced clock × 2.0, Q20) · seen 92% · sea 10.46 m up her · trim +24.1° · list +45.4° · aft_peak 8.63 m · poop_space 4.40 m · aft_bilge_p full · aft_bilge_s full · aft_cabins 7.30 m · engine_bilge_p 3.06 m · engine_bilge_s 6.53 m · engine_room 10.09 m · hold_bilge full · hold full · hold_wing_p 4.59 m · hold_wing_s full · hold_fwd_top 5.26 m · forepeak 10.48 m · deckhouse_cabins 5.41 m · deckhouse_hall 6.80 m · saloon full · wheelhouse full
 not played: gone at 0:02:42 · trim +58.9° · list -14.5° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.06 of strength, x -9.0 m, hogging
