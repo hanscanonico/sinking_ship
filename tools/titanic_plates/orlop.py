@@ -358,6 +358,10 @@ WALLED_SOLIDS = [(-118.2, 0.0, "fore")]
 # top's coal and walls standing up through it (#514).
 WALLED_SOLIDS += [(69.0, 0.0, "fore")]
 NUDGES = [(2, -10.25, -10.75, -71.3, -64.8)]
+# Forward of A, the chain locker and the store in her eyes: no floor of hers is laid under
+# them (ORLOP_PIECES end at A, gen_titanic.py), so they wait for one, and A stands whole as
+# No. 1 hold's wall (#565), as on G deck (g.py).
+AWAITS = [(115.81, 140.0)]
 
 STAIR_MOVES = [
     # The spirals' flights 5/16 m forward, their heads 0.44 m inside the trunk: just inside

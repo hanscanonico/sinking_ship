@@ -625,6 +625,11 @@ STAIR_MOVES = [
 # Her run, which her side at G deck leaves no room for and the plate no door into: no floor of
 # hers reaches it.
 GONE = [(-127.0, 0.0), (-124.5, 0.0)]
+# Forward of A, the chain locker and the store in her eyes: no floor of hers is laid under
+# them (G_PIECES end at A, gen_titanic.py), so they wait for one, and A stands whole as the
+# firemen's quarters' wall (#565). (Cut at their faces and then left off by on_floor, they
+# left A open onto nothing where they stood.)
+AWAITS = [(115.81, 140.0)]
 # The passages F deck's flights fill, each foot's own way out past its end.
 NOT_ROOMS = [(-90.0, -8.3), (93.8, 5.2)]
 # The refrigerated holds' ladder's well (#531).
