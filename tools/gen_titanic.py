@@ -1956,9 +1956,10 @@ def shell_line(sid, plats, axis, at, a, b, beyond):
     """Her plating along the line where x (axis 0) or z (axis 2) is at, from a to b along the
     other axis, on whichever of plats has that edge: a box PLATING thick inside it, beyond the way
     out (±1), from that deck up to the deck over it there (top_at). Where the deck over stands
-    inside it, its edge short of her side's line there, the plating stops more than a step
-    under that deck, so its top is no floor past that deck's edge (the art lint's false floor):
-    still a wall no body on the deck under gets over."""
+    inside her side's line, its edge short of this deck's (the poop's and the forecastle's
+    strips, coarser than this deck's, held to the narrowest of her breadth along each), the
+    plating stands under that deck's edge instead (inner_of): its top no floor past that edge
+    (the art lint's false floor), the deck it leaves outboard of it narrower than a body."""
     k = 0
     for index in plats:
         x0, x1, z0, z1, h = plat_geo[index]
@@ -1968,29 +1969,39 @@ def shell_line(sid, plats, axis, at, a, b, beyond):
         p0, p1 = max(a, lo), min(b, hi)
         if p1 - p0 < 0.05:
             continue
-        inner = sorted((at, at - beyond * PLATING))
         top = top_at(at if axis == 0 else (p0 + p1) * 0.5)
         overs = [o for o in plat_geo if abs(o[4] - top) < 1e-6]
+        if axis == 2:
+            along = sorted({p0, p1} | {v for o in overs for v in o[0:2] if p0 < v < p1})
+            runs = []
+            for q0, q1 in zip(along, along[1:]):
+                line = inner_of(overs, at, (q0 + q1) * 0.5)
+                if runs and abs(runs[-1][2] - line) < 1e-9:
+                    runs[-1][1] = q1
+                else:
+                    runs.append([q0, q1, line])
+            for q0, q1, line in runs:
+                box("%s_%d" % (sid, k), q0, q1, *sorted((line, line - beyond * PLATING)), h, top)
+                k += 1
+        else:
+            x = at - beyond * PLATING * 0.5
+            q0, q1 = sorted((inner_of(overs, p0, x), inner_of(overs, p1, x)))
+            if q1 - q0 >= 0.05:
+                box("%s_%d" % (sid, k), *sorted((at, at - beyond * PLATING)), q0, q1, h, top)
+                k += 1
 
-        def footprint(q0, q1):
-            return inner + [q0, q1] if axis == 0 else [q0, q1] + inner
-
-        def covered(q0, q1):
-            fx0, fx1, fz0, fz1 = footprint(q0, q1)
-            return any(o[0] <= fx0 + 1e-6 and o[1] >= fx1 - 1e-6 and o[2] <= fz0 + 1e-6 and o[3] >= fz1 - 1e-6
-                       for o in overs)
-
-        along = sorted({p0, p1} | {v for o in overs for v in (o[2:4] if axis == 0 else o[0:2]) if p0 < v < p1})
-        runs = []
-        for q0, q1 in zip(along, along[1:]):
-            height = top if covered(q0, q1) else round(top - rule("step_height") - PLATING, 4)
-            if runs and runs[-1][2] == height:
-                runs[-1][1] = q1
-            else:
-                runs.append([q0, q1, height])
-        for q0, q1, height in runs:
-            box("%s_%d" % (sid, k), *footprint(q0, q1), h, height)
-            k += 1
+def inner_of(overs, z, x):
+    """z, a point of her side's line at x on the side its sign gives, held in to the edge of
+    the deck over there (overs, the platforms at its height) where that stands inside it by
+    less than a body's width less her plating: the deck left outboard of her plating there
+    holds no body. Further in (the forecastle's coarse strips, 0.8 m at x 103.4), z itself."""
+    side = 1 if z > 0 else -1
+    edges = [o[3] if side > 0 else o[2] for o in overs if o[0] - 1e-6 <= x <= o[1] + 1e-6]
+    if not edges:
+        return z
+    e = max(edges) if side > 0 else min(edges)
+    inside = (z - e) * side
+    return e if 1e-9 < inside < 2 * rule("body_radius") - PLATING else z
 
 def outline_rails(rid, pieces, plats, gaps=(), shell=(), walls=None):
     """Railings round the outside of a deck laid in pieces (x0, x1, z0, z1) as plats:

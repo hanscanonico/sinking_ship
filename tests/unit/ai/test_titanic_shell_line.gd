@@ -7,7 +7,7 @@ extends GutTest
 ## floor: walks a bot reaches. So every walk a body sets out on along her — off each side of
 ## each of her floors a metre apart, off each side of each of her flights at its quarters,
 ## half a metre in from the edge, straight out of it — from where the walk graph reaches
-## from her spawns ends out of the sea: on her and on her sisters.
+## from her first spawn ends out of the sea: on her and on her sisters.
 
 const SHIPS: Array[String] = [
 	"res://data/ships/titanic.tres",
