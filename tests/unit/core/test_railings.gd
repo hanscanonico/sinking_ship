@@ -185,8 +185,14 @@ func test_a_railing_guards_only_its_own_platform() -> void:
 	# railing, which stands 1.2 m below.
 	var from := Vector3(-14.1, 1.2, 4.0)
 	var to := Vector3(-13.0, 1.2, 5.1)
-	assert_true(surfaces.railed(from, to, main_deck), "the main deck's railing is on that line")
-	assert_false(surfaces.railed(from, to, poop_deck), "but it guards nobody on the poop deck")
+	assert_true(
+		surfaces.railed(from, to, main_deck, SimFixtures.rules()),
+		"the main deck's railing is on that line"
+	)
+	assert_false(
+		surfaces.railed(from, to, poop_deck, SimFixtures.rules()),
+		"but it guards nobody on the poop deck"
+	)
 
 
 func test_touching_spans_hold_a_body_once() -> void:
