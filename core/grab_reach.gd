@@ -8,8 +8,9 @@ extends RefCounted
 ## grab_reach beyond the body's edge and the thing's, inside grab_cone_deg of where the body
 ## faces, at a height it reaches — from step_height under its feet up to its own height, a
 ## ring on a railing among them — with no blocker between them; of two as near, the first:
-## the lower prop, the bonus aboard first. Only a body on its feet on her decks, idle,
-## neither staggered nor frozen, takes anything.
+## the lower prop, the bonus aboard first. It reaches no bonus of a kind the body holds the
+## bonus rules' most_held of: that one stays aboard. Only a body on its feet on her decks,
+## idle, neither staggered nor frozen, takes anything.
 
 
 ## What one Grab press does (press): one of these at most; -1 for each it does not do.
@@ -27,6 +28,8 @@ class Press:
 ## in a match without bonuses: read them, never write them.
 var ship: ShipLayout
 var kinds: Array[BonusKind] = []
+## The most bonuses of one kind a body holds (BonusRules.most_held).
+var _most_held := 0
 var _rules: BrawlRules
 ## The props a hand may hold (holdable_of).
 var _holdable: PackedInt32Array
@@ -39,6 +42,7 @@ func _init(layout: ShipLayout, rules: BrawlRules, bonus_rules: BonusRules = null
 	_rules = rules
 	if bonus_rules != null:
 		kinds.assign(bonus_rules.kinds)
+		_most_held = bonus_rules.most_held
 	_holdable = holdable_of(layout)
 
 
@@ -129,8 +133,9 @@ static func take(
 
 
 ## The bonus of [param aboard] — its place among them — a Grab press by [param player]
-## takes, whatever its hands hold, as take() reaches a prop; -1 for none. What a press does
-## first (press), and what a bot asks of the bonus it goes for.
+## takes, whatever its hands hold, as take() reaches a prop — none of a kind it holds the
+## most of already; -1 for none. What a press does first (press), and what a bot asks of the
+## bonus it goes for.
 func bonus_taken(
 	player: PlayerState, up: int, height: float, aboard: Array[BonusState], surfaces: Surfaces
 ) -> int:
@@ -139,6 +144,8 @@ func bonus_taken(
 	var best := -1
 	var best_gap := INF
 	for index in aboard.size():
+		if player.held_of(aboard[index].kind) >= _most_held:
+			continue
 		var kind := kinds[aboard[index].kind]
 		var at := ship.bonus_spots[aboard[index].spot].point
 		var gap := _gap(player, height, at, kind.height, kind.radius, _rules, surfaces, best_gap)

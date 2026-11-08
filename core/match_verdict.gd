@@ -54,8 +54,8 @@ static func by_the_cold(
 	return going
 
 
-## The cold [param player] has left, in seconds: its meter's, and an unspent spare meter
-## its bonus gives it (Double life, #307) a full meter more — [param spares] each seat's,
+## The cold [param player] has left, in seconds: its meter's, and each unspent spare meter
+## its bonuses give it (Double life, #307) a full meter more — [param spares] each seat's,
 ## by seat, none when empty.
 static func cold_left(player: PlayerState, spares: PackedFloat64Array) -> float:
 	return player.cold + (spares[player.seat] if not spares.is_empty() else 0.0)

@@ -1957,10 +1957,95 @@ poop = [s[0] for s in POOP_STRIPS]
 
 # --- Railings: the open decks' edges, round their stairs' feet and heads; three sides of
 # every hole a stair leaves in a deck.
-def outline_rails(rid, pieces, plats, gaps=()):
+def walled_along(axis, at, a, b, beyond, rooms, solids=()):
+    """The stretches of a deck's edge — across her at x = at (axis 0) or along her at z = at
+    (axis 2), from a to b along it, beyond the way out of it (±1) — that a room's wall or a
+    solid stands within a body's radius inside of: no body stands between the two, and the
+    wall holds one there. [(from, to)], each as long as the wall runs."""
+    reach = rule("body_radius")
+    out = []
+    # (A room's edge is its wall's middle, held T inside her side: its face is that much nearer.)
+    for grow, boxes in ((T, rooms), (0.0, solids)):
+        for r in boxes:
+            lo, hi, near, far = (r[3], r[4], r[1], r[2]) if axis == 0 else (r[1], r[2], r[3], r[4])
+            face = far + grow if beyond > 0 else near - grow
+            if -1e-6 <= (at - face) * beyond <= reach + 1e-6 and lo < b and hi > a:
+                out.append((max(lo, a), min(hi, b)))
+    return out
+
+def spans_off(a, b, cuts):
+    """The stretches of a..b no cut [(from, to)] covers."""
+    spans, start = [], a
+    for c0, c1 in sorted((max(c0, a), min(c1, b)) for c0, c1 in cuts if c0 < b and c1 > a):
+        if c0 > start:
+            spans.append((start, c0))
+        start = max(start, c1)
+    if start < b:
+        spans.append((start, b))
+    return spans
+
+# Her plating along a deck's edge her shell stands over (outline_rails' shell): as thick as
+# this, inside the edge, from the deck to the deck over it.
+PLATING = 0.1
+
+def shell_line(sid, plats, axis, at, a, b, beyond):
+    """Her plating along the line where x (axis 0) or z (axis 2) is at, from a to b along the
+    other axis, on whichever of plats has that edge: a box PLATING thick inside it, beyond the way
+    out (±1), from that deck up to the deck over it there (top_at). Where the deck over stands
+    inside her side's line, its edge short of this deck's (the poop's and the forecastle's
+    strips, coarser than this deck's, held to the narrowest of her breadth along each), the
+    plating stands under that deck's edge instead (inner_of): its top no floor past that edge
+    (the art lint's false floor), the deck it leaves outboard of it narrower than a body."""
+    k = 0
+    for index in plats:
+        x0, x1, z0, z1, h = plat_geo[index]
+        lo, hi, edge = (z0, z1, (x0, x1)) if axis == 0 else (x0, x1, (z0, z1))
+        if not (abs(edge[0] - at) < 1e-6 or abs(edge[1] - at) < 1e-6):
+            continue
+        p0, p1 = max(a, lo), min(b, hi)
+        if p1 - p0 < 0.05:
+            continue
+        top = top_at(at if axis == 0 else (p0 + p1) * 0.5)
+        overs = [o for o in plat_geo if abs(o[4] - top) < 1e-6]
+        if axis == 2:
+            along = sorted({p0, p1} | {v for o in overs for v in o[0:2] if p0 < v < p1})
+            runs = []
+            for q0, q1 in zip(along, along[1:]):
+                line = inner_of(overs, at, (q0 + q1) * 0.5)
+                if runs and abs(runs[-1][2] - line) < 1e-9:
+                    runs[-1][1] = q1
+                else:
+                    runs.append([q0, q1, line])
+            for q0, q1, line in runs:
+                box("%s_%d" % (sid, k), q0, q1, *sorted((line, line - beyond * PLATING)), h, top)
+                k += 1
+        else:
+            x = at - beyond * PLATING * 0.5
+            q0, q1 = sorted((inner_of(overs, p0, x), inner_of(overs, p1, x)))
+            if q1 - q0 >= 0.05:
+                box("%s_%d" % (sid, k), *sorted((at, at - beyond * PLATING)), q0, q1, h, top)
+                k += 1
+
+def inner_of(overs, z, x):
+    """z, a point of her side's line at x on the side its sign gives, held in to the edge of
+    the deck over there (overs, the platforms at its height) where that stands inside it by
+    less than a body's width less her plating: the deck left outboard of her plating there
+    holds no body. Further in (the forecastle's coarse strips, 0.8 m at x 103.4), z itself."""
+    side = 1 if z > 0 else -1
+    edges = [o[3] if side > 0 else o[2] for o in overs if o[0] - 1e-6 <= x <= o[1] + 1e-6]
+    if not edges:
+        return z
+    e = max(edges) if side > 0 else min(edges)
+    inside = (z - e) * side
+    return e if 1e-9 < inside < 2 * rule("body_radius") - PLATING else z
+
+def outline_rails(rid, pieces, plats, gaps=(), shell=(), walls=None):
     """Railings round the outside of a deck laid in pieces (x0, x1, z0, z1) as plats:
     every stretch of a piece's edge that no other piece carries on past, but for gaps
-    [(axis, at, from, to)] — a stair's head, a screen."""
+    [(axis, at, from, to)] — a stair's head, a screen. Given walls (rooms, solids), none where
+    one's wall holds a body (walled_along). The stretches of shell [(axis, at, from, to)] are
+    her side's, where her shell stands over the deck: lined with her plating (shell_line),
+    never railed."""
     for k, (x0, x1, z0, z1) in enumerate(pieces):
         for tag, axis, at, a, b, beyond in [("aft", 0, x0, z0, z1, -1), ("fwd", 0, x1, z0, z1, 1),
                                             ("p", 2, z0, x0, x1, -1), ("s", 2, z1, x0, x1, 1)]:
@@ -1970,7 +2055,13 @@ def outline_rails(rid, pieces, plats, gaps=()):
                 near = (ox1 if beyond < 0 else ox0) if axis == 0 else (oz1 if beyond < 0 else oz0)
                 if j != k and abs(near - at) < 1e-6:
                     cut.append((oz0, oz1) if axis == 0 else (ox0, ox1))
-            rail_line("%s_%d%s" % (rid, k, tag), plats, axis, at, a, b, cut)
+            if walls is not None:
+                cut += walled_along(axis, at, a, b, beyond, *walls)
+            lined = spans_off(a, b, spans_off(a, b, [(max(s[2], a), min(s[3], b)) for s in shell
+                                                     if s[0] == axis and abs(s[1] - at) < 1e-6 and s[2] < b and s[3] > a]))
+            for j, (s0, s1) in enumerate(s for l0, l1 in lined for s in spans_off(l0, l1, cut)):
+                shell_line("%s_shell_%d%s_%d" % (rid, k, tag, j), plats, axis, at, s0, s1, beyond)
+            rail_line("%s_%d%s" % (rid, k, tag), plats, axis, at, a, b, cut + lined)
 
 # The boat deck's edges, its bridge's front clear of its screen; A deck's, the 1912 steel
 # screen with large windows along its forward 192 ft for its sides (BOT: "protected
@@ -1985,15 +2076,19 @@ heads = [(0, s[1] if s[5] == "aft" else s[2], s[3], s[4]) for s in A_PLAN.stairs
 outline_rails("a", A_PIECES, a_deck, heads + [(0, A_RUN[1], z0, z1) for z0, z1 in lanes_of("a_fwd_")]
               + [(2, sign * half, max(x0, SCREEN_RUN[0]), min(x1, SCREEN_RUN[1]))
                  for x0, x1, _z0, half in A_PIECES if x1 > SCREEN_RUN[0] for sign in (-1, 1)])
-# B deck's: her open after end and her assembling area forward, but where her house stands
-# to her side (B_HOUSE), a gap at the head of each ladder down to her wells, and none
-# under A deck's ladders, whose flights come down past her front from A deck's. A deck's
-# after ladders come down onto her inside her after rail, against A deck's step as the
-# plate draws them (#505), and it runs on behind their feet.
+# B deck's: her open after end and her assembling area forward, but where her house's rooms
+# stand to her side (walled_along), a gap at the head of each ladder down to her wells, and
+# none under A deck's ladders, whose flights come down past her front from A deck's. A deck's
+# after ladders come down onto her inside her after rail, against A deck's step as the plate
+# draws them (#505), and it runs on behind their feet. Her house's rooms stand to her side
+# from its after end to its corners, which the 1912 plan rounds in 6.9 m short of its front
+# (B_HOUSE's end), its forwardmost cabins windowed onto the open deck outboard of them, as
+# Plate III's elevation draws her side open forward of its curve: gapped to B_HOUSE's end,
+# that deck's edge had no railing, and a body walked off it into the sea (#573).
 b_heads = [(0, s[2] if s[5] == "fore" else s[1], s[3], s[4]) for s in B_OUTLINE.stairs if s[7] == "b" and s[5] in ("fore", "aft")]
 outline_rails("b", B_PIECES, b_deck, b_heads + [(0, B_RUN[1], z0, z1) for z0, z1 in lanes_of("a_fwd_")]
-              + [(2, z, max(x0, B_HOUSE[0]), min(x1, B_HOUSE[1])) for x0, x1, z0, z1 in B_PIECES
-                 if x0 < B_HOUSE[1] and x1 > B_HOUSE[0] for z in (z0, z1)])
+              + [(2, z, a, b) for x0, x1, z0, z1 in B_PIECES for z, beyond in ((z0, -1), (z1, 1))
+                 for a, b in walled_along(2, z, x0, x1, beyond, B_PLAN.rooms, B_PLAN.solids)])
 rail_line("well_port", well, 2, -CW, WELL[0], WELL[1])
 rail_line("well_starboard", well, 2, CW, WELL[0], WELL[1])
 rail_line("aft_well_port", aft_well, 2, -AW, AFT_WELL[0], AFT_WELL[1])
@@ -2001,26 +2096,54 @@ rail_line("aft_well_starboard", aft_well, 2, AW, AFT_WELL[0], AFT_WELL[1])
 rail_taper("fcsl", FC1, [(FCSL_FROM, lanes_of("forecastle_")), (FC_RAMP[0], [(-FCRW, FCRW)])])
 rail_taper("fcsl_head", FC2, [(FC_RAMP[1], [(-FCRW, FCRW)])])
 rail_taper("poop", POOP_STRIPS, [(POOP_TO, lanes_of("poop_"))])
+# The open decks' flights down onto her wells (OPEN_DECK_FLIGHTS), each side a body walking off
+# carries over the well's rail from with its feet over its top (walking at walk_speed, falling
+# under gravity from the flight's head): plated from the well up a railing's height over its
+# treads, in steps along it, so it holds a body (est.; no plate draws these ladders). A deck's
+# ladders down to the forward well stand 0.45 m inside its rail, 3.9 m over the well at their
+# heads, and a body walking off their outboard sides came down in the sea (#573); the rest are
+# too far in from their wells' rails for that, and a body off them comes down on the well.
+SIDE_STEP = 1.0
+for name in OPEN_DECK_FLIGHTS:
+    fx0, fx1, fz0, fz1, _axis, start, end = ramp_geo[ramps.index("Ramp_" + name)]
+    foot, head = min(start, end), max(start, end)
+    rail = CW if WELL[0] <= (fx0 + fx1) * 0.5 <= WELL[1] else AW
+    carry = rule("walk_speed") * math.sqrt(2 * max(head - foot - rule("railing_height"), 0.0) / rule("gravity"))
+    for side, beyond in ((fz0, -1), (fz1, 1)):
+        if rail - beyond * side - rule("body_radius") >= carry:
+            continue
+        steps = math.ceil((fx1 - fx0) / SIDE_STEP - 1e-9)
+        for k in range(steps):
+            a, b = lerp(fx0, fx1, k / steps), lerp(fx0, fx1, (k + 1) / steps)
+            tread = max(start + (end - start) * (v - fx0) / (fx1 - fx0) for v in (a, b))
+            box("%s_side_%s%d" % (name, "ps"[beyond > 0], k), a, b, *sorted((side, side + beyond * PLATING)),
+                foot, round(tread + rule("railing_height"), 4))
 # C deck's: along her side under the decks over it where no room of hers stands by it — her
 # second-class promenades aft (BOT: "sheltered by bulwarks"), the third-class alcoves under
-# the poop's front — and never at its ends on her wells, which it runs on into, nor at its
-# own ends, behind its end rooms' walls, nor round her counter's tip, shut in aft of them.
-C_SIDE_ROOM = 2.2  # a room's wall this near her side leaves no deck a body walks by it
+# the poop's front — and never at its ends on her wells, which it runs on into. Where her
+# rooms stand by her side, at its own ends and round her counter's tip, her shell is its
+# edge: where no room's wall or solid holds a body there (walled_along), her plating lines it
+# (shell_line) — beside the rooms the plate draws stepped inside her curve under her poop and
+# her forecastle, her side widening past their walls, and at her tips. Gapped there, and held
+# only by a room's being near, the deck by them left a body walking off it into the sea
+# (#573).
+C_SIDE_ROOM = 2.2  # a room's wall this near her side: her side there is her shell, no rail's
 
 def c_covered(sign, x0, x1, half):
     """The stretches of C deck's side (sign) over x0..x1 its rooms stand by."""
     return [(max(x0, r[1] - T), min(x1, r[2] + T)) for r in C_PLAN.rooms + C_PLAN.solids
             if r[1] < x1 and r[2] > x0 and (r[4] if sign > 0 else -r[3]) >= half - C_SIDE_ROOM]
 
-c_gaps = [(0, at, -HALF, HALF) for at in (POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, C_TIP, C_NOSE) + C_ENDS]
+c_gaps = [(0, at, -HALF, HALF) for at in (POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM)]
+c_shell = [(0, at, -HALF, HALF) for at in (C_TIP, C_NOSE) + C_ENDS]
 for x0, x1, z0, z1 in C_PIECES:
     tip = x1 <= C_ENDS[0] + 1e-6 or x0 >= C_ENDS[1] - 1e-6
     for sign, z in [(-1, z0), (1, z1)]:
-        c_gaps += [(2, z, x0, x1)] if tip else [(2, z, a, b) for a, b in c_covered(sign, x0, x1, z1)]
+        c_shell += [(2, z, x0, x1)] if tip else [(2, z, a, b) for a, b in c_covered(sign, x0, x1, z1)]
         # The step to the next strip, where its rooms stand to her side either side of it.
         for edge in (x0, x1):
             if tip or c_covered(sign, edge - 0.05, edge + 0.05, z1):
-                c_gaps.append((0, edge, -HALF, HALF))
+                c_shell.append((0, edge, -HALF, HALF))
 # Where her shell stands over C deck's open edge (her poop's sides, B deck's) a body at the
 # edge is at her side, not at a railing over the sea: the edge is lined, deck to deck (est.).
 C_LINED = [(1, -111.025, -109.5), (-1, -109.0875, -106.625), (1, -109.0875, -106.625),
@@ -2029,7 +2152,7 @@ for k, (sign, x0, x1) in enumerate(C_LINED):
     z = next(p[3] if sign > 0 else -p[2] for p in C_PIECES if p[0] <= x0 < p[1])
     c_gaps.append((2, sign * z, x0, x1))
     box("c_lining_%d" % k, x0, x1, *sorted((sign * z, sign * (z - 0.1))), 0.0, top_at(x0))
-outline_rails("c", C_PIECES, c_deck, c_gaps)
+outline_rails("c", C_PIECES, c_deck, c_gaps, c_shell, (C_PLAN.rooms, C_PLAN.solids))
 
 # --- Boarding ladders (SH5), one down each side of both well decks, where a body shoved
 # over her rail comes down: a swimmer climbs back aboard there, ten metres up her side
@@ -2757,7 +2880,16 @@ TT_PIECES = (hull_strips(BX["P"], BX["L"], TANK_TOP) + hull_strips(BX["L"], BX["
 ORLOP_PIECES = (hull_strips(BX["P"], BX["M"], ORLOP)
                 + hull_strips(round(BX["D"] * 128) / 128, BX["A"], ORLOP_FWD))
 LOWER_PIECES = hull_strips(round(BX["B"] * 128) / 128, BX["A"], LOWER_ORLOP)
-TT_PLAN = plates.load("tanktop", side=held_to(TT_PIECES), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD)
+# Her holds' tank top, which the plate draws out to her side lines in steps (tanktop.py), laid
+# out to her side in her floor's steps (deck.py's steps): held whole to the narrowest strip
+# under each of the plate's steps, No. 2 hold's left the floor her side widens to aft of that
+# outside it, behind a wall cut down under its after ladders, and a body walking off a
+# ladder's side fell past that floor's edge into the bilge's void inside her shell (#573).
+TT_PLAN = plates.load("tanktop", side=held_to(TT_PIECES), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD,
+                      steps=("hold, tank top", sorted({v for p in TT_PIECES for v in p[:2]})))
+# (Her flights and manholes on it stand where they stood, each on one of the plate's steps
+# whole: inside her holds' stepped floor, which only reaches out past them.)
+TT_WHOLE = plates.load("tanktop", side=held_to(TT_PIECES), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD).rooms
 ORLOP_PLAN = plates.load("orlop", side=held_to(ORLOP_PIECES + hull_strips(BX["L"], -37.875, ORLOP)), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD)
 LOWER_PLAN = plates.load("lower_orlop", side=held_to(LOWER_PIECES), ends=LOW_CUTS, reach=D_REACH, lead=D_LEAD)
 LOW_BOILERS = {(s[1], s[2], round(s[3] + s[4])): s for s in TT_OUTLINE.solids if s[0].endswith("boiler")}
@@ -2907,7 +3039,7 @@ def tt_clear(x0, x1, z0, z1):
         return False
     if any(r[0] < x1 and r[1] > x0 and r[2] < z1 and r[3] > z0 and min(r[5], r[6]) < TANK_TOP + 1.0 for r in ramp_geo):
         return False
-    return any(r[1] <= x0 and x1 <= r[2] and r[3] <= z0 and z1 <= r[4] for r in TT_PLAN.rooms)
+    return any(r[1] <= x0 and x1 <= r[2] and r[3] <= z0 and z1 <= r[4] for r in TT_WHOLE)
 
 def head_clear(plan, wells, a, b, c0, c1, along_x):
     """Whether a flight's head, a..b along it and c0..c1 across it, comes up clear of plan."""
@@ -3091,7 +3223,7 @@ def leaves_way(x0, x1, z0, z1, along_x):
     a0, a1, b0, b1 = (x0 - FLIGHT_LEAD, x1 + FLIGHT_LEAD, z0, z1) if along_x else (x0, x1, z0 - FLIGHT_LEAD, z1 + FLIGHT_LEAD)
     if any(m[0] < a1 and m[1] > a0 and m[2] < b1 and m[3] > b0 for m in TT_MOUTHS):
         return False
-    r = next(r for r in TT_PLAN.rooms if r[1] <= x0 and x1 <= r[2] and r[3] <= z0 and z1 <= r[4])
+    r = next(r for r in TT_WHOLE if r[1] <= x0 and x1 <= r[2] and r[3] <= z0 and z1 <= r[4])
     lo, hi, a, b = (r[3], r[4], z0, z1) if along_x else (r[1], r[2], x0, x1)
     return a - lo >= MANHOLE_PAST or hi - b >= MANHOLE_PAST
 

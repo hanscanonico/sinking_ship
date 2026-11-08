@@ -7,6 +7,7 @@ source and license.
 |---|---|---|
 | `addons/gut/` (GUT, the test runner) | vendored addon — `addons/gut/LICENSE.md` | MIT |
 | `addons/godot_ai/` (the editor MCP bridge) | vendored addon — `addons/godot_ai/LICENSE` | MIT |
+| `assets/ui/bonus/heart.svg`, `jump.svg`, `anchor.svg`, `arm.svg`, `foot.svg` — the bonus kinds' icons (BonusIcons) | Original work, drawn for this project (2026-11-08) | CC0 1.0 (the project's own, dedicated) |
 | `assets/fonts/playfair_display.ttf` (`PlayfairDisplay[wght].ttf`, the variable roman, unmodified, 0.3 MB) — Playfair Display by Claus Eggers Sørensen: the menus' titles, buttons and wordmark (UiTheme); its licence is `assets/fonts/OFL.txt` | https://github.com/google/fonts/tree/main/ofl/playfairdisplay (commit `1e1aa08`) | SIL Open Font License 1.1 |
 
 ### Modelled props (`assets/models/`)
