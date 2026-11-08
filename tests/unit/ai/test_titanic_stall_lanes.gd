@@ -11,7 +11,8 @@ extends GutTest
 
 const TITANIC := "res://data/ships/titanic.tres"
 const B_DECK := 2.75
-const D_AFT := -2.9375
+## D deck aft of P, at P's top (#503).
+const D_AFT := -2.1875
 const G_DECK := -11.0
 ## B deck's open after end, starboard and port of her middle, walked along her after rail.
 const PAST_THE_LADDER_FEET: Array[Vector3] = [

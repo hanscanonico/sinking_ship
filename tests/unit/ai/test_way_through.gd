@@ -12,7 +12,9 @@ extends GutTest
 
 const TITANIC := "res://data/ships/titanic.tres"
 const B_DECK := 2.75
-const D_AFT := -2.9375
+## D deck aft of O, at O's top, and either side of P, at P's (#503).
+const D_AFT_O := -2.6875
+const D_AFT_P := -2.1875
 const E_DECK := -5.9375
 const F_DECK := -8.5625
 const G_DECK := -11.0
@@ -44,8 +46,8 @@ const IN_THE_OTHER_PASSAGE := Vector3(92.5, ORLOP_FORWARD, -2.0)
 ## the double bottom's forward of No. 1 hold.
 const OFF_THE_FLIGHTS: Array[Vector3] = [
 	Vector3(-72.625, E_DECK, -2.875),
-	Vector3(-108.625, D_AFT, -2.75),
-	Vector3(-108.625, D_AFT, 3.0625),
+	Vector3(-108.625, D_AFT_O, -2.75),
+	Vector3(-108.625, D_AFT_O, 3.0625),
 	Vector3(95.6875, E_DECK, 7.8713),
 	Vector3(89.4375, E_DECK, 4.6875),
 	Vector3(89.4375, E_DECK, 7.3125),
@@ -72,11 +74,11 @@ const AGAINST_SOLIDS: Array[Vector3] = [
 	Vector3(-48.6328, -18.1875, -5.44),
 	Vector3(69.3477, TANK_TOP, -2.3125),
 ]
-## The third-class women's lavatory on D deck aft of O, two rooms either side of P's line,
-## and its W.C.s standing over that line (#514): their join inside the W.C.s, reached only
-## from inside them; and its stretch outside them, to port.
-const INSIDE_THE_W_C_S := Vector3(-118.9688, D_AFT, 8.48)
-const BESIDE_THE_W_C_S := Vector3(-118.9688, D_AFT, 5.8)
+## The third-class women's lavatory on D deck either side of P's line, two rooms (forward of P
+## and aft of it), and its W.C.s standing over that line (#514): their join inside the W.C.s,
+## reached only from inside them; and its stretch outside them, to port.
+const INSIDE_THE_W_C_S := Vector3(-118.9688, D_AFT_P, 8.48)
+const BESIDE_THE_W_C_S := Vector3(-118.9688, D_AFT_P, 5.8)
 ## The after second-class entrance's doorway to port on B deck, along the railed side of the
 ## hole of its stair down to C deck; and its doorway to starboard.
 const ONTO_THE_RAILED_HOLE := Vector3(-90.375, B_DECK, -2.875)
@@ -273,7 +275,7 @@ func test_the_women_s_lavatory_s_join_inside_its_w_c_s_is_walled() -> void:
 	if door == null:
 		return
 	for out: Vector2 in [door.outward, -door.outward]:
-		var off := WayThrough.doorway(_surfaces, rules, door, D_AFT, out)
+		var off := WayThrough.doorway(_surfaces, rules, door, D_AFT_P, out)
 		assert_false(is_nan(off), "a body goes through the join beside the W.C.s, %s" % out)
 	assert_eq(_doorways_at(BESIDE_THE_W_C_S), 2, "a portal through it either way")
 

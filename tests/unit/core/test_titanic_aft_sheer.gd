@@ -68,7 +68,10 @@ func test_her_bulkheads_aft_stand_at_the_plates_tops() -> void:
 		var wall := _bulkhead(letter)
 		assert_not_null(wall, "bulkhead %s is hers" % letter)
 		assert_almost_eq(
-			wall.top, LOAD_WL + TOPS[letter] * FT, SLACK, "bulkhead %s's top is the plate's" % letter
+			wall.top,
+			LOAD_WL + TOPS[letter] * FT,
+			SLACK,
+			"bulkhead %s's top is the plate's" % letter
 		)
 
 
