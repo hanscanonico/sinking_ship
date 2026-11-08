@@ -230,14 +230,16 @@ func test_a_look_from_where_no_body_stands_leaves_the_leg_its_ways_round() -> vo
 ## into the pocket between its end and the wall's, 0.68 m apart (#550).
 func test_a_bot_beside_a_stair_s_head_never_walks_across_its_railing() -> void:
 	var surfaces := _graph.surfaces()
-	var step := SimFixtures.rules().step_height
+	var rules := SimFixtures.rules()
 	for from: Vector3 in BESIDE_THE_STAIR_HEAD:
 		var leg := _portal(from, OFF_THE_STAIR_FOOT)
 		assert_not_null(leg, "the stair down from %s" % from)
-		var way := BotFloorWay.new(_graph, SimFixtures.rules(), 1)
-		var on := surfaces.under(from, step)
+		var way := BotFloorWay.new(_graph, rules, 1)
+		var on := surfaces.under(from, rules.step_height)
 		var aim := way.toward(from, on, leg, leg.entry)
-		var under := surfaces.under(aim, step)
-		var across := surfaces.railed(from, aim, on) or surfaces.railed(from, aim, under)
+		var under := surfaces.under(aim, rules.step_height)
+		var across := (
+			surfaces.railed(from, aim, on, rules) or surfaces.railed(from, aim, under, rules)
+		)
 		assert_false(across, "from %s: across a railing to %s" % [from, aim])
 		assert_true(way.holds(leg, from), "from %s: on a way round" % from)
