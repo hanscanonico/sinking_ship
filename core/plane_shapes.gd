@@ -8,6 +8,8 @@ extends RefCounted
 ## How far under a step's reach a body slammed up a ramp is held, so that its feet
 ## still find the ramp within a step.
 const CLIMB_MARGIN := 0.001
+## How far apart two pieces' faces may stand and still be one face (carries_on).
+const SEAM := 0.001
 
 
 ## Whether a body [param body_height] tall with its feet at [param feet] meets
@@ -41,6 +43,22 @@ static func rect_contact(rect: Rect2, point: Vector2, radius: float) -> Surfaces
 		if side[0] < nearest[0]:
 			nearest = side
 	return Surfaces.Contact.new(nearest[1], nearest[0] + radius)
+
+
+## Whether [param rect] carries on toward [param point] one of the two faces that meet at
+## [param corner], another rectangle's corner nearest a circle centred there: it stands over
+## the corner, within SEAM, and on past it along one of those faces toward the circle. The
+## two rectangles' edges are then one edge, and the corner a seam in it (#566).
+static func carries_on(rect: Rect2, corner: Vector2, point: Vector2) -> bool:
+	var low := rect.position
+	var high := rect.end
+	if corner.x < low.x - SEAM or corner.x > high.x + SEAM:
+		return false
+	if corner.y < low.y - SEAM or corner.y > high.y + SEAM:
+		return false
+	if (low.x < corner.x - SEAM) if point.x < corner.x else (high.x > corner.x + SEAM):
+		return true
+	return (low.y < corner.y - SEAM) if point.y < corner.y else (high.y > corner.y + SEAM)
 
 
 static func circle_contact(

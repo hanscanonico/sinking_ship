@@ -408,8 +408,11 @@ func joins(ramp_surface_id: int) -> PackedInt32Array:
 ## (ObstacleContacts): a deck edge over a stair, with none, still holds it. On a stair,
 ## each is measured from the stair carried on to it, not from the feet: the deck at its
 ## head and a wall's top flush with that deck are where it goes, not a step too high,
-## and the stair going on down under a deck edge is a floor to crawl on. One contact per
-## direction, the deepest; a crate's names it (Contact.prop). ObstacleContacts works it.
+## and the stair going on down under a deck edge is a floor to crawl on. The flat pieces
+## that hold it — decks and box blockers — hold it as one: where one piece's corner lies on
+## another's face, carried on toward the body, or inside it, that corner is a seam and
+## holds nothing back (#566). One contact per direction, the deepest; a crate's names it
+## (Contact.prop). ObstacleContacts works it.
 func obstacle_contacts(
 	ship_point: Vector3,
 	radius: float,

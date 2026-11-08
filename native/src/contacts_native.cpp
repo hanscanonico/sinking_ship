@@ -22,11 +22,12 @@ namespace {
 constexpr int32_t NONE = -1;
 constexpr int32_t UNASKED = -2;
 constexpr double INF = std::numeric_limits<double>::infinity();
-// SpatialIndex.ROUNDING; PropStands.CELL and SLACK; PlaneShapes.CLIMB_MARGIN.
+// SpatialIndex.ROUNDING; PropStands.CELL and SLACK; PlaneShapes.CLIMB_MARGIN and SEAM.
 constexpr double ROUNDING = 0.000001;
 constexpr double STANDS_CELL = 2.0;
 constexpr double STANDS_SLACK = 0.001;
 constexpr double CLIMB_MARGIN = 0.001;
+constexpr double SEAM = 0.001;
 // PropState.Body.
 constexpr int32_t BODY_AIRBORNE = 1;
 constexpr int32_t BODY_LOST = 2;
@@ -110,6 +111,57 @@ bool circle_contact(const Vector2 &p_centre, double p_circle_radius, const Vecto
 	return true;
 }
 
+// PlaneShapes.carries_on over the rectangle from p_low to p_high.
+bool carries_on(const Vector2 &p_low, const Vector2 &p_high, const Vector2 &p_corner, const Vector2 &p_point) {
+	const double x = double(p_corner.x);
+	const double y = double(p_corner.y);
+	if (x < double(p_low.x) - SEAM || x > double(p_high.x) + SEAM) {
+		return false;
+	}
+	if (y < double(p_low.y) - SEAM || y > double(p_high.y) + SEAM) {
+		return false;
+	}
+	if (double(p_point.x) < x ? double(p_low.x) < x - SEAM : double(p_high.x) > x + SEAM) {
+		return true;
+	}
+	return double(p_point.y) < y ? double(p_low.y) < y - SEAM : double(p_high.y) > y + SEAM;
+}
+
+// A contact ObstacleContacts._unseam weighs: its place in the contacts found, the corner
+// of a flat piece it is with, and that piece.
+struct Cornered {
+	size_t found = 0;
+	Vector2 at;
+	size_t flat = 0;
+};
+
+// ObstacleContacts._unseam, in place: p_flats holds each flat piece's two corners, low
+// then high.
+void unseam(std::vector<ContactHit> &r_found, const std::vector<Vector2> &p_flats,
+		const std::vector<Cornered> &p_cornered, const Vector2 &p_point) {
+	size_t kept = 0;
+	size_t next = 0;
+	for (size_t index = 0; index < r_found.size(); index++) {
+		bool seam = false;
+		if (next < p_cornered.size() && p_cornered[next].found == index) {
+			const Cornered &corner = p_cornered[next];
+			next++;
+			for (size_t other = 0; other < p_flats.size() / 2; other++) {
+				if (other != corner.flat &&
+						carries_on(p_flats[other * 2], p_flats[other * 2 + 1], corner.at, p_point)) {
+					seam = true;
+					break;
+				}
+			}
+		}
+		if (!seam) {
+			r_found[kept] = r_found[index];
+			kept++;
+		}
+	}
+	r_found.resize(kept);
+}
+
 // PlaneShapes.deepest_per_direction, in place.
 void deepest_per_direction(std::vector<ContactHit> &r_contacts) {
 	if (r_contacts.size() < 2) {
@@ -158,6 +210,8 @@ thread_local std::vector<int32_t> near_outer;
 thread_local std::vector<int32_t> near_inner;
 thread_local std::vector<int32_t> near_props;
 thread_local std::vector<ContactHit> contacts_found;
+thread_local std::vector<Vector2> flats_found;
+thread_local std::vector<Cornered> cornered_found;
 thread_local std::vector<ContactHit> rails_found;
 thread_local std::vector<int32_t> landing_found;
 } // namespace
@@ -708,6 +762,11 @@ void NativeSurfaces::obstacles(const Vector3 &p_ship_point, double p_radius, dou
 	grid_.near(box_position, box_end, reach_up, head, near);
 	int32_t stair = UNASKED;
 	ContactHit hit;
+	// Every flat piece that holds the body, and the contacts with their corners.
+	std::vector<Vector2> &flats = flats_found;
+	std::vector<Cornered> &cornered = cornered_found;
+	flats.clear();
+	cornered.clear();
 	for (int32_t surface : near) {
 		if (surface < first_top_) {
 			continue;
@@ -731,6 +790,13 @@ void NativeSurfaces::obstacles(const Vector3 &p_ship_point, double p_radius, dou
 				continue;
 			}
 			met = rect_contact(position, size, point, p_radius, hit);
+			if (met) {
+				flats.push_back(position);
+				flats.push_back(position + size);
+				if (nearest.x != point.x && nearest.y != point.y) {
+					cornered.push_back({ r_found.size(), nearest, flats.size() / 2 - 1 });
+				}
+			}
 		} else {
 			met = circle_contact(centres_[blocker], radii_[blocker], point, p_radius, hit);
 		}
@@ -769,7 +835,17 @@ void NativeSurfaces::obstacles(const Vector3 &p_ship_point, double p_radius, dou
 		}
 		if (met) {
 			r_found.push_back(hit);
+			if (surface < first_ramp_) {
+				flats.push_back(position);
+				flats.push_back(position + size);
+				if (closest.x != point.x && closest.y != point.y) {
+					cornered.push_back({ r_found.size() - 1, closest, flats.size() / 2 - 1 });
+				}
+			}
 		}
+	}
+	if (!cornered.empty()) {
+		unseam(r_found, flats, cornered, point);
 	}
 	const NativeStands *stands = stands_.ptr();
 	std::vector<int32_t> &props = near_props;
