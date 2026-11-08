@@ -486,20 +486,20 @@ material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 1.0
 size = Vector3(0.875, 0.625, 17)
 
-[sub_resource type="PrismMesh" id="PrismMesh_dii6x"]
+[sub_resource type="PrismMesh" id="PrismMesh_0db39"]
 material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 0.0
-size = Vector3(0.3125, 0.25, 1.1875)
+size = Vector3(0.3125, 0.25, 1.2199)
 
 [sub_resource type="PrismMesh" id="PrismMesh_o4jg5"]
 material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 0.0
-size = Vector3(0.3125, 0.25, 1.3125)
+size = Vector3(0.3125, 0.25, 1.3449)
 
 [sub_resource type="PrismMesh" id="PrismMesh_rqitp"]
 material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 0.0
-size = Vector3(0.625, 0.5, 2.1875)
+size = Vector3(0.625, 0.5, 2.2199)
 
 [sub_resource type="PrismMesh" id="PrismMesh_86b92"]
 material = SubResource("StandardMaterial3D_swvke")
@@ -3586,6 +3586,13 @@ metadata/name = &"D deck"
 [node name="Platform_d_111_0" type="CSGBox3D" parent="Platforms" unique_id=21463942]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.95625, -1.35, 0)
 size = Vector3(0.2875, 0.2, 1.7)
+material = SubResource("StandardMaterial3D_b7bnx")
+metadata/ship = &"platform"
+metadata/name = &"D deck"
+
+[node name="Platform_d_stair_step_p" type="CSGBox3D" parent="Platforms" unique_id=656147957]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.6875, -2.2875, 0.6875)
+size = Vector3(3.25, 0.2, 4.25)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"D deck"
@@ -10961,17 +10968,17 @@ mesh = SubResource("PrismMesh_164ed")
 metadata/ship = &"ramp"
 
 [node name="Ramp_d_step_o_0" type="MeshInstance3D" parent="Ramps" unique_id=1850524867]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.53125, -2.8125, -3.40625)
-mesh = SubResource("PrismMesh_dii6x")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.53125, -2.8125, -3.39005)
+mesh = SubResource("PrismMesh_0db39")
 metadata/ship = &"ramp"
 
 [node name="Ramp_d_step_o_1" type="MeshInstance3D" parent="Ramps" unique_id=1702608430]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.53125, -2.8125, 3.78125)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.53125, -2.8125, 3.7650502)
 mesh = SubResource("PrismMesh_o4jg5")
 metadata/ship = &"ramp"
 
 [node name="Ramp_d_step_p_port" type="MeshInstance3D" parent="Ramps" unique_id=671688979]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113, -2.4375, -3.90625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113, -2.4375, -3.92245)
 mesh = SubResource("PrismMesh_rqitp")
 metadata/ship = &"ramp"
 
@@ -11196,12 +11203,6 @@ mesh = SubResource("PrismMesh_3exft")
 metadata/ship = &"ramp"
 
 [node name="Blockers" type="Node3D" parent="." unique_id=2032804002]
-
-[node name="Blocker_d_under_stair_p" type="CSGBox3D" parent="Blockers" unique_id=2071925510]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.637505, -2.2051, 0.6875)
-size = Vector3(3.15, 0.9648, 4.25)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
 
 [node name="Blocker_c_lining_0" type="CSGBox3D" parent="Blockers" unique_id=1835707925]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.262505, 1.65625, 11.900001)
@@ -34749,8 +34750,8 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_e_wall_56_lintel_0" type="CSGBox3D" parent="Blockers" unique_id=202473965]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.6875, -3.2795, -3.27475)
-size = Vector3(0.06, 1.116, 0.9255)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.6875, -3.2795, -3.25855)
+size = Vector3(0.06, 1.116, 0.9579)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -43832,51 +43833,63 @@ size = Vector3(0.2, 0.25, 0.5075)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_d_riser_n_16" type="CSGBox3D" parent="Blockers" unique_id=1926290804]
+[node name="Blocker_d_riser_n_1" type="CSGBox3D" parent="Blockers" unique_id=45721497]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -85.1406, -3.0625, 13.05)
 size = Vector3(0.2, 0.25, 0.1)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_d_riser_o_15" type="CSGBox3D" parent="Blockers" unique_id=970972558]
+[node name="Blocker_d_riser_o_0" type="CSGBox3D" parent="Blockers" unique_id=1100032398]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.6875, -2.8125, 2.13375)
 size = Vector3(0.2, 0.25, 0.4575)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_d_riser_o_17" type="CSGBox3D" parent="Blockers" unique_id=456711751]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.6875, -2.8125, 3.1087499)
-size = Vector3(0.2, 0.25, 0.0325)
+[node name="Blocker_d_riser_p_forward_0" type="CSGBox3D" parent="Blockers" unique_id=1534227421]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -1.34375, -8.221251)
+size = Vector3(0.2, 2.6875, 6.2575)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_d_riser_p_forward_2" type="CSGBox3D" parent="Blockers" unique_id=931060479]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -2.4375, -8.221251)
-size = Vector3(0.2, 0.5, 6.2575)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_d_riser_p_forward_3" type="CSGBox3D" parent="Blockers" unique_id=1996531050]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -2.4375, -5.0162497)
-size = Vector3(0.2, 0.5, 0.0325)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_d_riser_p_forward_4" type="CSGBox3D" parent="Blockers" unique_id=709531289]
+[node name="Blocker_d_riser_p_forward_1" type="CSGBox3D" parent="Blockers" unique_id=787943305]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -2.4375, 0)
 size = Vector3(0.2, 0.5, 5.625)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_d_riser_p_forward_5" type="CSGBox3D" parent="Blockers" unique_id=1485611825]
+[node name="Blocker_d_riser_p_forward_2" type="CSGBox3D" parent="Blockers" unique_id=931060479]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -2.4375, 4.72)
 size = Vector3(0.2, 0.5, 0.875)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_d_riser_p_forward_6" type="CSGBox3D" parent="Blockers" unique_id=822367087]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -2.4375, 8.38375)
-size = Vector3(0.2, 0.5, 6.3325)
+[node name="Blocker_d_riser_p_forward_3" type="CSGBox3D" parent="Blockers" unique_id=1996531050]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -1.34375, 8.33375)
+size = Vector3(0.2, 2.6875, 6.2325)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_d_riser_p_forward_4" type="CSGBox3D" parent="Blockers" unique_id=709531289]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -2.4375, 11.5)
+size = Vector3(0.2, 0.5, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_d_riser_stair_p_port" type="CSGBox3D" parent="Blockers" unique_id=1237545623]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.637505, -2.4375, -1.3375)
+size = Vector3(3.15, 0.5, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_d_riser_stair_p_starboard" type="CSGBox3D" parent="Blockers" unique_id=1375312302]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.637505, -2.4375, 2.7124999)
+size = Vector3(3.15, 0.5, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_d_riser_stair_p_forward" type="CSGBox3D" parent="Blockers" unique_id=854189892]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.1625, -2.4375, 0.6875)
+size = Vector3(0.2, 0.5, 3.85)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -59678,9 +59691,9 @@ size = Vector3(0.06, 3.216, 0.2625)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_e_wall_56_lintel_0_u0" type="CSGBox3D" parent="Blockers" unique_id=1349553492]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.6875, -3.2625, -2.725)
-size = Vector3(0.06, 1.15, 0.175)
+[node name="Blocker_e_wall_56_lintel_0_u0" type="CSGBox3D" parent="Blockers" unique_id=1198703626]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -101.6875, -3.2625, -2.7088)
+size = Vector3(0.06, 1.15, 0.1426)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -67756,25 +67769,25 @@ size = Vector3(0.7, 0.44, 1.9)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_berth_335_0" type="CSGBox3D" parent="Blockers" unique_id=324572253]
+[node name="Blocker_berth_335_0" type="CSGBox3D" parent="Blockers" unique_id=73674534]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.887505, -2.7175, -0.4125)
 size = Vector3(1.9, 0.44, 0.7)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_berth_335_1" type="CSGBox3D" parent="Blockers" unique_id=774238804]
+[node name="Blocker_berth_335_1" type="CSGBox3D" parent="Blockers" unique_id=1947564437]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.887505, -2.7175, -2.3700001)
 size = Vector3(1.9, 0.44, 0.7)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_upper_335_0" type="CSGBox3D" parent="Blockers" unique_id=1908454707]
+[node name="Blocker_upper_335_0" type="CSGBox3D" parent="Blockers" unique_id=30824115]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.887505, -0.9975, -0.4125)
 size = Vector3(1.9, 0.44, 0.7)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_upper_335_1" type="CSGBox3D" parent="Blockers" unique_id=811101931]
+[node name="Blocker_upper_335_1" type="CSGBox3D" parent="Blockers" unique_id=1085802445]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -99.887505, -0.9975, -2.3700001)
 size = Vector3(1.9, 0.44, 0.7)
 material = SubResource("StandardMaterial3D_jiew5")
@@ -95896,12 +95909,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"third-class men\'s lavatory"
 
-[node name="Room_d_23_third_class_men_s_lavatory_d_deck_forward_of_p" type="CSGBox3D" parent="Rooms" unique_id=1176757242]
+[node name="Room_d_23_third_class_men_s_lavatory_d_deck_by_p" type="CSGBox3D" parent="Rooms" unique_id=733815215]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -117.8907, -1.1375, -7.90625)
 size = Vector3(2.1562, 2.1, 5.6875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"third-class men\'s lavatory, D deck forward of P"
+metadata/name = &"third-class men\'s lavatory, D deck by P"
 
 [node name="Room_d_24_third_class_men_s_lavatory" type="CSGBox3D" parent="Rooms" unique_id=743354275]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.2344, -1.1375, -3.75)
@@ -95917,12 +95930,12 @@ material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"third-class women\'s lavatory"
 
-[node name="Room_d_26_third_class_women_s_lavatory_d_deck_forward_of_p" type="CSGBox3D" parent="Rooms" unique_id=2117286159]
+[node name="Room_d_26_third_class_women_s_lavatory_d_deck_by_p" type="CSGBox3D" parent="Rooms" unique_id=34213947]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -117.7657, -1.1375, 7.96875)
 size = Vector3(2.4062, 2.1, 5.5625)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
-metadata/name = &"third-class women\'s lavatory, D deck forward of P"
+metadata/name = &"third-class women\'s lavatory, D deck by P"
 
 [node name="Room_d_27_third_class_women_s_lavatory" type="CSGBox3D" parent="Rooms" unique_id=315825894]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.2344, -1.1375, 3.84375)
@@ -106884,10 +106897,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.2344, -2.1875, -7.9062)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_d_22_third_class_men_s_lavatory"
 
-[node name="BonusSpot_d_23_third_class_men_s_lavatory_d_deck_forward_of_p" type="Marker3D" parent="BonusSpots" unique_id=751286602]
+[node name="BonusSpot_d_23_third_class_men_s_lavatory_d_deck_by_p" type="Marker3D" parent="BonusSpots" unique_id=1932811580]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -118.0406, -2.1875, -7.9062)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_d_23_third_class_men_s_lavatory_d_deck_forward_of_p"
+metadata/room = &"Room_d_23_third_class_men_s_lavatory_d_deck_by_p"
 
 [node name="BonusSpot_d_24_third_class_men_s_lavatory" type="Marker3D" parent="BonusSpots" unique_id=1693253067]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.2344, -2.1875, -3.75)
@@ -106899,10 +106912,10 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.2344, -2.1875, 7.9688)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_d_25_third_class_women_s_lavatory"
 
-[node name="BonusSpot_d_26_third_class_women_s_lavatory_d_deck_forward_of_p" type="Marker3D" parent="BonusSpots" unique_id=1169194208]
+[node name="BonusSpot_d_26_third_class_women_s_lavatory_d_deck_by_p" type="Marker3D" parent="BonusSpots" unique_id=1197216519]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -117.7656, -2.1875, 7.9688)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_d_26_third_class_women_s_lavatory_d_deck_forward_of_p"
+metadata/room = &"Room_d_26_third_class_women_s_lavatory_d_deck_by_p"
 
 [node name="BonusSpot_d_27_third_class_women_s_lavatory" type="Marker3D" parent="BonusSpots" unique_id=620504514]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.2344, -2.1875, 3.8438)
@@ -118623,7 +118636,7 @@ metadata/ship = &"cell"
 metadata/name = &"after_hold_aft_d_aft"
 metadata/shape = 0.9687
 metadata/sideways = 0.25
-metadata/rooms = Array[StringName]([&"third-class men\'s lavatory, D deck forward of P", &"third-class women\'s lavatory, D deck forward of P", &"third-class entrance"])
+metadata/rooms = Array[StringName]([&"third-class men\'s lavatory, D deck by P", &"third-class women\'s lavatory, D deck by P", &"third-class entrance"])
 metadata/leak_area = 0.000286
 
 [node name="Cell_after_hold_aft_d" type="CSGBox3D" parent="Structure/Cells" unique_id=583570439]
