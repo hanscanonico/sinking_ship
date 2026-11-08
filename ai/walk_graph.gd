@@ -659,8 +659,10 @@ func steer(from_pos: Vector3, from_surface: int, goal: int, pose: ShipPose) -> P
 ## Where a body on [param from_surface] at [param from_pos] walks next to go through
 ## [param leg]. Lined up in front of it, a point just past it; further out in front,
 ## a point a body's width further along its axis than the body is, so the walk
-## closes on the axis rather than circling a point; just past it within its width, the
-## point past it too, never back to it; beside it, the middle of its near edge, so the
+## closes on the axis rather than circling a point — no further than the portal, but for
+## a body within a stair's width at its head: that one walks on onto the stair as it
+## closes, not square to the head's middle first (#543); just past it within its width,
+## the point past it too, never back to it; beside it, the middle of its near edge, so the
 ## body turns in rather than doubling back. On the leg's ramp, the point
 ## past its far end; under it or behind its high end, out to its nearer side first, so
 ## the walk to its foot runs along the stair rather than into it. A portal wider than a
@@ -682,7 +684,10 @@ func toward(leg: Portal, from_pos: Vector3, from_surface: int) -> Vector3:
 	if (lined_up or through) and absf(ahead) <= _lead:
 		return past
 	if ahead < 0.0:
-		return leg.entry + along * minf(ahead + _lead, 0.0) + line
+		var onto := ahead + _lead
+		if leg.ramp == NONE or absf(aside) >= leg.half_width:
+			onto = minf(onto, 0.0)
+		return leg.entry + along * onto + line
 	if leg.ramp != NONE and ahead > _lead and absf(aside) < leg.half_width:
 		var side := leg.along.orthogonal() * (1.0 if aside >= 0.0 else -1.0)
 		var out := leg.entry + along * ahead
