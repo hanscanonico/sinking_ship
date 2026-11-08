@@ -186,6 +186,9 @@ var _reckoning: BotReckoning
 ## grip angle by its seen velocity too — the same place on a deck that grips.
 var _edge_from := Vector3.ZERO
 var _edge_also := Vector3.ZERO
+## The tick of its view, from which it steps its walks since nearing a stair (_follow_route);
+## -1 while it is seen held at its start, where no walk has moved it.
+var _seen_tick := 0
 ## How hard it fights, as the last think found the match: how much it presses and its
 ## spar margin.
 var _pacing: BotPacing
@@ -245,12 +248,15 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_footing.seat_rules = _props.rules(seen)
 	# As a player sees them, for the footing's probes too: broken railings, crates.
 	_floors.honour(_up, pose, seen)
-	# The route is followed from where its seen velocity carries it; the edges are kept
-	# from where its own walks have, which a turn toward one since cannot hide — and,
-	# past the grip angle, where it slides wherever it walks, from both.
+	# The route is followed from where its seen velocity carries it — nearing a stair, from
+	# where its walks have stepped it; the edges are kept from where its own walks have,
+	# which a turn toward one since cannot hide — and, past the grip angle, where it
+	# slides wherever it walks, from both.
 	var now_pos := _reckoning.reckon(me)
+	var slides := _footing.slides(pose)
 	_edge_from = _reckoning.by_walks(me, seen["tick"], now_pos)
-	_edge_also = now_pos if _footing.slides(pose) else _edge_from
+	_edge_also = now_pos if slides else _edge_from
+	_seen_tick = -1 if seen["phase"] == MatchState.Phase.COUNTDOWN else seen["tick"]
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
 		return _swim_out(me, now_pos, pose, tick)
@@ -767,8 +773,15 @@ func _ride(
 ## is no portal left to go through.
 func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> bool:
 	# The route is followed from where the bot's seen velocity has carried it: a
-	# doorway is narrower than what the reaction lag would overshoot. Off the foot of a
-	# stair there, it is off the stair, whatever the view still says.
+	# doorway is narrower than what the reaction lag would overshoot. Nearing a stair, from
+	# where its walks have stepped it (BotStair.nears): turning at the head, it is where it
+	# turned to, not where the walk it turned from would have taken it (#543). Off the
+	# foot of a stair there, it is off the stair, whatever the view still says.
+	var stairs := _seen_tick >= 0 and not _legs.is_empty() and _legs[0].ramp != WalkGraph.NONE
+	if stairs and not _footing.slides(pose):
+		var stepped := _reckoning.by_steps(me, _seen_tick, now_pos)
+		if _stair.nears(_legs[0], stepped):
+			now_pos = stepped
 	var my_surface: int = me["surface"]
 	var under := _surfaces.under(now_pos, _rules.step_height)
 	if under != Surfaces.NONE:
@@ -778,7 +791,7 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 	if waypoint.is_empty():
 		return false
 	var leg := _legs[0]
-	var aim := _floor_way.toward(now_pos, my_surface, leg, waypoint[0])
+	var aim := _floor_way.toward(now_pos, my_surface, leg, waypoint[0], me["surface"])
 	var wish := Vector2(aim.x - now_pos.x, aim.z - now_pos.z).normalized()
 	# Down a stair the route does not take is into another zone, whose route is back up
 	# it: on one — as it sees itself or reckons — with the way on back across it, off it
@@ -812,7 +825,8 @@ func _walk_at(steer: Steer, me: Dictionary, mark: Dictionary, now: Vector3, pose
 		var mark_vel: Vector3 = mark["vel"]
 		var ahead := _lead * _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
 		mark_pos += Vector3(mark_vel.x, 0.0, mark_vel.z) * ahead
-	var goal := _floor_way.toward(my_pos, me["surface"], null, _approach(my_pos, mark_pos, pose))
+	var at := _footing.approach(my_pos, mark_pos, pose)
+	var goal := _floor_way.toward(my_pos, me["surface"], null, at)
 	var wish := Vector2(goal.x - my_pos.x, goal.z - my_pos.z).normalized().rotated(_aim_offset)
 	var on := _surfaces.under(now, _rules.step_height)
 	steer.move = _footing.clear_heading(
@@ -1032,7 +1046,7 @@ func _waypoint(
 		var on_its_ramp := (
 			leg.ramp != WalkGraph.NONE and my_surface == _surfaces.ramp_surface(leg.ramp)
 		)
-		if on_its_ramp or my_zone == leg.from_zone:
+		if on_its_ramp or my_zone == leg.from_zone or _stair.at_head(leg, my_pos):
 			break
 		if my_zone == leg.to_zone:
 			_legs.pop_front()
@@ -1045,19 +1059,6 @@ func _waypoint(
 	if _legs.is_empty():
 		return PackedVector3Array()
 	return PackedVector3Array([_walk_graph.toward(_legs[0], my_pos, my_surface)])
-
-
-## Where to walk to reach [param target_pos]: straight at it, except past the
-## grip angle, where the bot first gets uphill of it so that its shove goes
-## downhill.
-func _approach(my_pos: Vector3, target_pos: Vector3, pose: ShipPose) -> Vector3:
-	if not _footing.slides(pose):
-		return target_pos
-	var gravity := pose.ship_gravity(_rules.gravity)
-	var uphill := -Vector3(gravity.x, 0.0, gravity.z).normalized()
-	if (my_pos - target_pos).dot(uphill) >= 0.0:
-		return target_pos
-	return target_pos + uphill * (_rules.body_radius * 2.0 + _rules.shove_reach)
 
 
 ## Turns [param steer]'s walk out of the path of a crate seen sliding at the bot, and
