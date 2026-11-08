@@ -870,26 +870,40 @@ def head_flare(x, y):
         return 0.0
     return max(side - lines_half(x, FCSL[1]), 0.0) * min((y - FLARE_FOOT) / (FCSL[1] - FLARE_FOOT), 1.0)
 
-# Her sheer aft (#399): D deck aft of bulkhead N laid where her plates stand it, as forward
-# and as far as it may. Her bulkhead tops measured off Plate III are the truth again
-# (BULKHEADS: "up to the underside of D deck", BOT), and Plate III's D deck line reads them
-# within 0.2 ft: M 0.05 m over its amidships height, N 0.26, O 0.50, P 1.07, her rudder post
-# 1.37. Aft of N she stands at N's top on the decks' grain, 0.25 m up, a step a body walks up
-# at N's line through the second-class dining saloon, so N stands up to the deck aft of it
-# and over the one forward. One step: a deck a step parts off is a deck of its own, and a
-# step a body walks up is no ramp to one; aft of N her plates draw two stairs up to C deck
-# (her second-class stairway between N and O, her third-class one aft of O), so the deck
-# aft of N has two ways up, but a second step, at O to O's top, would leave the deck aft of
-# it one (the third-class stairway), and a step to P's would be 0.5 m more again, more than a
-# body steps up. So O stands 0.25 m over her D deck, P 0.80 and her plate at her rudder post
-# 1.12, 2.94 m under C deck, which stays flat under her poop (POOP stands on its sheer). M's
-# top is under the grain: from M forward to her bridge deck's front D deck stays flat. (The
-# line, the deck's height aft of it), on the 1/128 m grain her cells part D deck on (D_CUTS).
+# Her sheer aft (#399, #503): D deck aft of bulkhead N laid where her plates stand it, as
+# forward. Her bulkhead tops measured off Plate III are the truth again (BULKHEADS: "up to
+# the underside of D deck", BOT), and Plate III's D deck line reads them within 0.2 ft: M
+# 0.05 m over its amidships height, N 0.26, O 0.50, P 1.07, her rudder post 1.37 (read again
+# for #503: 0.04, 0.27, 0.50, 1.04, and 1.15 at x -122). M's top is under the decks' grain:
+# from M forward to her bridge deck's front D deck stays flat. Aft of it, each stretch stands
+# at the top of the bulkhead forward of it on the grain, so each bulkhead stands up to the
+# deck aft of it and over the one forward: aft of N at N's top, 0.25 m up, a step a body
+# walks up through the second-class dining saloon; aft of O at O's, 0.25 m more, a step in
+# the second-class rooms and a short flight in each corridor across O; and aft of P at P's,
+# 0.5 m more again, more than a body steps up.
+# A deck a step parts off is a deck of its own, and every deck under her main deck has two
+# stairs up out of it (the layout lint). Her plates draw two stairs up to C deck aft of N:
+# her second-class stairway between N and O, and her third-class stairway between O and P,
+# its flight up rising forward from its foot 4.9 m forward of P. Aft of P they draw none:
+# her stern's rooms are left through her third-class entrance. So the deck at P's top runs on
+# forward of P through the entrance to past that flight's foot, to D_STEP_P, the third-class
+# W.C.s' forward face (d.py), the line nearest P that a body crosses only in the entrance (the
+# lavatories either side of it, forward of the W.C.s, are entered from the passages forward
+# of them): there a short flight either side of the stairway's well climbs the 0.5 m, so the
+# deck between O and that line has two ways up, and the stairway up from the deck at P's
+# top two flights side by side in the lanes the plate draws it in (c.py). Laid flat in two
+# stretches between O and P, her deck stands nearer her plate's sheer than with its step on
+# P's line: 0.36 m under it at the line, where her plate's sheer stands 0.14 m under P's top,
+# against 0.53 m under it at P. So O stands up to the deck aft of it, P to the deck either
+# side of it, and her plate at her rudder post 0.36 m over it, 2.19 m under C deck, which
+# stays flat under her poop (POOP stands on its sheer). (The line, the deck's height aft of
+# it), on the 1/128 m grain her cells part D deck on (D_CUTS).
 def grain_top(letter):
     """Bulkhead letter's measured top on the decks' grain under it."""
     return math.floor(TOPS[letter] * 16 + 1e-9) / 16
 
-D_SHEER_AFT = [(round(BX[letter] * 128) / 128, grain_top(letter)) for letter in "N"]
+D_STEP_P = round(min(r[1] for r in plates.load("d").rooms if r[0] == "gentlemen's lavatory, D deck") * 128) / 128
+D_SHEER_AFT = [(round(BX[letter] * 128) / 128, grain_top(letter)) for letter in "NO"] + [(D_STEP_P, grain_top("P"))]
 
 def stepped(flat, steps, x, up=False):
     """A deck's height at x, flat aft of its first step, each step's height forward of it: on a
@@ -1533,7 +1547,7 @@ d_deck = [i for k, (x0, x1, z0, z1) in enumerate(D_PIECES)
 # precision, and off the grain it stood a hair off a solid's face on the same line,
 # a gap the layout lint read as a door.
 D_CUTS = sorted({round((UPPER["M"] if letter == "M" else x) * 128) / 128 for letter, x, _deck, feet in BULKHEADS
-                 if letter != "MN" and LOAD_WL + feet * FT > D_DECK + 1e-6} | {B_RUN[1]})
+                 if letter != "MN" and LOAD_WL + feet * FT > D_DECK + 1e-6} | {B_RUN[1], D_STEP_P})
 D_REACH = 0.4
 # A room the plate draws over a line is split along it, each part at least a body's lead
 # (two of its radii) and a margin deep, or a body stepping through the line would stand in
@@ -2465,16 +2479,18 @@ def c_place(x, _z=0.0):
 def d_place(x, _z=0.0):
     """Where on D deck ship x stands, between the lines her cells part along (D_CUTS):
     from bulkhead M to her bridge deck's front, her main place; aft of it, aft of the
-    bulkhead forward of it; forward of it, forward of the bulkhead aft of it, or aft of
-    bulkhead B under her forward well."""
+    bulkhead forward of it, or forward of P up to her sheer's step forward of it (D_STEP_P);
+    forward of it, forward of the bulkhead aft of it, or aft of bulkhead B under her forward
+    well."""
     letter = LINE_LETTER
     m = round(UPPER["M"] * 128) / 128
     if m <= x < B_RUN[1]:
         return ("D deck",)
     after = max([c for c in D_CUTS if c <= x], default=None)
-    if x > m and round(after, 4) in letter:
+    ahead = min([c for c in D_CUTS if c > x], default=None)
+    if x > m and round(after, 4) in letter or ahead == D_STEP_P:
         return ("D deck", "forward of %s" % letter[round(after, 4)])
-    return ("D deck", "aft of %s" % letter[round(min(c for c in D_CUTS if c > x), 4)])
+    return ("D deck", "aft of %s" % letter[round(ahead, 4)])
 
 plan_layer("c", C_PLAN, c_at, c_over, (POOP_TO, C_TAIL, B_RUN[1], FCSL_FROM, FC_RAMP[1]),
            parted_at=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, FCSL_STEP), place=c_place, main=("C deck",))
@@ -2525,18 +2541,44 @@ def ef_place(level, cuts=None):
 
 plan_layer("e", E_PLAN, E_DECK, lambda x: d_at(x, True), [at for at, _h in D_STEPS],
            parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("E"))
-# And where she steps up aft (D_SHEER_AFT), at N: across her from the deck forward up
-# to the one aft, wherever nothing on the line stands from the one to the other already (a
-# wall on it, E deck's under the deck aft), in the doorways too, a step a body walks up.
+# Where she steps up aft and a body crosses the step, a short flight up it, rising aft
+# from the deck forward to the one aft, as steep as a flight run on (RUN_ON), its head on
+# the step's line: at O in each corridor across it, the deck between O and N two ways up so
+# (D_SHEER_AFT); at her step to P's top (D_STEP_P) either side of the third-class stairway's
+# well in the entrance, to port of the hole of the flight up from E deck, to starboard of the
+# flight up to C deck.
+STEP_FLIGHTS = []  # (x0, x1, z0, z1): each laid
+
+def step_flight(fid, line, z0, z1):
+    low, high = d_at(line + 0.01), d_at(line - 0.01)
+    run = math.ceil((high - low) / RUN_ON * 16) / 16
+    _name, _x0, _x1, z0, z1, *_rest = clear_sides(("step", line, line + run, z0, z1, "aft", "d", "d"))
+    ramp(fid, line, line + run, z0, z1, 0, high, low)
+    STEP_FLIGHTS.append((line, line + run, z0, z1))
+
+O_LINE = round(BX["O"] * 128) / 128
+for k, (_n, _x0, _x1, z0, z1) in enumerate(r for r in D_PLAN.rooms if r[0] == "corridor, D deck" and r[1] < O_LINE < r[2]):
+    step_flight("d_step_o_%d" % k, O_LINE, z0, z1)
+ENTRANCE = next(r for r in D_PLAN.rooms if r[0] == "third-class entrance")
+WELL = [s for s in stairs if s[1] < D_STEP_P < s[2] and ENTRANCE[3] < s[3] and s[4] < ENTRANCE[4]
+        and s[5] >= d_at(D_STEP_P + 0.01) - 1e-6]
+step_flight("d_step_p_port", D_STEP_P, ENTRANCE[3], min(s[3] for s in WELL))
+step_flight("d_step_p_starboard", D_STEP_P, max(s[4] for s in WELL), ENTRANCE[4])
+
+# And where she steps up aft (D_SHEER_AFT): across her from the deck forward up to the one
+# aft, wherever nothing on the line stands from the one to the other already (a wall on it,
+# E deck's under the deck aft, a flight up it), in the doorways too, a step a body walks up,
+# and over the hole of a flight up from E deck through the step.
 for line, high in D_SHEER_AFT:
     low = d_at(line + 0.01)
     half = min(p[3] for p in D_PIECES if abs(p[0] - line) < 1e-6 or abs(p[1] - line) < 1e-6)
-    standing = sorted((b[2], b[3]) for b in block_geo if b[0] < line < b[1] and b[4] <= low + 1e-6
-                      and b[5] >= high - 1e-6)
+    standing = sorted([(b[2], b[3]) for b in block_geo if b[0] < line < b[1] and b[4] <= low + 1e-6
+                       and b[5] >= high - 1e-6] + [(f[2], f[3]) for f in STEP_FLIGHTS if f[0] == line])
     at_z = -half
     for k, (w0, w1) in enumerate(standing + [(half, half)]):
         if w0 - at_z > 0.005:
-            box("d_riser_%s_%d" % (LINE_LETTER[round(line, 4)].lower(), k), line - T, line + T, at_z, w0, low, high)
+            box("d_riser_%s_%d" % (LINE_LETTER.get(round(line, 4), "p_forward").lower(), k), line - T, line + T, at_z,
+                w0, low, high)
         at_z = max(at_z, w1)
 plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("F"))
 plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=sorted(G_CUTS + TRUNK_CUTS), place=ef_place("G", G_CUTS))
@@ -4161,9 +4203,17 @@ for name in ("after_hold_fwd", "after_hold_aft"):
     x0, x1 = COMP[name]
     cell(name, x0, x1, TANK_TOP, ORLOP, -HALF, HALF, "CARGO", HOLD)
     cell(name + "_orlop", x0, x1, ORLOP, G_DECK, -HALF, HALF, "STORES")
-    # (Under D deck where her sheer lifts it aft, D_SHEER_AFT.)
-    cell(name + "_tween", x0, x1, G_DECK, d_at((x0 + x1) * 0.5), -HALF, HALF, "ACCOMMODATION")
-    cell(name + "_d", x0, x1, d_at((x0 + x1) * 0.5), 0.0, -HALF, HALF, "ACCOMMODATION")
+    # (Under D deck where her sheer lifts it aft, D_SHEER_AFT, at its forward end. Where it
+    # steps up again inside the compartment, aft of O (D_STEP_P): the space over her 'tween
+    # under the deck aft of the step a cell of its own, as No. 3's under her stepped D deck
+    # forward (hold_3_upper), and D deck aft of the step another.)
+    low = d_at(x1 - 0.01)
+    cell(name + "_tween", x0, x1, G_DECK, low, -HALF, HALF, "ACCOMMODATION")
+    step = next((at for at, _h in D_SHEER_AFT if x0 + 0.01 < at < x1 - 0.01), None)
+    if step is not None:
+        cell(name + "_upper", x0, step, low, d_at(x0 + 0.01), -HALF, HALF, "ACCOMMODATION")
+        cell(name + "_d_aft", x0, step, d_at(x0 + 0.01), 0.0, -HALF, HALF, "ACCOMMODATION")
+    cell(name + "_d", x0 if step is None else step, x1, low, 0.0, -HALF, HALF, "ACCOMMODATION")
 x0, x1 = COMP["after_peak"]
 cell("after_peak_tank", x0, x1, KEEL, G_DECK, -HALF, HALF, "VOID")
 cell("after_peak_tween", x0, x1, G_DECK, d_at((x0 + x1) * 0.5), -HALF, HALF, "STORES")
@@ -4521,6 +4571,8 @@ def open_face(name, a, b, x):
 
 open_face("open_d_deck", piece("d_deck", B_RUN[1] - 0.01), "d_deck_forward", B_RUN[1])
 open_face("open_forecastle", "forecastle", "forecastle_head", FCSL_STEP)
+# And aft of O, her D deck at its step up to P's top (D_STEP_P), over the step.
+open_face("open_after_hold_aft_d", "after_hold_aft_d_aft", "after_hold_aft_d", D_STEP_P)
 
 def open_between(name, a, b):
     """An OPEN over all the face cells a and b share, if they share one."""
@@ -4537,6 +4589,7 @@ def open_between(name, a, b):
 # pieces it meets: across her at the trunk's ends, along her beside it, and No. 3's 'tween up
 # into the space over it under her stepped D deck.
 open_between("open_hold_3_upper", "hold_3_tween", "hold_3_upper")
+open_between("open_after_hold_aft_upper", "after_hold_aft_tween", "after_hold_aft_upper")
 for family in [[p for name in TRUNK_IN[what][1] for p in TRUNK_PARTS[name]] for what in TRUNKED]:
     for i, a in enumerate(family):
         for b in family[i + 1:]:
@@ -4976,7 +5029,8 @@ TIGHT = [
     (lambda a, b: a.startswith("bunker_") or b.startswith("bunker_"), "a bunker's plating"),
     (lambda a, b: "firemens_passage" in a + b, "the firemen's passage's plating"),
     # A step in a deck: the deck's own steel, standing up where it steps.
-    (lambda a, b: {unsplit(a), unsplit(b)} in ({"d_deck_forward", "c_deck"}, {"hold_3_upper", "d_deck"}),
+    (lambda a, b: {unsplit(a), unsplit(b)} in ({"d_deck_forward", "c_deck"}, {"hold_3_upper", "d_deck"},
+                                               {"after_hold_aft_upper", "after_hold_aft_d"}),
      "a step in her deck"),
 ]
 def unsplit(name):
