@@ -94,8 +94,14 @@ func test_a_body_presses_along_every_flight_narrower_than_itself_both_ways() -> 
 
 
 func test_a_body_pressed_against_ramp_52s_side_by_its_seam_goes_on_down() -> void:
-	var ramp := _layout.ramps[52]
-	assert_true(ramp.area.has_point(BY_THE_SEAM), "ramp 52 is the engineers' ladder")
+	# (Ramp 52 on #566's layout: found where it stands, as her flights' indices move.)
+	var ramp: ShipRamp = null
+	for each: ShipRamp in _layout.ramps:
+		if ramp == null and each.area.has_point(BY_THE_SEAM):
+			ramp = each
+	assert_not_null(ramp, "the engineers' ladder stands by the seam")
+	if ramp == null:
+		return
 	var at := Vector3(BY_THE_SEAM.x, ramp.height_at(BY_THE_SEAM.x, BY_THE_SEAM.y), BY_THE_SEAM.y)
 	var finish := ramp.end_point(1)
 	var took := _through(at, DOWN_RAMP_52.normalized(), finish, Vector2.RIGHT)

@@ -6,7 +6,9 @@ extends GutTest
 ## aft of N at N's, aft of O at O's, and aft of P at P's. Her deck at P's top runs on
 ## forward of P through her third-class entrance to the third-class W.C.s' forward face
 ## (tools/gen_titanic.py's D_STEP_P), where her third-class stairway up rises from it, so
-## each bulkhead stands up to the deck aft of it, and P to the deck either side of it.
+## each bulkhead stands up to the deck aft of it, and P to the deck either side of it. Under
+## that stairway's run forward of the step, her deck stands on at P's top: a flight stands
+## as a solid wedge on its foot's deck.
 
 ## The decks' grain, in metres.
 const GRAIN := 1.0 / 16.0
@@ -40,15 +42,24 @@ func _grain_top(letter: String) -> float:
 
 
 ## D deck's heights where its platforms' middles stand between x [param aft] and
-## [param fore], each once.
-func _d_deck(aft: float, fore: float) -> Array:
+## [param fore], each once: those under a flight's run when [param under] (her deck under
+## the third-class stairway up to C deck, its run over her step forward of P), else the rest.
+func _d_deck(aft: float, fore: float, under := false) -> Array:
 	var heights := []
 	for platform: ShipPlatform in _layout.platforms:
 		var middle := platform.area.get_center().x
 		if platform.name == &"D deck" and aft < middle and middle < fore:
-			if not heights.has(platform.height):
+			if _under_a_flight(platform) == under and not heights.has(platform.height):
 				heights.append(platform.height)
 	return heights
+
+
+## Whether a flight's run stands over the middle of [param platform].
+func _under_a_flight(platform: ShipPlatform) -> bool:
+	for ramp: ShipRamp in _layout.ramps:
+		if ramp.area.has_point(platform.area.get_center()):
+			return true
+	return false
 
 
 ## The floors of her rooms on D deck whose middles stand between x [param aft] and
@@ -83,6 +94,11 @@ func test_d_deck_aft_of_each_bulkhead_stands_at_its_top() -> void:
 	assert_eq(_d_deck(o, n), [_grain_top("n")], "between N and O, at N's top")
 	assert_eq(_d_deck(STEP_P, o), [_grain_top("o")], "from O to the step forward of P, at O's top")
 	assert_eq(_d_deck(p, STEP_P), [_grain_top("p")], "from that step to P, at P's top")
+	assert_eq(
+		_d_deck(STEP_P, o, true),
+		[_grain_top("p")],
+		"and on under the third-class stairway's run over the step, the flight's foot's deck"
+	)
 	assert_eq(_d_deck(stern, p), [_grain_top("p")], "aft of P, at P's top")
 	assert_eq(_room_floors(o, n), [_grain_top("n")], "her rooms between N and O stand on it")
 	assert_eq(_room_floors(STEP_P, o), [_grain_top("o")], "and between O and the step")
