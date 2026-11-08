@@ -109,7 +109,7 @@ func _carried(me: Dictionary, walked: Vector2, height: float, reckoned: Vector3)
 	var walked_to := seen_pos + Vector3(walked.x, 0.0, walked.y)
 	if (
 		_surfaces.blocked(seen_pos, walked_to, height, _rules.step_height)
-		or _surfaces.railed(seen_pos, walked_to, me["surface"])
+		or _surfaces.railed(seen_pos, walked_to, me["surface"], _rules)
 	):
 		return reckoned
 	if me["surface"] != Surfaces.NONE:

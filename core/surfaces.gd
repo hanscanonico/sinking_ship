@@ -494,19 +494,41 @@ func airborne_rail_contacts(
 	return PlaneShapes.deepest_per_direction(contacts)
 
 
-## Whether the straight path from [param from_point] to [param to_point] (x/z)
-## crosses a railing span of [param surface] — the only railings a body standing
-## on it can meet.
-func railed(from_point: Vector3, to_point: Vector3, surface: int) -> bool:
-	if surface < 0 or surface >= _platforms.size():
-		return false
+## Whether a railing holds back a body on its feet walking the straight path from
+## [param from_point], on [param surface], to [param to_point] (x/z), its feet from the
+## one's height to the other's: a span of [param surface]'s own it crosses; on a stair,
+## one along its side that holds a body there (rail_contacts), crossed going away from the
+## stair; and one along the edge of a floor the walk crosses onto at its feet's height,
+## crossed going off that floor (#553) — a railing holds a body on its own floor.
+func railed(from_point: Vector3, to_point: Vector3, surface: int, rules: BrawlRules) -> bool:
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
-	for index: int in _platform_rails[surface]:
+	if surface >= 0 and surface < _platforms.size():
+		for index: int in _platform_rails[surface]:
+			var railing := _railings[index]
+			if _rail_gone[index] == 1:
+				continue
+			if Geometry2D.segment_intersects_segment(start, end, railing.from, railing.to) != null:
+				return true
+	var way := end - start
+	var low := minf(from_point.y, to_point.y)
+	var high := maxf(from_point.y, to_point.y) + rules.step_height
+	var stair := is_ramp(surface)
+	var middle := _areas[surface].get_center() if stair else Vector2.ZERO
+	var bottom := low - (rules.railing_height if stair else rules.step_height)
+	for index: int in _rail_grid.along(start, end, bottom, high):
 		var railing := _railings[index]
-		if _rail_gone[index] == 1:
+		if _rail_gone[index] == 1 or railing.platform == surface:
 			continue
-		if Geometry2D.segment_intersects_segment(start, end, railing.from, railing.to) != null:
+		var deck := _platforms[railing.platform].height
+		if deck < bottom or deck > high:
+			continue
+		if Geometry2D.segment_intersects_segment(start, end, railing.from, railing.to) == null:
+			continue
+		var across := way.dot(_rail_normals[index])
+		if across < 0.0 and deck >= low - rules.step_height:
+			return true
+		if stair and across * (middle - railing.from).dot(_rail_normals[index]) < 0.0:
 			return true
 	return false
 
