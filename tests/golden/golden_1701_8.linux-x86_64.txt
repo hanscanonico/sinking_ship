@@ -4,20 +4,18 @@ must 2 thrown · 1 bakes · drawn
 00:17.1 forepeak flooding
 00:20.0 High jump aboard · spot 19
 00:20.9 hold_bilge flooding
-00:25.1 railing 3 broke
-00:27.2 seat 6 out · cold · place 8
-00:29.9 seat 2 out · cold · place 7
-00:32.9 seat 1 out · cold · place 6
+00:42.6 seat 6 out · cold · place 8
+01:08.8 seat 3 out · cold · place 7
+01:09.8 seat 4 out · cold · place 6
 01:16.5 Steady aboard · spot 10
 01:21.7 seat 0 takes Steady · spot 10
 01:31.2 hold flooding
+01:41.0 seat 7 out · cold · place 5
 01:46.0 hold_bilge lamps drowned
-01:52.1 seat 3 out · cold · place 5
 01:57.7 Strong arms aboard · spot 11
-02:00.7 seat 4 out · cold · place 4
-02:10.2 seat 7 out · cold · place 3
 02:10.4 hold_bilge full
 02:11.2 hold_wing_p flooding
+02:28.4 seat 2 out · cold · place 4
 02:45.6 panel_bulkhead_hold_engine_bilge_s_hold_wing_s gave way
 02:45.9 engine_bilge_s flooding
 02:46.7 engine_bilge_s lamps drowned
@@ -26,36 +24,12 @@ must 2 thrown · 1 bakes · drawn
 02:50.8 railing 13 broke
 02:51.3 prop 1 lost
 02:52.4 prop 0 lost
+02:59.0 seat 1 out · cold · place 3
 03:11.8 High jump lost · spot 19
 03:25.0 hold_wing_s lamps drowned
 03:45.1 engine_bilge_p flooding
-03:49.6 Double life aboard · spot 7
-04:01.3 water through over_bulkhead_hold_to_hold_wing_s
-04:24.6 water through stair_hold_sky
-05:11.4 hold_fwd_top flooding
-05:18.8 prop 2 afloat
-05:20.9 hold lamps drowned
-05:21.6 water through over_bulkhead_hold_to_hold
-05:30.3 hold_wing_s full
-05:33.9 prop 3 afloat
-05:50.1 saloon flooding
-05:50.1 port boats useless
-05:57.5 prop 2 lost
-05:58.7 generator stopped
-05:58.7 prop 3 lost
-06:01.7 air trapped in hold_fwd_top
-06:01.7 funnel creaking
-06:05.2 hatch_hold leaking
-06:10.8 deckhouse_hall flooding
-06:29.4 Strong arms lost · spot 11
-06:36.3 Sure footing aboard · spot 8
-06:39.5 funnel falling
-06:46.4 railing 10 broke
-06:46.4 railing 75 broke
-06:46.4 railing 77 broke
-06:52.0 deckhouse_cabins flooding
-06:52.8 seat 5 out · cold · place 2
-winner seat 0 at 06:52.8 · digest 4ae53a6062a79379
-sinking at the end of the match: physics 0:13:58 (on the paced clock, Q20) · seen 95% · sea 3.25 m up her · trim +16.0° · list +24.6° · engine_bilge_p 1.96 m · engine_bilge_s full · engine_room 5.92 m · hold_bilge full · hold 7.33 m · hold_wing_p 2.17 m · hold_wing_s full · hold_fwd_top 3.55 m · forepeak 6.73 m · deckhouse_cabins 0.19 m · deckhouse_hall 1.16 m · saloon 1.98 m
+03:49.4 seat 5 out · cold · place 2
+winner seat 0 at 03:49.4 · digest e3eaacc2b6b617e9
+sinking at the end of the match: physics 0:11:11 (on the paced clock, Q20) · seen 76% · sea 1.36 m up her · trim +7.7° · list +11.1° · engine_bilge_p 0.37 m · engine_bilge_s full · engine_room 2.01 m · hold_bilge full · hold 2.27 m · hold_wing_p 0.94 m · hold_wing_s 6.13 m · forepeak 4.92 m
 not played: gone at 0:14:38 · trim +87.6° · list -17.9° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x -5.5 m, hogging
