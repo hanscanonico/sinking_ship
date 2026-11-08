@@ -872,7 +872,7 @@ func _keep_off_edges(
 				_edge_also, my_surface, pose, mark, stair_ahead, heading, heed_drops
 			)
 		var ahead := now_pos + Vector3(heading.x, 0.0, heading.y) * _footing.margin
-		if not headed and _surfaces.railed(now_pos, ahead, my_surface):
+		if not headed and _surfaces.railed(now_pos, ahead, my_surface, _rules):
 			# Into a railing the walk slides along it: its probe vouches for nothing past it.
 			for danger: Vector2 in dangers:
 				headed = headed or move.dot(danger) > 0.0

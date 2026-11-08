@@ -387,17 +387,17 @@ static func _draw_pour(water: InnerWater, index: int, at: int, reckoned: Array) 
 	var normal := axes[at * 2 + 1]
 	var middle := points[at * 2] + up * ((from + to) * 0.5 - world[at * 2].y)
 	var falling := Basis(across * width, up * tall, normal)
-	water._hang(water._pours[index], falling, middle, strength, Vector3(0.0, 0.0, thrown), outdoor)
+	water._pours[index].hang(falling, middle, strength, Vector3(0.0, 0.0, thrown), outdoor)
 	var lands := points[at * 2 + 1] + up * (to + InnerWater.FROTH_LIFT - world[at * 2 + 1].y)
 	var wider := InnerWater.LANDING_WIDER
 	var patch := Basis(across * (width + wider), up, normal * spread)
 	var crossing := water._crossings[index]
 	if crossing_kind == 1:
 		var through := Basis(normal * short, up * tall, across)
-		water._hang(crossing, through, middle, strength, Vector3.ZERO, outdoor)
+		crossing.hang(through, middle, strength, Vector3.ZERO, outdoor)
 		patch = Basis(across * (width + wider), up, normal * (short + wider))
 	elif crossing_kind == 2:
 		var edge_on := Basis(normal * width, up * tall, across)
 		var jet := Vector3(thrown / width, 0.0, 0.0)
-		water._hang(crossing, edge_on, middle, strength, jet, outdoor)
-	water._lay(water._landings[index], patch, lands, strength, -1.0)
+		crossing.hang(edge_on, middle, strength, jet, outdoor)
+	water._landings[index].lay(patch, lands, strength, -1.0)

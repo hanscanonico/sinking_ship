@@ -746,13 +746,42 @@ func test_honour_sees_a_broken_list_edited_in_place() -> void:
 	var starboard := Vector3(-8.0, 0.0, into)
 	var broken := PackedInt32Array()
 	surfaces.honour(pose, broken)
-	assert_eq(surfaces.rail_contacts(starboard, rules.body_radius, 0).size(), 1, "it stands")
+	assert_eq(
+		(
+			surfaces
+			. rail_contacts(
+				starboard, rules.body_radius, 0, rules.step_height, rules.railing_height
+			)
+			. size()
+		),
+		1,
+		"it stands"
+	)
 	broken.append(2)
 	surfaces.honour(pose, broken)
-	assert_true(surfaces.rail_contacts(starboard, rules.body_radius, 0).is_empty(), "broken")
+	assert_true(
+		(
+			surfaces
+			. rail_contacts(
+				starboard, rules.body_radius, 0, rules.step_height, rules.railing_height
+			)
+			. is_empty()
+		),
+		"broken"
+	)
 	broken.clear()
 	surfaces.honour(pose, broken)
-	assert_eq(surfaces.rail_contacts(starboard, rules.body_radius, 0).size(), 1, "whole again")
+	assert_eq(
+		(
+			surfaces
+			. rail_contacts(
+				starboard, rules.body_radius, 0, rules.step_height, rules.railing_height
+			)
+			. size()
+		),
+		1,
+		"whole again"
+	)
 
 
 func test_nobody_climbs_onto_a_round_blocker_top() -> void:

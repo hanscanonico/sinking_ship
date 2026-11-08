@@ -356,7 +356,10 @@ func _by_moved_doors() -> PackedInt32Array:
 ## a railing, or anything holding it back in the deck plane.
 func _touches(crate: PropState) -> bool:
 	var prop := _props[crate.prop]
-	if not _surfaces.rail_contacts(crate.pos, prop.radius, crate.surface).is_empty():
+	var railed := _surfaces.rail_contacts(
+		crate.pos, prop.radius, crate.surface, _rules.step_height, _rules.railing_height
+	)
+	if not railed.is_empty():
 		return true
 	var held := _surfaces.obstacle_contacts(
 		crate.pos, prop.radius, prop.height, _rules.step_height, crate.prop
@@ -765,7 +768,9 @@ func _railings(
 			crate.pos, _came_from[crate.prop], prop.radius, prop.height, _rules.railing_height
 		)
 	else:
-		contacts = _surfaces.rail_contacts(crate.pos, prop.radius, crate.surface)
+		contacts = _surfaces.rail_contacts(
+			crate.pos, prop.radius, crate.surface, _rules.step_height, _rules.railing_height
+		)
 	var held := false
 	for contact: Surfaces.Contact in contacts:
 		var into := -Vector2(crate.vel.x, crate.vel.z).dot(contact.normal)

@@ -168,6 +168,72 @@ func test_a_walk_lights_what_a_look_at_every_room_lights() -> void:
 					assert_eq(walked._lamps[index].wanted, wanted, "lamp %d from %s" % [index, eye])
 
 
+## The choice in the game's extension (NativeSight, #410) is the GDScript's: along a walk
+## over every storey, on the edges of every room's reach and storey, and as lamps go out,
+## the same rooms lit, as far off, and every lamp handed alike, natively and with the
+## extension's choice off, as on the web. CI sets SINKING_NATIVE_REQUIRED, so a missing
+## library there fails.
+func test_the_extension_chooses_as_the_gdscript_does() -> void:
+	if not ClassDB.class_exists(&"NativeSight"):
+		if OS.get_environment("SINKING_NATIVE_REQUIRED") == "1":
+			fail_test("the extension is not loaded: make native, then make import")
+		else:
+			pending("the extension is not built here (make native)")
+		return
+	for preset: int in [GraphicsQuality.Preset.LOW, GraphicsQuality.Preset.HIGH]:
+		var sights: Array[LampSight] = [_sight(preset), _sight(preset)]
+		sights[1].native = null
+		assert_not_null(sights[0].native, "chosen natively")
+		var eyes := _eyes(sights[0])
+		var differences: Array[String] = []
+		for at in eyes.size():
+			for sight: LampSight in sights:
+				if at == eyes.size() / 2:
+					for index in range(0, sight._lamps.size(), 3):
+						sight._lamps[index].burning = false
+				sight.choose(eyes[at])
+			var chosen: Array[PackedByteArray] = []
+			for sight: LampSight in sights:
+				var wanted := []
+				for lamp: ShipLamp in sight._lamps:
+					wanted.append(lamp.wanted)
+				chosen.append(
+					var_to_bytes([sight._lit, sight._reach, sight._handed, sight._looked, wanted])
+				)
+			if chosen[0] != chosen[1] and differences.size() < 4:
+				differences.append("preset %d from %s" % [preset, eyes[at]])
+		assert_eq(differences, [] as Array[String], "chosen alike from %d eyes" % eyes.size())
+
+
+## Eyes along a walk over every storey of the steamer, and on the edges of each room
+## [param sight] files: just within its reach either way along her and across her, on
+## its storey's margin over and under it, and on its corner.
+func _eyes(sight: LampSight) -> Array[Vector3]:
+	var eyes: Array[Vector3] = []
+	for step in 61:
+		for height: float in [-1.0, 1.6, 4.2]:
+			eyes.append(Vector3(-30.0 + step, height, 2.5 * sin(step * 0.7)))
+	var reach := ShipLamp.REACH
+	var margin := ShipLamp.STOREY_MARGIN
+	for box: AABB in sight._boxes:
+		if not box.has_volume():
+			continue
+		var middle := box.get_center()
+		var low := box.position.y + 1.0
+		var edges: Array[Vector3] = [
+			Vector3(box.end.x + reach, low, middle.z),
+			Vector3(box.position.x - reach, low, middle.z),
+			Vector3(middle.x, low, box.end.z + reach),
+			Vector3(middle.x, low, box.position.z - reach),
+			Vector3(middle.x, box.end.y + margin, middle.z),
+			Vector3(middle.x, box.position.y - margin, middle.z),
+			Vector3(box.end.x, middle.y, box.end.z),
+			Vector3(box.position.x - 3.0, middle.y, box.position.z - 4.0),
+		]
+		eyes.append_array(edges)
+	return eyes
+
+
 ## The rooms [param sight] lights from [param eye], each room looked at, as LampSight
 ## chose before it filed them by square: 1 lit, 0 not.
 func _every_room_looked_at(sight: LampSight, eye: Vector3) -> PackedByteArray:

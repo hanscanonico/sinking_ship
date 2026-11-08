@@ -339,7 +339,11 @@ func test_a_bot_climbing_out_from_below_decks_never_turns_back_on_a_stair() -> v
 		runner.step()
 		climbed = climbed or source.brain.intent == BotBrain.Intent.CLIMB_OUT
 		var bot := sim.state.seats[0]
-		var zone := graph.zone_at(bot.pos, bot.surface)
+		# On a wall's top flush with the main deck it reads the zone below decks (#558): it
+		# walked into no zone there.
+		var on_top := bot.surface >= sim.surfaces.platform_count()
+		on_top = on_top and not sim.surfaces.is_ramp(bot.surface)
+		var zone := WalkGraph.NONE if on_top else graph.zone_at(bot.pos, bot.surface)
 		if zone != WalkGraph.NONE and (passed.is_empty() or passed.back() != zone):
 			passed.append(zone)
 		if zone == bridge and not sim.surfaces.is_ramp(bot.surface):

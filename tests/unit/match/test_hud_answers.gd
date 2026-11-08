@@ -5,6 +5,8 @@ extends GutTest
 ## of it, so the dials, the plate, the crosshair and the prompts are drawn from it once,
 ## and only what moves with the eye is drawn every frame.
 
+const RunMatch := preload("res://tools/run_match.gd")
+
 
 func test_a_snapshot_is_asked_once_and_again_only_once_it_changes() -> void:
 	var sim := SimFixtures.sim(2)
@@ -60,6 +62,48 @@ func test_the_hud_draws_a_snapshot_once_and_the_eye_s_view_every_frame() -> void
 	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
 	await get_tree().process_frame
 	assert_eq(drawn[0], 2, "the next tick's snapshot is drawn anew")
+
+
+## The crates the Surfaces are honoured with are the snapshot's: each the last
+## snapshot's while its entry is the very one handed on, as the wire hands an unchanged
+## prop's on, the rest made anew — what PropState.from_snapshot makes, field for field.
+func test_its_crates_are_kept_while_their_entries_are_handed_on() -> void:
+	var sim := MatchSim.create(RunMatch.default_config(1701, 2))
+	var answers := HudAnswers.new(sim)
+	var snapshot := sim.snapshot()
+	var entries: Array = snapshot["props"]
+	assert_gt(entries.size(), 2, "crates to ask of")
+	answers.ask(snapshot, 0)
+	_assert_made_of(answers._crates, snapshot)
+	var first := answers._crates.duplicate()
+	var next := snapshot.duplicate()
+	var moved := entries.duplicate()
+	var changed: Dictionary = (moved[1] as Dictionary).duplicate()
+	changed["pos"] = (changed["pos"] as Vector3) + Vector3(0.5, 0.0, 0.0)
+	moved[1] = changed
+	next["props"] = moved
+	next["tick"] += 1
+	answers.ask(next, 0)
+	assert_same(answers._crates[0], first[0], "a crate whose entry is handed on is kept")
+	assert_same(answers._crates[2], first[2], "every one")
+	assert_ne(answers._crates[1], first[1], "one whose entry is new is made anew")
+	assert_eq(answers._crates[1].pos, changed["pos"], "where its entry has it")
+	_assert_made_of(answers._crates, next)
+	var fewer := next.duplicate()
+	fewer["props"] = moved.slice(0, 2)
+	fewer["tick"] += 1
+	answers.ask(fewer, 0)
+	_assert_made_of(answers._crates, fewer)
+
+
+## [param crates] are, field for field, what PropState.from_snapshot makes of
+## [param snapshot].
+func _assert_made_of(crates: Array[PropState], snapshot: Dictionary) -> void:
+	var made := PropState.from_snapshot(snapshot)
+	assert_eq(crates.size(), made.size(), "a crate per entry")
+	for index in mini(crates.size(), made.size()):
+		var theirs := var_to_bytes(made[index].to_dict())
+		assert_eq(var_to_bytes(crates[index].to_dict()), theirs, "crate %d as made" % index)
 
 
 func _idle(sim: MatchSim) -> Array[InputFrame]:
