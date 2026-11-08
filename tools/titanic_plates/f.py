@@ -1162,10 +1162,12 @@ OPENED = [
 # The passage two flights fill side by side; the engineers' stairway its stair fills; the
 # passage along L's ladder fills.
 NOT_ROOMS = [(74.0, -7.0), (-45.3, -9.7), (-48.0, 6.0)]
-# The store her stem takes: no floor of hers reaches it (F_STEM).
-GONE = [(126.0, 0.0), (122.0, 0.0)]
+# Forward of A, the chain locker and the stores in her eyes: no floor of hers is laid under
+# them (gen_titanic.py's F_FLOOR_END, #549), so they wait for one, and A stands whole as the
+# firemen's quarters' wall.
+AWAITS = [(115.81, 140.0)]
 # The racquet court's upper half, open to its floor on G deck (COURT_F, gen_titanic.py).
-GONE += [(75.0, 0.0)]
+GONE = [(75.0, 0.0)]
 # Two closets whose faces only touch the rooms over them: walled, or those rooms read open.
 WALLED_SOLIDS = [(-101.3, -8.0), (-97.6, -8.0)]
 # Likewise (#514): the reciprocating engine casing's forward end on K's line, the boiler

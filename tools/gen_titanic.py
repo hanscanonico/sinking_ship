@@ -1576,8 +1576,9 @@ for k, (a, b, z0, z1) in enumerate(F_PIECES[:-1]):
 e_deck = [i for k, (x0, x1, z0, z1) in enumerate(E_PIECES)
           for i in deck("e_%d" % k, "E deck", x0, x1, z0, z1, E_DECK, holes["e"])]
 # F deck's floor itself stops at bulkhead A: forward of it the plate draws only the chain
-# locker and the stores in her eyes, with no door on F deck (f.py). (Laid on to her stem, its
-# floor beside them was no room's, reached only as one open deck with F deck's strips, #549.)
+# locker and the stores in her eyes, with no door on F deck, and they wait for it (f.py's
+# AWAITS). (Laid on to her stem, its floor beside them was no room's, reached only as one open
+# deck with F deck's strips, #549.)
 F_FLOOR_END = round(BX["A"] * 128) / 128
 f_deck = [i for k, (x0, x1, z0, z1) in enumerate(F_PIECES) if x0 < F_FLOOR_END - 1e-6
           for i in deck("f_%d" % k, "F deck", x0, min(x1, F_FLOOR_END), z0, z1, F_DECK, holes["f"])]
@@ -2315,7 +2316,9 @@ def well_floor(bid, plan, well, level, over, rooms):
     # Laid, a piece stops a partition's half short of the well's edges and of each landing's:
     # clear of every room's edge line there, so no doorway along one narrows to the flight's
     # width beside it (the layout lint, a doorway's metre) or shuts, and a body through it
-    # meets the floor laid solid a hair inside.
+    # meets the floor laid solid a hair inside. A piece left thinner than a partition, a sliver
+    # along a flight's side or a wall's face, is no floor a body stands on: left the deck's, as
+    # the hair is.
     lines = [(x0, x1, z0, z1)] + [landing for landing, _deep, _line in landings if landing in cuts]
     for n, piece in enumerate(free_pieces(well[1:], cuts + walls)):
         for m, (a, b, c, d) in enumerate(piece):
@@ -2323,7 +2326,7 @@ def well_floor(bid, plan, well, level, over, rooms):
             b -= INSET * any(abs(b - l[0]) < 1e-6 or abs(b - l[1]) < 1e-6 for l in lines)
             c += INSET * any(abs(c - l[2]) < 1e-6 or abs(c - l[3]) < 1e-6 for l in lines)
             d -= INSET * any(abs(d - l[2]) < 1e-6 or abs(d - l[3]) < 1e-6 for l in lines)
-            if b - a > 1e-6 and d - c > 1e-6:
+            if min(b - a, d - c) >= PARTITION - 1e-6:
                 box("%s_%d_%d" % (bid, n, m), a, b, c, d, floor, over((a + b) * 0.5))
 
 # Her electric cranes stowed (#381, the owner's ruling of 2026-11-06): each jib lowered to
