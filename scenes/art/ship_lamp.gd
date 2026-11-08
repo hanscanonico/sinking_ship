@@ -326,11 +326,20 @@ func settled() -> bool:
 	return _settled
 
 
+## Whether it is a fire burning as the eye wants it, done fading to that: a frame of it
+## then changes nothing but its clock and its seconds since, until its flame next changes
+## its mind (flame) or something it shows does (LampSwing carries it till then).
+func steady() -> bool:
+	if _kind != Kind.FIRE or _shown <= 0.0:
+		return false
+	return _presence == (1.0 if burning and (everywhere or wanted) else 0.0)
+
+
 ## Its swing as LampSwing carries it: where it hangs, how it swings, its clock, the
-## seconds since its power last dropped, where it hangs from, and the globes drawing its
-## model and its slot in them.
+## seconds since its power last dropped, where it hangs from, the globes drawing its
+## model and its slot in them, and its flame's phase.
 func swing_state() -> Array:
-	return [_hang, _swing, _clock, _since, position, _globes, _globe]
+	return [_hang, _swing, _clock, _since, position, _globes, _globe, _phase]
 
 
 ## Takes its swing back from LampSwing: [param hang], [param swing], [param clock] and
