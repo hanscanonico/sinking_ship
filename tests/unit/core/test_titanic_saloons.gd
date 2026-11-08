@@ -59,7 +59,16 @@ func test_no_piece_of_furniture_stands_in_anything_or_on_a_start() -> void:
 			prop.pos, prop.radius, prop.height, rules.step_height, index
 		)
 		assert_eq(held.size(), 0, "prop %d at %s stands in nothing" % [index, prop.pos])
-		assert_eq(surfaces.rail_contacts(prop.pos, prop.radius, floor).size(), 0)
+		assert_eq(
+			(
+				surfaces
+				. rail_contacts(
+					prop.pos, prop.radius, floor, rules.step_height, rules.railing_height
+				)
+				. size()
+			),
+			0
+		)
 		for spawn: Vector3 in _layout.spawns:
 			var apart := Vector2(spawn.x - prop.pos.x, spawn.z - prop.pos.z).length()
 			if absf(spawn.y - prop.pos.y) < rules.step_height:

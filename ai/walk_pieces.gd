@@ -290,7 +290,13 @@ func _stands_grid(
 	var mirror := _surfaces.native
 	if mirror != null:
 		var rules := PackedFloat64Array(
-			[_radius, _rules.step_height, _rules.body_height, _rules.crawl_height]
+			[
+				_radius,
+				_rules.step_height,
+				_rules.body_height,
+				_rules.crawl_height,
+				_rules.railing_height
+			]
 		)
 		return mirror.stands_grid(origin, width, depth, side, height, within, rules)
 	var stands := PackedByteArray()
@@ -313,4 +319,9 @@ func _stands(point: Vector3) -> bool:
 	var held := _surfaces.obstacle_contacts(
 		feet, _radius, _rules.body_height, _rules.step_height, Surfaces.NONE, _rules.crawl_height
 	)
-	return held.is_empty() and _surfaces.rail_contacts(feet, _radius, surface).is_empty()
+	if not held.is_empty():
+		return false
+	var railed := _surfaces.rail_contacts(
+		feet, _radius, surface, _rules.step_height, _rules.railing_height
+	)
+	return railed.is_empty()

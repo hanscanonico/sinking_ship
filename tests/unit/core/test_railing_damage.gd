@@ -74,7 +74,14 @@ func test_broken_span_lets_bodies_fall() -> void:
 	assert_eq(sim.state.broken_railings(), PackedInt32Array([SPAN]))
 	var at_the_rail := Vector3(RAILED_X - 3.0, 0.0, _pinned_z() + 0.1)
 	assert_true(
-		sim.surfaces.rail_contacts(at_the_rail, rules.body_radius, 0).is_empty(),
+		(
+			sim
+			. surfaces
+			. rail_contacts(
+				at_the_rail, rules.body_radius, 0, rules.step_height, rules.railing_height
+			)
+			. is_empty()
+		),
 		"Surfaces no longer has the span"
 	)
 	var walker := _walk_into_the_span(sim)
@@ -82,7 +89,16 @@ func test_broken_span_lets_bodies_fall() -> void:
 	assert_ne(walker.body, PlayerState.Body.GROUNDED, "and over the edge")
 	# Broken stays broken through a snapshot: the rebuilt ship has no span there.
 	var resumed := MatchSim.from_snapshot(sim.snapshot(), sim.config)
-	assert_true(resumed.surfaces.rail_contacts(at_the_rail, rules.body_radius, 0).is_empty())
+	assert_true(
+		(
+			resumed
+			. surfaces
+			. rail_contacts(
+				at_the_rail, rules.body_radius, 0, rules.step_height, rules.railing_height
+			)
+			. is_empty()
+		)
+	)
 
 
 func test_unbroken_span_still_holds() -> void:
@@ -114,12 +130,36 @@ func test_a_failed_span_and_a_broken_one_are_both_gone() -> void:
 	var port := Vector3(RAILED_X, 0.0, -into)
 	var starboard := Vector3(RAILED_X, 0.0, into)
 	var aft_of_the_gap := Vector3(10.0, 0.0, into)
-	assert_true(surfaces.rail_contacts(port, radius, 0).is_empty(), "the failed span is gone")
-	assert_true(surfaces.rail_contacts(starboard, radius, 0).is_empty(), "the broken one too")
-	assert_eq(surfaces.rail_contacts(aft_of_the_gap, radius, 0).size(), 1, "the rest stand")
+	assert_true(
+		surfaces.rail_contacts(port, radius, 0, rules.step_height, rules.railing_height).is_empty(),
+		"the failed span is gone"
+	)
+	assert_true(
+		(
+			surfaces
+			. rail_contacts(starboard, radius, 0, rules.step_height, rules.railing_height)
+			. is_empty()
+		),
+		"the broken one too"
+	)
+	assert_eq(
+		(
+			surfaces
+			. rail_contacts(aft_of_the_gap, radius, 0, rules.step_height, rules.railing_height)
+			. size()
+		),
+		1,
+		"the rest stand"
+	)
 	surfaces.honour(pose)
 	assert_eq(
-		surfaces.rail_contacts(starboard, radius, 0).size(), 1, "honour holds only what it is told"
+		(
+			surfaces
+			. rail_contacts(starboard, radius, 0, rules.step_height, rules.railing_height)
+			. size()
+		),
+		1,
+		"honour holds only what it is told"
 	)
 
 

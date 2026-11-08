@@ -194,7 +194,7 @@ int64_t NativeSurfaces::under(const Vector3 &p_ship_point, double p_step, int64_
 // BotFloorWay._stands: on a floor, or a stair of p_keep, and nothing there holding a body
 // p_radius round back — no obstacle, no railing.
 bool NativeSurfaces::stands_at(const Vector3 &p_point, int32_t p_surface, const std::vector<int32_t> &p_keep,
-		double p_radius, double p_step, double p_body_height, double p_crawl_height) const {
+		double p_radius, double p_step, double p_body_height, double p_crawl_height, double p_railing_height) const {
 	if (p_surface == NONE) {
 		return false;
 	}
@@ -208,7 +208,7 @@ bool NativeSurfaces::stands_at(const Vector3 &p_point, int32_t p_surface, const 
 	if (!found.empty()) {
 		return false;
 	}
-	rails(feet, p_radius, p_surface, found);
+	rails(feet, p_radius, p_surface, p_step, p_railing_height, found);
 	return found.empty();
 }
 
@@ -218,7 +218,7 @@ bool NativeSurfaces::stands_at(const Vector3 &p_point, int32_t p_surface, const 
 // points from the middle of its first square on to p_end; empty when the search settles its
 // most squares, or all it can reach, before it comes within a square and a half of p_end. p_rules: the square's
 // side, the margin round the box, the most squares settled, a square's body's radius, a
-// step's height, a body's height and how low it crawls.
+// step's height, a body's height, how low it crawls and a railing's height.
 PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector3 &p_end,
 		const PackedInt32Array &p_keep, const PackedFloat64Array &p_rules) const {
 	const double side = p_rules[0];
@@ -228,6 +228,7 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 	const double step = p_rules[4];
 	const double body_height = p_rules[5];
 	const double crawl_height = p_rules[6];
+	const double railing_height = p_rules[7];
 	const Vector2 start(p_from.x, p_from.z);
 	const Vector2 goal(p_end.x, p_end.z);
 	const Rect2 box = Rect2(start, Vector2()).expand(goal).grow(real_t(margin));
@@ -255,7 +256,7 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 			const Vector2 middle = grid.middle(p_square);
 			const Vector3 point(middle.x, real_t(feet), middle.y);
 			const int32_t surface = under_at(point, step, NONE);
-			asked = stands_at(point, surface, keep, snug, step, body_height, crawl_height) ? 1 : 2;
+			asked = stands_at(point, surface, keep, snug, step, body_height, crawl_height, railing_height) ? 1 : 2;
 		}
 		return asked == 1;
 	};
@@ -325,13 +326,14 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 // deep, each p_side across, 1 where its middle lies in p_within and a body could stand
 // with its feet there at p_height (BotFloorWay._stands, the stair it is on kept: a stair's
 // end within a step of the floor is walked across), else 0. p_rules: a square's body's
-// radius, a step's height, a body's height and how low it crawls.
+// radius, a step's height, a body's height, how low it crawls and a railing's height.
 PackedByteArray NativeSurfaces::stands_grid(const Vector2 &p_origin, int64_t p_width, int64_t p_depth,
 		double p_side, double p_height, const Rect2 &p_within, const PackedFloat64Array &p_rules) const {
 	const double radius = p_rules[0];
 	const double step = p_rules[1];
 	const double body_height = p_rules[2];
 	const double crawl_height = p_rules[3];
+	const double railing_height = p_rules[4];
 	FloorGrid grid;
 	grid.origin = p_origin;
 	grid.width = p_width;
@@ -356,7 +358,7 @@ PackedByteArray NativeSurfaces::stands_grid(const Vector2 &p_origin, int64_t p_w
 		if (!found.empty()) {
 			continue;
 		}
-		rails(feet, radius, surface, found);
+		rails(feet, radius, surface, step, railing_height, found);
 		write[square] = found.empty() ? 1 : 0;
 	}
 	return stands;

@@ -201,7 +201,11 @@ static func _crosses(
 			point, radius, rules.body_height, rules.step_height, Surfaces.NONE, rules.crawl_height
 		)
 		if rails:
-			held.append_array(surfaces.rail_contacts(point, radius, surface))
+			held.append_array(
+				surfaces.rail_contacts(
+					point, radius, surface, rules.step_height, rules.railing_height
+				)
+			)
 		if stood and step > 0 and held.is_empty():
 			return true
 		if not stood:
