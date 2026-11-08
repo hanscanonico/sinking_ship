@@ -44,6 +44,7 @@ const DOWN_FROM_E_DECK := -7.0
 
 static var _layout: ShipLayout
 static var _floors: BotFloors
+var _climbed := 0.0
 
 
 func before_all() -> void:
@@ -104,7 +105,7 @@ class Walked:
 
 ## Seconds [param source], seat 0 of [param sim], takes from its hand-over — at once if it
 ## was never walked — to put its feet below [param below]; INF if not within
-## [param seconds].
+## [param seconds]. How far its feet climbed back up once on a stair, in _climbed.
 func _down(sim: MatchSim, source: InputSource, below: float, seconds: float) -> float:
 	var sources: Array[InputSource] = [source, InputSource.new(), InputSource.new()]
 	var runner := MatchRunner.new(sim, sources)
@@ -114,8 +115,14 @@ func _down(sim: MatchSim, source: InputSource, below: float, seconds: float) -> 
 		runner.step()
 	assert_true(walked == null or walked.handed, "walked there")
 	var from := sim.state.tick
+	var stairs := sim.surfaces
+	var lowest := INF
+	_climbed = 0.0
 	while sim.state.tick - from < Ticks.from_seconds(seconds):
 		runner.step()
+		if lowest != INF or stairs.is_ramp(body.surface):
+			lowest = minf(lowest, body.pos.y)
+			_climbed = maxf(_climbed, body.pos.y - lowest)
 		if body.pos.y < below:
 			return (sim.state.tick - from) * Ticks.SECONDS_PER_TICK
 	return INF
@@ -149,15 +156,18 @@ func test_a_bot_walking_down_a_lane_turns_round_its_railing_onto_the_stair() -> 
 
 
 ## Down off the foot of E deck's stair aft of C, a bot turns round onto the head of the
-## next, in the passage beside it, and goes down within 5 s of setting out. On main,
-## turning, it reckoned itself short of the head by its velocity a lag before, went on past
-## it, and walked back and forth beside the stair's railing: from one of these spots it
-## was not down in 5 s.
+## next, in the passage beside it, and goes down within 5 s of setting out, its feet never
+## back up a stair once on one. On main, turning, it reckoned itself short of the head by
+## its velocity a lag before, went on past it, and walked back and forth beside the stair's
+## railing: from one of these spots it was not down in 5 s. Followed from where its walks
+## had stepped it, it turned onto the head, but the way round over the floor to the head it
+## still held took it back up the stair, 1.59 m from the first spot (#550).
 func test_a_bot_off_a_stair_s_foot_turns_onto_the_next_one_s_head() -> void:
 	for from: Vector3 in OVER_THE_PASSAGE:
 		var sim := _sim(BAGGAGE_ROOM, from)
 		var down := _down(sim, _bot(sim), DOWN_FROM_THE_PASSAGE, 5.0)
 		assert_lt(down, 5.0, "from %s: %.1f s" % [from, down])
+		assert_lt(_climbed, 0.1, "from %s: back up %.2f m" % [from, _climbed])
 
 
 ## Walked aft down E deck's passage aft of J, a bot handed its stick by the doorway beside
