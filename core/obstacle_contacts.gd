@@ -124,6 +124,12 @@ func contacts(
 	var first_top := s._first_top
 	var first_ramp := s._first_ramp
 	var contacts_found: Array[Surfaces.Contact] = []
+	# Every flat piece that holds the body — a box blocker, a deck — and the contacts with
+	# their corners, each with its corner and its piece, for _unseam.
+	var flats: Array[Rect2] = []
+	var cornered: Array[Surfaces.Contact] = []
+	var cornered_at := PackedVector2Array()
+	var cornered_of := PackedInt32Array()
 	var point := Vector2(ship_point.x, ship_point.z)
 	var feet := ship_point.y
 	# _overlaps' two heights, once: what the body can step onto stands under the first,
@@ -150,6 +156,12 @@ func contacts(
 			if tops[surface] <= _along(s, stair, nearest, feet) + step:
 				continue
 			contact = PlaneShapes.rect_contact(blocker.area, point, radius)
+			if contact != null:
+				flats.append(blocker.area)
+				if nearest.x != point.x and nearest.y != point.y:
+					cornered.append(contact)
+					cornered_at.append(nearest)
+					cornered_of.append(flats.size() - 1)
 		else:
 			contact = PlaneShapes.circle_contact(blocker.centre, blocker.radius, point, radius)
 		if contact != null:
@@ -179,6 +191,14 @@ func contacts(
 		)
 		if contact != null:
 			contacts_found.append(contact)
+			if surface < first_ramp:
+				flats.append(area)
+				if closest.x != point.x and closest.y != point.y:
+					cornered.append(contact)
+					cornered_at.append(closest)
+					cornered_of.append(flats.size() - 1)
+	if not cornered.is_empty():
+		_unseam(contacts_found, flats, cornered, cornered_at, cornered_of, point)
 	var stands := s.stands
 	for prop: int in stands.near(point.x, point.y, radius, except_prop):
 		var under_it := stands.feet[prop]
@@ -192,6 +212,27 @@ func contacts(
 	contacts_found.append_array(s.doors.contacts(point, reach_up, head, radius))
 	contacts_found.append_array(s._fallen.contacts(point, reach_up, head, radius))
 	return PlaneShapes.deepest_per_direction(contacts_found)
+
+
+## Takes out of [param found] each of [param cornered] — a contact with the corner
+## [param at] of the [param of]th of [param flats], nearest a body's middle at
+## [param point] — where another of [param flats] carries one of that corner's faces on
+## toward the body (PlaneShapes.carries_on): two abutting pieces' edges are one edge, and a
+## seam in it holds nothing back that the edge does not (#566). What carries the face on
+## holds the body itself, nearer than the corner.
+static func _unseam(
+	found: Array[Surfaces.Contact],
+	flats: Array[Rect2],
+	cornered: Array[Surfaces.Contact],
+	at: PackedVector2Array,
+	of: PackedInt32Array,
+	point: Vector2
+) -> void:
+	for index in cornered.size():
+		for other in flats.size():
+			if other != of[index] and PlaneShapes.carries_on(flats[other], at[index], point):
+				found.erase(cornered[index])
+				break
 
 
 ## Whether a body with its feet at [param feet] and its middle at [param point] ducks
