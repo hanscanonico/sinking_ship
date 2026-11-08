@@ -845,8 +845,12 @@ STAIR_MOVES = [
     # of both on E deck to the rooms forward of them: run on forward over the landing across
     # the ladderway, it left them no way in (#514). Run on forward still, over the passage's
     # starboard side: run on aft, its foot pinched the way from the passage by the cross
-    # passage's ladder against that ladder's hole.
-    (("third-class ladder", 78.0, -7.75), (78.0, 83.5, -5.4375, -4.3125)),
+    # passage's ladder against that ladder's hole. Its foot 1/8 m inside the passage, not 1/4:
+    # there, a stride past the line the passage meets the ladderway's strip along, it stood
+    # more than a step up, and the walk graph read the strip's floor under it a body's lead
+    # past the line as a doorway onto floor no room held (#549). (Its head where it was: on
+    # forward, it shut the men's lavatory's door, under it, to a body.)
+    (("third-class ladder", 78.0, -7.75), (78.125, 83.5, -5.4375, -4.3125)),
     (("third-class ladder", 78.0625, 5.0625), (78.0625, 81.3125, 5.0625, 7.6875)),
     # The firemen's spirals as straight flights athwart her, either side of E deck's flight
     # on down (e.py): the passage is too short along her for a flight and a lead each end.

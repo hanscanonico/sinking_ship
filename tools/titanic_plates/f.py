@@ -1162,10 +1162,12 @@ OPENED = [
 # The passage two flights fill side by side; the engineers' stairway its stair fills; the
 # passage along L's ladder fills.
 NOT_ROOMS = [(74.0, -7.0), (-45.3, -9.7), (-48.0, 6.0)]
-# The store her stem takes: no floor of hers reaches it (F_STEM).
-GONE = [(126.0, 0.0), (122.0, 0.0)]
+# Forward of A, the chain locker and the stores in her eyes: no floor of hers is laid under
+# them (gen_titanic.py's F_FLOOR_END, #549), so they wait for one, and A stands whole as the
+# firemen's quarters' wall.
+AWAITS = [(115.81, 140.0)]
 # The racquet court's upper half, open to its floor on G deck (COURT_F, gen_titanic.py).
-GONE += [(75.0, 0.0)]
+GONE = [(75.0, 0.0)]
 # Two closets whose faces only touch the rooms over them: walled, or those rooms read open.
 WALLED_SOLIDS = [(-101.3, -8.0), (-97.6, -8.0)]
 # Likewise (#514): the reciprocating engine casing's forward end on K's line, the boiler
@@ -1188,8 +1190,10 @@ STAIR_MOVES = [
     # (its aft wall bulkhead B's line): athwart her, aft of her way on down (one shaft, the
     # generator's), its foot to starboard. The port one's the generator leaves out.
     (("firemen's spiral staircase", 100.5, 1.3125), (100.1875, 101.1875, -0.5, 2.375, "port")),
-    # Short of the wall over its foot (no wall left hanging over its hole):
-    (("third-class stairway", -91.9375, -8.9375), (-92.0625, -89.125, -8.9375, -7.6875)),
+    # Its foot run on to G deck's passage forward of its well, under the wall over it, the
+    # hole cut short of the wall (HOLE_ENDS): 1/4 m short, G deck's floor before it was no
+    # room's (#549).
+    (("third-class stairway", -91.9375, -8.9375), (-92.0625, -88.875, -8.9375, -7.6875)),
     # A body's lead clear of G deck's wall at their feet (the layout lint):
     (("second-class stairway", -92.4375, -2.5), (-92.6875, -89.75, -2.5, -1.1875)),
     # Rising forward, its foot in G deck's passage clear of her side's rooms, inside G deck's
@@ -1199,4 +1203,10 @@ STAIR_MOVES = [
     # laid where this plate draws it aft of it (e.py), comes down: the two one flight from
     # E deck to G as the plate lines them up, clear of the squash stairway behind D (#531).
     (("stair", 73.875, 3.25), (73.9375, 76.875, 3.25, 4.25)),
+    # The ladder up along L's passage, its head run on to the corridor: 1/16 m short, the
+    # floor before it was no room's (#549).
+    (("ladder", -48.625, 5.25), (-48.625, -47.5625, 5.25, 8.1875)),
 ]
+# The third-class stairway down aft of N, its foot under the passage's wall here, cut short
+# of the wall (no wall left hanging over its hole), a body's headroom over it (#549).
+HOLE_ENDS = [((-90.5, -8.3), -89.125)]

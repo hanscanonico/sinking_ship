@@ -588,6 +588,9 @@ DOOR_MOVES = [
     ((-93.4375, 9.25), (-93.3125, 8.8125)),  # the four-berth room's, off her side's wall
     ((-115.9375, 0.0625), (-116.8125, 0.5)),  # the two-berth room's, between P's doors' passages
     ((97.375, 6.3125), (97.5625, 5.375)),  # the four-berth room's along B, inside her side
+    # Its fellow's to port, the two-berth room her side takes there: it opened the passage onto
+    # a strip of floor no room held, between her side and the passage's wall (#549).
+    ((97.375, -6.75), None),
     # The two-berth room's aft of C, to starboard of F deck's stair down beside it (#514):
     (None, (72.1875, -6.25)),
 ]
@@ -615,6 +618,9 @@ STAIR_MOVES = [
     # them, a body's lead clear of the landing's forward wall:
     (("firemen's spiral staircase", 100.375, -2.5625), (100.1875, 102.5, -2.5625, -1.375)),
     (("firemen's spiral staircase", 100.375, 1.5625), (100.1875, 102.5, 1.5625, 2.75)),
+    # The refrigerated holds' ladder's head run on to the passage aft of its well: 1/8 m
+    # short, the floor before it was no room's (#549).
+    (("hold ladder", -97.8125, -3.75), (-97.9375, -94.8125, -3.75, -2.875)),
 ]
 # Her run, which her side at G deck leaves no room for and the plate no door into: no floor of
 # hers reaches it.
