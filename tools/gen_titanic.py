@@ -3158,9 +3158,15 @@ for k, (x0, x1, z0, z1) in enumerate(ORLOP_PLAN.decks[1:2]):
 # ends keep the metre between the wall and the engine clear (the layout lint). No room's
 # floor, it was an open deck the ladder and the door each opened onto, reached through the
 # door's 1/8 m (#549).
+# Its forward side, open over the reciprocating engine room's floor 4.5 m down, railed (est.,
+# as the ladder and the landing are: Plate V draws the room on its flat walled all round,
+# and an engine room's flat at a ladder's head stands railed where it is open). Unrailed, it
+# was a doorway a body walked out of and fell 4.5 m (#570). Its other sides are the room's
+# wall with its door, the port engine, and the ladder's head.
 _n, co2_x0, co2_x1, co2_z0, co2_z1, *_rest = next(f for f in ORLOP_OUTLINE.stairs if f[0] == "ladder")
-platform("co2_landing", "orlop deck", co2_x1, co2_x1 + 1.0625, co2_z0, co2_z1, ORLOP)
+co2_landing = platform("co2_landing", "orlop deck", co2_x1, co2_x1 + 1.0625, co2_z0, co2_z1, ORLOP)
 room("co2_landing", "landing, orlop deck", co2_x1, co2_x1 + 1.0625, co2_z0, co2_z1, ORLOP)
+railing("co2_landing_fwd", co2_landing, (co2_x1 + 1.0625, co2_z0), (co2_x1 + 1.0625, co2_z1))
 for k, (x0, x1, z0, z1) in enumerate(snap_ends(LOWER_PIECES, holes["lower_orlop"])):
     deck("lower_orlop_%d" % k, "lower orlop deck", x0, x1, z0, z1, LOWER_ORLOP, holes["lower_orlop"])
 
