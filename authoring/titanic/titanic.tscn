@@ -11140,6 +11140,90 @@ metadata/ship = &"ramp"
 
 [node name="Blockers" type="Node3D" parent="." unique_id=2032804002]
 
+[node name="Blocker_a_fwd_p_side_p0" type="CSGBox3D" parent="Blockers" unique_id=308997126]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.75, 4.03125, -11.65)
+size = Vector3(1, 4.9375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_p_side_p1" type="CSGBox3D" parent="Blockers" unique_id=2037891081]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.75, 3.75, -11.65)
+size = Vector3(1, 4.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_p_side_p2" type="CSGBox3D" parent="Blockers" unique_id=1354065977]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.75, 3.46875, -11.65)
+size = Vector3(1, 3.8125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_p_side_p3" type="CSGBox3D" parent="Blockers" unique_id=1475590741]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.75, 3.1875, -11.65)
+size = Vector3(1, 3.25, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_p_side_p4" type="CSGBox3D" parent="Blockers" unique_id=717335192]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.75, 2.90625, -11.65)
+size = Vector3(1, 2.6875, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_p_side_p5" type="CSGBox3D" parent="Blockers" unique_id=979621964]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.75, 2.625, -11.65)
+size = Vector3(1, 2.125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_p_side_p6" type="CSGBox3D" parent="Blockers" unique_id=1161976097]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.75, 2.34375, -11.65)
+size = Vector3(1, 1.5625, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_s_side_s0" type="CSGBox3D" parent="Blockers" unique_id=173562477]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.75, 4.03125, 11.650001)
+size = Vector3(1, 4.9375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_s_side_s1" type="CSGBox3D" parent="Blockers" unique_id=1612764286]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.75, 3.75, 11.650001)
+size = Vector3(1, 4.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_s_side_s2" type="CSGBox3D" parent="Blockers" unique_id=756095014]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.75, 3.46875, 11.650001)
+size = Vector3(1, 3.8125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_s_side_s3" type="CSGBox3D" parent="Blockers" unique_id=745817693]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.75, 3.1875, 11.650001)
+size = Vector3(1, 3.25, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_s_side_s4" type="CSGBox3D" parent="Blockers" unique_id=1602434741]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.75, 2.90625, 11.650001)
+size = Vector3(1, 2.6875, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_s_side_s5" type="CSGBox3D" parent="Blockers" unique_id=1373458565]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.75, 2.625, 11.650001)
+size = Vector3(1, 2.125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_a_fwd_s_side_s6" type="CSGBox3D" parent="Blockers" unique_id=1124483586]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.75, 2.34375, 11.650001)
+size = Vector3(1, 1.5625, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
 [node name="Blocker_c_lining_0" type="CSGBox3D" parent="Blockers" unique_id=1835707925]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.262505, 1.65625, 11.900001)
 size = Vector3(1.525, 3.3125, 0.1)
@@ -11167,6 +11251,1902 @@ metadata/ship = &"blocker"
 [node name="Blocker_c_lining_4" type="CSGBox3D" parent="Blockers" unique_id=106458506]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -79.637505, 1.375, 13.2)
 size = Vector3(2.15, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_0aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1460494567]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.9622, 1.65625, 0)
+size = Vector3(0.1, 3.3125, 4.6)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_0p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1827914555]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.8872, 1.65625, -2.25)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_0s_0_0" type="CSGBox3D" parent="Blockers" unique_id=744631426]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.8872, 1.65625, 2.25)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_1aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1474831652]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.7122, 1.65625, -3.0749998)
+size = Vector3(0.1, 3.3125, 1.55)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_1aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=395798619]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.7122, 1.65625, 3.0749998)
+size = Vector3(0.1, 3.3125, 1.55)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_1p_0_0" type="CSGBox3D" parent="Blockers" unique_id=581212267]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.6372, 1.65625, -3.8)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_1s_0_0" type="CSGBox3D" parent="Blockers" unique_id=867224564]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.6372, 1.65625, 3.8)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_2aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=456793452]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.4622, 1.65625, -4.0750003)
+size = Vector3(0.1, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_2aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=2121236158]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.4622, 1.65625, 4.075)
+size = Vector3(0.1, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_2p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1427171036]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.3872, 1.65625, -4.25)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_2s_0_0" type="CSGBox3D" parent="Blockers" unique_id=2116824965]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.3872, 1.65625, 4.25)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_3aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1794045057]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.2122, 1.65625, -4.5)
+size = Vector3(0.1, 3.3125, 0.4)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_3aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=2066752435]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.2122, 1.65625, 4.5)
+size = Vector3(0.1, 3.3125, 0.4)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_3p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1530616893]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.1372, 1.65625, -4.6499996)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_3s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1611198910]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -137.1372, 1.65625, 4.65)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_4aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1937139207]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.9622, 1.65625, -4.925)
+size = Vector3(0.1, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_4aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=633582949]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.9622, 1.65625, 4.9249997)
+size = Vector3(0.1, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_4p_0_0" type="CSGBox3D" parent="Blockers" unique_id=373692301]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.8872, 1.65625, -5.1)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_4s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1635699359]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.8872, 1.65625, 5.1000004)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_5aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1888467586]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.7122, 1.65625, -5.375)
+size = Vector3(0.1, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_5aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=330034408]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.7122, 1.65625, 5.375)
+size = Vector3(0.1, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_5p_0_0" type="CSGBox3D" parent="Blockers" unique_id=512405768]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.6372, 1.65625, -5.5499997)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_5s_0_0" type="CSGBox3D" parent="Blockers" unique_id=2028765368]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.6372, 1.65625, 5.55)
+size = Vector3(0.25, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_6p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1709638303]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.4311, 1.65625, -5.7999997)
+size = Vector3(0.1622, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_6s_0_0" type="CSGBox3D" parent="Blockers" unique_id=255165231]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.4311, 1.65625, 5.8)
+size = Vector3(0.1622, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_7aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1711003790]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.3, 1.65625, -5.95)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_7aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=451863164]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.3, 1.65625, 5.9500003)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_7p_0_0" type="CSGBox3D" parent="Blockers" unique_id=894727744]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.3, 1.65625, -5.95)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_7s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1924253892]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.3, 1.65625, 5.9500003)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_8aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1673377866]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.05, 1.65625, -6.125)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_8aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1637919676]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -136.05, 1.65625, 6.125)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_9aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=2033429906]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.8, 1.65625, -6.375)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_9aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=5724865]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.8, 1.65625, 6.375)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_9p_0_0" type="CSGBox3D" parent="Blockers" unique_id=65941513]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.675, 1.65625, -6.45)
+size = Vector3(0.35, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_9s_0_0" type="CSGBox3D" parent="Blockers" unique_id=90490826]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.675, 1.65625, 6.4500003)
+size = Vector3(0.35, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_10aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=2043579161]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.45, 1.65625, -6.625)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_10aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=638211402]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.45, 1.65625, 6.625)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_10p_0_0" type="CSGBox3D" parent="Blockers" unique_id=710643836]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.3125, 1.65625, -6.7)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_10s_0_0" type="CSGBox3D" parent="Blockers" unique_id=34984008]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.3125, 1.65625, 6.7000003)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_11aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=401621479]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.075, 1.65625, -6.9)
+size = Vector3(0.1, 3.3125, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_11aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=110812776]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -135.075, 1.65625, 6.9)
+size = Vector3(0.1, 3.3125, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_11p_0_0" type="CSGBox3D" parent="Blockers" unique_id=938090133]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.9375, 1.65625, -7)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_11s_0_0" type="CSGBox3D" parent="Blockers" unique_id=185798541]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.9375, 1.65625, 7)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_12aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=191232165]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.7, 1.65625, -7.175)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_12aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1828377772]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.7, 1.65625, 7.175)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_12p_0_0" type="CSGBox3D" parent="Blockers" unique_id=613464303]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.5625, 1.65625, -7.25)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_12s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1794895545]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.5625, 1.65625, 7.25)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_13aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=806726710]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.325, 1.65625, -7.4)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_13aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=805383048]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.325, 1.65625, 7.4)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_13p_0_0" type="CSGBox3D" parent="Blockers" unique_id=837617755]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.1875, 1.65625, -7.45)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_13s_0_0" type="CSGBox3D" parent="Blockers" unique_id=159030649]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -134.1875, 1.65625, 7.4500003)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_14aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=991250006]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.95, 1.65625, -7.6)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_14aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=903346513]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.95, 1.65625, 7.6)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_14p_0_0" type="CSGBox3D" parent="Blockers" unique_id=732922755]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.8125, 1.65625, -7.6499996)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_14s_0_0" type="CSGBox3D" parent="Blockers" unique_id=840638389]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.8125, 1.65625, 7.65)
+size = Vector3(0.375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_15aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=476460662]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.575, 1.65625, -7.85)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_15aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1513177941]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.575, 1.65625, 7.8500004)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_15p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1840833315]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.46875, 1.65625, -7.85)
+size = Vector3(0.3125, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_15s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1983005422]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.46875, 1.65625, 7.8500004)
+size = Vector3(0.3125, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_16aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=2086400629]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.2, 1.65625, -7.9750004)
+size = Vector3(0.1, 3.3125, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_16aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=869755736]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -133.2, 1.65625, 7.975)
+size = Vector3(0.1, 3.3125, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_17aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=969596926]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -132.825, 1.65625, -8.15)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_17aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=737707307]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -132.825, 1.65625, 8.150001)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_18aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=476808919]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -132.075, 1.65625, -8.375)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_18aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1121445520]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -132.075, 1.65625, 8.375)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_18p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1405149232]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -131.75, 1.65625, -8.45)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_18s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1496881376]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -131.75, 1.65625, 8.45)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_19aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=937136563]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -131.325, 1.65625, -8.625)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_19aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=2051687218]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -131.325, 1.65625, 8.625)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_19p_0_0" type="CSGBox3D" parent="Blockers" unique_id=692727380]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -131, 1.65625, -8.7)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_19s_0_0" type="CSGBox3D" parent="Blockers" unique_id=366307871]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -131, 1.65625, 8.7)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_20aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1765645903]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -130.575, 1.65625, -8.900001)
+size = Vector3(0.1, 3.3125, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_20aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=450704589]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -130.575, 1.65625, 8.9)
+size = Vector3(0.1, 3.3125, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_20p_0_0" type="CSGBox3D" parent="Blockers" unique_id=2022122725]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -130.25, 1.65625, -9)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_20s_0_0" type="CSGBox3D" parent="Blockers" unique_id=2062804438]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -130.25, 1.65625, 9)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_21aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1241303211]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -129.825, 1.65625, -9.125)
+size = Vector3(0.1, 3.3125, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_21aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=238467922]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -129.825, 1.65625, 9.125)
+size = Vector3(0.1, 3.3125, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_21p_0_0" type="CSGBox3D" parent="Blockers" unique_id=77743196]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -129.5, 1.65625, -9.15)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_21s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1594085986]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -129.5, 1.65625, 9.150001)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_22aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1445878969]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -129.075, 1.65625, -9.299999)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_22aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1660818272]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -129.075, 1.65625, 9.3)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_22p_0_0" type="CSGBox3D" parent="Blockers" unique_id=2004407526]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.75, 1.65625, -9.349999)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_22s_0_0" type="CSGBox3D" parent="Blockers" unique_id=735960329]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.75, 1.65625, 9.35)
+size = Vector3(0.75, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_23aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1672379504]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.325, 1.65625, -9.65)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_23aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1657534502]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.325, 1.65625, 9.650001)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_23p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1266158792]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.125, 1.65625, -9.65)
+size = Vector3(0.5, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_23s_0_0" type="CSGBox3D" parent="Blockers" unique_id=903625817]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -128.125, 1.65625, 9.650001)
+size = Vector3(0.5, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_24aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1826887547]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -126.825, 1.65625, -9.825)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_24aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=94293553]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -126.825, 1.65625, 9.825)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_25aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1101541229]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -125.325, 1.65625, -10.075)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_25aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1855330583]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -125.325, 1.65625, 10.075)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_25p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1772221290]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -124.78125, 1.65625, -10.15)
+size = Vector3(1.1875, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_25s_0_0" type="CSGBox3D" parent="Blockers" unique_id=811949445]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -124.78125, 1.65625, 10.150001)
+size = Vector3(1.1875, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_26aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=441063835]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -123.825, 1.65625, -10.35)
+size = Vector3(0.1, 3.3125, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_26aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1710271294]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -123.825, 1.65625, 10.349999)
+size = Vector3(0.1, 3.3125, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_27aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1313260992]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -122.325, 1.65625, -10.65)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_27aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=940669515]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -122.325, 1.65625, 10.650001)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_27p_0_0" type="CSGBox3D" parent="Blockers" unique_id=245552726]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -122.15625, 1.65625, -10.65)
+size = Vector3(0.4375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_27s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1720300970]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -122.15625, 1.65625, 10.650001)
+size = Vector3(0.4375, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_28aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=950694828]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.825, 1.65625, -10.799999)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_28aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1839202098]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -120.825, 1.65625, 10.8)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_29aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=446499828]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -119.325, 1.65625, -11.025)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_29aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1441553079]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -119.325, 1.65625, 11.025)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_29p_0_0" type="CSGBox3D" parent="Blockers" unique_id=2078766721]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -118.9375, 1.65625, -11.099999)
+size = Vector3(0.875, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_29s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1210109772]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -118.9375, 1.65625, 11.1)
+size = Vector3(0.875, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_30aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=604171812]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -117.825, 1.65625, -11.225)
+size = Vector3(0.1, 3.3125, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_30aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1404988792]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -117.825, 1.65625, 11.224999)
+size = Vector3(0.1, 3.3125, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_31aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1132652710]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -116.45, 1.65625, -11.375)
+size = Vector3(0.1, 3.3125, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_31aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=811783559]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -116.45, 1.65625, 11.375)
+size = Vector3(0.1, 3.3125, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_32aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=73204030]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.95, 1.65625, -11.7)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_32aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=550165597]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.95, 1.65625, 11.7)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_33aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1044092175]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.075, 1.65625, -11.849999)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_33aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=2056552274]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -112.075, 1.65625, 11.85)
+size = Vector3(0.1, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_33s_0_0" type="CSGBox3D" parent="Blockers" unique_id=113599000]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.075, 1.65625, 11.900001)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_34aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=1533705355]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.325, 1.65625, -12.075)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_34aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=1820925550]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.325, 1.65625, 12.075)
+size = Vector3(0.1, 3.3125, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_34p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1620509210]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.1375, 1.65625, -12.15)
+size = Vector3(0.1, 3.3125, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_35p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1509530049]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -90.049995, 1.375, -13.2)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_35p_1_0" type="CSGBox3D" parent="Blockers" unique_id=36718744]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -89.7625, 1.375, -13.2)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_35s_0_0" type="CSGBox3D" parent="Blockers" unique_id=411845465]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -89.924995, 1.375, 13.2)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_35s_1_0" type="CSGBox3D" parent="Blockers" unique_id=50726870]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -89.6375, 1.375, 13.2)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_37p_0_0" type="CSGBox3D" parent="Blockers" unique_id=2042437505]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.737495, 1.375, -13.8)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_37s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1126488012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -64.737495, 1.375, 13.8)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_38aft_0_0" type="CSGBox3D" parent="Blockers" unique_id=366218186]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.5125, 1.375, -13.875)
+size = Vector3(0.1, 2.75, 0.05)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_38aft_1_0" type="CSGBox3D" parent="Blockers" unique_id=559024169]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -54.5125, 1.375, 13.875)
+size = Vector3(0.1, 2.75, 0.05)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_46fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1970843145]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.3875, 1.375, -13.849999)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_46fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=2063020111]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 53.3875, 1.375, 13.85)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_47fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1744590308]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.387505, 1.375, -13.7)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_47fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1250262606]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.387505, 1.375, 13.7)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_47s_0_0" type="CSGBox3D" parent="Blockers" unique_id=2026268468]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 63.78125, 1.375, 13.7)
+size = Vector3(1.1875, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_48fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1897758149]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.325005, 1.375, -13.549999)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_48fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=394930796]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.325005, 1.375, 13.55)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_48p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1113027653]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67.625, 1.375, -13.599999)
+size = Vector3(1.125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_49p_0_0" type="CSGBox3D" parent="Blockers" unique_id=628614684]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5, 1.375, -13.4)
+size = Vector3(3.5, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_49s_0_0" type="CSGBox3D" parent="Blockers" unique_id=345717293]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.90625, 1.375, 13.400001)
+size = Vector3(4.6875, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_50fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=595584652]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.262505, 2.9375, -12.15)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_50fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=389080932]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.262505, 2.9375, 12.150001)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_50p_0_0" type="CSGBox3D" parent="Blockers" unique_id=705168373]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.23655, 2.9375, -12.2)
+size = Vector3(0.9019, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_50p_0_1" type="CSGBox3D" parent="Blockers" unique_id=2142955791]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.71875, 2.9375, -12.2)
+size = Vector3(0.0625, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_50p_0_2" type="CSGBox3D" parent="Blockers" unique_id=697908141]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.03125, 2.9375, -12.2)
+size = Vector3(0.5625, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_50s_0_0" type="CSGBox3D" parent="Blockers" unique_id=836541212]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.23655, 2.9375, 12.2)
+size = Vector3(0.9019, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_50s_0_1" type="CSGBox3D" parent="Blockers" unique_id=480364895]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.71875, 2.9375, 12.2)
+size = Vector3(0.0625, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_50s_0_2" type="CSGBox3D" parent="Blockers" unique_id=1801288016]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.03125, 2.9375, 12.2)
+size = Vector3(0.5625, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_51fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=478646249]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.762505, 2.9375, -11.95)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_51fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=463175387]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.762505, 2.9375, 11.950001)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_51p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1312097824]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.0625, 2.9375, -12)
+size = Vector3(1.5, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_51s_0_0" type="CSGBox3D" parent="Blockers" unique_id=707206884]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.0625, 2.9375, 12)
+size = Vector3(1.5, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_52fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1427753131]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.262505, 2.9375, -11.75)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_52fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1890175181]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.262505, 2.9375, 11.75)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_52p_0_0" type="CSGBox3D" parent="Blockers" unique_id=14950746]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.5625, 2.9375, -11.8)
+size = Vector3(1.5, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_52s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1673564247]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.5625, 2.9375, 11.8)
+size = Vector3(1.5, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_53fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1355741582]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.762505, 2.9375, -11.525)
+size = Vector3(0.1, 2.75, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_53fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=890288976]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.762505, 2.9375, 11.525)
+size = Vector3(0.1, 2.75, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_53p_0_0" type="CSGBox3D" parent="Blockers" unique_id=47203946]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.34375, 2.9375, -11.599999)
+size = Vector3(0.0625, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_53p_0_1" type="CSGBox3D" parent="Blockers" unique_id=1804406092]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.40625, 2.9375, -11.599999)
+size = Vector3(0.0625, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_53p_0_2" type="CSGBox3D" parent="Blockers" unique_id=1628279685]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.125, 2.9375, -11.599999)
+size = Vector3(1.375, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_53s_0_0" type="CSGBox3D" parent="Blockers" unique_id=491773651]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.125, 2.9375, 11.6)
+size = Vector3(1.375, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_54fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=998215619]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.262505, 2.9375, -11.25)
+size = Vector3(0.1, 2.75, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_54fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=2013856870]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.262505, 2.9375, 11.25)
+size = Vector3(0.1, 2.75, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_54p_0_0" type="CSGBox3D" parent="Blockers" unique_id=548287294]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.21875, 2.9375, -11.349999)
+size = Vector3(0.8125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_54p_0_1" type="CSGBox3D" parent="Blockers" unique_id=1184052130]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.78125, 2.9375, -11.349999)
+size = Vector3(0.3125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_54p_0_2" type="CSGBox3D" parent="Blockers" unique_id=26996070]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.125, 2.9375, -11.349999)
+size = Vector3(0.375, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_54s_0_0" type="CSGBox3D" parent="Blockers" unique_id=803752402]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.21875, 2.9375, 11.35)
+size = Vector3(0.8125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_54s_0_1" type="CSGBox3D" parent="Blockers" unique_id=502993484]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.78125, 2.9375, 11.35)
+size = Vector3(0.3125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_54s_0_2" type="CSGBox3D" parent="Blockers" unique_id=1485249590]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.125, 2.9375, 11.35)
+size = Vector3(0.375, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_55fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1281038020]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.762505, 2.9375, -10.975)
+size = Vector3(0.1, 2.75, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_55fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=654159504]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.762505, 2.9375, 10.975)
+size = Vector3(0.1, 2.75, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_56fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=948226765]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.262505, 2.9375, -10.775001)
+size = Vector3(0.1, 2.75, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_56fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=627025374]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.262505, 2.9375, 10.775)
+size = Vector3(0.1, 2.75, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_57fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1455858660]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.012505, 2.9375, -10.625)
+size = Vector3(0.1, 2.75, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_57fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=2009839553]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.012505, 2.9375, 10.650001)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_57p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1949403881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.03125, 2.9375, -10.65)
+size = Vector3(0.0625, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_57s_0_0" type="CSGBox3D" parent="Blockers" unique_id=243792892]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.84375, 2.9375, 10.650001)
+size = Vector3(0.4375, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_58fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1477486919]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.762505, 2.9375, -10.45)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_58fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=603742035]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.762505, 2.9375, 10.450001)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_58p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1853158037]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.4375, 2.9375, -10.5)
+size = Vector3(0.75, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_58s_0_0" type="CSGBox3D" parent="Blockers" unique_id=195684387]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.4375, 2.9375, 10.5)
+size = Vector3(0.75, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_59fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1387158910]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.512505, 2.9375, -10.275001)
+size = Vector3(0.1, 2.75, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_59fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1146236477]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.512505, 2.9375, 10.275)
+size = Vector3(0.1, 2.75, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_59p_0_0" type="CSGBox3D" parent="Blockers" unique_id=747254892]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.1875, 2.9375, -10.3)
+size = Vector3(0.75, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_59s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1011540060]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.1875, 2.9375, 10.3)
+size = Vector3(0.75, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_60fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=707917701]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.262505, 2.9375, -10.099999)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_60fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=556193963]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.262505, 2.9375, 10.1)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_61fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=317277150]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.012505, 2.9375, -9.925)
+size = Vector3(0.1, 2.75, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_61fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=717680507]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.012505, 2.9375, 9.925)
+size = Vector3(0.1, 2.75, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_62fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1441035753]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.762505, 2.9375, -9.8)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_62fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=2054570956]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.762505, 2.9375, 9.8)
+size = Vector3(0.1, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_62p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1161703572]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.65625, 2.9375, -9.8)
+size = Vector3(0.3125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_62s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1668426758]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.65625, 2.9375, 9.8)
+size = Vector3(0.3125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_63fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1677818101]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.512505, 2.9375, -9.549999)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_63fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=597015464]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.512505, 2.9375, 9.55)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_64fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1663199257]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.262505, 2.9375, -9.349999)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_64fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=526113565]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.262505, 2.9375, 9.35)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_65fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=937570562]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.012505, 2.9375, -9.15)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_65fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1352353682]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.012505, 2.9375, 9.150001)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_66fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1977600535]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.762505, 2.9375, -8.925)
+size = Vector3(0.1, 2.75, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_66fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1365283505]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.762505, 2.9375, 8.925)
+size = Vector3(0.1, 2.75, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_66p_0_0" type="CSGBox3D" parent="Blockers" unique_id=284668226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.4375, 2.9375, -9)
+size = Vector3(0.75, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_66s_0_0" type="CSGBox3D" parent="Blockers" unique_id=518280928]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.4375, 2.9375, 9)
+size = Vector3(0.75, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_67fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1370837097]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.512505, 2.9375, -8.7)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_67fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=416107488]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.512505, 2.9375, 8.700001)
+size = Vector3(0.1, 2.75, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_67p_0_0" type="CSGBox3D" parent="Blockers" unique_id=380354235]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.1875, 2.9375, -8.75)
+size = Vector3(0.75, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_67s_0_0" type="CSGBox3D" parent="Blockers" unique_id=217342360]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.1875, 2.9375, 8.75)
+size = Vector3(0.75, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_68fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=482645592]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.262505, 2.9375, -8.475)
+size = Vector3(0.1, 2.75, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_68fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=2004245781]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.262505, 2.9375, 8.475)
+size = Vector3(0.1, 2.75, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_69fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=71962361]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.012505, 3.25, -8.3)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_69fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=637664285]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.012505, 3.25, 8.3)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_69p_0_0" type="CSGBox3D" parent="Blockers" unique_id=725021512]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.90625, 2.9375, -8.3)
+size = Vector3(0.3125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_69s_0_0" type="CSGBox3D" parent="Blockers" unique_id=220169600]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.90625, 2.9375, 8.3)
+size = Vector3(0.3125, 2.75, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_70fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=860080913]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.762505, 3.25, -7.9750004)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_70fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1811214318]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.762505, 3.25, 7.975)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_70p_0_0" type="CSGBox3D" parent="Blockers" unique_id=2083040876]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.4375, 3.25, -8.05)
+size = Vector3(0.75, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_70s_0_0" type="CSGBox3D" parent="Blockers" unique_id=973720387]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.4375, 3.25, 8.05)
+size = Vector3(0.75, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_71fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=2112165913]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.512505, 3.25, -7.725)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_71fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1074987171]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.512505, 3.25, 7.725)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_72fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1094587190]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.262505, 3.25, -7.475)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_72fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1105383157]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.262505, 3.25, 7.475)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_73fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=24825728]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.950005, 3.25, -7.225)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_73fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=515846046]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.950005, 3.25, 7.225)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_73p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1971423076]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.65625, 3.25, -7.2999997)
+size = Vector3(0.6875, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_73s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1981962077]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.65625, 3.25, 7.3)
+size = Vector3(0.6875, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_74fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=28365629]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.637505, 3.25, -6.975)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_74fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=853916754]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.637505, 3.25, 6.975)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_74p_0_0" type="CSGBox3D" parent="Blockers" unique_id=525428459]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.34375, 3.25, -7.0499997)
+size = Vector3(0.6875, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_74s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1321731023]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.34375, 3.25, 7.05)
+size = Vector3(0.6875, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_75fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1903619276]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.325005, 3.25, -6.725)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_75fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=384053825]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.325005, 3.25, 6.725)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_75p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1732246204]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.03125, 3.25, -6.7999997)
+size = Vector3(0.6875, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_75s_0_0" type="CSGBox3D" parent="Blockers" unique_id=2041443847]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.03125, 3.25, 6.8)
+size = Vector3(0.6875, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_76fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=2025672493]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.950005, 3.25, -6.5)
+size = Vector3(0.1, 3.375, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_76fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=924358433]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.950005, 3.25, 6.5)
+size = Vector3(0.1, 3.375, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_76p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1655560801]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.6875, 3.25, -6.5499997)
+size = Vector3(0.625, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_76s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1933225853]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 116.6875, 3.25, 6.55)
+size = Vector3(0.625, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_77fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=485689154]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 117.512505, 3.25, -6.275)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_77fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1341391636]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 117.512505, 3.25, 6.275)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_78fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=496018881]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.075005, 3.25, -6.1)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_78fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1278613224]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.075005, 3.25, 6.1000004)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_78p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1413607428]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.0625, 3.25, -6.1)
+size = Vector3(0.125, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_78s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1356553832]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.0625, 3.25, 6.1000004)
+size = Vector3(0.125, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_79fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=240322891]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.575005, 3.25, -5.825)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_79fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=804506084]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.575005, 3.25, 5.825)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_79p_0_0" type="CSGBox3D" parent="Blockers" unique_id=974534858]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.375, 3.25, -5.8999996)
+size = Vector3(0.5, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_79s_0_0" type="CSGBox3D" parent="Blockers" unique_id=209053586]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 118.375, 3.25, 5.9)
+size = Vector3(0.5, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_80fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1348292663]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.075005, 3.25, -5.625)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_80fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1054698103]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.075005, 3.25, 5.625)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_81fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=256468984]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.512505, 3.25, -5.4500003)
+size = Vector3(0.1, 3.375, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_81fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=753031172]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.512505, 3.25, 5.45)
+size = Vector3(0.1, 3.375, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_82fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1926374483]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.950005, 3.25, -5.2999997)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_82fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=2033724085]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.950005, 3.25, 5.3)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_82p_0_0" type="CSGBox3D" parent="Blockers" unique_id=151245064]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.875, 3.25, -5.2999997)
+size = Vector3(0.25, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_82s_0_0" type="CSGBox3D" parent="Blockers" unique_id=414180637]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 119.875, 3.25, 5.3)
+size = Vector3(0.25, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_83fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1574617592]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.325005, 3.25, -5.0750003)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_83fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=797766175]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.325005, 3.25, 5.075)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_83p_0_0" type="CSGBox3D" parent="Blockers" unique_id=429514869]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.1875, 3.25, -5.1)
+size = Vector3(0.375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_83s_0_0" type="CSGBox3D" parent="Blockers" unique_id=954226628]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.1875, 3.25, 5.1000004)
+size = Vector3(0.375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_84fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=892683301]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.700005, 3.25, -4.9)
+size = Vector3(0.1, 3.375, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_84fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=2111638592]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.700005, 3.25, 4.9)
+size = Vector3(0.1, 3.375, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_84p_0_0" type="CSGBox3D" parent="Blockers" unique_id=683690745]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.5625, 3.25, -4.95)
+size = Vector3(0.375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_84s_0_0" type="CSGBox3D" parent="Blockers" unique_id=193478562]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 120.5625, 3.25, 4.9500003)
+size = Vector3(0.375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_85fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1134488665]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 121.075005, 3.25, -4.65)
+size = Vector3(0.1, 3.375, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_85fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1923059688]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 121.075005, 3.25, 4.65)
+size = Vector3(0.1, 3.375, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_86fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1134847268]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 121.700005, 3.25, -4.375)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_86fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=910798045]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 121.700005, 3.25, 4.375)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_86p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1730840828]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 121.71875, 3.25, -4.45)
+size = Vector3(0.0625, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_86s_0_0" type="CSGBox3D" parent="Blockers" unique_id=542312437]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 121.71875, 3.25, 4.4500003)
+size = Vector3(0.0625, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_87fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1729008193]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.262505, 3.25, -4.15)
+size = Vector3(0.1, 3.375, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_87fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=734654979]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.262505, 3.25, 4.15)
+size = Vector3(0.1, 3.375, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_87p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1424854155]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.03125, 3.25, -4.2)
+size = Vector3(0.5625, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_87s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1981025465]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.03125, 3.25, 4.2000003)
+size = Vector3(0.5625, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_88fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=56603964]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.700005, 3.25, -3.9250002)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_88fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1569952059]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.700005, 3.25, 3.925)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_88p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1251657226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.53125, 3.25, -4)
+size = Vector3(0.4375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_88s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1576162060]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 122.53125, 3.25, 4)
+size = Vector3(0.4375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_89fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=782984886]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 123.137505, 3.25, -3.725)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_89fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1953671236]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 123.137505, 3.25, 3.7250001)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_90fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=2137861580]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 123.450005, 3.25, -3.575)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_90fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=2064320865]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 123.450005, 3.25, 3.575)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_91fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=813634503]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 123.762505, 3.25, -3.35)
+size = Vector3(0.1, 3.375, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_91fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1058552928]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 123.762505, 3.25, 3.3500001)
+size = Vector3(0.1, 3.375, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_92fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1298389134]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.325005, 3.25, -3.075)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_92fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1268114041]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.325005, 3.25, 3.075)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_92p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1103734163]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.09375, 3.25, -3.15)
+size = Vector3(0.5625, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_92s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1700907165]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.09375, 3.25, 3.1499999)
+size = Vector3(0.5625, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_93fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1268067326]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.762505, 3.25, -2.875)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_93fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1689477675]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.762505, 3.25, 2.875)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_93p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1277977508]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.59375, 3.25, -2.9)
+size = Vector3(0.4375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_93s_0_0" type="CSGBox3D" parent="Blockers" unique_id=181822364]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.59375, 3.25, 2.8999999)
+size = Vector3(0.4375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_94fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=677480985]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 125.075005, 3.25, -2.6499999)
+size = Vector3(0.1, 3.375, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_94fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1690177818]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 125.075005, 3.25, 2.65)
+size = Vector3(0.1, 3.375, 0.3)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_94p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1257500823]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.96875, 3.25, -2.75)
+size = Vector3(0.3125, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_94s_0_0" type="CSGBox3D" parent="Blockers" unique_id=243002347]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 124.96875, 3.25, 2.75)
+size = Vector3(0.3125, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_95fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=225620307]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 125.575005, 3.25, -2.375)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_95fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1027130830]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 125.575005, 3.25, 2.375)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_96fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=889298576]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.05, 3.25, -2.2)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_96fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1376114055]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.05, 3.25, 2.2)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_96p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1551244947]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.05, 3.25, -2.2)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_96s_0_0" type="CSGBox3D" parent="Blockers" unique_id=2070848706]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.05, 3.25, 2.2)
+size = Vector3(0.1, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_97fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=2053401765]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.575005, 3.25, -1.825)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_97fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1814829294]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.575005, 3.25, 1.825)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_97p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1512372041]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.362495, 3.25, -1.9000001)
+size = Vector3(0.525, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_97s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1815413367]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.362495, 3.25, 1.9)
+size = Vector3(0.525, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_98fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=615719656]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.950005, 3.25, -1.625)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_98fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=82045680]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.950005, 3.25, 1.625)
+size = Vector3(0.1, 3.375, 0.15)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_98p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1760048688]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.8125, 3.25, -1.6500001)
+size = Vector3(0.375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_98s_0_0" type="CSGBox3D" parent="Blockers" unique_id=589123835]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 126.8125, 3.25, 1.65)
+size = Vector3(0.375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_99fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=679722858]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.200005, 3.25, -1.425)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_99fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=459577085]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.200005, 3.25, 1.425)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_99p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1621818754]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.125, 3.25, -1.5)
+size = Vector3(0.25, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_99s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1451863406]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.125, 3.25, 1.5)
+size = Vector3(0.25, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_100fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1599970007]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.637505, 3.25, -1.175)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_100fwd_1_0" type="CSGBox3D" parent="Blockers" unique_id=1431285588]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.637505, 3.25, 1.175)
+size = Vector3(0.1, 3.375, 0.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_100p_0_0" type="CSGBox3D" parent="Blockers" unique_id=65002856]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.46875, 3.25, -1.25)
+size = Vector3(0.4375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_100s_0_0" type="CSGBox3D" parent="Blockers" unique_id=578755316]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.46875, 3.25, 1.25)
+size = Vector3(0.4375, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_101fwd_0_0" type="CSGBox3D" parent="Blockers" unique_id=1848698517]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 128.05, 3.25, 0)
+size = Vector3(0.1, 3.375, 2.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_101p_0_0" type="CSGBox3D" parent="Blockers" unique_id=1137992400]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.89375, 3.25, -0.99999994)
+size = Vector3(0.4125, 3.375, 0.1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_c_shell_101s_0_0" type="CSGBox3D" parent="Blockers" unique_id=1174266391]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.89375, 3.25, 1)
+size = Vector3(0.4125, 3.375, 0.1)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -56676,390 +58656,822 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_wall_37" type="CSGBox3D" parent="Blockers" unique_id=1141325721]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.625, -15.5625, -6.975)
-size = Vector3(0.2, 5.25, 1.35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.8125, -15.5625, -8.55)
+size = Vector3(0.2, 5.25, 0.4)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_wall_38" type="CSGBox3D" parent="Blockers" unique_id=2045029746]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.625, -15.5625, 6.9750004)
-size = Vector3(0.2, 5.25, 1.35)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 72.8125, -15.5625, 8.55)
+size = Vector3(0.2, 5.25, 0.4)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_wall_39" type="CSGBox3D" parent="Blockers" unique_id=2031985011]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.4375, -15.5625, -6.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.3125, -15.5625, -8.3)
 size = Vector3(0.2, 5.25, 0.5)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_wall_40" type="CSGBox3D" parent="Blockers" unique_id=134398771]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.4375, -15.5625, 6.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.3125, -15.5625, 8.3)
 size = Vector3(0.2, 5.25, 0.5)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_wall_41" type="CSGBox3D" parent="Blockers" unique_id=2121465394]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.25, -15.5625, -3.9747498)
-size = Vector3(0.2, 5.25, 1.4505)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.8125, -15.5625, -7.85)
+size = Vector3(0.2, 5.25, 0.8)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_wall_42" type="CSGBox3D" parent="Blockers" unique_id=1709382306]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.25, -17.447, 3.22525)
-size = Vector3(0.2, 1.481, 0.0505)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.8125, -15.5625, 7.85)
+size = Vector3(0.2, 5.25, 0.8)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_wall_43" type="CSGBox3D" parent="Blockers" unique_id=766387001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.8125, -15.5625, -7.4)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_44" type="CSGBox3D" parent="Blockers" unique_id=80196088]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.8125, -15.5625, 7.4)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_45" type="CSGBox3D" parent="Blockers" unique_id=321742235]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.3125, -15.5625, -7.125)
+size = Vector3(0.2, 5.25, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_46" type="CSGBox3D" parent="Blockers" unique_id=987169618]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 80.3125, -15.5625, 7.125)
+size = Vector3(0.2, 5.25, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_47" type="CSGBox3D" parent="Blockers" unique_id=2006165198]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.8125, -15.5625, -6.85)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_48" type="CSGBox3D" parent="Blockers" unique_id=631068612]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.8125, -15.5625, 6.85)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_49" type="CSGBox3D" parent="Blockers" unique_id=387834492]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.3125, -15.5625, -6.55)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_50" type="CSGBox3D" parent="Blockers" unique_id=85646963]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.3125, -15.5625, 6.55)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_51" type="CSGBox3D" parent="Blockers" unique_id=476733684]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.4375, -15.5625, -6.25)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_52" type="CSGBox3D" parent="Blockers" unique_id=1530787255]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 84.4375, -15.5625, 6.25)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_53" type="CSGBox3D" parent="Blockers" unique_id=329680570]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.8125, -15.5625, -5.625)
+size = Vector3(0.2, 5.25, 0.55)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_54" type="CSGBox3D" parent="Blockers" unique_id=2026442921]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.8125, -15.5625, 5.625)
+size = Vector3(0.2, 5.25, 0.55)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_55" type="CSGBox3D" parent="Blockers" unique_id=1372020612]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.3125, -15.5625, -5.3)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_56" type="CSGBox3D" parent="Blockers" unique_id=1604458324]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.3125, -15.5625, 5.3)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_57" type="CSGBox3D" parent="Blockers" unique_id=1055924860]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.8125, -15.5625, -5.025)
+size = Vector3(0.2, 5.25, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_58" type="CSGBox3D" parent="Blockers" unique_id=229530591]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.8125, -15.5625, 5.025)
+size = Vector3(0.2, 5.25, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_59" type="CSGBox3D" parent="Blockers" unique_id=306238254]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.3125, -15.5625, -4.75)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_60" type="CSGBox3D" parent="Blockers" unique_id=944164934]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.3125, -15.5625, 4.75)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_61" type="CSGBox3D" parent="Blockers" unique_id=326242265]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.25, -15.5625, -4.45)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_62" type="CSGBox3D" parent="Blockers" unique_id=2020433734]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.25, -15.5625, 4.45)
+size = Vector3(0.2, 5.25, 0.5)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_63" type="CSGBox3D" parent="Blockers" unique_id=1866279390]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.3125, -15.5625, -4.175)
+size = Vector3(0.2, 5.25, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_64" type="CSGBox3D" parent="Blockers" unique_id=1091572646]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.3125, -15.5625, 4.175)
+size = Vector3(0.2, 5.25, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_65" type="CSGBox3D" parent="Blockers" unique_id=2047378551]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.8125, -15.5625, -3.9250002)
+size = Vector3(0.2, 5.25, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_66" type="CSGBox3D" parent="Blockers" unique_id=1774254743]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.8125, -15.5625, 3.925)
+size = Vector3(0.2, 5.25, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_67" type="CSGBox3D" parent="Blockers" unique_id=2030799962]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.3125, -15.5625, -3.5500002)
+size = Vector3(0.2, 5.25, 0.7)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_68" type="CSGBox3D" parent="Blockers" unique_id=2011509143]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.3125, -15.5625, 3.55)
+size = Vector3(0.2, 5.25, 0.7)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_69" type="CSGBox3D" parent="Blockers" unique_id=255101358]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.1875, -15.5625, -3.2250001)
 size = Vector3(0.2, 5.25, 0.35)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_44" type="CSGBox3D" parent="Blockers" unique_id=80196088]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.5, -16.53125, -1.9499999)
-size = Vector3(0.2, 3.3125, 0.8)
+[node name="Blocker_tt_wall_70" type="CSGBox3D" parent="Blockers" unique_id=1971474745]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.8125, -16.53125, -2.825)
+size = Vector3(0.2, 3.3125, 0.45)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_45" type="CSGBox3D" parent="Blockers" unique_id=321742235]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.5, -16.53125, 1.9499999)
-size = Vector3(0.2, 3.3125, 0.8)
+[node name="Blocker_tt_wall_71" type="CSGBox3D" parent="Blockers" unique_id=1614772407]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.8125, -16.53125, 2.8249998)
+size = Vector3(0.2, 3.3125, 0.45)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_46" type="CSGBox3D" parent="Blockers" unique_id=987169618]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.125, -16.53125, -1.4)
-size = Vector3(0.2, 3.3125, 0.7)
+[node name="Blocker_tt_wall_72" type="CSGBox3D" parent="Blockers" unique_id=1295208545]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.3125, -16.53125, -2.475)
+size = Vector3(0.2, 3.3125, 0.65)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_47" type="CSGBox3D" parent="Blockers" unique_id=2006165198]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.125, -17.3144, 1.15025)
-size = Vector3(0.2, 1.7462, 0.2005)
+[node name="Blocker_tt_wall_73" type="CSGBox3D" parent="Blockers" unique_id=1818603333]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.3125, -16.53125, 2.4750001)
+size = Vector3(0.2, 3.3125, 0.65)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_48" type="CSGBox3D" parent="Blockers" unique_id=631068612]
+[node name="Blocker_tt_wall_74" type="CSGBox3D" parent="Blockers" unique_id=1407350859]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.5, -16.53125, -2.175)
+size = Vector3(0.2, 3.3125, 0.35)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_75" type="CSGBox3D" parent="Blockers" unique_id=568895237]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 106.5, -16.53125, 2.175)
+size = Vector3(0.2, 3.3125, 0.35)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_76" type="CSGBox3D" parent="Blockers" unique_id=2123249687]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.125, -16.53125, -1.975)
+size = Vector3(0.2, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_77" type="CSGBox3D" parent="Blockers" unique_id=1423329614]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.125, -16.53125, 1.975)
+size = Vector3(0.2, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_78" type="CSGBox3D" parent="Blockers" unique_id=19969330]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110, -16.53125, -1.75)
+size = Vector3(0.2, 3.3125, 0.4)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_79" type="CSGBox3D" parent="Blockers" unique_id=1499941254]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110, -16.53125, 1.75)
+size = Vector3(0.2, 3.3125, 0.4)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_80" type="CSGBox3D" parent="Blockers" unique_id=966084633]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.125, -16.53125, -1.525)
+size = Vector3(0.2, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_81" type="CSGBox3D" parent="Blockers" unique_id=2056213773]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.125, -16.53125, 1.525)
+size = Vector3(0.2, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_82" type="CSGBox3D" parent="Blockers" unique_id=1788886216]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.625, -16.53125, -1.275)
+size = Vector3(0.2, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_83" type="CSGBox3D" parent="Blockers" unique_id=864412227]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.625, -16.53125, 1.275)
+size = Vector3(0.2, 3.3125, 0.45)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_84" type="CSGBox3D" parent="Blockers" unique_id=1691772750]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 115.8125, -16.53125, 0)
 size = Vector3(0.2, 3.3125, 2.5)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_49" type="CSGBox3D" parent="Blockers" unique_id=387834492]
+[node name="Blocker_tt_wall_85" type="CSGBox3D" parent="Blockers" unique_id=2091053851]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.1992, -13.375, -12.799999)
 size = Vector3(1.2234, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_50" type="CSGBox3D" parent="Blockers" unique_id=85646963]
+[node name="Blocker_tt_wall_86" type="CSGBox3D" parent="Blockers" unique_id=1267914487]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.90625, -13.375, -12.799999)
 size = Vector3(2.7625, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_51" type="CSGBox3D" parent="Blockers" unique_id=476733684]
+[node name="Blocker_tt_wall_87" type="CSGBox3D" parent="Blockers" unique_id=254906473]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.65625, -13.375, -12.799999)
 size = Vector3(2.8875, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_52" type="CSGBox3D" parent="Blockers" unique_id=1530787255]
+[node name="Blocker_tt_wall_88" type="CSGBox3D" parent="Blockers" unique_id=243352964]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6875, -13.375, -12.799999)
 size = Vector3(2.95, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_53" type="CSGBox3D" parent="Blockers" unique_id=329680570]
+[node name="Blocker_tt_wall_89" type="CSGBox3D" parent="Blockers" unique_id=680330973]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.09375, -13.375, -12.799999)
 size = Vector3(3.3875, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_54" type="CSGBox3D" parent="Blockers" unique_id=2026442921]
+[node name="Blocker_tt_wall_90" type="CSGBox3D" parent="Blockers" unique_id=1659422712]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.09375, -13.375, -12.799999)
 size = Vector3(2.7625, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_55" type="CSGBox3D" parent="Blockers" unique_id=1372020612]
+[node name="Blocker_tt_wall_91" type="CSGBox3D" parent="Blockers" unique_id=1072844184]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.71875, -13.375, -12.099999)
 size = Vector3(11.6375, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_56_u0" type="CSGBox3D" parent="Blockers" unique_id=777318038]
+[node name="Blocker_tt_wall_92_u0" type="CSGBox3D" parent="Blockers" unique_id=121250335]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43.3039, -15.6875, -11.75)
 size = Vector3(10.8578, 4.5, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_56_u1" type="CSGBox3D" parent="Blockers" unique_id=1718732104]
+[node name="Blocker_tt_wall_92_u1" type="CSGBox3D" parent="Blockers" unique_id=1853929060]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.74295, -14.46875, -11.75)
 size = Vector3(10.2641, 6.9375, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_57" type="CSGBox3D" parent="Blockers" unique_id=1055924860]
+[node name="Blocker_tt_wall_93" type="CSGBox3D" parent="Blockers" unique_id=1960413776]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.6875, -13.375, -10.95)
 size = Vector3(11.7, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_58" type="CSGBox3D" parent="Blockers" unique_id=229530591]
+[node name="Blocker_tt_wall_94" type="CSGBox3D" parent="Blockers" unique_id=1445033493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.7539, -14.59375, -10.099999)
 size = Vector3(16.4422, 7.1875, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_59" type="CSGBox3D" parent="Blockers" unique_id=306238254]
+[node name="Blocker_tt_wall_95" type="CSGBox3D" parent="Blockers" unique_id=450649700]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60.919003, -13.375, -9.2)
 size = Vector3(8.788, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_60" type="CSGBox3D" parent="Blockers" unique_id=944164934]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.1914, -15.5625, -7.55)
-size = Vector3(7.0672, 5.25, 0.2)
+[node name="Blocker_tt_wall_96" type="CSGBox3D" parent="Blockers" unique_id=812222707]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.78515, -15.5625, -8.65)
+size = Vector3(2.2547, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_61" type="CSGBox3D" parent="Blockers" unique_id=326242265]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.03125, -15.5625, -6.4)
-size = Vector3(7.0125, 5.25, 0.2)
+[node name="Blocker_tt_wall_97" type="CSGBox3D" parent="Blockers" unique_id=586347701]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5625, -15.5625, -8.45)
+size = Vector3(1.7, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_62" type="CSGBox3D" parent="Blockers" unique_id=2020433734]
+[node name="Blocker_tt_wall_98" type="CSGBox3D" parent="Blockers" unique_id=1126283419]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.0625, -15.5625, -8.15)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_99" type="CSGBox3D" parent="Blockers" unique_id=335611067]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.3125, -15.5625, -7.55)
+size = Vector3(3.2, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_100" type="CSGBox3D" parent="Blockers" unique_id=1018560305]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.5625, -15.5625, -7.25)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_101" type="CSGBox3D" parent="Blockers" unique_id=585668591]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.0625, -15.5625, -7)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_102" type="CSGBox3D" parent="Blockers" unique_id=508433592]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.5625, -15.5625, -6.7000003)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_103" type="CSGBox3D" parent="Blockers" unique_id=2024972395]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.875, -15.5625, -6.4)
+size = Vector3(1.325, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_104" type="CSGBox3D" parent="Blockers" unique_id=202385204]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -87.91405, -15.8125, -6.35)
 size = Vector3(5.7469, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_63" type="CSGBox3D" parent="Blockers" unique_id=1866279390]
+[node name="Blocker_tt_wall_105" type="CSGBox3D" parent="Blockers" unique_id=1557904913]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.0547, -15.5625, -5.8)
+size = Vector3(1.7156, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_106" type="CSGBox3D" parent="Blockers" unique_id=1326461926]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.5625, -15.5625, -5.4500003)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_107" type="CSGBox3D" parent="Blockers" unique_id=1146274543]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93.4375, -15.8125, -5.2000003)
 size = Vector3(5.7, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_64" type="CSGBox3D" parent="Blockers" unique_id=1091572646]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.77345, -15.5625, -4.6)
-size = Vector3(7.1531, 5.25, 0.2)
+[node name="Blocker_tt_wall_108" type="CSGBox3D" parent="Blockers" unique_id=1612753336]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.0625, -15.5625, -5.15)
+size = Vector3(1.7, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_65" type="CSGBox3D" parent="Blockers" unique_id=2047378551]
+[node name="Blocker_tt_wall_109" type="CSGBox3D" parent="Blockers" unique_id=1459194289]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 91.5625, -15.5625, -4.9)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_110" type="CSGBox3D" parent="Blockers" unique_id=351036295]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.78125, -15.5625, -4.6)
+size = Vector3(1.1375, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_111" type="CSGBox3D" parent="Blockers" unique_id=1099028289]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.28125, -15.5625, -4.3)
+size = Vector3(2.2625, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_112" type="CSGBox3D" parent="Blockers" unique_id=1269416420]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -98.9375, -15.8125, -4.25)
 size = Vector3(5.7, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_66" type="CSGBox3D" parent="Blockers" unique_id=1774254743]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.39885, -17.447, -3.3000002)
-size = Vector3(0.4977, 1.481, 0.2)
+[node name="Blocker_tt_wall_113" type="CSGBox3D" parent="Blockers" unique_id=1659019109]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.0625, -15.5625, -4.05)
+size = Vector3(1.7, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_67" type="CSGBox3D" parent="Blockers" unique_id=2030799962]
+[node name="Blocker_tt_wall_114" type="CSGBox3D" parent="Blockers" unique_id=2020650480]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.5625, -15.5625, -3.8000002)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_115" type="CSGBox3D" parent="Blockers" unique_id=691334701]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.25, -15.5625, -3.3000002)
+size = Vector3(2.075, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_116" type="CSGBox3D" parent="Blockers" unique_id=810999581]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.332054, -16.53125, -2.95)
+size = Vector3(1.1609, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_117" type="CSGBox3D" parent="Blockers" unique_id=297497381]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -104.5625, -15.8125, -2.8500001)
 size = Vector3(5.95, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_68" type="CSGBox3D" parent="Blockers" unique_id=2011509143]
+[node name="Blocker_tt_wall_118" type="CSGBox3D" parent="Blockers" unique_id=1336443403]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.5625, -16.53125, -2.7)
+size = Vector3(1.7, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_119" type="CSGBox3D" parent="Blockers" unique_id=648253036]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 69.34765, -14.59375, -2.3125)
 size = Vector3(3.0203, 7.1875, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_69" type="CSGBox3D" parent="Blockers" unique_id=255101358]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.175804, -16.53125, -2.25)
-size = Vector3(4.8484, 3.3125, 0.2)
+[node name="Blocker_tt_wall_120" type="CSGBox3D" parent="Blockers" unique_id=310299809]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.40625, -16.53125, -2.25)
+size = Vector3(2.3875, 3.3125, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_70" type="CSGBox3D" parent="Blockers" unique_id=1971474745]
+[node name="Blocker_tt_wall_121" type="CSGBox3D" parent="Blockers" unique_id=971536485]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.3125, -16.53125, -2.1000001)
+size = Vector3(1.825, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_122" type="CSGBox3D" parent="Blockers" unique_id=148451578]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.0625, -16.53125, -1.85)
+size = Vector3(2.075, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_123" type="CSGBox3D" parent="Blockers" unique_id=1076595552]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.3125, -15.8125, -1.8)
 size = Vector3(5.95, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_71" type="CSGBox3D" parent="Blockers" unique_id=1614772407]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.8125, -16.53125, -1.65)
-size = Vector3(4.825, 3.3125, 0.2)
+[node name="Blocker_tt_wall_124" type="CSGBox3D" parent="Blockers" unique_id=1020918864]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.5625, -16.53125, -1.65)
+size = Vector3(1.325, 3.3125, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_72" type="CSGBox3D" parent="Blockers" unique_id=1295208545]
+[node name="Blocker_tt_wall_125" type="CSGBox3D" parent="Blockers" unique_id=353343478]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -116.0781, -15.8125, -1.4499999)
 size = Vector3(5.9812, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_73" type="CSGBox3D" parent="Blockers" unique_id=1818603333]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.46875, -16.53125, -1.15)
-size = Vector3(4.8875, 3.3125, 0.2)
+[node name="Blocker_tt_wall_126" type="CSGBox3D" parent="Blockers" unique_id=22161840]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.375, -16.53125, -1.4)
+size = Vector3(2.7, 3.3125, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_74" type="CSGBox3D" parent="Blockers" unique_id=1407350859]
+[node name="Blocker_tt_wall_127" type="CSGBox3D" parent="Blockers" unique_id=1098948352]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.71875, -16.53125, -1.15)
+size = Vector3(2.3875, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_128" type="CSGBox3D" parent="Blockers" unique_id=2055494371]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.1914, -15.5625, -1.125)
 size = Vector3(6.9272, 5.25, 0.06)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_75" type="CSGBox3D" parent="Blockers" unique_id=568895237]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.2565, -17.3144, 1.15)
-size = Vector3(0.463, 1.7462, 0.2)
+[node name="Blocker_tt_wall_129" type="CSGBox3D" parent="Blockers" unique_id=1966019242]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.71875, -16.53125, 1.15)
+size = Vector3(2.3875, 3.3125, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_76" type="CSGBox3D" parent="Blockers" unique_id=2123249687]
+[node name="Blocker_tt_wall_130" type="CSGBox3D" parent="Blockers" unique_id=1838859315]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.375, -16.53125, 1.4)
+size = Vector3(2.7, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_131" type="CSGBox3D" parent="Blockers" unique_id=1281458573]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -116.0781, -15.8125, 1.45)
 size = Vector3(5.9812, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_77" type="CSGBox3D" parent="Blockers" unique_id=1423329614]
+[node name="Blocker_tt_wall_132" type="CSGBox3D" parent="Blockers" unique_id=1764694621]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.1914, -15.5625, 1.5625)
 size = Vector3(6.9272, 5.25, 0.06)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_78" type="CSGBox3D" parent="Blockers" unique_id=19969330]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.8125, -16.53125, 1.65)
-size = Vector3(4.825, 3.3125, 0.2)
+[node name="Blocker_tt_wall_133" type="CSGBox3D" parent="Blockers" unique_id=1056105566]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.5625, -16.53125, 1.65)
+size = Vector3(1.325, 3.3125, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_79" type="CSGBox3D" parent="Blockers" unique_id=1499941254]
+[node name="Blocker_tt_wall_134" type="CSGBox3D" parent="Blockers" unique_id=1044989945]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.3125, -15.8125, 1.8000001)
 size = Vector3(5.95, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_80" type="CSGBox3D" parent="Blockers" unique_id=966084633]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.175804, -16.53125, 2.25)
-size = Vector3(4.8484, 3.3125, 0.2)
+[node name="Blocker_tt_wall_135" type="CSGBox3D" parent="Blockers" unique_id=1548891684]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.0625, -16.53125, 1.85)
+size = Vector3(2.075, 3.3125, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_81" type="CSGBox3D" parent="Blockers" unique_id=2056213773]
+[node name="Blocker_tt_wall_136" type="CSGBox3D" parent="Blockers" unique_id=1371359591]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.3125, -16.53125, 2.1)
+size = Vector3(1.825, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_137" type="CSGBox3D" parent="Blockers" unique_id=462340792]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.40625, -16.53125, 2.25)
+size = Vector3(2.3875, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_138" type="CSGBox3D" parent="Blockers" unique_id=598389490]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.5625, -16.53125, 2.6999998)
+size = Vector3(1.7, 3.3125, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_139" type="CSGBox3D" parent="Blockers" unique_id=662109596]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -104.5625, -15.8125, 2.85)
 size = Vector3(5.95, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_82" type="CSGBox3D" parent="Blockers" unique_id=1788886216]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.39885, -17.447, 3.3)
-size = Vector3(0.4977, 1.481, 0.2)
+[node name="Blocker_tt_wall_140" type="CSGBox3D" parent="Blockers" unique_id=733041390]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.332054, -16.53125, 2.9499998)
+size = Vector3(1.1609, 3.3125, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_83" type="CSGBox3D" parent="Blockers" unique_id=864412227]
+[node name="Blocker_tt_wall_141" type="CSGBox3D" parent="Blockers" unique_id=1421096794]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.25, -15.5625, 3.3)
+size = Vector3(2.075, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_142" type="CSGBox3D" parent="Blockers" unique_id=1026089413]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.5625, -15.5625, 3.8)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_143" type="CSGBox3D" parent="Blockers" unique_id=1280521075]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.0625, -15.5625, 4.05)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_144" type="CSGBox3D" parent="Blockers" unique_id=1735129381]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -98.9375, -15.8125, 4.25)
 size = Vector3(5.7, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_84" type="CSGBox3D" parent="Blockers" unique_id=1691772750]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.77345, -15.5625, 4.6)
-size = Vector3(7.1531, 5.25, 0.2)
+[node name="Blocker_tt_wall_145" type="CSGBox3D" parent="Blockers" unique_id=599735698]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.28125, -15.5625, 4.2999997)
+size = Vector3(2.2625, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_85" type="CSGBox3D" parent="Blockers" unique_id=2091053851]
+[node name="Blocker_tt_wall_146" type="CSGBox3D" parent="Blockers" unique_id=109980531]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.78125, -15.5625, 4.6)
+size = Vector3(1.1375, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_147" type="CSGBox3D" parent="Blockers" unique_id=849445789]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 91.5625, -15.5625, 4.9)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_148" type="CSGBox3D" parent="Blockers" unique_id=396573854]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.0625, -15.5625, 5.15)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_149" type="CSGBox3D" parent="Blockers" unique_id=336988567]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -93.4375, -15.8125, 5.2)
 size = Vector3(5.7, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_86" type="CSGBox3D" parent="Blockers" unique_id=1267914487]
+[node name="Blocker_tt_wall_150" type="CSGBox3D" parent="Blockers" unique_id=642486622]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.5625, -15.5625, 5.45)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_151" type="CSGBox3D" parent="Blockers" unique_id=554885524]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.0547, -15.5625, 5.7999997)
+size = Vector3(1.7156, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_152" type="CSGBox3D" parent="Blockers" unique_id=1694153894]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -87.91405, -15.8125, 6.35)
 size = Vector3(5.7469, 4.75, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_87" type="CSGBox3D" parent="Blockers" unique_id=254906473]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.03125, -15.5625, 6.4)
-size = Vector3(7.0125, 5.25, 0.2)
+[node name="Blocker_tt_wall_153" type="CSGBox3D" parent="Blockers" unique_id=1598816720]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.875, -15.5625, 6.4)
+size = Vector3(1.325, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_88" type="CSGBox3D" parent="Blockers" unique_id=243352964]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.1914, -15.5625, 7.5499997)
-size = Vector3(7.0672, 5.25, 0.2)
+[node name="Blocker_tt_wall_154" type="CSGBox3D" parent="Blockers" unique_id=2146697220]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.5625, -15.5625, 6.7)
+size = Vector3(1.7, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_89" type="CSGBox3D" parent="Blockers" unique_id=680330973]
+[node name="Blocker_tt_wall_155" type="CSGBox3D" parent="Blockers" unique_id=1223597823]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.0625, -15.5625, 7)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_156" type="CSGBox3D" parent="Blockers" unique_id=1617388139]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.5625, -15.5625, 7.25)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_157" type="CSGBox3D" parent="Blockers" unique_id=1055181570]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 77.3125, -15.5625, 7.5499997)
+size = Vector3(3.2, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_158" type="CSGBox3D" parent="Blockers" unique_id=135816257]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.0625, -15.5625, 8.150001)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_159" type="CSGBox3D" parent="Blockers" unique_id=340202033]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5625, -15.5625, 8.450001)
+size = Vector3(1.7, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_160" type="CSGBox3D" parent="Blockers" unique_id=1431390829]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.78515, -15.5625, 8.650001)
+size = Vector3(2.2547, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_wall_161" type="CSGBox3D" parent="Blockers" unique_id=969680343]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 62.28125, -13.375, 9.200001)
 size = Vector3(11.5125, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_90" type="CSGBox3D" parent="Blockers" unique_id=1659422712]
+[node name="Blocker_tt_wall_162" type="CSGBox3D" parent="Blockers" unique_id=1401979921]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -56.7539, -14.59375, 10.1)
 size = Vector3(16.4422, 7.1875, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_91" type="CSGBox3D" parent="Blockers" unique_id=1072844184]
+[node name="Blocker_tt_wall_163" type="CSGBox3D" parent="Blockers" unique_id=689362822]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45.6875, -13.375, 10.950001)
 size = Vector3(11.7, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_92_u0" type="CSGBox3D" parent="Blockers" unique_id=121250335]
+[node name="Blocker_tt_wall_164_u0" type="CSGBox3D" parent="Blockers" unique_id=1513720113]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -43.3039, -14.46875, 11.75)
 size = Vector3(10.8578, 6.9375, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_92_u1" type="CSGBox3D" parent="Blockers" unique_id=1853929060]
+[node name="Blocker_tt_wall_164_u1" type="CSGBox3D" parent="Blockers" unique_id=1952420601]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -32.74295, -14.46875, 11.75)
 size = Vector3(10.2641, 6.9375, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_93" type="CSGBox3D" parent="Blockers" unique_id=1960413776]
+[node name="Blocker_tt_wall_165" type="CSGBox3D" parent="Blockers" unique_id=1350096692]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 27.71875, -13.375, 12.1)
 size = Vector3(11.6375, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_94" type="CSGBox3D" parent="Blockers" unique_id=1445033493]
+[node name="Blocker_tt_wall_166" type="CSGBox3D" parent="Blockers" unique_id=577922794]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -27.1992, -13.375, 12.8)
 size = Vector3(1.2234, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_95" type="CSGBox3D" parent="Blockers" unique_id=450649700]
+[node name="Blocker_tt_wall_167" type="CSGBox3D" parent="Blockers" unique_id=821868451]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -21.90625, -13.375, 12.8)
 size = Vector3(2.7625, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_96" type="CSGBox3D" parent="Blockers" unique_id=812222707]
+[node name="Blocker_tt_wall_168" type="CSGBox3D" parent="Blockers" unique_id=54930596]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12.65625, -13.375, 12.8)
 size = Vector3(2.8875, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_97" type="CSGBox3D" parent="Blockers" unique_id=586347701]
+[node name="Blocker_tt_wall_169" type="CSGBox3D" parent="Blockers" unique_id=430985183]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -3.6875, -13.375, 12.8)
 size = Vector3(2.95, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_98" type="CSGBox3D" parent="Blockers" unique_id=1126283419]
+[node name="Blocker_tt_wall_170" type="CSGBox3D" parent="Blockers" unique_id=1775319253]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.09375, -13.375, 12.8)
 size = Vector3(3.3875, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_99" type="CSGBox3D" parent="Blockers" unique_id=335611067]
+[node name="Blocker_tt_wall_171" type="CSGBox3D" parent="Blockers" unique_id=860801059]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 15.09375, -13.375, 12.8)
 size = Vector3(2.7625, 9.625, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
@@ -57828,30 +60240,90 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_well_0_0_0" type="CSGBox3D" parent="Blockers" unique_id=306054885]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.4525, -15.5625, 1.92125)
-size = Vector3(4.345, 5.25, 0.6575)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.0275, -15.5625, 1.92125)
+size = Vector3(1.37, 5.25, 0.6575)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_tt_well_0_0_1" type="CSGBox3D" parent="Blockers" unique_id=1538085878]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.8125, -15.5625, 1.92125)
-size = Vector3(2.375, 5.25, 0.6575)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.747505, -15.5625, 1.92125)
+size = Vector3(0.07, 5.25, 0.6575)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_well_0_0_2" type="CSGBox3D" parent="Blockers" unique_id=952673377]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.8125, -15.5625, 2.625)
-size = Vector3(2.375, 5.25, 0.75)
+[node name="Blocker_tt_well_0_1_0" type="CSGBox3D" parent="Blockers" unique_id=39227462]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.0275, -15.5625, 3.525)
+size = Vector3(1.37, 5.25, 0.55)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_well_0_0_3" type="CSGBox3D" parent="Blockers" unique_id=1189659897]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.8125, -15.5625, 3.1)
-size = Vector3(2.375, 5.25, 0.2)
+[node name="Blocker_tt_well_0_1_1" type="CSGBox3D" parent="Blockers" unique_id=896235160]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.0275, -15.5625, 3.875)
+size = Vector3(1.37, 5.25, 0.15)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_well_0_0_4" type="CSGBox3D" parent="Blockers" unique_id=37797104]
+[node name="Blocker_tt_well_0_1_2" type="CSGBox3D" parent="Blockers" unique_id=606437355]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.747505, -15.5625, 3.525)
+size = Vector3(0.07, 5.25, 0.55)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_1_0_0" type="CSGBox3D" parent="Blockers" unique_id=341995089]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.23375, -15.5625, 1.92125)
+size = Vector3(0.7825, 5.25, 0.6575)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_1_0_2" type="CSGBox3D" parent="Blockers" unique_id=173385040]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.23375, -15.5625, 3.5)
+size = Vector3(0.7825, 5.25, 0.4)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_1_0_3" type="CSGBox3D" parent="Blockers" unique_id=620518460]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.91875, -15.5625, 1.92125)
+size = Vector3(0.5875, 5.25, 0.6575)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_1_0_4" type="CSGBox3D" parent="Blockers" unique_id=1289838123]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.91875, -15.5625, 2.75)
+size = Vector3(0.5875, 5.25, 1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_1_0_6" type="CSGBox3D" parent="Blockers" unique_id=389926867]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.91875, -15.5625, 3.5)
+size = Vector3(0.5875, 5.25, 0.4)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_1_0_7" type="CSGBox3D" parent="Blockers" unique_id=1919120873]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.247505, -15.5625, 1.92125)
+size = Vector3(0.07, 5.25, 0.6575)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_1_0_8" type="CSGBox3D" parent="Blockers" unique_id=1214430596]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.247505, -15.5625, 2.75)
+size = Vector3(0.07, 5.25, 1)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_2_0_0" type="CSGBox3D" parent="Blockers" unique_id=2015685756]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.17125, -15.5625, 2.2962499)
+size = Vector3(1.6575, 5.25, 1.4075)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_2_0_1" type="CSGBox3D" parent="Blockers" unique_id=1940947235]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.17125, -15.5625, 3.1)
+size = Vector3(1.6575, 5.25, 0.2)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
+[node name="Blocker_tt_well_2_0_2" type="CSGBox3D" parent="Blockers" unique_id=1049778147]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 100.07875, -15.5625, 3.1)
 size = Vector3(0.1575, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
@@ -59705,165 +62177,15 @@ size = Vector3(0.06, 2.4375, 0.28)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_41_u0" type="CSGBox3D" parent="Blockers" unique_id=1020597881]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.25, -17.447, -3.225)
-size = Vector3(0.2, 1.481, 0.05)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_42_u0" type="CSGBox3D" parent="Blockers" unique_id=1103934976]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.25, -15.5625, 3.975)
-size = Vector3(0.2, 5.25, 1.45)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_47_u0" type="CSGBox3D" parent="Blockers" unique_id=1419806755]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.125, -16.53125, 1.5)
-size = Vector3(0.2, 3.3125, 0.5)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_59_u0" type="CSGBox3D" parent="Blockers" unique_id=1050759613]
+[node name="Blocker_tt_wall_95_u0" type="CSGBox3D" parent="Blockers" unique_id=1105547848]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 65.93775, -14.0591, -9.2)
 size = Vector3(1.2505, 8.2568, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
-[node name="Blocker_tt_wall_59_u1" type="CSGBox3D" parent="Blockers" unique_id=696210541]
+[node name="Blocker_tt_wall_95_u1" type="CSGBox3D" parent="Blockers" unique_id=84938534]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 67.3, -13.375, -9.2)
 size = Vector3(1.475, 9.625, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u0" type="CSGBox3D" parent="Blockers" unique_id=2099417686]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.89605, -17.23815, -3.3000002)
-size = Vector3(0.4977, 1.8987, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u1" type="CSGBox3D" parent="Blockers" unique_id=725667053]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.39325, -17.02935, -3.3000002)
-size = Vector3(0.4977, 2.3163, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u2" type="CSGBox3D" parent="Blockers" unique_id=1513853526]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.89055, -16.8205, -3.3000002)
-size = Vector3(0.4977, 2.734, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u3" type="CSGBox3D" parent="Blockers" unique_id=1637057046]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.38775, -16.61165, -3.3000002)
-size = Vector3(0.4977, 3.1517, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u4" type="CSGBox3D" parent="Blockers" unique_id=1336511430]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.88495, -16.40285, -3.3000002)
-size = Vector3(0.4977, 3.5693, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u5" type="CSGBox3D" parent="Blockers" unique_id=137379959]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.38215, -16.194, -3.3000002)
-size = Vector3(0.4977, 3.987, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u6" type="CSGBox3D" parent="Blockers" unique_id=887801372]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.87945, -15.98515, -3.3000002)
-size = Vector3(0.4977, 4.4047, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u7" type="CSGBox3D" parent="Blockers" unique_id=161182364]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.37665, -15.77635, -3.3000002)
-size = Vector3(0.4977, 4.8223, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_66_u8" type="CSGBox3D" parent="Blockers" unique_id=351088974]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.95625, -15.5625, -3.3000002)
-size = Vector3(2.6625, 5.25, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_75_u0" type="CSGBox3D" parent="Blockers" unique_id=1127028478]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 111.719, -17.1199, 1.15)
-size = Vector3(0.463, 2.1352, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_75_u1" type="CSGBox3D" parent="Blockers" unique_id=1627780382]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.181496, -16.92535, 1.15)
-size = Vector3(0.463, 2.5243, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_75_u2" type="CSGBox3D" parent="Blockers" unique_id=319484267]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.644, -16.7308, 1.15)
-size = Vector3(0.463, 2.9134, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_75_u3" type="CSGBox3D" parent="Blockers" unique_id=1516968733]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.39375, -16.53125, 1.15)
-size = Vector3(3.0375, 3.3125, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u0" type="CSGBox3D" parent="Blockers" unique_id=1230014714]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 93.89605, -17.23815, 3.3)
-size = Vector3(0.4977, 1.8987, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u1" type="CSGBox3D" parent="Blockers" unique_id=1863978369]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.39325, -17.02935, 3.3)
-size = Vector3(0.4977, 2.3163, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u2" type="CSGBox3D" parent="Blockers" unique_id=1555982126]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.89055, -16.8205, 3.3)
-size = Vector3(0.4977, 2.734, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u3" type="CSGBox3D" parent="Blockers" unique_id=1807516056]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.38775, -16.61165, 3.3)
-size = Vector3(0.4977, 3.1517, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u4" type="CSGBox3D" parent="Blockers" unique_id=1222155301]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 95.88495, -16.40285, 3.3)
-size = Vector3(0.4977, 3.5693, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u5" type="CSGBox3D" parent="Blockers" unique_id=422273945]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.38215, -16.194, 3.3)
-size = Vector3(0.4977, 3.987, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u6" type="CSGBox3D" parent="Blockers" unique_id=1070236183]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.87945, -15.98515, 3.3)
-size = Vector3(0.4977, 4.4047, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u7" type="CSGBox3D" parent="Blockers" unique_id=1255318822]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.37665, -15.77635, 3.3)
-size = Vector3(0.4977, 4.8223, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_tt_wall_82_u8" type="CSGBox3D" parent="Blockers" unique_id=807766971]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 98.95625, -15.5625, 3.3)
-size = Vector3(2.6625, 5.25, 0.2)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -76348,16 +78670,44 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_b_13_0"
 
-[node name="Railing_b_13p_0" type="CSGBox3D" parent="Railings" unique_id=2057246925]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.53125, 3.25, -13.55)
-size = Vector3(3.4375, 1, 0.05)
+[node name="Railing_b_13p_0_0" type="CSGBox3D" parent="Railings" unique_id=159145349]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66.625, 3.25, -13.55)
+size = Vector3(3.5, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_b_13_0"
 
-[node name="Railing_b_13s_0" type="CSGBox3D" parent="Railings" unique_id=1648561675]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.53125, 3.25, 13.55)
-size = Vector3(3.4375, 1, 0.05)
+[node name="Railing_b_13p_0_1" type="CSGBox3D" parent="Railings" unique_id=1033662626]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.125, 3.25, -13.55)
+size = Vector3(3.5, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_b_13_0"
+
+[node name="Railing_b_13p_0_2" type="CSGBox3D" parent="Railings" unique_id=1775333481]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5625, 3.25, -13.55)
+size = Vector3(3.375, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_b_13_0"
+
+[node name="Railing_b_13s_0_0" type="CSGBox3D" parent="Railings" unique_id=2113148015]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 66.625, 3.25, 13.55)
+size = Vector3(3.5, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_b_13_0"
+
+[node name="Railing_b_13s_0_1" type="CSGBox3D" parent="Railings" unique_id=1547142055]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 70.125, 3.25, 13.55)
+size = Vector3(3.5, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_b_13_0"
+
+[node name="Railing_b_13s_0_2" type="CSGBox3D" parent="Railings" unique_id=1698837986]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5625, 3.25, 13.55)
+size = Vector3(3.375, 1, 0.05)
 material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_b_13_0"
@@ -106014,71 +108364,288 @@ metadata/ship = &"room"
 metadata/name = &"firemen\'s passage"
 
 [node name="Room_tt_27_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=901299950]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.1914, -17.1375, -4.3375)
-size = Vector3(6.8672, 2.1, 6.425)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.78515, -17.1375, -4.8875)
+size = Vector3(2.0547, 2.1, 7.525)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 3 hold, tank top, port"
 
 [node name="Room_tt_28_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=226224569]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.03125, -17.1375, -3.7625)
-size = Vector3(6.8125, 2.1, 5.275)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5625, -17.1375, -4.7875)
+size = Vector3(1.5, 2.1, 7.325)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 3 hold, tank top, port"
 
-[node name="Room_tt_29_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1449624880]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.1914, -17.1375, 4.55625)
-size = Vector3(6.8672, 2.1, 5.9875)
+[node name="Room_tt_29_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=8828012]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.0625, -17.1375, -4.6375)
+size = Vector3(1.5, 2.1, 7.025)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, port"
+
+[node name="Room_tt_30_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=6937141]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.71875, -17.1375, -4.3375)
+size = Vector3(1.8125, 2.1, 6.425)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, port"
+
+[node name="Room_tt_31_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=470086738]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.21875, -17.1375, -4.3375)
+size = Vector3(1.1875, 2.1, 6.425)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, port"
+
+[node name="Room_tt_32_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1662104527]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.5625, -17.1375, -4.1875)
+size = Vector3(1.5, 2.1, 6.125)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, port"
+
+[node name="Room_tt_33_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1715575201]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.0625, -17.1375, -4.0625)
+size = Vector3(1.5, 2.1, 5.875)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, port"
+
+[node name="Room_tt_34_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=487957335]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.5625, -17.1375, -3.9125)
+size = Vector3(1.5, 2.1, 5.575)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, port"
+
+[node name="Room_tt_35_no_3_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1132010119]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.875, -17.1375, -3.7625)
+size = Vector3(1.125, 2.1, 5.275)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, port"
+
+[node name="Room_tt_36_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=914239431]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.78515, -17.1375, 5.10625)
+size = Vector3(2.0547, 2.1, 7.0875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 3 hold, tank top, starboard"
 
-[node name="Room_tt_30_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1639433536]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.03125, -17.1375, 3.98125)
-size = Vector3(6.8125, 2.1, 4.8375)
+[node name="Room_tt_37_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1762161644]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5625, -17.1375, 5.00625)
+size = Vector3(1.5, 2.1, 6.8875)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 3 hold, tank top, starboard"
 
-[node name="Room_tt_31_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1349284794]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.773445, -17.1375, -2.8625)
-size = Vector3(6.9531, 2.1, 3.475)
+[node name="Room_tt_38_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=118167121]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.0625, -17.1375, 4.85625)
+size = Vector3(1.5, 2.1, 6.5875)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, starboard"
+
+[node name="Room_tt_39_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1328812212]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.71875, -17.1375, 4.55625)
+size = Vector3(1.8125, 2.1, 5.9875)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, starboard"
+
+[node name="Room_tt_40_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=142416451]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.21875, -17.1375, 4.55625)
+size = Vector3(1.1875, 2.1, 5.9875)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, starboard"
+
+[node name="Room_tt_41_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=747438278]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.5625, -17.1375, 4.40625)
+size = Vector3(1.5, 2.1, 5.6875)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, starboard"
+
+[node name="Room_tt_42_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1529366637]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.0625, -17.1375, 4.28125)
+size = Vector3(1.5, 2.1, 5.4375)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, starboard"
+
+[node name="Room_tt_43_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1047659900]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.5625, -17.1375, 4.13125)
+size = Vector3(1.5, 2.1, 5.1375)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, starboard"
+
+[node name="Room_tt_44_no_3_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1821320022]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.875, -17.1375, 3.98125)
+size = Vector3(1.125, 2.1, 4.8375)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 3 hold, tank top, starboard"
+
+[node name="Room_tt_45_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=777801729]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.054695, -17.1375, -3.4625)
+size = Vector3(1.5156, 2.1, 4.675)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 2 hold, tank top, port"
 
-[node name="Room_tt_32_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=58521046]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.71875, -17.1375, -2.2125)
-size = Vector3(6.9375, 2.1, 2.175)
+[node name="Room_tt_46_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1974545398]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.5625, -17.1375, -3.2875)
+size = Vector3(1.5, 2.1, 4.325)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 2 hold, tank top, port"
 
-[node name="Room_tt_33_no_2_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1432534823]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.773445, -17.1375, 3.08125)
-size = Vector3(6.9531, 2.1, 3.0375)
+[node name="Room_tt_47_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1063540805]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.0625, -17.1375, -3.1375)
+size = Vector3(1.5, 2.1, 4.025)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, port"
+
+[node name="Room_tt_48_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1022853870]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 91.5625, -17.1375, -3.0125)
+size = Vector3(1.5, 2.1, 3.775)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, port"
+
+[node name="Room_tt_49_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1407938810]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.78125, -17.1375, -2.8625)
+size = Vector3(0.9375, 2.1, 3.475)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, port"
+
+[node name="Room_tt_50_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1674519947]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.28125, -17.1375, -2.7125)
+size = Vector3(2.0625, 2.1, 3.175)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, port"
+
+[node name="Room_tt_51_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=811389207]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.0625, -17.1375, -2.5875)
+size = Vector3(1.5, 2.1, 2.925)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, port"
+
+[node name="Room_tt_52_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1129132338]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.5625, -17.1375, -2.4625)
+size = Vector3(1.5, 2.1, 2.675)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, port"
+
+[node name="Room_tt_53_no_2_hold_tank_top_port" type="CSGBox3D" parent="Rooms" unique_id=1264344786]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.25, -17.1375, -2.2125)
+size = Vector3(1.875, 2.1, 2.175)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, port"
+
+[node name="Room_tt_54_no_2_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1527295560]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.054695, -17.1375, 3.68125)
+size = Vector3(1.5156, 2.1, 4.2375)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 2 hold, tank top, starboard"
 
-[node name="Room_tt_34_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=251353417]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.175804, -17.1375, 0)
-size = Vector3(4.6484, 2.1, 4.5)
+[node name="Room_tt_55_no_2_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=337575528]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.5625, -17.1375, 3.50625)
+size = Vector3(1.5, 2.1, 3.8875)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, starboard"
+
+[node name="Room_tt_56_no_2_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1042521143]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.0625, -17.1375, 3.35625)
+size = Vector3(1.5, 2.1, 3.5875)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, starboard"
+
+[node name="Room_tt_57_no_2_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=667857226]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 91.5625, -17.1375, 3.23125)
+size = Vector3(1.5, 2.1, 3.3375)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, starboard"
+
+[node name="Room_tt_58_no_2_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1036718059]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.78125, -17.1375, 3.08125)
+size = Vector3(0.9375, 2.1, 3.0375)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, starboard"
+
+[node name="Room_tt_59_no_2_hold_tank_top_starboard" type="CSGBox3D" parent="Rooms" unique_id=1595247855]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.28125, -17.1375, 2.93125)
+size = Vector3(2.0625, 2.1, 2.7375)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 2 hold, tank top, starboard"
+
+[node name="Room_tt_60_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=422948230]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.332054, -17.1375, 0)
+size = Vector3(0.9609, 2.1, 5.9)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 1 hold, tank top"
 
-[node name="Room_tt_35_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=1833495342]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.8125, -17.1375, 0)
-size = Vector3(4.625, 2.1, 3.3)
+[node name="Room_tt_61_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=1260776993]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.5625, -17.1375, 0)
+size = Vector3(1.5, 2.1, 5.4)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 1 hold, tank top"
 
-[node name="Room_tt_36_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=904397971]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.46875, -17.1375, 0)
-size = Vector3(4.6875, 2.1, 2.3)
+[node name="Room_tt_62_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=794917669]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.40625, -17.1375, 0)
+size = Vector3(2.1875, 2.1, 4.5)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 1 hold, tank top"
+
+[node name="Room_tt_63_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=1626248279]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.3125, -17.1375, 0)
+size = Vector3(1.625, 2.1, 4.2)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 1 hold, tank top"
+
+[node name="Room_tt_64_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=982912244]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.0625, -17.1375, 0)
+size = Vector3(1.875, 2.1, 3.7)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 1 hold, tank top"
+
+[node name="Room_tt_65_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=1928055264]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.5625, -17.1375, 0)
+size = Vector3(1.125, 2.1, 3.3)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 1 hold, tank top"
+
+[node name="Room_tt_66_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=990041864]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.375, -17.1375, 0)
+size = Vector3(2.5, 2.1, 2.8)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"No. 1 hold, tank top"
+
+[node name="Room_tt_67_no_1_hold_tank_top" type="CSGBox3D" parent="Rooms" unique_id=1072656188]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.71875, -17.1375, 0)
+size = Vector3(2.1875, 2.1, 2.3)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"No. 1 hold, tank top"
@@ -114059,54 +116626,209 @@ metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_26_firemen_s_passage"
 
 [node name="BonusSpot_tt_27_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=925246722]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.1914, -18.1875, -4.3375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.7852, -18.1875, -4.8875)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_27_no_3_hold_tank_top_port"
 
 [node name="BonusSpot_tt_28_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=1124526137]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.0312, -18.1875, -3.7625)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5625, -18.1875, -4.7875)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_tt_28_no_3_hold_tank_top_port"
 
-[node name="BonusSpot_tt_29_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=962417978]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 74.1914, -18.1875, 4.5563)
+[node name="BonusSpot_tt_29_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=954798533]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.0625, -18.1875, -4.6375)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_tt_29_no_3_hold_tank_top_starboard"
+metadata/room = &"Room_tt_29_no_3_hold_tank_top_port"
 
-[node name="BonusSpot_tt_30_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1484596545]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.0312, -18.1875, 3.9813)
+[node name="BonusSpot_tt_30_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=376240652]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.7188, -18.1875, -4.3375)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_tt_30_no_3_hold_tank_top_starboard"
+metadata/room = &"Room_tt_30_no_3_hold_tank_top_port"
 
-[node name="BonusSpot_tt_31_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=223329497]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.7734, -18.1875, -2.8625)
+[node name="BonusSpot_tt_31_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=1030718307]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.2188, -18.1875, -4.3375)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_tt_31_no_2_hold_tank_top_port"
+metadata/room = &"Room_tt_31_no_3_hold_tank_top_port"
 
-[node name="BonusSpot_tt_32_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=753567717]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.7188, -18.1875, -1.8125)
+[node name="BonusSpot_tt_32_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=483374753]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.5625, -18.1875, -4.1875)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_tt_32_no_2_hold_tank_top_port"
+metadata/room = &"Room_tt_32_no_3_hold_tank_top_port"
 
-[node name="BonusSpot_tt_33_no_2_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=849600091]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 89.7734, -18.1875, 3.0813)
+[node name="BonusSpot_tt_33_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=628668024]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.0625, -18.1875, -4.0625)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_tt_33_no_2_hold_tank_top_starboard"
+metadata/room = &"Room_tt_33_no_3_hold_tank_top_port"
 
-[node name="BonusSpot_tt_34_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=701429832]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 104.1758, -18.1875, 0.8)
+[node name="BonusSpot_tt_34_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=1398685388]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.5625, -18.1875, -3.9125)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_tt_34_no_1_hold_tank_top"
+metadata/room = &"Room_tt_34_no_3_hold_tank_top_port"
 
-[node name="BonusSpot_tt_35_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=605825914]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.8125, -18.1875, 0)
+[node name="BonusSpot_tt_35_no_3_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=514127111]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.875, -18.1875, -3.7625)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_tt_35_no_1_hold_tank_top"
+metadata/room = &"Room_tt_35_no_3_hold_tank_top_port"
 
-[node name="BonusSpot_tt_36_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=214974758]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 113.4688, -18.1875, 0)
+[node name="BonusSpot_tt_36_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1158675099]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 71.7852, -18.1875, 5.1063)
 metadata/ship = &"bonus_spot"
-metadata/room = &"Room_tt_36_no_1_hold_tank_top"
+metadata/room = &"Room_tt_36_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_37_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1466572368]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 73.5625, -18.1875, 5.0063)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_37_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_38_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1739290876]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.0625, -18.1875, 4.8563)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_38_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_39_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1219935176]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 76.7188, -18.1875, 4.5563)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_39_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_40_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1015298834]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 78.2188, -18.1875, 4.5563)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_40_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_41_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1374714408]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 79.5625, -18.1875, 4.4062)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_41_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_42_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=660133691]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 81.0625, -18.1875, 4.2812)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_42_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_43_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1184092008]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 82.5625, -18.1875, 4.1312)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_43_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_44_no_3_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1062814921]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 83.875, -18.1875, 3.9813)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_44_no_3_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_45_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=1684963416]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.0547, -18.1875, -3.4625)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_45_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_46_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=301172541]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.5625, -18.1875, -3.2875)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_46_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_47_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=1726976206]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.0625, -18.1875, -3.1375)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_47_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_48_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=1624746408]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 91.5625, -18.1875, -3.6625)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_48_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_49_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=989676364]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.7812, -18.1875, -3.6625)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_49_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_50_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=1263416906]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.2812, -18.1875, -1.8125)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_50_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_51_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=444320522]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 96.0625, -18.1875, -1.8375)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_51_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_52_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=56195311]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 97.9125, -18.1875, -1.9625)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_52_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_53_no_2_hold_tank_top_port" type="Marker3D" parent="BonusSpots" unique_id=1298045621]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.25, -18.1875, -2.2125)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_53_no_2_hold_tank_top_port"
+
+[node name="BonusSpot_tt_54_no_2_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1082862837]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 87.0547, -18.1875, 3.6813)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_54_no_2_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_55_no_2_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1078138001]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 88.5625, -18.1875, 3.5063)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_55_no_2_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_56_no_2_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=714785577]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 90.0625, -18.1875, 3.3563)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_56_no_2_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_57_no_2_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=820400665]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 91.5625, -18.1875, 3.6813)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_57_no_2_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_58_no_2_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1048968007]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 92.7812, -18.1875, 3.6813)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_58_no_2_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_59_no_2_hold_tank_top_starboard" type="Marker3D" parent="BonusSpots" unique_id=1189053183]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 94.2812, -18.1875, 3.6813)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_59_no_2_hold_tank_top_starboard"
+
+[node name="BonusSpot_tt_60_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=1440118049]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 102.382, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_60_no_1_hold_tank_top"
+
+[node name="BonusSpot_tt_61_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=1003103615]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 103.5625, -18.1875, 0.8)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_61_no_1_hold_tank_top"
+
+[node name="BonusSpot_tt_62_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=14715722]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 105.4062, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_62_no_1_hold_tank_top"
+
+[node name="BonusSpot_tt_63_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=209572477]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 107.3125, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_63_no_1_hold_tank_top"
+
+[node name="BonusSpot_tt_64_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=126703696]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 109.0625, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_64_no_1_hold_tank_top"
+
+[node name="BonusSpot_tt_65_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=2052343262]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 110.5625, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_65_no_1_hold_tank_top"
+
+[node name="BonusSpot_tt_66_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=550965682]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 112.375, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_66_no_1_hold_tank_top"
+
+[node name="BonusSpot_tt_67_no_1_hold_tank_top" type="Marker3D" parent="BonusSpots" unique_id=1624956733]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 114.7188, -18.1875, 0)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_tt_67_no_1_hold_tank_top"
 
 [node name="BonusSpot_orlop_0_after_hold" type="Marker3D" parent="BonusSpots" unique_id=787464340]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -115.625, -13.4375, 0)
@@ -117616,7 +120338,7 @@ metadata/name = &"hold_1"
 metadata/kind = "CARGO"
 metadata/permeability = 0.75
 metadata/shape = 0.6085
-metadata/rooms = Array[StringName]([&"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, orlop", &"No. 1 hold, orlop", &"No. 1 hold, orlop", &"No. 1 hold, orlop", &"No. 1 hold, orlop", &"No. 1 hold, lower orlop", &"No. 1 hold, lower orlop", &"No. 1 hold, lower orlop", &"No. 1 hold, lower orlop", &"No. 1 hold, lower orlop"])
+metadata/rooms = Array[StringName]([&"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, tank top", &"No. 1 hold, orlop", &"No. 1 hold, orlop", &"No. 1 hold, orlop", &"No. 1 hold, orlop", &"No. 1 hold, orlop", &"No. 1 hold, lower orlop", &"No. 1 hold, lower orlop", &"No. 1 hold, lower orlop", &"No. 1 hold, lower orlop", &"No. 1 hold, lower orlop"])
 metadata/leak_area = 0.000695
 
 [node name="Cell_hold_1_aft_tween" type="CSGBox3D" parent="Structure/Cells" unique_id=894644868]
@@ -117702,7 +120424,7 @@ metadata/name = &"hold_2_port"
 metadata/kind = "CARGO"
 metadata/permeability = 0.75
 metadata/shape = 0.6938
-metadata/rooms = Array[StringName]([&"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port"])
+metadata/rooms = Array[StringName]([&"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port", &"No. 2 hold, tank top, port"])
 metadata/leak_area = 0.000395
 
 [node name="Cell_hold_2_starboard" type="CSGBox3D" parent="Structure/Cells" unique_id=1167842076]
@@ -117714,7 +120436,7 @@ metadata/name = &"hold_2_starboard"
 metadata/kind = "CARGO"
 metadata/permeability = 0.75
 metadata/shape = 0.6756
-metadata/rooms = Array[StringName]([&"No. 2 hold, tank top, starboard"])
+metadata/rooms = Array[StringName]([&"No. 2 hold, tank top, starboard", &"No. 2 hold, tank top, starboard", &"No. 2 hold, tank top, starboard", &"No. 2 hold, tank top, starboard", &"No. 2 hold, tank top, starboard", &"No. 2 hold, tank top, starboard"])
 metadata/leak_area = 0.000363
 
 [node name="Cell_hold_2" type="CSGBox3D" parent="Structure/Cells" unique_id=2087943858]
@@ -117749,7 +120471,7 @@ metadata/name = &"hold_3_port"
 metadata/kind = "CARGO"
 metadata/permeability = 0.75
 metadata/shape = 0.8114
-metadata/rooms = Array[StringName]([&"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port"])
+metadata/rooms = Array[StringName]([&"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port", &"No. 3 hold, tank top, port"])
 metadata/leak_area = 0.000687
 
 [node name="Cell_hold_3_starboard" type="CSGBox3D" parent="Structure/Cells" unique_id=41507553]
@@ -117761,7 +120483,7 @@ metadata/name = &"hold_3_starboard"
 metadata/kind = "CARGO"
 metadata/permeability = 0.75
 metadata/shape = 0.803
-metadata/rooms = Array[StringName]([&"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard"])
+metadata/rooms = Array[StringName]([&"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard", &"No. 3 hold, tank top, starboard"])
 metadata/leak_area = 0.000651
 
 [node name="Cell_hold_3" type="CSGBox3D" parent="Structure/Cells" unique_id=1615882676]
