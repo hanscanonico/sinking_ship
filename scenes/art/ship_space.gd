@@ -669,7 +669,8 @@ func _on_floor(room: ShipRoom) -> Array[ShipBlocker]:
 
 ## Whether [param blocker] is one of [param room]'s full walls: a wall standing on its
 ## floor, over FULL_WALL tall or up to the deck over it — a stokehold's, under its
-## galleries (#74).
+## galleries (#74). The deck over it is read INSIDE the room: on its side, a deck that only
+## meets the room there — a step up past it, the riser on the step's line — was its ceiling.
 func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
 	if not is_wall(blocker) or absf(blocker.bottom - room.floor_height) >= 0.05:
 		return false
@@ -677,7 +678,8 @@ func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
 		return false
 	if blocker.top - blocker.bottom > FULL_WALL:
 		return true
-	var at := blocker.area.get_center().clamp(room.area.position, room.area.end)
+	var inner := room.area.grow(-INSIDE)
+	var at := blocker.area.get_center().clamp(inner.position, inner.end)
 	return blocker.top >= ceiling(room, at.x, at.y) - SLIVER
 
 
