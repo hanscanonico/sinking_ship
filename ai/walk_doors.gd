@@ -3,8 +3,8 @@ extends RefCounted
 ## The walk graph's doorways (§7): per room the gaps in its walls a body fits through, the
 ## half nearer each room of a door's depth into another where that is in neither — a door
 ## through a bulkhead — and the portals through them, each where a body could go through
-## (WayThrough.crossings). WalkGraph asks it for both as it is built, and of the depths as
-## it puts a point in a zone (WalkGraph._zone_on).
+## from the zone it leads out of (WayThrough.crossings, _begins). WalkGraph asks it for both
+## as it is built, and of the depths as it puts a point in a zone (WalkGraph._zone_on).
 
 const NONE := -1
 ## What _onto says of a point on a ramp.
@@ -111,7 +111,8 @@ func depth_room(point: Vector2, height: float) -> int:
 ## A portal out through each of a room's doors for each zone of [param graph] it gives onto
 ## (_lanes), and back in from an open deck — a room's own scan adds the way back from a room
 ## —, each where a body could go through it that way within that zone's lane, nearest the
-## door's middle (WayThrough.crossings), as wide as the lane; in the order they are found.
+## door's middle (WayThrough.crossings), beginning in the zone it leads out of (_begins), as
+## wide as the lane; in the order they are found.
 func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 	var found: Array[WalkGraph.Portal] = []
 	for room in _doors.size():
@@ -124,8 +125,9 @@ func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 				var high := lanes[lane + 2]
 				var deck := graph.room_of(other) == NONE
 				var ways := 2 if deck else 1
+				var begins := _begins.bind(graph, room, door, other)
 				var offs := WayThrough.crossings(
-					_surfaces, rules, door, floor_height, low, high, ways
+					_surfaces, rules, door, floor_height, low, high, ways, begins
 				)
 				for way in ways:
 					if not is_nan(offs[way]):
@@ -137,6 +139,31 @@ func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 						var wide := 2.0 * minf(offs[way] - low, high - offs[way])
 						found.append(WalkGraph.Portal.new(ends, at, at, out, wide, NONE))
 	return found
+
+
+## Whether a way through [param door] of [param room] onto [param other]'s floor, the way
+## [param out], may begin where a body stands with its feet at [param point] on
+## [param surface] (WayThrough.crossings): anywhere on a floor; on a stair, only where the
+## stair's zone there is the one the way leads out of — a zone of the room's on the way out,
+## [param other] on the way in. A body on a stair is in the zone of the end it is nearer in
+## height (WalkGraph.zone_at): on the foot of a stair run on up through the doorway, or down
+## in the well of one run on under it, it is in the zone the stair leads to, never on the
+## floor the stair cuts, which no body walks from to where it stands (#551).
+func _begins(
+	point: Vector3,
+	surface: int,
+	out: Vector2,
+	graph: WalkGraph,
+	room: int,
+	door: ShipRoom.Door,
+	other: int
+) -> bool:
+	if not _surfaces.is_ramp(surface):
+		return true
+	var zone := graph.zone_at(point, surface)
+	if out != door.outward:
+		return zone == other
+	return zone != NONE and graph.room_of(zone) == room
 
 
 ## The zone of [param graph] that [param door] out of [param room] gives onto, a body's

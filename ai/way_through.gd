@@ -6,7 +6,10 @@ extends RefCounted
 ## doorway one way, somewhere across its width a body BotFloorWay.SNUG of its radius round
 ## stands on its floor a body's depth inside, clear of everything the sim holds a body back
 ## by, and walks straight out as deep past its line with nothing pushing it back the way it
-## came.
+## came. It stands on the side it comes from, not first past the line: a stair run on under
+## a doorway, down in its well under the floor, is no way out of the room whose floor its
+## railings fence off (#551). WalkDoors asks too that it stands in the zone the way leads out
+## of: on a stair a body is in the zone of the end it is nearer.
 ##
 ## Where neither is true, a route through walks a bot into it for good: there is no way round
 ## to find, so the graph leaves it out. Two flights stacked in one well, the lower one under
@@ -115,7 +118,7 @@ static func _along(ramp: ShipRamp) -> PackedVector3Array:
 ## through, every FINE; only offsets from [param low] to [param high] — the lane of a wide
 ## doorway that gives onto the floor past it, not onto a stair beside it (WalkDoors); NAN
 ## for a way no body goes, which the graph leaves out. Only the way out where [param ways]
-## is 1.
+## is 1. Each way begins only where [param begins] lets it (_crosses).
 static func crossings(
 	surfaces: Surfaces,
 	rules: BrawlRules,
@@ -123,13 +126,16 @@ static func crossings(
 	floor_height: float,
 	low := -INF,
 	high := INF,
-	ways := 2
+	ways := 2,
+	begins := Callable()
 ) -> PackedFloat64Array:
 	var offs := PackedFloat64Array()
 	for out: Vector2 in [door.outward, -door.outward].slice(0, ways):
-		var off := doorway(surfaces, rules, door, floor_height, out, true, STRIDE, low, high)
+		var off := doorway(
+			surfaces, rules, door, floor_height, out, true, STRIDE, low, high, begins
+		)
 		if is_nan(off):
-			off = doorway(surfaces, rules, door, floor_height, out, true, FINE, low, high)
+			off = doorway(surfaces, rules, door, floor_height, out, true, FINE, low, high, begins)
 		offs.append(off)
 	return offs
 
@@ -138,9 +144,10 @@ static func crossings(
 ## [param floor_height] the way [param out] (its outward, or back in): how far from its
 ## middle toward its [code]to[/code] end, tried at the middle, then every [param stride] out
 ## from it either way, as far as a body's radius in from each jamb (_crosses), and only from
-## [param low] to [param high], held back by railings too unless [param rails] is false;
-## NAN where nowhere. A [param stride] finer than STRIDE skips the points STRIDE apart, which
-## crossings has tried already.
+## [param low] to [param high], held back by railings too unless [param rails] is false, and
+## beginning only where [param begins] lets it (_crosses); NAN where nowhere. A
+## [param stride] finer than STRIDE skips the points STRIDE apart, which crossings has tried
+## already.
 static func doorway(
 	surfaces: Surfaces,
 	rules: BrawlRules,
@@ -150,7 +157,8 @@ static func doorway(
 	rails := true,
 	stride := STRIDE,
 	low := -INF,
-	high := INF
+	high := INF,
+	begins := Callable()
 ) -> float:
 	var room := maxf(door.width() * 0.5 - rules.body_radius, 0.0)
 	var steps := floori(room / stride)
@@ -159,7 +167,7 @@ static func doorway(
 		if off < low or off > high or (stride < STRIDE and is_zero_approx(fmod(off, STRIDE))):
 			continue
 		var at := across(door, off, floor_height)
-		if _crosses(surfaces, rules, Vector2(at.x, at.z), out, floor_height, rails):
+		if _crosses(surfaces, rules, Vector2(at.x, at.z), out, floor_height, rails, begins):
 			return off
 	return NAN
 
@@ -173,16 +181,19 @@ static func across(door: ShipRoom.Door, off: float, floor_height: float) -> Vect
 
 ## Whether a body could walk straight through [param at] on a doorway's line the way
 ## [param out]: from where it first stands clear on the room's side — a body's radius before
-## the line at most, every STRIDE nearer — on until it stands clear past it, its feet on a
-## floor or a stair all the way and nothing pushing it back (BACK); railings among what
-## holds it unless [param rails] is false.
+## the line at most, every STRIDE nearer, on the line at the last, never first past it — on
+## until it stands clear past it, its feet on a floor or a stair all the way and nothing
+## pushing it back (BACK); railings among what holds it unless [param rails] is false. Where
+## [param begins] is a callable, it stands there only where begins(feet, surface, out) is
+## true: in the zone the way leads out of (WalkDoors._begins).
 static func _crosses(
 	surfaces: Surfaces,
 	rules: BrawlRules,
 	at: Vector2,
 	out: Vector2,
 	floor_height: float,
-	rails: bool
+	rails: bool,
+	begins: Callable
 ) -> bool:
 	var radius := rules.body_radius * BotFloorWay.SNUG
 	var depth := ceili(rules.body_radius / STRIDE)
@@ -193,7 +204,7 @@ static func _crosses(
 		var point := Vector3(flat.x, feet, flat.y)
 		var surface := surfaces.under(point, rules.step_height)
 		if surface == Surfaces.NONE:
-			if stood:
+			if stood or step >= 0:
 				return false
 			continue
 		point.y = surfaces.height_at(surface, point)
@@ -205,7 +216,7 @@ static func _crosses(
 		if stood and step > 0 and held.is_empty():
 			return true
 		if not stood:
-			stood = held.is_empty()
+			stood = held.is_empty() and (not begins.is_valid() or begins.call(point, surface, out))
 			if not stood and step == 0:
 				return false
 			feet = point.y if stood else feet
