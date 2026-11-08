@@ -144,10 +144,10 @@ var _leaf_widths := {}
 ## and whether water through it is drawn pouring and blowing air — never through the
 ## gash, a deck's gaps or a leak.
 var _passages: Array[ShipOpening] = []
-var _pours: Array[MeshInstance3D] = []
-var _crossings: Array[MeshInstance3D] = []
+var _pours: Array[WaterSheet] = []
+var _crossings: Array[WaterSheet] = []
 ## Per opening, the froth where its pour lands.
-var _landings: Array[MeshInstance3D] = []
+var _landings: Array[WaterSheet] = []
 var _sides := PackedInt32Array()
 var _floors := PackedFloat64Array()
 var _spans: Array[AABB] = []
@@ -569,7 +569,7 @@ func _unshow(index: int) -> void:
 
 ## Hides [param sheet] standing apart from her (top level), so her moving every frame
 ## spends nothing on it — the Titanic has hundreds of openings gone dry or never pouring —
-## until it is hung or laid again (_hang, _lay), which sets where it is drawn first. One
+## until it is hung or laid again (WaterSheet, _lay), which sets where it is drawn first. One
 ## standing apart is always hidden.
 static func _stow(sheet: MeshInstance3D) -> void:
 	if sheet.top_level:
@@ -588,7 +588,7 @@ func _pour_for(index: int) -> void:
 	if opening.facing() == 1 or opening.kind == ShipOpening.Kind.PORTHOLE:
 		_crossings[index] = _pour()
 		_crossed[index] = 1
-	_landings[index] = _froth()
+	_landings[index] = _froth(WaterSheet.new()) as WaterSheet
 	_hide_pour(index)
 
 
@@ -778,14 +778,14 @@ func _slide(door: StringName) -> Vector3:
 
 
 ## A pour's sheet: upright, a unit square cut across its fall so it can arc.
-func _pour() -> MeshInstance3D:
+func _pour() -> WaterSheet:
 	var material := ShaderMaterial.new()
 	material.shader = SPILL_SHADER
 	material.set_shader_parameter(&"water_colour", _sea.get_shader_parameter(&"shallow_colour"))
 	material.set_shader_parameter(&"foam_colour", _sea.get_shader_parameter(&"foam_colour"))
 	# Over the water it pours into, whichever is nearer the eye.
 	material.render_priority = 1
-	var pour := MeshInstance3D.new()
+	var pour := WaterSheet.new()
 	var sheet := PlaneMesh.new()
 	sheet.orientation = PlaneMesh.FACE_Z
 	sheet.size = Vector2.ONE
@@ -887,21 +887,21 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 	var outdoor := 1.0 if axis == 1 and side_high == -1 else 0.0
 	var middle := _at_height(centre, (from + to) * 0.5)
 	var falling := Basis(across * width, _up * tall, normal)
-	_hang(pour, falling, middle, strength, Vector3(0.0, 0.0, thrown), outdoor)
+	pour.hang(falling, middle, strength, Vector3(0.0, 0.0, thrown), outdoor)
 	var lands := _at_height(centre + normal * thrown, to + FROTH_LIFT)
 	var spread := lerpf(LANDING.x, LANDING.y, strength)
 	var patch := Basis(across * (width + LANDING_WIDER), _up, normal * spread)
 	if crossing != null and axis == 1:
 		var through := Basis(normal * short, _up * tall, across)
-		_hang(crossing, through, middle, strength, Vector3.ZERO, outdoor)
+		crossing.hang(through, middle, strength, Vector3.ZERO, outdoor)
 		var wide := short + LANDING_WIDER
 		patch = Basis(across * (width + LANDING_WIDER), _up, normal * wide)
 	elif crossing != null:
 		# A round jet: a second sheet edge-on to the first, arcing out the same way, so
 		# it has a body seen from beside it too.
 		var edge_on := Basis(normal * width, _up * tall, across)
-		_hang(crossing, edge_on, middle, strength, Vector3(thrown / width, 0.0, 0.0), outdoor)
-	_lay(landing, patch, lands, strength, -1.0)
+		crossing.hang(edge_on, middle, strength, Vector3(thrown / width, 0.0, 0.0), outdoor)
+	landing.lay(patch, lands, strength, -1.0)
 
 
 ## How hard a pour is drawn pouring, THINNEST…1: from [param flow], the water passing its
@@ -942,30 +942,9 @@ func _flat(direction: Vector3) -> Vector3:
 	return (direction - _up * direction.dot(_up)).normalized()
 
 
-## Hangs [param pour] as [param basis] at [param middle], pouring as hard as
-## [param strength] says, thrown out of its opening by its foot by [param thrown] in its
-## own units (spill.gdshader), lit by the sky by [param outdoor].
-func _hang(
-	pour: MeshInstance3D,
-	basis: Basis,
-	middle: Vector3,
-	strength: float,
-	thrown: Vector3,
-	outdoor: float
-) -> void:
-	if pour.top_level:
-		pour.top_level = false
-	pour.transform = Transform3D(basis, middle)
-	_param(pour, &"extent", Vector2(basis.x.length(), basis.y.length()))
-	_param(pour, &"strength", strength)
-	_param(pour, &"thrown", thrown)
-	_param(pour, &"outdoor", outdoor)
-	pour.visible = true
-
-
-## Lays [param froth] flat as [param basis] at [param at], boiling as hard as
-## [param strength] says — a burst of air [param burst] of the way through, or below 0
-## for a pour's landing.
+## Lays [param froth] — a burst of air's or a pocket's leak's, which are set besides — flat
+## as [param basis] at [param at], boiling as hard as [param strength] says, a burst
+## [param burst] of the way through (WaterSheet.lay for a pour's landing).
 func _lay(froth: MeshInstance3D, basis: Basis, at: Vector3, strength: float, burst: float) -> void:
 	if froth.top_level:
 		froth.top_level = false
@@ -1022,8 +1001,9 @@ func _burst_out(index: int, side: int, level: float, opening: ShipOpening) -> vo
 	set_process(true)
 
 
-## A patch of froth lying on the water (froth.gdshader), hidden till laid.
-func _froth() -> MeshInstance3D:
+## A patch of froth lying on the water (froth.gdshader), hidden till laid: [param froth],
+## a plain one unless one is handed.
+func _froth(froth: MeshInstance3D = null) -> MeshInstance3D:
 	var material := ShaderMaterial.new()
 	material.shader = FROTH_SHADER
 	material.set_shader_parameter(&"water_colour", _sea.get_shader_parameter(&"shallow_colour"))
@@ -1031,7 +1011,8 @@ func _froth() -> MeshInstance3D:
 	material.render_priority = 1
 	var patch := PlaneMesh.new()
 	patch.size = Vector2.ONE
-	var froth := MeshInstance3D.new()
+	if froth == null:
+		froth = MeshInstance3D.new()
 	froth.mesh = patch
 	froth.material_override = material
 	froth.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

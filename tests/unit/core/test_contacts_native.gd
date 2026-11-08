@@ -25,6 +25,8 @@ const CRATES_ASKED := 80
 ## Ticks the afloat saloons and the sliding crates are stepped.
 const SALOON_TICKS := 150
 const SLIDE_TICKS := 240
+## The made-up deck's railing along a stair's side that is spent.
+const SPENT_BY_A_STAIR := 7
 
 var _rng := RandomNumberGenerator.new()
 var _differences: Array[String] = []
@@ -94,6 +96,33 @@ func test_her_ships_answer_alike_doors_half_shut_and_a_funnel_down() -> void:
 			crates.append(_rng.randi_range(0, props.size() - 1))
 		_ask_all(layout, pose, props, surfaces, crates)
 		_assert_none(path)
+
+
+func test_the_railings_along_her_stairs_answer_alike() -> void:
+	# A body on a stair is held by the railings along its sides near its head or foot
+	# (#552): beside every stair, from each railing near it inward across the stair, its feet
+	# at the stair and a hair either side of the railing's deck a step over them and of its
+	# top, the railing on the made-up deck's stair spent.
+	if not _loaded():
+		return
+	var rules := SimFixtures.rules()
+	var made_up := _made_up()
+	var ships: Array[ShipLayout] = [made_up, load(STEAMER), load(SMALL_TITANIC)]
+	var held := 0
+	for layout: ShipLayout in ships:
+		var native := Surfaces.new(layout)
+		ContactsNative.off = true
+		var reference := Surfaces.new(layout)
+		ContactsNative.off = false
+		var pose := _pose(0)
+		if layout == made_up:
+			pose.broken_railings = PackedInt32Array([SPENT_BY_A_STAIR])
+		native.honour(pose)
+		reference.honour(pose)
+		for ramp in layout.ramps.size():
+			held += _ask_along(native, reference, layout, native.ramp_surface(ramp), rules)
+	_assert_none("her stairs' railings")
+	assert_gt(held, 100, "bodies on her stairs held by railings")
 
 
 func test_a_saloon_afloat_steps_alike_tick_by_tick() -> void:
@@ -248,8 +277,10 @@ func _rails(
 	var surface := reference.under(point, rules.step_height)
 	_asked += 2
 	_same_contacts(
-		ContactsNative.contacts_of(asked.rail_contacts(point, shape.x, surface)),
-		reference.rail_contacts(point, shape.x, surface),
+		ContactsNative.contacts_of(
+			asked.rail_contacts(point, shape.x, surface, rules.step_height, rules.railing_height)
+		),
+		reference.rail_contacts(point, shape.x, surface, rules.step_height, rules.railing_height),
 		"railings at %s on %d" % [point, surface]
 	)
 	var came := Vector2(point.x, point.z) + Vector2.from_angle(_rng.randf_range(0.0, TAU)) * 0.4
@@ -333,6 +364,50 @@ func _note(difference: String) -> void:
 
 func _assert_none(what: String) -> void:
 	assert_eq(_differences, [] as Array[String], "%s answers alike (%d asked)" % [what, _asked])
+
+
+## Asks [param native] and [param reference] what railings hold a body on stair
+## [param surface] of [param layout] at points from each railing whose deck stands about its
+## heights, near it, inward across it; how many points a railing held.
+func _ask_along(
+	native: Surfaces, reference: Surfaces, layout: ShipLayout, surface: int, rules: BrawlRules
+) -> int:
+	var area := reference._areas[surface]
+	var inward := area.get_center()
+	var low := reference._bottoms[surface] - rules.railing_height - 0.1
+	var high := reference._tops[surface] + rules.step_height + 0.1
+	var held := 0
+	for index: int in reference._rail_grid.near(area.grow(1.0), low, high):
+		var railing := layout.railings[index]
+		var deck := layout.platforms[railing.platform].height
+		var feet: Array[float] = [
+			deck - rules.step_height,
+			deck + rules.railing_height,
+		]
+		for edge: float in feet.duplicate():
+			feet.append_array([edge + 1e-6, edge - 1e-6])
+		for along: float in [0.0, 0.5, 1.0, _rng.randf()]:
+			var on := railing.from.lerp(railing.to, along)
+			var across := (inward - on).normalized()
+			for depth: float in [0.0, 1e-6, 0.2, rules.body_radius, rules.body_radius + 1e-6]:
+				var spot := on + across * depth
+				var at := Vector3(spot.x, 0.0, spot.y)
+				var heights := feet.duplicate()
+				heights.append(reference.height_at(surface, at))
+				for height: float in heights:
+					at.y = height
+					_asked += 1
+					var theirs := reference.rail_contacts(
+						at, rules.body_radius, surface, rules.step_height, rules.railing_height
+					)
+					var mine := ContactsNative.contacts_of(
+						native.native.rail_contacts(
+							at, rules.body_radius, surface, rules.step_height, rules.railing_height
+						)
+					)
+					_same_contacts(mine, theirs, "stair %d's railings at %s" % [surface, at])
+					held += 0 if theirs.is_empty() else 1
+	return held
 
 
 ## Points about [param surface] of [param surfaces]: its corners, the middles of its
@@ -459,6 +534,13 @@ static func _made_up() -> ShipLayout:
 		[1, Vector2(0, 5), Vector2(10, 5)],
 		[1, Vector2(10, -5), Vector2(10, 5)],
 		[0, Vector2(-10, -5), Vector2(0, -5)],
+		# Along the stairs' sides: the main deck's beside the foot of the one down from the
+		# upper deck, the upper deck's beside its head, and the main deck's along both
+		# sides of the one rising along z, the second spent (SPENT_BY_A_STAIR).
+		[0, Vector2(-3, 2.3), Vector2(0, 2.3)],
+		[2, Vector2(-5, 0.95), Vector2(-3.5, 0.95)],
+		[1, Vector2(2.2, -4.8), Vector2(2.2, -3)],
+		[1, Vector2(0.95, -4.8), Vector2(0.95, -2.5)],
 	]:
 		var railing := ShipRailing.new()
 		railing.platform = row[0]
