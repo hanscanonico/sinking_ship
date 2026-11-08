@@ -100,6 +100,31 @@ const STARBOARD_LADDER := Vector2(80.0, 6.375)
 const BY_THE_LADDER := Vector3(73.5, E_DECK, -4.4)
 const IN_THE_FOUR_BERTH_ROOM := Vector3(81.25, E_DECK, -9.6)
 const IN_THE_LAVATORY := Vector3(83.5, E_DECK, -8.8)
+## Doorways a stair runs under or through, each with a point on its line, one in the zone
+## its way out of a room — or in from an open deck — would begin in, and one in the zone it
+## would lead into (#551): F deck's passage aft of C to starboard, along its side of the
+## railed well of the stair down to the orlop, and the passage west of it, past the well; the
+## orlop's cargo hold forward of the firemen's spiral trunk, between the railed wells of its
+## two ladders up from the tank top, and the trunk; E deck's passage aft of L, the stair down
+## from D deck run on through its doorway aft, and the passage past it; her open E deck under
+## the stair up to D deck aft of C, and the passage at its foot; her open F deck under the
+## stair up to E deck aft of K, and the passage at its foot.
+const STAIRS_THROUGH_DOORWAYS: Array[Array] = [
+	[Vector3(78.4375, F_DECK, -4.94), Vector3(79.0, F_DECK, -3.7), Vector3(76.5, F_DECK, -5.0)],
+	[
+		Vector3(99.3125, ORLOP_FORWARD, 0.4375),
+		Vector3(98.5, ORLOP_FORWARD, 0.1875),
+		Vector3(100.5, ORLOP_FORWARD, 0.0)
+	],
+	[Vector3(-65.48, E_DECK, 3.125), Vector3(-65.48, E_DECK, 2.6), Vector3(-65.48, E_DECK, 3.6)],
+	[Vector3(78.25, E_DECK, -4.906), Vector3(78.6, E_DECK, -4.9), Vector3(77.6, E_DECK, -4.9)],
+	[Vector3(-44.4375, F_DECK, -9.546), Vector3(-45.0, F_DECK, -9.5), Vector3(-44.0, F_DECK, -9.5)],
+]
+## In F deck's passage aft of C to starboard, along the railing of the stair's well (#551).
+const ALONG_THE_WELL := Vector3(79.0, F_DECK, -3.7)
+## The middle of the orlop's cargo hold's doorway into the firemen's spiral trunk, between
+## the railed wells of the ladders up from the tank top (#551).
+const BETWEEN_THE_LADDER_WELLS := Vector3(99.3125, ORLOP_FORWARD, 0.1875)
 
 var _layout: ShipLayout
 var _surfaces: Surfaces
@@ -307,6 +332,54 @@ func test_a_doorway_onto_a_railed_stair_hole_lets_a_body_out_and_none_in() -> vo
 			assert_eq(portal.from_zone, entrance, "only out of the entrance, pushed on")
 	assert_eq(_doorways_at(ONTO_THE_RAILED_HOLE), 1, "one portal through the doorway to port")
 	assert_eq(_doorways_at(THE_WAY_TO_STARBOARD), 2, "its doorway to starboard, both ways")
+
+
+## A way through a doorway begins where a body stands in the zone it leads out of. Where a
+## stair runs under or through a doorway, a body walking through it there stands on the stair
+## — down in its well under the floor, or on its foot — and a body on a stair is in the zone
+## of the end it is nearer in height, never the room whose floor the stair cuts: the graph has
+## no portal there, and a body on that floor goes round by another (#551).
+func test_no_doorway_s_way_through_begins_on_a_stair_out_of_another_zone() -> void:
+	for row: Array in STAIRS_THROUGH_DOORWAYS:
+		var from := _zone(row[1])
+		var to := _zone(row[2])
+		assert_ne(from, to, "the doorway at %s joins two zones" % row[0])
+		for portal: WalkGraph.Portal in _graph.portals():
+			var through := portal.from_zone == from and portal.to_zone == to
+			if portal.ramp == WalkGraph.NONE and through:
+				assert_gt(
+					portal.entry.distance_to(row[0]),
+					0.3,
+					"no way from %s to %s through the doorway at %s" % [row[1], row[2], row[0]]
+				)
+
+
+## The orlop's cargo hold opens into the firemen's spiral trunk across the wells of its two
+## ladders up from the tank top, whose heads are in the trunk; between their railings the
+## hold's floor is half a metre wide, narrower than a body. A body on a ladder, under the
+## hold's floor in its well, first stands clear past the doorway's line: it never stood on
+## the hold's side, and no body walks out of the hold through the doorway (#551).
+func test_no_body_walks_out_of_the_orlop_hold_between_its_ladder_wells() -> void:
+	var rules := SimFixtures.rules()
+	var door := _door_at(BETWEEN_THE_LADDER_WELLS)
+	assert_not_null(door, "the hold's doorway into the trunk")
+	if door == null:
+		return
+	assert_eq(door.outward, Vector2(1.0, 0.0), "out of the hold, aft")
+	var off := WayThrough.doorway(_surfaces, rules, door, ORLOP_FORWARD, door.outward)
+	assert_true(is_nan(off), "no body walks out through it, at %.3f" % off)
+
+
+func test_a_body_along_a_stair_s_well_on_f_deck_aft_of_c_walks_round_it_to_port() -> void:
+	# From the passage to starboard of the well of the stair down to the orlop, its railing
+	# along the passage's side, into the passage west of it: along the passage aft of C to
+	# port, never across the well.
+	var sim := SimFixtures.sim(2, null, _layout)
+	SimFixtures.place(sim, 1, Vector3.ZERO)
+	HeldPose.hold(sim, _dry)
+	SimFixtures.place(sim, 0, ALONG_THE_WELL)
+	var to := STAIRS_THROUGH_DOORWAYS[0][2] as Vector3
+	assert_true(_walks(sim, _zone(to), 10.0), "into the passage west of the well")
 
 
 func test_her_other_ships_lose_no_portal() -> void:
