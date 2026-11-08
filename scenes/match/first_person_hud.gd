@@ -9,8 +9,9 @@ extends CanvasLayer
 ## stamina, or its warmth in the sea — kept under the clock and faded off the dials.
 ## In the sea frost grows in from the screen's edges as the warmth runs out, and a
 ## prompt says when pressing on would climb out (Surfaces.climb_out); on deck one says what
-## a Grab press would do, a bonus first (#307). Under the plate stands the seat's bonus,
-## and a spare cold meter it gives under the warmth bar. The sinking is
+## a Grab press would do, a bonus first (#307), by its kind's badge too (BonusIcons). Under
+## the plate stand the seat's bonuses, a badge per kind and how many of it it has, and a
+## strip under the warmth bar for each spare cold meter they give. The sinking is
 ## heard before it is seen: a flashing chip over the crosshair for every telegraph
 ## running — a lurch, a deck giving way — and a banner naming each phase as it begins.
 ## All of it reads the snapshot, SinkSchedule's pose, Surfaces, the ship's rooms and
@@ -75,8 +76,12 @@ const COLD_LOW := 0.35
 ## A spare cold meter (#307): a strip this high, this far under the warmth bar.
 const SPARE_HEIGHT := 4.0
 const SPARE_GAP := 3.0
-## How far under the plate's bottom the seat's bonus is written: its baseline.
-const BONUS_UNDER := 26.0
+## How far under the plate's bottom the middles of the seat's bonuses' badges stand, how
+## big they are and how far apart; and how far a prompt's badge stands left of its words.
+const BONUS_UNDER := 22.0
+const BONUS_RADIUS := 13.0
+const BONUS_GAP := 10.0
+const PROMPT_BADGE := 20.0
 ## The most lines a place's name takes on the plate (place_lines), and how far apart
 ## they stand: a line of FONT_SIZE text.
 const PLACE_LINES := 2
@@ -257,9 +262,16 @@ func _draw_hud() -> void:
 	_draw_crosshair(ShoveResolver.would_hit(answers.framed, _seat, _rules, answers.here))
 	if me["state"] != PlayerState.Body.SWIMMING:
 		var grab := _prompts.word(&"grab")
-		var words := grab_words(answers.framed, _seat, _reach, answers.here, grab)
+		var press := _reach.would_press(answers.framed, _seat, answers.here)
+		var words := grab_words(answers.framed, _seat, _reach, answers.here, grab, press)
 		if not words.is_empty():
-			_text(_canvas.size * 0.5 + PROMPT_BELOW, words, TEXT, READOUT_TEXT)
+			var at := _canvas.size * 0.5 + PROMPT_BELOW
+			_text(at, words, TEXT, READOUT_TEXT)
+			if press.aboard != -1:
+				var kind := _reach.kinds[answers.framed["bonuses"][press.aboard]["kind"]]
+				var size := _font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
+				var badge := at + Vector2(-size.x * 0.5 - PROMPT_BADGE, -FONT_SIZE * 0.35)
+				BonusIcons.draw(_drawing, kind, badge, BONUS_RADIUS)
 	_draw_readouts(me, answers.pose.world_height(me["pos"]))
 
 
@@ -481,9 +493,10 @@ static func _fits(text: String, font: Font, font_size: int, width: float) -> boo
 
 
 ## Bottom left: metres from [param me]'s feet to the sea, above or under it — or
-## that it is in it — then the stamina and warmth slots, filled from [param me], a spare
-## meter's strip under the warmth bar (spare_meter); and under the plate, in its kind's
-## colour, the title of the bonus the seat has (bonus_kind).
+## that it is in it — then the stamina and warmth slots, filled from [param me], a strip
+## under the warmth bar for each spare meter (spare_meters); and under the plate, a badge
+## for each kind of bonus the seat has (BonusIcons), with how many of it past one
+## (held_bonuses).
 func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 	var at := Vector2(24.0, _canvas.size.y - 120.0)
 	var colour := LOW if above_sea < 1.0 else TEXT
@@ -506,27 +519,44 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 		if not lasting.is_empty():
 			var beside := at + Vector2(bar.end.x - at.x + 10.0, 0.0)
 			_text(beside, lasting, Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
-		if slot == "Warmth" and spare_meter(_snapshot, _seat, _bonus_rules):
-			var strip := Vector2(bar.position.x, bar.end.y + SPARE_GAP)
+		var spares := spare_meters(_snapshot, _seat, _bonus_rules) if slot == "Warmth" else 0
+		for spare in spares:
+			var strip := Vector2(bar.position.x, bar.end.y + (SPARE_GAP + SPARE_HEIGHT) * spare)
+			strip.y += SPARE_GAP
 			_drawing.draw_rect(Rect2(strip, Vector2(bar.size.x, SPARE_HEIGHT)), WARM)
-	var bonus := bonus_kind(_snapshot, _seat, _bonus_rules)
-	if bonus != null:
-		var under := Vector2(24.0, plate_rect(_canvas.size).end.y + BONUS_UNDER)
-		_text(under, bonus.title, bonus.mark, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+	var badge := Vector2(24.0 + BONUS_RADIUS, plate_rect(_canvas.size).end.y + BONUS_UNDER)
+	for held: Array in held_bonuses(_snapshot, _seat, _bonus_rules):
+		var kind: BonusKind = held[0]
+		BonusIcons.draw(_drawing, kind, badge, BONUS_RADIUS)
+		badge.x += BONUS_RADIUS
+		if held[1] > 1:
+			var count := "×%d" % held[1]
+			_text(badge + Vector2(4.0, 6.0), count, kind.mark, DIAL_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+			badge.x += (
+				4.0 + _font.get_string_size(count, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+			)
+		badge.x += BONUS_GAP + BONUS_RADIUS
 
 
 ## What the prompt under the crosshair says of grabbing (#273) for [param seat] in
 ## [param snapshot], its key [param key]: what a Grab press would do, as [param reach] says
 ## the sim's would (GrabReach) — take a bonus in reach, by its kind's title (#307), let go of
 ## the prop in the hands, or grab a prop — with her as [param surfaces] has her; empty for
-## nothing, and in the sea, where the climb's prompt stands.
+## nothing, and in the sea, where the climb's prompt stands. [param press] is that press
+## when it is already asked.
 static func grab_words(
-	snapshot: Dictionary, seat: int, reach: GrabReach, surfaces: Surfaces, key: String
+	snapshot: Dictionary,
+	seat: int,
+	reach: GrabReach,
+	surfaces: Surfaces,
+	key: String,
+	press: GrabReach.Press = null
 ) -> String:
 	var me := MatchState.entry_of(snapshot["seats"], seat)
 	if me.is_empty() or me["out"] or me["state"] == PlayerState.Body.SWIMMING:
 		return ""
-	var press := reach.would_press(snapshot, seat, surfaces)
+	if press == null:
+		press = reach.would_press(snapshot, seat, surfaces)
 	if press.aboard != -1:
 		var kind: int = snapshot["bonuses"][press.aboard]["kind"]
 		return "%s — take %s" % [key, reach.kinds[kind].title]
@@ -557,18 +587,28 @@ static func warmth_words(
 	return "%s ×%d" % [_prop_name(layout, held), roundi(1.0 / rate)]
 
 
-## The kind of the bonus [param seat] has in [param snapshot] of a match played with
-## [param bonus_rules] (#307, BonusRules.of_seat); null for none, as in a match without
-## bonuses.
-static func bonus_kind(snapshot: Dictionary, seat: int, bonus_rules: BonusRules) -> BonusKind:
-	return BonusRules.of_seat(bonus_rules, snapshot, seat)
+## The bonuses [param seat] has in [param snapshot] of a match played with
+## [param bonus_rules] (#307, BonusRules.of_seat), a pair per kind in its kinds' order: the
+## kind and how many of it; none for a seat with none, as in a match without bonuses.
+static func held_bonuses(snapshot: Dictionary, seat: int, bonus_rules: BonusRules) -> Array:
+	var held: Array = []
+	for kind: BonusKind in BonusRules.of_seat(bonus_rules, snapshot, seat):
+		if not held.is_empty() and held[-1][0] == kind:
+			held[-1][1] += 1
+		else:
+			held.append([kind, 1])
+	return held
 
 
-## Whether [param seat] in [param snapshot] of a match played with [param bonus_rules] has
-## an unspent spare cold meter (Double life, #307): its bonus gives one.
-static func spare_meter(snapshot: Dictionary, seat: int, bonus_rules: BonusRules) -> bool:
-	var kind := bonus_kind(snapshot, seat, bonus_rules)
-	return kind != null and kind.spare_meter
+## How many unspent spare cold meters [param seat] in [param snapshot] of a match played
+## with [param bonus_rules] has (Double life, #307): one for each of its bonuses that gives
+## one.
+static func spare_meters(snapshot: Dictionary, seat: int, bonus_rules: BonusRules) -> int:
+	var spares := 0
+	for kind: BonusKind in BonusRules.of_seat(bonus_rules, snapshot, seat):
+		if kind.spare_meter:
+			spares += 1
+	return spares
 
 
 ## Prop [param prop] of [param layout] in words: its kind's name.

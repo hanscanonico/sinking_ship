@@ -117,12 +117,16 @@ const CLINCH_FOLD := 0.18
 ## (BonusGreybox.lit_from_within), so it reads from every side, from above and in a dark
 ## room. In the sailor's units, riding MARK_BONE: the band's middle at rest, its outer
 ## half-widths across and front to back, its inner edge as a share of them — clear of the
-## thickest coat — and how deep it is.
+## thickest coat — and how deep it is. A seat with bonuses of more than one kind wears a
+## band for each, the first kind's at MARK_AT and each next MARK_STEP under the last, at
+## most MARK_BANDS of them.
 const MARK_BONE := &"spine_02"
 const MARK_AT := Vector3(0.0, 1.22, 0.005)
 const MARK_HALF := Vector2(0.235, 0.2)
 const MARK_INNER := 0.88
 const MARK_DEPTH := 0.07
+const MARK_STEP := 0.1
+const MARK_BANDS := 3
 
 static var _disc_texture: GradientTexture2D
 ## The sailor's crown and the head bone's height at rest, in its units, and per
@@ -144,10 +148,10 @@ var _feet_disc: MeshInstance3D
 var _hat_node: MeshInstance3D
 ## The marker over the local seat, or null on any other.
 var _marker: MeshInstance3D
-## The band of a bonus's mark (wear_bonus), made as the first is worn, and the kind it is
-## the mark of: null for none.
-var _mark: MeshInstance3D
-var _bonus: BonusKind
+## The bands of the bonuses' marks (wear_bonuses), each made as the first is worn there, and
+## the kinds they are the marks of, one per kind worn.
+var _marks: Array[MeshInstance3D] = []
+var _worn: Array[BonusKind] = []
 var _clothes: ShaderMaterial
 ## The clip for each move: the crew's, unless drawn as a seat's own arms.
 var _clips: Dictionary = BrawlerAnimation.CLIPS
@@ -314,31 +318,44 @@ func show_marker(shown: bool) -> void:
 		_marker.visible = shown
 
 
-## Wears the mark of [param kind], the bonus the seat has (#307) — none for null: a band
-## round the chest in its colour, lit from within.
-func wear_bonus(kind: BonusKind) -> void:
-	if kind == _bonus:
+## Wears the marks of [param kinds], the bonuses the seat has (#307) — two of a kind listed
+## twice, none for none: a band round the chest for each kind, in its colour, lit from
+## within.
+func wear_bonuses(kinds: Array[BonusKind]) -> void:
+	var worn: Array[BonusKind] = []
+	for kind: BonusKind in kinds:
+		if not kind in worn and worn.size() < MARK_BANDS:
+			worn.append(kind)
+	if worn == _worn:
 		return
-	_bonus = kind
-	if _mark == null:
-		var held := BoneAttachment3D.new()
-		held.bone_name = MARK_BONE
-		_skeleton.add_child(held)
-		var band := TorusMesh.new()
-		band.inner_radius = MARK_INNER
-		band.outer_radius = 1.0
-		_mark = MeshInstance3D.new()
-		_mark.name = "BonusMark"
-		_mark.mesh = band
-		_mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		# The unit ring stretched to the band: across, deep, front to back.
-		var stretch := Vector3(MARK_HALF.x, MARK_DEPTH / (1.0 - MARK_INNER), MARK_HALF.y)
-		var rest := _skeleton.get_bone_global_rest(_skeleton.find_bone(MARK_BONE))
-		_mark.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(stretch), MARK_AT)
-		held.add_child(_mark)
-	_mark.visible = kind != null
-	if kind != null:
-		_mark.material_override = BonusGreybox.lit_from_within(kind)
+	_worn = worn
+	while _marks.size() < worn.size():
+		_marks.append(_band(_marks.size()))
+	for index in _marks.size():
+		_marks[index].visible = index < worn.size()
+		if index < worn.size():
+			_marks[index].material_override = BonusGreybox.lit_from_within(worn[index])
+
+
+## A bonus's band, the [param index]th down from MARK_AT, made round the chest, unlit.
+func _band(index: int) -> MeshInstance3D:
+	var held := BoneAttachment3D.new()
+	held.bone_name = MARK_BONE
+	_skeleton.add_child(held)
+	var band := TorusMesh.new()
+	band.inner_radius = MARK_INNER
+	band.outer_radius = 1.0
+	var mark := MeshInstance3D.new()
+	mark.name = "BonusMark" if index == 0 else "BonusMark%d" % index
+	mark.mesh = band
+	mark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# The unit ring stretched to the band: across, deep, front to back.
+	var stretch := Vector3(MARK_HALF.x, MARK_DEPTH / (1.0 - MARK_INNER), MARK_HALF.y)
+	var rest := _skeleton.get_bone_global_rest(_skeleton.find_bone(MARK_BONE))
+	var at := MARK_AT + Vector3.DOWN * MARK_STEP * index
+	mark.transform = rest.affine_inverse() * Transform3D(Basis.from_scale(stretch), at)
+	held.add_child(mark)
+	return mark
 
 
 ## Draws only what a seat sees of itself (FirstPersonArms): its coat's own arms in

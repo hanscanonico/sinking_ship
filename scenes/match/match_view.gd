@@ -9,7 +9,7 @@ extends Node3D
 ## (PropPlacing): a crate where it stands, a ring hung on its span or carried before its
 ## holder, whose hands reach for it, hidden once lost (SH10, #273); every bonus aboard at
 ## its spot, in greybox (BonusGreybox, #307), and every seat with a bonus wearing its kind's
-## mark (Brawler.wear_bonus). Once she has broken
+## marks (Brawler.wear_bonuses). Once she has broken
 ## (SH33) a seat stands in the space of its piece, where that piece's pose has it in the
 ## world, and a bonus lies in the space of the piece its spot is on (lying_to_world). It
 ## never moves a body itself, and never reads a live PlayerState.
@@ -516,8 +516,10 @@ func _process(delta: float) -> void:
 		# Posed even unseen, through its eyes: the hands of a body drawn reaching for it
 		# stop at its guard (Brawler.keep_apart).
 		body.show_state(then, now, alpha, _heights[seat] < _rules.body_height)
-		var bonus: int = now["bonus"]
-		body.wear_bonus(_bonus_kinds[bonus] if bonus != -1 else null)
+		var worn: Array[BonusKind] = []
+		for kind: int in now["bonuses"]:
+			worn.append(_bonus_kinds[kind])
+		body.wear_bonuses(worn)
 		if carried.has(seat):
 			body.carry(_drawn(carried[seat]), _layout.props[carried[seat]].radius)
 		if not body.visible:
