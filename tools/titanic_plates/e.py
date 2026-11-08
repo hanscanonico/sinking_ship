@@ -1340,8 +1340,13 @@ WALLED_SOLIDS = [(-64.2, -7.6), (-64.2, -5.8)]
 # (#514): the reciprocating engine casing's forward end on K's line, and the W.C.s by the
 # bathrooms aft of H and of C.
 WALLED_SOLIDS += [(-38.0, -2.0, "fore"), (-38.0, 5.0, "fore"), (-14.0, -10.0, "starboard"), (85.5, -7.0, "starboard")]
-NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (52.0, -6.7), (72.0, 3.8), (74.0, -7.5),
-             (79.5, 6.0), (80.0, -4.9)]
+NOT_ROOMS = [(-90.0, -5.3), (-20.0, -6.7), (20.0, -6.7), (37.0, -6.4), (72.0, 3.8), (79.5, 6.0)]
+# (The linen drying room's ladderway aft of E's line and the well of the ladder down by the
+# cross passage are rooms: beside each flight a body's floor the plate draws, in from the
+# line or the cross passage, which no room held, an open deck of its own; and the port after
+# ladderway's strip under D deck's ladder down, the ladderway's, the ladder's foot in the
+# passage aft of it and the strip's join with that passage a doorway onto the ladder: onto
+# no room's floor, it was a way onto her open deck under the ladder, #549.)
 # D deck's stewards' staircase down through the engineers' stewards' quarters (d.py, est.):
 # the room the flight's well, no body's (#514). (The store aft of the firemen's wash place
 # keeps its floor and its door: D deck's port spiral comes down into it, d.py, #531.)
@@ -1372,8 +1377,10 @@ STAIR_MOVES = [
     # The ladder down by the cross passage 0.31 m forward of the plate's, its foot clear of the
     # passage to the third-class rooms aft of it, which the plate draws 0.75 m wide beside it
     # and WAY_LEAST widens into its well: the well's railing stood in the passage's doorway,
-    # the only way into the rooms off it (#514). Its head in the cross passage.
-    (("ladder", 72.4375, -7.375), (72.75, 75.9375, -6.8125, -5.625)),
+    # the only way into the rooms off it (#514). Its head in the cross passage, its foot run on
+    # to F deck's passage aft of it, under the passage aft of C's floor here (HOLE_ENDS): 1/8 m
+    # short, F deck's floor before it was no room's (#549).
+    (("ladder", 72.4375, -7.375), (72.625, 75.9375, -6.8125, -5.625)),
     # The port after ladderway's ladder on down to F deck beside D deck's ladder down to this
     # deck (d.py), not under it: a flight is solid to the deck under it in the game, and under
     # it this one had 0.74 m over it (#514). The ladderway's port side a lane past both, the
@@ -1389,8 +1396,9 @@ STAIR_MOVES = [
     # A body's lead clear of the wall before each end (the layout lint):
     (("ladder", -69.3125, -10.6875), (-70.0625, -66.875, -10.6875, -9.75)),
     # The engineers' ladder down to F deck along the port side of F deck's widened stair box,
-    # its stair on down to G beside it (f.py):
-    (("ladder", -47.0625, -10.375), (-47.25, -44.125, -10.3125, -9.5)),
+    # its stair on down to G beside it (f.py), its head run on to the door aft of its well,
+    # the floor before it 0.19 m deep, no room's (#549):
+    (("ladder", -47.0625, -10.375), (-47.4375, -44.125, -10.3125, -9.5)),
     # The firemen's way on down athwart her between D deck's flights (d.py), the passage
     # too short along her for a flight and a lead each end. 1/16 m aft of the middle between
     # them, so F deck's passage forward of it keeps a body's lane between its high end and
@@ -1406,10 +1414,14 @@ STAIR_MOVES = [
     # behind bulkhead D, solid to that floor and across the stairway, its door shut off from
     # the racquet court's stair (#531, rows 5 and 7). Its head aft at bulkhead D's line, run
     # on forward under the pantry to 3.06 m (HOLE_ENDS).
-    (("ladder", 70.0625, 3.1875), (70.875, 73.9375, 3.1875, 4.375)),
+    (("ladder", 70.0625, 3.1875), (70.7578125, 73.9375, 3.1875, 4.375)),
+    # The stewards' ladder down aft of G's line, its head run on to the line: 0.13 m short,
+    # the floor before it was no room's (#549).
+    (("stewards' ladder", 19.3125, -7.0625), (19.1796875, 22.375, -7.0625, -6.0625)),
 ]
 # Flights run on under a room's floor on this deck, cut only back to that room's edge, the
 # flight a body's headroom under it there (deck.py, #531): the ladder by N, its foot under
 # the passage aft of N's floor between the rooms off it (the passage's way out); the ladder
-# under the pantry by D's line.
-HOLE_ENDS = [((-90.5, -5.3), -91.6875), ((72.0, 3.8), 73.25)]
+# under the pantry by D's line; the ladder down by the cross passage, its foot under the
+# passage aft of C's floor.
+HOLE_ENDS = [((-90.5, -5.3), -91.6875), ((72.0, 3.8), 73.25), ((74.0, -6.3), 72.75)]

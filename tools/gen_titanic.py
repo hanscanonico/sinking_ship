@@ -33,7 +33,7 @@ import re
 import struct
 import sys
 
-from floor_spots import spots_below_decks
+from floor_spots import LEAST, spots_below_decks
 from titanic_cabins import BERTH_RISE, SOFA_TOP, UPPER_BOTTOM, furnish
 from titanic_plates import deck as plates
 
@@ -2080,7 +2080,8 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
         return low + 0.01, high - 0.01
 
     rooms = plan.rooms if place is None else named_pieces(plan.rooms, parted_at, place, main)
-    rooms = [r for r in rooms if not any(r[1] < x < r[2] and r[3] < z < r[4] for x, z in plan.not_rooms)]
+    wells = [r for r in rooms if any(r[1] < x < r[2] and r[3] < z < r[4] for x, z in plan.not_rooms)]
+    rooms = [r for r in rooms if r not in wells]
     for k, (name, x0, x1, z0, z1) in enumerate(rooms):
         room("%s_%d_%s" % (prefix, k, slug(name)), name, x0, x1, z0, z1, level((x0 + x1) * 0.5))
     for k, (axis, at, a, b, kind, doors) in enumerate(plan.walls):
@@ -2164,6 +2165,151 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
                 min(level(v - 2 * T), level(v + 2 * T)), min(over(v - 2 * T), over(v + 2 * T)))
     for k, (what, x0, x1, z0, z1, top) in enumerate(plan.raised):
         box("%s_raised_%d" % (prefix, k), x0, x1, z0, z1, floor, floor + top - 2 * T)
+    for k, well in enumerate(wells):
+        well_floor("%s_well_%d" % (prefix, k), plan, well, level, over, rooms)
+
+def free_pieces(box, cuts):
+    """What the rectangles cuts leave of the rectangle box, each (x0, x1, z0, z1): the
+    pieces it falls into, each a list of rectangles that touch along an edge."""
+    x0, x1, z0, z1 = box
+    xs = sorted({x0, x1} | {v for c in cuts for v in c[:2] if x0 + 1e-6 < v < x1 - 1e-6})
+    zs = sorted({z0, z1} | {v for c in cuts for v in c[2:4] if z0 + 1e-6 < v < z1 - 1e-6})
+    free = {(i, j) for i in range(len(xs) - 1) for j in range(len(zs) - 1)
+            if xs[i + 1] - xs[i] > 1e-6 and zs[j + 1] - zs[j] > 1e-6 and not any(
+                c[0] < (xs[i] + xs[i + 1]) * 0.5 < c[1] and c[2] < (zs[j] + zs[j + 1]) * 0.5 < c[3] for c in cuts)}
+    pieces = []
+    while free:
+        start = min(free)  # (in order along her, so her ids come out alike every run)
+        free.remove(start)
+        stack, piece = [start], []
+        while stack:
+            i, j = stack.pop()
+            piece.append((xs[i], xs[i + 1], zs[j], zs[j + 1]))
+            for n in ((i - 1, j), (i + 1, j), (i, j - 1), (i, j + 1)):
+                if n in free:
+                    free.remove(n)
+                    stack.append(n)
+        pieces.append(sorted(piece))
+    return pieces
+
+def walked_into(piece, side, ways, touches):
+    """Whether a square side across fits wholly in piece (rectangles that touch) against one
+    of ways (lines (x0, x1, z0, z1)): a body steps into it there."""
+    def covered(x0, x1, z0, z1):
+        area = sum(max(0.0, min(x1, r[1]) - max(x0, r[0])) * max(0.0, min(z1, r[3]) - max(z0, r[2])) for r in piece)
+        return area >= (x1 - x0) * (z1 - z0) - 1e-6
+    xs = {v for r in piece + ways for v in (r[0], r[1] - side)}
+    zs = {v for r in piece + ways for v in (r[2], r[3] - side)}
+    return any(covered(x, x + side, z, z + side) and touches([(x, x + side, z, z + side)], ways) for x in xs for z in zs)
+
+WELL_FAULTS = []  # what well_floor finds, all of it told at once
+
+def well_floor(bid, plan, well, level, over, rooms):
+    """A well no room holds (NOT_ROOMS, deck.py), under her main deck: the floor its flights'
+    holes and wedges and its solids leave in it laid solid, from the deck to the deck over it
+    (#549). Left floor, the plate's well beside its flight, before its head and past its foot
+    was floor no room held, to the walk graph one open deck across her deck: strips thinner
+    than a body at the stairs' ends, its doorways onto them as narrow as 6 cm. The landing
+    between a flight's end and the edge of the well it faces, a way in on it, is the plate's
+    passage there: a room of the well's name, where it is deep enough to hold a bonus as any
+    room under her main deck does (floor_spots.LEAST each side); shallower, the flight runs on
+    to the edge (STAIR_MOVES). Any other floor a body walks into off a way in, a body wide, is
+    a landing the plate draws, a room's: NOT_ROOMS names it wrongly. What breaks either is told,
+    all of it at once (WELL_FAULTS). rooms, the deck's rooms."""
+    _name, x0, x1, z0, z1 = well
+    floor = level((x0 + x1) * 0.5)
+    body = 2 * rule("body_radius")
+    if floor >= 0.0:
+        return  # (on her main deck and over it, a well may open onto her open deck)
+
+    def meets(a, b):
+        return a[0] < b[1] - 1e-6 and b[0] < a[1] - 1e-6 and a[2] < b[3] - 1e-6 and b[2] < a[3] - 1e-6
+
+    cuts = [h for h in holes.get(plan.name, []) if meets(h, well[1:])]
+    cuts += [r[:4] for r in ramp_geo if abs(min(r[5], r[6]) - floor) < 0.01 and meets(r[:4], well[1:])]
+    cuts += [s[1:5] for s in plan.solids if meets(s[1:5], well[1:])]
+    # (And, judging it, its walls' thickness: a landing is a body's width between their faces.
+    # Laid, a piece runs on to the walls' middles, in their doorways too.)
+    walls = []
+    for axis, at, a, b, kind, _doors in plan.walls:
+        half = T if kind == "steel" else PARTITION / 2
+        wall = (at - half, at + half, a, b) if axis == 0 else (a, b, at - half, at + half)
+        if meets(wall, well[1:]):
+            walls.append(wall)
+    # Where a body comes in: the stretches of the well's edges no wall or solid stands on with a
+    # room's floor beyond (an open join, a line her cells part a room along), its doorways, and
+    # its flights' ends on this deck.
+    ways, ends = [], []
+    for axis, at, lo, hi, out in ((0, x0, z0, z1, -1), (0, x1, z0, z1, 1), (2, z0, x0, x1, -1), (2, z1, x0, x1, 1)):
+        beyond = (at + out * 0.01, at + out * 0.01, lo, hi) if axis == 0 else (lo, hi, at + out * 0.01, at + out * 0.01)
+        floored = sorted((r[3], r[4]) if axis == 0 else (r[1], r[2]) for r in rooms
+                         if r[1] <= beyond[1] and beyond[0] <= r[2] and r[3] <= beyond[3] and beyond[2] <= r[4])
+        walled, now = [], lo
+        for a, b in floored:
+            if a > now + 1e-6:
+                walled.append((now, a))
+            now = max(now, b)
+        walled += [(now, hi)] if now < hi - 1e-6 else []
+        walled += [(r[2], r[3]) if axis == 0 else (r[0], r[1]) for r in (s[1:5] for s in plan.solids)
+                   if r[0] <= beyond[1] and beyond[0] <= r[1] and r[2] <= beyond[3] and beyond[2] <= r[3]]
+        for w_axis, w_at, a, b, _kind, doors in plan.walls:
+            if w_axis != axis or abs(w_at - at) > 1e-6 or b <= lo or a >= hi:
+                continue
+            walled.append((a, b))
+            walled_doors = [(d - DOOR / 2, d + DOOR / 2) for d in doors if lo < d < hi]
+            ways += [(at, at, p, q) if axis == 0 else (p, q, at, at) for p, q in walled_doors]
+        gaps, now = [], lo
+        for a, b in sorted(walled):
+            if a > now + 1e-6:
+                gaps.append((now, a))
+            now = max(now, b)
+        if now < hi - 1e-6:
+            gaps.append((now, hi))
+        ways += [(at, at, p, q) if axis == 0 else (p, q, at, at) for p, q in gaps]
+    for rx0, rx1, rz0, rz1, axis, start, end in ramp_geo:
+        for at, h, out in ((rx0 if axis == 0 else rz0, start, -1), (rx1 if axis == 0 else rz1, end, 1)):
+            if abs(h - floor) < 0.01:
+                ends.append(((at, at, rz0, rz1) if axis == 0 else (rx0, rx1, at, at), axis, out))
+
+    def touches(piece, lines):
+        return any(r[0] - T <= l[1] and l[0] <= r[1] + T and r[2] - T <= l[3] and l[2] <= r[3] + T
+                   and max(0.0, min(r[1], l[1]) - max(r[0], l[0])) + max(0.0, min(r[3], l[3]) - max(r[2], l[2])) > 0.05
+                   for r in piece for l in lines)
+
+    # The floor between a flight's end and the edge of the well it faces, all across the well.
+    landings = []
+    for line, axis, out in ends:
+        if axis == 0 and z0 - 1e-6 <= line[2] and line[3] <= z1 + 1e-6 and x0 - 1e-6 <= line[0] <= x1 + 1e-6:
+            a, b = (line[0], x1) if out > 0 else (x0, line[0])
+            landing = (a, b, z0, z1)
+        elif axis == 1 and x0 - 1e-6 <= line[0] and line[1] <= x1 + 1e-6 and z0 - 1e-6 <= line[2] <= z1 + 1e-6:
+            a, b = (line[2], z1) if out > 0 else (z0, line[2])
+            landing = (x0, x1, a, b)
+        else:
+            continue
+        deep = landing[1] - landing[0] if axis == 0 else landing[3] - landing[2]
+        if deep > 1e-6:
+            landings.append((landing, deep, line))
+    for k, (landing, deep, line) in enumerate(landings):
+        on_it = [p for p in free_pieces(landing, cuts + walls) if touches(p, [line])]
+        if not on_it:
+            continue
+        if deep < 2 * LEAST or not touches(on_it[0], ways):
+            WELL_FAULTS.append(("a flight's end in a well short of its edge: run it on (STAIR_MOVES)",
+                                plan.name, well, landing))
+            continue
+        room("%s_landing_%d" % (bid, k), well[0], *landing, floor)
+        cuts.append(landing)
+    for piece in free_pieces(well[1:], cuts + walls):
+        if touches(piece, [line for line, _axis, _out in ends]):
+            WELL_FAULTS.append(("a flight's end in a well short of its edge: run it on (STAIR_MOVES)",
+                                plan.name, well, piece))
+        elif walked_into(piece, body, ways, touches):
+            WELL_FAULTS.append(("a landing a body walks onto in a well: a room's (NOT_ROOMS names it)",
+                                plan.name, well, piece))
+    for n, piece in enumerate(free_pieces(well[1:], cuts)):
+        for m, (a, b, c, d) in enumerate(piece):
+            box("%s_%d_%d" % (bid, n, m), a, b, c, d, floor, over((a + b) * 0.5))
 
 # Her electric cranes stowed (#381, the owner's ruling of 2026-11-06): each jib lowered to
 # lie level along her on a crutch post under its head, pointing the way Plate III's
@@ -2376,8 +2522,28 @@ for line, high in D_SHEER_AFT:
         at_z = max(at_z, w1)
 plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("F"))
 plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=sorted(G_CUTS + TRUNK_CUTS), place=ef_place("G", G_CUTS))
+# The engineers' stores aft of K, their forward ends on K's line: K's plating there from G
+# deck to F deck, the bunker forward of it the plate draws (G_OUTLINE's solids). Her
+# estimated boiler room 1 lays K only as her tank top's walls, their doorways' gaps open to F
+# deck: each store stood open over them onto the boiler room's drop, the top of the wall
+# between two of them past K a perch no room held (#549).
+for _k, _store in enumerate(r for r in G_PLAN.rooms if abs(r[2] - round(BX["K"] * 128) / 128) < 1e-6):
+    box("g_k_%d" % _k, _store[2] - T, _store[2] + T, _store[3] - T, _store[4] + T, G_DECK, F_DECK)
 # The pocket abaft D the racquet court's stair comes down in, past its door through D.
 room("g_pocket", "passage, G deck, abaft D", G_POCKET[1], round(BX["D"] * 128) / 128, G_POCKET[3], G_POCKET[4], G_DECK)
+# Its sides the coal bunker round it, which the plate draws to F deck (G_OUTLINE's solids) and
+# her estimated boiler room lays only to G deck: the bunker's plating to F deck, but where the
+# court's stair runs out over it. Open, the pocket's floor ran on past its edges under no
+# room, onto the bunker's top, the walk graph's doorways from the pocket onto the tank top's
+# floor under it (#549).
+_pocket_d = round(BX["D"] * 128) / 128
+_court_stair = next(r for r in ramp_geo if r[0] < 70.0 < r[1] and r[2] < -2.0 < r[3] and abs(min(r[5], r[6]) - G_DECK) < 1e-6)
+for _k, (_x0, _x1, _z0, _z1) in enumerate([
+        (G_POCKET[1] - T, G_POCKET[1] + T, G_POCKET[3] - T, G_POCKET[4] + T),
+        (G_POCKET[1] - T, _pocket_d, G_POCKET[3] - T, G_POCKET[3] + T),
+        (G_POCKET[1] - T, _court_stair[0], G_POCKET[4] - T, G_POCKET[4] + T),
+        (_court_stair[1], _pocket_d, G_POCKET[4] - T, G_POCKET[4] + T)]):
+    box("g_pocket_side_%d" % _k, _x0, _x1, _z0, _z1, G_DECK, F_DECK)
 assert not NO_ROOM, "no room for a door: %s" % NO_ROOM
 
 # Flights up to G deck from her estimated orlops and machinery spaces (#379 traces them): cut
@@ -2553,6 +2719,7 @@ plan_layer("tt", TT_PLAN, tt_floor, tt_over, breaks=[BX[k] for k in "MLKDB"] + [
            wall_top=lambda z, x: ORLOP if z < -9.0 and BX["L"] < x < -37.875 else tt_over(x))
 plan_layer("orlop", ORLOP_PLAN, orlop_at, lambda _x: G_DECK, water=False)
 plan_layer("lower_orlop", LOWER_PLAN, LOWER_ORLOP, ORLOP_FWD, water=False)
+assert not WELL_FAULTS, "\n".join(str(fault) for fault in WELL_FAULTS)
 # Each boiler room's coal face where its bunker door stands: the bunker's plating, proud of
 # the coal to starboard of the tunnel (and clear of its door's frame).
 for k in range(1, 7):
@@ -2838,9 +3005,12 @@ for k, (x0, x1, z0, z1) in enumerate(snap_ends(ORLOP_PIECES, holes["orlop"])):
     deck("orlop_%d" % k, "orlop deck", x0, x1, z0, z1, orlop_at(x0 + 0.01), holes["orlop"])
 for k, (x0, x1, z0, z1) in enumerate(ORLOP_PLAN.decks[1:2]):
     deck("orlop_flat_%d" % k, "orlop deck", x0, x1, max(z0, -fit(x0, x1, ORLOP, 0.05)), z1, ORLOP, holes["orlop"])
-# The landing at the head of the CO2 evaporator room's ladder, out of its door (orlop.py, est.).
+# The landing at the head of the CO2 evaporator room's ladder, out of its door (orlop.py, est.):
+# a room, the door's width and its frame's on it. No room's floor, it was an open deck the
+# ladder and the door each opened onto, reached through the door's 1/8 m (#549).
 _n, co2_x0, co2_x1, co2_z0, co2_z1, *_rest = next(f for f in ORLOP_OUTLINE.stairs if f[0] == "ladder")
-platform("co2_landing", "orlop deck", co2_x1, co2_x1 + 1.0625, co2_z0, co2_z1, ORLOP)
+platform("co2_landing", "orlop deck", co2_x1, co2_x1 + 1.25, co2_z0, co2_z1, ORLOP)
+room("co2_landing", "landing, orlop deck", co2_x1, co2_x1 + 1.25, co2_z0, co2_z1, ORLOP)
 for k, (x0, x1, z0, z1) in enumerate(snap_ends(LOWER_PIECES, holes["lower_orlop"])):
     deck("lower_orlop_%d" % k, "lower orlop deck", x0, x1, z0, z1, LOWER_ORLOP, holes["lower_orlop"])
 

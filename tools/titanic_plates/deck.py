@@ -220,7 +220,9 @@ class Deck:
         (x0, x1, z0, z1) instead, off the plate so its foot finds a floor. OPENED, a join
         (x0, x1, z0, z1) a landing's way in needs, just so long. NOT_ROOMS, each (x, z) in a well and no
         room once her cells have split it, its flight taking all a body could stand on
-        behind its door: its walls stay, its floor is no room's. GONE, the room or solid at
+        behind its door: its walls stay, its floor is no room's — under her main deck laid
+        solid, but for the landing before a flight's end (gen_titanic.py's well_floor,
+        #549). GONE, the room or solid at
         each (x, z) her hull takes, walls and all. WALLED_SOLIDS, a
         solid at each (x, z) whose face only touches a room's edge, the edge walled: every
         face, or (x, z, face) the one face named. HOLE_ENDS, each flight ((x, z) on it) whose
