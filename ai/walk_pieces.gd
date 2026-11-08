@@ -290,13 +290,7 @@ func _stands_grid(
 	var mirror := _surfaces.native
 	if mirror != null:
 		var rules := PackedFloat64Array(
-			[
-				_radius,
-				_rules.step_height,
-				_rules.body_height,
-				_rules.crawl_height,
-				_rules.railing_height
-			]
+			[_radius, _rules.step_height, _rules.body_height, _rules.crawl_height]
 		)
 		return mirror.stands_grid(origin, width, depth, side, height, within, rules)
 	var stands := PackedByteArray()
@@ -310,7 +304,9 @@ func _stands_grid(
 
 ## Whether a body could stand with its feet at [param point]: on a floor within a step of
 ## its height — a stair's end too, which a body walks across — clear of all that holds a
-## body back (BotFloorWay._stands).
+## body back (BotFloorWay._stands), of railings a floor's own: the railings along a stair's
+## sides by its head that hold a body on it (#552) are not read into a room's pieces yet
+## (#561).
 func _stands(point: Vector3) -> bool:
 	var surface := _surfaces.under(point, _rules.step_height)
 	if surface == Surfaces.NONE:
@@ -321,6 +317,8 @@ func _stands(point: Vector3) -> bool:
 	)
 	if not held.is_empty():
 		return false
+	if _surfaces.is_ramp(surface):
+		return true
 	var railed := _surfaces.rail_contacts(
 		feet, _radius, surface, _rules.step_height, _rules.railing_height
 	)

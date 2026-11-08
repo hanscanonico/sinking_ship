@@ -174,8 +174,10 @@ static func across(door: ShipRoom.Door, off: float, floor_height: float) -> Vect
 ## Whether a body could walk straight through [param at] on a doorway's line the way
 ## [param out]: from where it first stands clear on the room's side — a body's radius before
 ## the line at most, every STRIDE nearer — on until it stands clear past it, its feet on a
-## floor or a stair all the way and nothing pushing it back (BACK); railings among what
-## holds it unless [param rails] is false.
+## floor or a stair all the way and nothing pushing it back (BACK); a floor's railings among
+## what holds it unless [param rails] is false. On a stair none: the railings along its sides
+## by its head hold a body on it (#552), but the graph's ways through are read as before
+## (#561).
 static func _crosses(
 	surfaces: Surfaces,
 	rules: BrawlRules,
@@ -200,7 +202,7 @@ static func _crosses(
 		var held := surfaces.obstacle_contacts(
 			point, radius, rules.body_height, rules.step_height, Surfaces.NONE, rules.crawl_height
 		)
-		if rails:
+		if rails and not surfaces.is_ramp(surface):
 			held.append_array(
 				surfaces.rail_contacts(
 					point, radius, surface, rules.step_height, rules.railing_height
