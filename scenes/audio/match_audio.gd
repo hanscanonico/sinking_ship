@@ -5,8 +5,8 @@ extends Node3D
 ## whose eyes the view is in, from where they happen for everyone and everything
 ## else — and each bonus aboard the latest snapshot hums where it lies, a voice looping
 ## for as long as it is there (CuePlanner.hums), while the finder pings from the one
-## nearest the seat heard through, quicker the nearer it is (BonusSeeker). Under them the sea, the wind and the
-## sea rushing in follow the listener's height above the water and the sinking's pace,
+## nearest the seat heard through, quicker the nearer it is (BonusSeeker). Under them
+## the sea, the wind and the sea rushing in follow the listener's height above the water and the sinking's pace,
 ## and the room's reverb and the hull's muffling follow whether the seat heard through
 ## stands in a room, easing across a doorway rather than snapping; with its eyes under
 ## the sea, the outside is heard through the water, muffled, the wind gone. The listener
