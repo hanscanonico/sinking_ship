@@ -81449,6 +81449,13 @@ material = SubResource("StandardMaterial3D_r6eh1")
 metadata/ship = &"railing"
 metadata/platform = &"Platform_c_37_0"
 
+[node name="Railing_co2_landing_fwd" type="CSGBox3D" parent="Railings" unique_id=1965972076]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -41.25, -12.9375, -8.5)
+size = Vector3(1, 1, 0.05)
+material = SubResource("StandardMaterial3D_r6eh1")
+metadata/ship = &"railing"
+metadata/platform = &"Platform_co2_landing"
+
 [node name="Railing_docking_bridge_0aft_0_0" type="CSGBox3D" parent="Railings" unique_id=1615014821]
 transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, -127.25, 6.4375, -8.35)
 size = Vector3(2.5000005, 1, 0.05)
