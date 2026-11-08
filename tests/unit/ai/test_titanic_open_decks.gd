@@ -6,7 +6,10 @@ extends GutTest
 ## zone of strips thinner than a body that the graph routed bots into, through doorways as
 ## narrow as 6 cm, and that a bot standing on one read itself in, with no way out. So below
 ## her main deck no way of the graph's leads onto floor no room holds, and no stair's end or
-## doorway opens onto any: on her and on her sisters.
+## doorway opens onto any: on her and on her sisters. And on any deck no doorway opens onto
+## nothing (#565): past it there is a floor, or under it a deck or a stair of hers to drop
+## onto — a well's, a hold's — never the void past her floors' ends, as bulkhead A stood open
+## onto forward of the firemen's quarters on G deck and of No. 1 hold on the orlops.
 
 const SHIPS: Array[String] = [
 	"res://data/ships/titanic.tres",
@@ -44,6 +47,41 @@ func test_below_her_main_deck_no_stair_or_doorway_opens_onto_floor_no_room_holds
 	for path: String in SHIPS:
 		var graph: WalkGraph = _graphs[path]
 		assert_eq(_opened_onto_open_decks(load(path), graph), PackedStringArray(), path)
+
+
+func test_on_any_deck_no_doorway_opens_onto_nothing() -> void:
+	for path: String in SHIPS:
+		var graph: WalkGraph = _graphs[path]
+		assert_eq(_opened_onto_nothing(load(path), graph.surfaces()), PackedStringArray(), path)
+
+
+func test_a_doorway_onto_nothing_is_found() -> void:
+	# A room on the flat deck to its starboard edge, the railing there taken away (test data):
+	# its doorway along that edge opens onto nothing. With a deck under it there, onto that.
+	var built := func(under: bool) -> ShipLayout:
+		var layout: ShipLayout = SimFixtures.deck().duplicate()
+		layout.railings = []
+		var deck := layout.platforms[0]
+		var room := ShipRoom.new()
+		room.name = &"cabin"
+		room.area = Rect2(0.0, deck.area.end.y - 3.0, 3.0, 3.0)
+		room.floor_height = deck.height
+		var rooms: Array[ShipRoom] = [room]
+		layout.rooms = rooms
+		if under:
+			var lower := ShipPlatform.new()
+			lower.area = Rect2(0.0, deck.area.end.y, 3.0, 2.0)
+			lower.height = LOWER
+			var platforms: Array[ShipPlatform] = [deck, lower]
+			layout.platforms = platforms
+		return layout
+	var open: ShipLayout = built.call(false)
+	var found := _opened_onto_nothing(open, Surfaces.new(open))
+	assert_eq(found.size(), 1, "the doorway along her edge: %s" % [found])
+	if found.size() == 1:
+		assert_string_contains(found[0], "cabin's doorway")
+	var over: ShipLayout = built.call(true)
+	assert_eq(_opened_onto_nothing(over, Surfaces.new(over)), PackedStringArray(), "a deck under")
 
 
 func test_the_rules_bite() -> void:
@@ -156,6 +194,42 @@ func _opened_onto_open_decks(layout: ShipLayout, graph: WalkGraph) -> PackedStri
 					)
 				)
 	return found
+
+
+## Every room's doorway on [param layout], on any deck, that opens onto nothing: a hair past
+## its gap, across its width, there is no floor within a step of the room's, and none of
+## [param layout]'s decks or stairs stands under it to drop onto.
+func _opened_onto_nothing(layout: ShipLayout, surfaces: Surfaces) -> PackedStringArray:
+	var found := PackedStringArray()
+	for room: ShipRoom in layout.rooms:
+		for door in room.doors(surfaces, _rules.crawl_height, _rules.step_height):
+			for share: float in ACROSS:
+				var point := door.from.lerp(door.to, share) + door.outward * PAST
+				var probe := Vector3(point.x, room.floor_height, point.y)
+				if surfaces.under(probe, _rules.step_height) != Surfaces.NONE:
+					continue
+				if _stands_under(layout, point, room.floor_height):
+					continue
+				found.append(
+					(
+						"the %s's doorway at %s, %.2f m wide, opens onto nothing at %s"
+						% [room.name, door.middle(), door.from.distance_to(door.to), probe]
+					)
+				)
+				break
+	return found
+
+
+## Whether a deck or a stair of [param layout] stands under [param point] at or below
+## [param height].
+static func _stands_under(layout: ShipLayout, point: Vector2, height: float) -> bool:
+	for platform: ShipPlatform in layout.platforms:
+		if platform.height <= height and platform.area.has_point(point):
+			return true
+	for ramp: ShipRamp in layout.ramps:
+		if ramp.base() <= height and ramp.contains(point.x, point.y):
+			return true
+	return false
 
 
 ## The first point a hair past the line [param from]…[param to] at [param height], the way

@@ -76,3 +76,7 @@ STAIR_MOVES = [
     # double bottom's forward piece under it, which its wedge narrowed below a body (#514):
     (("hold ladder", 110.6875, 1.1875), (108.9375, 112.875, 0.4375, 1.25)),
 ]
+# Forward of A, the peak tank: no floor of hers is laid under it (LOWER_PIECES end at A,
+# gen_titanic.py), so it waits for one, and A stands whole as No. 1 hold's wall (#565), as on
+# G deck (g.py).
+AWAITS = [(115.81, 140.0)]
