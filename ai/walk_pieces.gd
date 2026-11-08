@@ -304,7 +304,9 @@ func _stands_grid(
 
 ## Whether a body could stand with its feet at [param point]: on a floor within a step of
 ## its height — a stair's end too, which a body walks across — clear of all that holds a
-## body back (BotFloorWay._stands).
+## body back (BotFloorWay._stands), of railings a floor's own: the railings along a stair's
+## sides by its head that hold a body on it (#552) are not read into a room's pieces yet
+## (#561).
 func _stands(point: Vector3) -> bool:
 	var surface := _surfaces.under(point, _rules.step_height)
 	if surface == Surfaces.NONE:
@@ -313,4 +315,11 @@ func _stands(point: Vector3) -> bool:
 	var held := _surfaces.obstacle_contacts(
 		feet, _radius, _rules.body_height, _rules.step_height, Surfaces.NONE, _rules.crawl_height
 	)
-	return held.is_empty() and _surfaces.rail_contacts(feet, _radius, surface).is_empty()
+	if not held.is_empty():
+		return false
+	if _surfaces.is_ramp(surface):
+		return true
+	var railed := _surfaces.rail_contacts(
+		feet, _radius, surface, _rules.step_height, _rules.railing_height
+	)
+	return railed.is_empty()

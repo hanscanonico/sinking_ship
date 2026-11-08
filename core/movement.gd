@@ -430,7 +430,13 @@ func _railings(
 				_rules.railing_height
 			)
 		elif player.body == PlayerState.Body.GROUNDED:
-			contacts = _surfaces.rail_contacts(player.pos, _rules.body_radius, player.surface)
+			contacts = _surfaces.rail_contacts(
+				player.pos,
+				_rules.body_radius,
+				player.surface,
+				_rules.step_height,
+				_rules.railing_height
+			)
 		if contacts.is_empty():
 			clear[player.seat] = player.pos
 		for contact: Surfaces.Contact in contacts:

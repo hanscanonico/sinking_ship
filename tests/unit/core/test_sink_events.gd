@@ -282,14 +282,40 @@ func test_failed_railing_stops_holding() -> void:
 	var on_it := (railing.from + railing.to) * 0.5
 	var near := Vector3(on_it.x, 0.0, on_it.y + 0.3)
 	var rules := SimFixtures.rules()
-	assert_false(sim.surfaces.rail_contacts(near, rules.body_radius, 0).is_empty())
+	assert_false(
+		(
+			sim
+			. surfaces
+			. rail_contacts(near, rules.body_radius, 0, rules.step_height, rules.railing_height)
+			. is_empty()
+		)
+	)
 	var events := SimFixtures.step(sim, {}, Ticks.RATE + 1)
 	assert_true(SimEvent.Kind.RAILING_BROKE in _kinds(events))
-	assert_true(sim.surfaces.rail_contacts(near, rules.body_radius, 0).is_empty(), "gone")
+	assert_true(
+		(
+			sim
+			. surfaces
+			. rail_contacts(near, rules.body_radius, 0, rules.step_height, rules.railing_height)
+			. is_empty()
+		),
+		"gone"
+	)
 	var other := deck.railings[1]
 	var by_other := (other.from + other.to) * 0.5
 	assert_false(
-		sim.surfaces.rail_contacts(Vector3(by_other.x, 0.0, by_other.y + 0.3), 0.4, 0).is_empty(),
+		(
+			sim
+			. surfaces
+			. rail_contacts(
+				Vector3(by_other.x, 0.0, by_other.y + 0.3),
+				0.4,
+				0,
+				rules.step_height,
+				rules.railing_height
+			)
+			. is_empty()
+		),
 		"the others hold"
 	)
 

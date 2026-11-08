@@ -116,13 +116,15 @@ public:
 
 	PackedFloat64Array obstacle_contacts(const Vector3 &p_ship_point, double p_radius, double p_body_height,
 			double p_step, int64_t p_except_prop, double p_crawl_height, double p_crawl_reach) const;
-	PackedFloat64Array rail_contacts(const Vector3 &p_ship_point, double p_radius, int64_t p_surface) const;
+	PackedFloat64Array rail_contacts(const Vector3 &p_ship_point, double p_radius, int64_t p_surface, double p_step,
+			double p_railing_height) const;
 	PackedFloat64Array airborne_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
 			double p_radius, double p_body_height, double p_railing_height) const;
 
 	void obstacles(const Vector3 &p_ship_point, double p_radius, double p_body_height, double p_step,
 			int32_t p_except_prop, double p_crawl_height, double p_crawl_reach, std::vector<ContactHit> &r_found) const;
-	void rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, std::vector<ContactHit> &r_found) const;
+	void rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
+			double p_railing_height, std::vector<ContactHit> &r_found) const;
 	void airborne_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
 			double p_body_height, double p_railing_height, std::vector<ContactHit> &r_found) const;
 	int64_t landing(const Vector3 &p_ship_point, int64_t p_except_prop) const;
@@ -195,7 +197,7 @@ private:
 	int32_t under_at(const Vector3 &p_ship_point, double p_step, int32_t p_except_prop) const;
 	double height_on(int32_t p_surface, double p_x, double p_z) const;
 	bool stands_at(const Vector3 &p_point, int32_t p_surface, const std::vector<int32_t> &p_keep, double p_radius,
-			double p_step, double p_body_height, double p_crawl_height) const;
+			double p_step, double p_body_height, double p_crawl_height, double p_railing_height) const;
 	double height_at(int32_t p_surface, double p_x, double p_z) const;
 	double ramp_height(int32_t p_surface, double p_x, double p_z) const;
 	bool contains(int32_t p_surface, double p_x, double p_z) const;
@@ -207,7 +209,8 @@ private:
 			double p_crawl_height, int32_t p_stair) const;
 	bool climb_contact(int32_t p_surface, const Vector2 &p_point, double p_radius, double p_reach,
 			ContactHit &r_hit) const;
-	bool rail_contact(int32_t p_index, const Vector2 &p_point, double p_radius, ContactHit &r_hit) const;
+	bool rail_contact(int32_t p_index, const Vector2 &p_point, double p_radius, bool p_off,
+			ContactHit &r_hit) const;
 };
 
 class NativeCrates : public RefCounted {
