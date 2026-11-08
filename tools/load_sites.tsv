@@ -36,6 +36,7 @@ scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(file)	core/*.gd data/*
 scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(path)	-
 scenes/game/bake_cache.gd	FileAccess.open(aside)	-
 scenes/game/key_bindings.gd	FileAccess.open(path)	-
+scenes/match/bonus_icons.gd	load(DIR + String(kind.icon) + ".svg")	assets/ui/bonus/*.svg
 scenes/match/iceberg_planner.gd	load(path)	assets/models/*.glb
 scenes/match/view_settings.gd	ResourceLoader.exists(path)	-
 scenes/match/view_settings.gd	ResourceLoader.load(path)	-
