@@ -16,3 +16,4 @@ first = 20.0
 interval = 45.0
 jitter = 15.0
 most_aboard = 2
+most_held = 2

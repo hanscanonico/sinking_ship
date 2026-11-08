@@ -103,13 +103,40 @@ func _gives(jump: float, share: float, reach: float, ladder: float) -> BonusKind
 	return kind
 
 
+## [param kinds] as a seat's bonuses' kinds.
+func _held(kinds: Array) -> Array[BonusKind]:
+	var held: Array[BonusKind] = []
+	held.assign(kinds)
+	return held
+
+
+## Bonuses add up: each brings what its kind sets as far again from the brawl rules' own, so
+## two of a kind bring it twice as far — a jump, a share of a shove's knockback, a climb
+## reach, a ladder's pace, a slope — and kinds that set different rules each give theirs.
+func test_two_of_a_kind_give_twice_what_one_does() -> void:
+	var rules := _rules()
+	var gives := _gives(1.4, 0.6, 1.1, 2.5)
+	var two := SeatRules.of(rules, null, _held([gives, gives]))
+	assert_almost_eq(two.jump_height, 2.0, 1e-9, "0.8 m and 0.6 m more twice")
+	assert_almost_eq(two.knockback_share, 0.2, 1e-9, "1 less 0.4 twice")
+	assert_almost_eq(two.climb_reach, 1.7, 1e-9, "0.5 m and 0.6 m more twice")
+	assert_almost_eq(two.ladder_speed, 8.0, 1e-9, "2 m/s and 3 m/s more twice")
+	var footing := SimFixtures.plain_kind()
+	footing.grip_angle_deg = 16.0
+	footing.stand_limit_deg = 34.0
+	var both := SeatRules.of(rules, null, _held([gives, footing, footing]))
+	assert_almost_eq(both.jump_height, 1.4, 1e-9, "one jump's")
+	assert_almost_eq(both.grip_angle_deg, 20.0, 1e-9, "12° and 4° more twice")
+	assert_almost_eq(both.stand_limit_deg, 38.0, 1e-9, "30° and 4° more twice")
+
+
 ## A bonus gives its taker what its kind sets (#316) — its jump, its share of a shove's
 ## knockback and its climb reach, and a ladder's pace times the rules' — and leaves every
 ## rule it sets nothing for as the brawl rules have it. With a prop in the hands as well,
 ## the prop costs what it costs and the bonus still gives.
 func test_a_bonus_gives_its_taker_what_its_kind_sets() -> void:
 	var rules := _rules()
-	var seat := SeatRules.of(rules, null, _gives(1.4, 0.6, 1.1, 2.5))
+	var seat := SeatRules.of(rules, null, _held([_gives(1.4, 0.6, 1.1, 2.5)]))
 	assert_eq(
 		[seat.jump_height, seat.knockback_share, seat.climb_reach, seat.ladder_speed],
 		[1.4, 0.6, 1.1, 5.0],
@@ -117,13 +144,15 @@ func test_a_bonus_gives_its_taker_what_its_kind_sets() -> void:
 	)
 	assert_eq([seat.grip_angle_deg, seat.stand_limit_deg], [12.0, 30.0], "the slopes the rules'")
 	assert_eq([seat.walk_cap, seat.may_brace, seat.sea_cold_rate], [INF, true, 1.0], "empty hands")
-	var none := SeatRules.of(rules, null, SimFixtures.plain_kind())
+	var none := SeatRules.of(rules, null, _held([SimFixtures.plain_kind()]))
 	assert_eq(
 		[none.jump_height, none.knockback_share, none.climb_reach, none.ladder_speed],
 		[0.8, 1.0, 0.5, 2.0],
 		"a kind that sets nothing: the rules' own"
 	)
-	var holding := SeatRules.of(rules, _kind(3.0, false, false, 0.25), _gives(1.4, 0.6, 1.1, 2.5))
+	var holding := SeatRules.of(
+		rules, _kind(3.0, false, false, 0.25), _held([_gives(1.4, 0.6, 1.1, 2.5)])
+	)
 	assert_eq(
 		[holding.walk_cap, holding.may_brace, holding.sea_cold_rate],
 		[3.0, false, 0.25],
@@ -151,7 +180,7 @@ func test_a_bonus_gives_its_taker_the_slopes_its_kind_sets() -> void:
 		kind.stand_limit_deg = case[1]
 		var what := "a kind of %.0f° and %.0f°" % [case[0], case[1]]
 		for held: PropKind in [null, _kind(3.0, false, false, 0.25)]:
-			var seat := SeatRules.of(rules, held, kind)
+			var seat := SeatRules.of(rules, held, _held([kind]))
 			var slopes := [seat.grip_angle_deg, seat.stand_limit_deg]
 			assert_eq(slopes, [case[2], case[3]], "%s, holding %s" % [what, held != null])
 			assert_eq(seat.walk_cap, INF if held == null else 3.0, "%s: the hands' cost" % what)
@@ -167,7 +196,7 @@ func test_a_seats_rules_read_from_a_snapshot_follow_its_bonus() -> void:
 	var sim := SimFixtures.bonus_sim(bonus_rules, 2)
 	var rules := sim.config.rules
 	var layout := sim.config.ship
-	sim.state.seats[1].bonus = 1
+	sim.state.seats[1].bonuses = PackedInt32Array([1])
 	var snapshot := sim.snapshot()
 	var without := SeatRules.in_snapshot(snapshot, 0, layout, rules, bonus_rules)
 	var with := SeatRules.in_snapshot(snapshot, 1, layout, rules, bonus_rules)

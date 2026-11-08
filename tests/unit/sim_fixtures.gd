@@ -425,7 +425,7 @@ static func kind_sim(
 	var kinds: Array[BonusKind] = [kind]
 	var made := bonus_sim(bonus_rules(600.0, 45.0, 0.0, 2, kinds), seats, layout, sinking)
 	if taken:
-		made.state.seats[0].bonus = 0
+		made.state.seats[0].bonuses = PackedInt32Array([0])
 	return made
 
 

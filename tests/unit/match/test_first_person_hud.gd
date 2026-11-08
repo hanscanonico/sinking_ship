@@ -329,26 +329,32 @@ func test_the_grab_prompt_names_a_bonus_in_reach_first() -> void:
 	assert_eq(words.call(), "G — let go of the lifebuoy", "taken: as before")
 
 
-## The HUD names the bonus the seat has (#310), and shows an unspent spare meter on the
-## warmth bar: Double life's until it is spent, none for any other bonus or none at all.
-func test_the_hud_names_the_seat_s_bonus_and_its_spare_meter() -> void:
+## The HUD shows the bonuses the seat has (#310), a badge per kind with how many of it, and
+## a strip on the warmth bar for each unspent spare meter: one per Double life until it is
+## spent, none for any other bonus or none at all.
+func test_the_hud_shows_the_seat_s_bonuses_and_their_spare_meters() -> void:
 	var kinds: Array[BonusKind] = [SimFixtures.double_life(), SimFixtures.plain_kind()]
 	var bonus_rules := SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
 	var sim := SimFixtures.bonus_sim(bonus_rules)
-	var title := func() -> String:
-		var kind := FirstPersonHud.bonus_kind(sim.snapshot(), 0, bonus_rules)
-		return kind.title if kind != null else ""
-	var spare := func() -> bool: return FirstPersonHud.spare_meter(sim.snapshot(), 0, bonus_rules)
-	assert_eq(title.call(), "", "none to start with")
-	assert_false(spare.call())
-	sim.state.seats[0].bonus = 0
-	assert_eq(title.call(), "Double life")
-	assert_true(spare.call(), "a spare meter on the warmth bar")
-	sim.state.seats[0].bonus = 1
-	assert_eq(title.call(), "Plain")
-	assert_false(spare.call(), "no spare for a kind that gives none")
-	assert_null(FirstPersonHud.bonus_kind(sim.snapshot(), 0, null), "a match without bonuses")
-	assert_false(FirstPersonHud.spare_meter(sim.snapshot(), 0, null))
+	var held := func() -> Array:
+		var shown := []
+		for pair: Array in FirstPersonHud.held_bonuses(sim.snapshot(), 0, bonus_rules):
+			shown.append([pair[0].title, pair[1]])
+		return shown
+	var spares := func() -> int: return FirstPersonHud.spare_meters(sim.snapshot(), 0, bonus_rules)
+	assert_eq(held.call(), [], "none to start with")
+	assert_eq(spares.call(), 0)
+	sim.state.seats[0].bonuses = PackedInt32Array([0])
+	assert_eq(held.call(), [["Double life", 1]])
+	assert_eq(spares.call(), 1, "a spare meter on the warmth bar")
+	sim.state.seats[0].bonuses = PackedInt32Array([0, 0, 1])
+	assert_eq(held.call(), [["Double life", 2], ["Plain", 1]], "two Double lives and a Plain")
+	assert_eq(spares.call(), 2, "a spare meter for each Double life")
+	sim.state.seats[0].bonuses = PackedInt32Array([1])
+	assert_eq(held.call(), [["Plain", 1]])
+	assert_eq(spares.call(), 0, "no spare for a kind that gives none")
+	assert_eq(FirstPersonHud.held_bonuses(sim.snapshot(), 0, null), [], "without bonuses")
+	assert_eq(FirstPersonHud.spare_meters(sim.snapshot(), 0, null), 0)
 
 
 ## Holding a ring that keeps it afloat, the warmth readout says how much longer it lasts.
