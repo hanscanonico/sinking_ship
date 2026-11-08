@@ -2674,36 +2674,15 @@ metadata/ship = &"platform"
 metadata/name = &"D deck"
 
 [node name="Platform_d_31_0" type="CSGBox3D" parent="Platforms" unique_id=1850946336]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.84375, -2.7875, -6.59375)
-size = Vector3(2.9375, 0.2, 10.3125)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"D deck"
-
-[node name="Platform_d_31_1" type="CSGBox3D" parent="Platforms" unique_id=764024279]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.84375, -2.7875, 7.28125)
-size = Vector3(2.9375, 0.2, 8.9375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.84375, -2.7875, 0)
+size = Vector3(2.9375, 0.2, 23.5)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"D deck"
 
 [node name="Platform_d_32_0" type="CSGBox3D" parent="Platforms" unique_id=706192690]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.21875, -2.7875, -6.71875)
-size = Vector3(0.3125, 0.2, 10.5625)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"D deck"
-
-[node name="Platform_d_32_1" type="CSGBox3D" parent="Platforms" unique_id=1671609193]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.21875, -2.7875, 7.40625)
-size = Vector3(0.3125, 0.2, 9.1875)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"D deck"
-
-[node name="Platform_d_32_2" type="CSGBox3D" parent="Platforms" unique_id=1775890415]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -108.03125, -2.7875, 0)
-size = Vector3(4.0625, 0.2, 24)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -108.1875, -2.7875, 0)
+size = Vector3(4.375, 0.2, 24)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"D deck"
@@ -3586,13 +3565,6 @@ metadata/name = &"D deck"
 [node name="Platform_d_111_0" type="CSGBox3D" parent="Platforms" unique_id=21463942]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 127.95625, -1.35, 0)
 size = Vector3(0.2875, 0.2, 1.7)
-material = SubResource("StandardMaterial3D_b7bnx")
-metadata/ship = &"platform"
-metadata/name = &"D deck"
-
-[node name="Platform_d_stair_step_p" type="CSGBox3D" parent="Platforms" unique_id=656147957]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.6875, -2.2875, 0.6875)
-size = Vector3(3.25, 0.2, 4.25)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"D deck"
@@ -11203,6 +11175,12 @@ mesh = SubResource("PrismMesh_3exft")
 metadata/ship = &"ramp"
 
 [node name="Blockers" type="Node3D" parent="." unique_id=2032804002]
+
+[node name="Blocker_d_under_stair_p" type="CSGBox3D" parent="Blockers" unique_id=1198281493]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.637505, -2.2051, 0.6875)
+size = Vector3(3.15, 0.9648, 4.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
 
 [node name="Blocker_c_lining_0" type="CSGBox3D" parent="Blockers" unique_id=1835707925]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.262505, 1.65625, 11.900001)
@@ -34035,6 +34013,12 @@ size = Vector3(1.1575, 2.8125, 1.22)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
+[node name="Blocker_d_stair_nook_p" type="CSGBox3D" parent="Blockers" unique_id=688866669]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -109.89, -1.34375, 0.6875)
+size = Vector3(0.345, 2.6875, 4.25)
+material = SubResource("StandardMaterial3D_jiew5")
+metadata/ship = &"blocker"
+
 [node name="Blocker_d_riser_0" type="CSGBox3D" parent="Blockers" unique_id=1965222560]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 75.25, -2.21875, -12.95)
 size = Vector3(0.2, 1.9375, 0.1)
@@ -43872,24 +43856,6 @@ metadata/ship = &"blocker"
 [node name="Blocker_d_riser_p_forward_4" type="CSGBox3D" parent="Blockers" unique_id=709531289]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -113.3125, -2.4375, 11.5)
 size = Vector3(0.2, 0.5, 0.1)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_d_riser_stair_p_port" type="CSGBox3D" parent="Blockers" unique_id=1237545623]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.637505, -2.4375, -1.3375)
-size = Vector3(3.15, 0.5, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_d_riser_stair_p_starboard" type="CSGBox3D" parent="Blockers" unique_id=1375312302]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.637505, -2.4375, 2.7124999)
-size = Vector3(3.15, 0.5, 0.2)
-material = SubResource("StandardMaterial3D_jiew5")
-metadata/ship = &"blocker"
-
-[node name="Blocker_d_riser_stair_p_forward" type="CSGBox3D" parent="Blockers" unique_id=854189892]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -110.1625, -2.4375, 0.6875)
-size = Vector3(0.2, 0.5, 3.85)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -96008,8 +95974,15 @@ metadata/ship = &"room"
 metadata/name = &"third-class entrance"
 
 [node name="Room_d_37_third_class_entrance_d_deck_aft_of_o" type="CSGBox3D" parent="Rooms" unique_id=1924546381]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.5, -1.6375, 0.0625)
-size = Vector3(3.625, 2.1, 10.25)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.5, -1.6375, -3.25)
+size = Vector3(3.625, 2.1, 3.625)
+material = SubResource("StandardMaterial3D_wpyyv")
+metadata/ship = &"room"
+metadata/name = &"third-class entrance, D deck aft of O"
+
+[node name="Room_d_37_third_class_entrance_d_deck_aft_of_o_1" type="CSGBox3D" parent="Rooms" unique_id=243544266]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.5, -1.6375, 4)
+size = Vector3(3.625, 2.1, 2.375)
 material = SubResource("StandardMaterial3D_wpyyv")
 metadata/ship = &"room"
 metadata/name = &"third-class entrance, D deck aft of O"
@@ -106968,9 +106941,14 @@ metadata/ship = &"bonus_spot"
 metadata/room = &"Room_d_36_third_class_entrance"
 
 [node name="BonusSpot_d_37_third_class_entrance_d_deck_aft_of_o" type="Marker3D" parent="BonusSpots" unique_id=56854257]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.5, -2.6875, -1.8375)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.5, -2.6875, -3.25)
 metadata/ship = &"bonus_spot"
 metadata/room = &"Room_d_37_third_class_entrance_d_deck_aft_of_o"
+
+[node name="BonusSpot_d_37_third_class_entrance_d_deck_aft_of_o_1" type="Marker3D" parent="BonusSpots" unique_id=827173374]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -111.5, -2.6875, 4)
+metadata/ship = &"bonus_spot"
+metadata/room = &"Room_d_37_third_class_entrance_d_deck_aft_of_o_1"
 
 [node name="BonusSpot_d_38_third_class_matron_s_room" type="Marker3D" parent="BonusSpots" unique_id=726737911]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -108.6562, -2.6875, -1.375)
@@ -118647,7 +118625,7 @@ metadata/ship = &"cell"
 metadata/name = &"after_hold_aft_d"
 metadata/shape = 0.9662
 metadata/sideways = 0.25
-metadata/rooms = Array[StringName]([&"gentlemen\'s lavatory, D deck aft of O", &"gentlemen\'s lavatory, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"ladies\' lavatory, D deck aft of O", &"ladies\' lavatory, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"third-class entrance, D deck aft of O", &"third-class matron\'s room", &"third-class surgery", &"passage, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"bathroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"corridor, D deck aft of O", &"corridor, D deck aft of O"])
+metadata/rooms = Array[StringName]([&"gentlemen\'s lavatory, D deck aft of O", &"gentlemen\'s lavatory, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"ladies\' lavatory, D deck aft of O", &"ladies\' lavatory, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"third-class entrance, D deck aft of O", &"third-class entrance, D deck aft of O", &"third-class matron\'s room", &"third-class surgery", &"passage, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"bathroom, D deck aft of O", &"bathroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"bathroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"four-berth second-class stateroom, D deck aft of O", &"two-berth second-class stateroom, D deck aft of O", &"passage, D deck aft of O", &"corridor, D deck aft of O", &"corridor, D deck aft of O"])
 metadata/leak_area = 0.00077
 
 [node name="Cell_after_peak_tank" type="CSGBox3D" parent="Structure/Cells" unique_id=92176695]

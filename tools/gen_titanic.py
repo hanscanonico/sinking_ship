@@ -1281,10 +1281,11 @@ for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OU
 # Her third-class stairway up to C deck rises forward from her deck at P's top over her
 # step down to the deck aft of O (D_STEP_P). A flight stands as a solid wedge on the deck
 # at its foot (ShipRamp): over the lower deck forward of the step it left a slot under its
-# run 0.5 m high, too low to crawl into (the layout lint). Her deck at P's top runs on
-# under its run instead, to its head (STAIR_STEP_P, laid with D deck), the deck aft of O
-# taken up under it, and a riser up to it from that deck along its three sides there, as
-# along the step's line (laid with the step's risers).
+# run 0.5 m high, too low to crawl into (the layout lint). A solid carries the wedge down
+# to that deck under its run (STAIR_STEP_P), from the step's riser to its head, its top the
+# flight's treads at the riser's face: under them all along, and no top a body steps onto
+# from the deck aft (laid level with that deck, the walk graph read a doorway onto it). No
+# room holds the deck under it (UNROOMED_D): her entrance there is laid round it.
 UNDER_STAIR_P = [r for r in ramp_geo if r[4] == 0 and r[0] < D_STEP_P < r[1]
                  and abs(r[5] - d_at(D_STEP_P - 0.01)) < 1e-6 and r[6] > r[5]]
 STAIR_STEP_P = None
@@ -1293,7 +1294,11 @@ if UNDER_STAIR_P:
                     max(r[3] for r in UNDER_STAIR_P))
     assert (abs(sum((r[3] - r[2]) for r in UNDER_STAIR_P) - (STAIR_STEP_P[3] - STAIR_STEP_P[2])) < 1e-6
             and len({r[1] for r in UNDER_STAIR_P}) == 1), "the stairway's lanes side by side"
-    holes["d"].append(STAIR_STEP_P)
+    _r = UNDER_STAIR_P[0]
+    assert all(abs(r[0] - _r[0]) < 1e-6 and abs(r[6] - _r[6]) < 1e-6 for r in UNDER_STAIR_P), "the lanes level"
+    _top = _r[5] + (_r[6] - _r[5]) * (STAIR_STEP_P[0] + T - _r[0]) / (_r[1] - _r[0])
+    assert _top > d_at(D_STEP_P - 0.01) + rule("step_height"), "a top a body steps onto"
+    box("d_under_stair_p", STAIR_STEP_P[0] + T, *STAIR_STEP_P[1:], d_at(D_STEP_P + 0.01), _top)
 
 HOLD3 = (BX["D"], BX["C"])
 SALOON_Z = 13.0  # the half breadth of the stokeholds' F deck (est.)
@@ -1553,8 +1558,6 @@ D_ENDS = (min(r[1] for r in D_OUTLINE.rooms) - T, max(r[2] for r in D_OUTLINE.ro
 D_PIECES = sheer_strips(*D_ENDS, d_at, D_STEPS)
 d_deck = [i for k, (x0, x1, z0, z1) in enumerate(D_PIECES)
           for i in deck("d_%d" % k, "D deck", x0, x1, z0, z1, d_at((x0 + x1) * 0.5), holes["d"])]
-if STAIR_STEP_P:
-    d_deck.append(platform("d_stair_step_p", "D deck", *STAIR_STEP_P, d_at(D_STEP_P - 0.01)))
 # D deck's cells part where a bulkhead's measured top stands over her flat D deck — P,
 # O, N and M aft, B and A forward: her sheer lifts their tops over it (BULKHEADS; her
 # sisters' raised ones part theirs too, their rooms hers) — and at her bridge deck's
@@ -2062,8 +2065,22 @@ DOOR_LEAST = 1.0   # the layout lint's least door
 
 NO_ROOM = []  # (deck, axis, at, along, room, wall from, wall to): a door its wall has no room for
 
+def round_room(area, unroomed):
+    """Room area (x0, x1, z0, z1) laid round each of unroomed inside it: forward of it and aft
+    of it across the room, and either side of it along it — the pieces it leaves, in one
+    room's name; area itself where none is inside."""
+    x0, x1, z0, z1 = area
+    inside = [u for u in unroomed
+              if x0 - 1e-6 <= u[0] and u[1] <= x1 + 1e-6 and z0 - 1e-6 <= u[2] and u[3] <= z1 + 1e-6]
+    if not inside:
+        return [area]
+    assert len(inside) == 1, ("a room round more than one solid", area, inside)
+    u0, u1, w0, w1 = inside[0]
+    pieces = [(x0, u0, z0, z1), (u0, u1, z0, w0), (u0, u1, w1, z1), (u1, x1, z0, z1)]
+    return [p for p in pieces if p[1] - p[0] > 1e-6 and p[3] - p[2] > 1e-6]
+
 def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None, main=None, water=True, wall_top=None,
-               sill=None):
+               sill=None, unroomed=()):
     """A traced deck's rooms, walls, doors and solid blocks, from floor to ceiling: a
     height, or the height of the deck over ship x, ceiling(x), which changes only at
     breaks — a wall along her under two decks is laid in a piece under each. Given
@@ -2071,7 +2088,9 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
     they stand (named_pieces). floor may be a height over ship x too; water false, its doors
     are the ship's to open to her water (none of the doorways'). wall_top, a wall along her
     at z over ship x its top, where it isn't the deck's over it. sill, a wall across her at x
-    its doorways' floor, where it isn't the wall's (on a step, the higher deck's)."""
+    its doorways' floor, where it isn't the wall's (on a step, the higher deck's). unroomed,
+    (x0, x1, z0, z1) of its deck no room holds, a solid's on it: a room over one is laid
+    round it (round_room), its doors where the plate's room has them."""
     over = ceiling if callable(ceiling) else (lambda _x: ceiling)
     level = floor if callable(floor) else (lambda _x: floor)
 
@@ -2121,7 +2140,9 @@ def plan_layer(prefix, plan, floor, ceiling, breaks=(), parted_at=(), place=None
     wells = [r for r in rooms if any(r[1] < x < r[2] and r[3] < z < r[4] for x, z in plan.not_rooms)]
     rooms = [r for r in rooms if r not in wells]
     for k, (name, x0, x1, z0, z1) in enumerate(rooms):
-        room("%s_%d_%s" % (prefix, k, slug(name)), name, x0, x1, z0, z1, level((x0 + x1) * 0.5))
+        for j, (p0, p1, q0, q1) in enumerate(round_room((x0, x1, z0, z1), unroomed)):
+            room("%s_%d_%s%s" % (prefix, k, slug(name), "_%d" % j if j else ""), name, p0, p1, q0, q1,
+                 level((p0 + p1) * 0.5))
     for k, (axis, at, a, b, kind, doors) in enumerate(plan.walls):
         floor = level(at if axis == 0 else (a + b) * 0.5)
         at_now[0] = at
@@ -2516,8 +2537,22 @@ def d_place(x, _z=0.0):
 
 plan_layer("c", C_PLAN, c_at, c_over, (POOP_TO, C_TAIL, B_RUN[1], FCSL_FROM, FC_RAMP[1]),
            parted_at=(POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM, FCSL_STEP), place=c_place, main=("C deck",))
+# No room holds her deck under the third-class stairway's run over the step at P, where the
+# solid carrying its wedge down stands (STAIR_STEP_P), nor on from its head to her entrance's
+# forward wall where that is less than a body's breadth (STAIR_NOOK_P), a strip no body
+# stands in, filled from the deck to C deck: her entrance is laid round them.
+ENTRANCE = next(r for r in D_PLAN.rooms if r[0] == "third-class entrance")
+STAIR_NOOK_P = None
+if STAIR_STEP_P and ENTRANCE[2] - STAIR_STEP_P[1] < 2 * rule("body_radius"):
+    STAIR_NOOK_P = (STAIR_STEP_P[1], ENTRANCE[2], STAIR_STEP_P[2], STAIR_STEP_P[3])
+UNROOMED_D = [(STAIR_STEP_P[0], (STAIR_NOOK_P or STAIR_STEP_P)[1], *STAIR_STEP_P[2:])] if STAIR_STEP_P else []
 plan_layer("d", D_PLAN, d_at, lambda x: c_at(x, True), [at for at, _h in D_STEPS + C_SHEER], parted_at=D_CUTS,
-           place=d_place, main=("D deck",), sill=lambda x: d_at(x, True))
+           place=d_place, main=("D deck",), sill=lambda x: d_at(x, True), unroomed=UNROOMED_D)
+if STAIR_NOOK_P:
+    _x0, _x1, _z0, _z1 = STAIR_NOOK_P
+    _face = min(b[0] for b in block_geo if b[0] < _x1 < b[1] and b[2] <= _z0 and _z1 <= b[3]
+                and b[4] < d_at(_x1) + rule("step_height") and b[5] >= c_at(_x1, True) - 1e-6)
+    box("d_stair_nook_p", _x0, _face, _z0, _z1, d_at(_x0 + 0.01), c_at(_x0 + 0.01, True))
 # Her stepped D deck's riser at her bridge deck's front, across her where the plate's wall on
 # that line leaves a gap (the trunk's forward of it): steel from the deck aft up to the one
 # forward, so nobody aft looks into the space under the deck forward.
@@ -2607,7 +2642,6 @@ def step_flight(fid, line, z0, z1):
 O_LINE = round(BX["O"] * 128) / 128
 for k, (_n, _x0, _x1, z0, z1) in enumerate(r for r in D_PLAN.rooms if r[0] == "corridor, D deck" and r[1] < O_LINE < r[2]):
     step_flight("d_step_o_%d" % k, O_LINE, z0, z1)
-ENTRANCE = next(r for r in D_PLAN.rooms if r[0] == "third-class entrance")
 WELL = [s for s in stairs if s[1] < D_STEP_P < s[2] and ENTRANCE[3] < s[3] and s[4] < ENTRANCE[4]
         and s[5] >= d_at(D_STEP_P + 0.01) - 1e-6]
 step_flight("d_step_p_port", D_STEP_P, ENTRANCE[3], min(s[3] for s in WELL))
@@ -2636,14 +2670,6 @@ for line, high in D_SHEER_AFT:
                     a, b, low, top)
                 k += 1
         at_z = max(at_z, w1)
-# And round her deck at P's top under the third-class stairway's run (STAIR_STEP_P), its
-# three sides there over the deck aft of O's hole, each inside the run.
-if STAIR_STEP_P:
-    _x0, _x1, _z0, _z1 = STAIR_STEP_P
-    _low, _high = d_at(D_STEP_P + 0.01), d_at(D_STEP_P - 0.01)
-    box("d_riser_stair_p_port", _x0 + T, _x1, _z0, _z0 + 2 * T, _low, _high)
-    box("d_riser_stair_p_starboard", _x0 + T, _x1, _z1 - 2 * T, _z1, _low, _high)
-    box("d_riser_stair_p_forward", _x1 - 2 * T, _x1, _z0 + 2 * T, _z1 - 2 * T, _low, _high)
 plan_layer("f", F_PLAN, F_DECK, E_DECK, parted_at=sorted(EF_CUTS + TRUNK_CUTS), place=ef_place("F"))
 plan_layer("g", G_PLAN, G_DECK, F_DECK, parted_at=sorted(G_CUTS + TRUNK_CUTS), place=ef_place("G", G_CUTS))
 # The engineers' stores aft of K, their forward ends on K's line: K's plating there from G

@@ -6,9 +6,9 @@ extends GutTest
 ## aft of N at N's, aft of O at O's, and aft of P at P's. Her deck at P's top runs on
 ## forward of P through her third-class entrance to the third-class W.C.s' forward face
 ## (tools/gen_titanic.py's D_STEP_P), where her third-class stairway up rises from it, so
-## each bulkhead stands up to the deck aft of it, and P to the deck either side of it. Under
-## that stairway's run forward of the step, her deck stands on at P's top: a flight stands
-## as a solid wedge on its foot's deck.
+## each bulkhead stands up to the deck aft of it, and P to the deck either side of it. A
+## flight stands as a solid wedge on its foot's deck: under that stairway's run forward of
+## the step a solid carries it down to the deck aft of O.
 
 ## The decks' grain, in metres.
 const GRAIN := 1.0 / 16.0
@@ -96,8 +96,8 @@ func test_d_deck_aft_of_each_bulkhead_stands_at_its_top() -> void:
 	assert_eq(_d_deck(p, STEP_P), [_grain_top("p")], "from that step to P, at P's top")
 	assert_eq(
 		_d_deck(STEP_P, o, true),
-		[_grain_top("p")],
-		"and on under the third-class stairway's run over the step, the flight's foot's deck"
+		[_grain_top("o")],
+		"and on under the third-class stairway's run over the step"
 	)
 	assert_eq(_d_deck(stern, p), [_grain_top("p")], "aft of P, at P's top")
 	assert_eq(_room_floors(o, n), [_grain_top("n")], "her rooms between N and O stand on it")
@@ -114,3 +114,37 @@ func test_each_bulkhead_stands_up_to_the_deck_aft_of_it() -> void:
 	assert_almost_eq(_grain_top("n"), -2.9375, SLACK, "aft of N, 0.25 m over her flat D deck")
 	assert_almost_eq(_grain_top("o"), -2.6875, SLACK, "aft of O, 0.25 m over that")
 	assert_almost_eq(_grain_top("p"), -2.1875, SLACK, "aft of P, 0.5 m over that")
+
+
+func test_a_solid_carries_her_third_class_stairway_down_over_the_step() -> void:
+	# Its flights rise from the deck at P's top over the step, wedges on that deck: forward of
+	# the step's riser, over the deck aft of O, a solid under each all along its run, from
+	# that deck up past a step over the deck aft and under its treads — no slot under them a
+	# body lies in, and no top level with the deck aft a body steps onto.
+	var rules := SimFixtures.rules()
+	var high := _grain_top("p")
+	var lanes: Array[ShipRamp] = []
+	for ramp: ShipRamp in _layout.ramps:
+		var area := ramp.area
+		if area.position.x < STEP_P and STEP_P < area.end.x and absf(ramp.base() - high) < SLACK:
+			lanes.append(ramp)
+	assert_gt(lanes.size(), 0, "her third-class stairway rises over the step")
+	for ramp: ShipRamp in lanes:
+		var area := ramp.area
+		var held := false
+		for blocker: ShipBlocker in _layout.blockers:
+			var box := blocker.area
+			var from := box.position.x
+			var over := (
+				from > STEP_P
+				and from - STEP_P <= 0.1 + SLACK
+				and box.end.x >= area.end.x - SLACK
+				and box.position.y <= area.position.y + SLACK
+				and box.end.y >= area.end.y - SLACK
+			)
+			if over and absf(blocker.bottom - _grain_top("o")) < SLACK:
+				held = (
+					blocker.top > high + rules.step_height
+					and blocker.top <= ramp.height_at(from, area.get_center().y) + SLACK
+				)
+		assert_true(held, "a solid under the flight at %s" % area)
