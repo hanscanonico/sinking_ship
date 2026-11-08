@@ -339,7 +339,7 @@ end_height = -8.5625
 
 [sub_resource type="Resource" id="Ramp_e_ladder_7"]
 script = ExtResource("2_ramp")
-area = Rect2(-21.5, -7, 3.125, 0.75)
+area = Rect2(-21.5, -7, 3.125, 0.8125)
 start_height = -5.9375
 end_height = -8.5625
 
@@ -3348,7 +3348,7 @@ height = -5.9375
 [sub_resource type="Resource" id="Platform_e_38_2"]
 script = ExtResource("1_plat")
 name = &"E deck"
-area = Rect2(-21.5, -6.25, 2.6875, 20.2)
+area = Rect2(-21.5, -6.1875, 2.6875, 20.1375)
 height = -5.9375
 
 [sub_resource type="Resource" id="Platform_e_38_3"]
@@ -50968,7 +50968,7 @@ top = -3.1875
 
 [sub_resource type="Resource" id="Blocker_e_well_3_1_0"]
 script = ExtResource("3_block")
-area = Rect2(-21.47, -6.25, 2.6275, 0.47)
+area = Rect2(-21.47, -6.1875, 2.6275, 0.4075)
 bottom = -5.9375
 top = -3.1875
 
@@ -87496,8 +87496,8 @@ script = ExtResource("13_opening")
 name = &"stair_e_ladder_7"
 kind = 4
 joins = Array[StringName]([&"boiler_room_1_f", &"boiler_room_1_e"])
-centre = Vector3(-20.1562, -5.9375, -6.625)
-size = Vector3(2.6875, 0, 0.75)
+centre = Vector3(-20.1562, -5.9375, -6.5938)
+size = Vector3(2.6875, 0, 0.8125)
 
 [sub_resource type="Resource" id="Opening_stair_e_third_class_ladderway_8"]
 script = ExtResource("13_opening")

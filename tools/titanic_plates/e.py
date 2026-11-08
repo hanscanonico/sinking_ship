@@ -1424,8 +1424,11 @@ STAIR_MOVES = [
     # The ladder down by J's line 3/8 m forward, a body's lead between its head and the door
     # aft of it, its foot run on under the passage forward of its well (HOLE_ENDS): the floor
     # before its head was 0.44 m deep, too shallow for the walk graph to stand a body on (its
-    # ways a body's lead past the head and through the door), no room's (#549).
-    (("ladder", -21.875, -7.3125), (-21.5, -18.375, -7.3125, -6.25)),
+    # ways a body's lead past the head and through the door), no room's (#549). And inboard:
+    # moved forward, the bathroom's aft wall came within a body's lead of its foot and cut its
+    # port side to 0.75 m wide, narrower than a body (clear_sides); here 0.81 m, its starboard
+    # side clear of the door's jamb a body's lead before its head (the layout lint).
+    (("ladder", -21.875, -7.3125), (-21.5, -18.375, -7.0, -6.1875)),
 ]
 # Flights run on under a room's floor on this deck, cut only back to that room's edge, the
 # flight a body's headroom under it there (deck.py, #531): the ladder by N, its foot under

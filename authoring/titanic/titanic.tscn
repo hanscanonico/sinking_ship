@@ -271,10 +271,10 @@ material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 0.0
 size = Vector3(3.0625, 2.625, 0.75)
 
-[sub_resource type="PrismMesh" id="PrismMesh_52b13"]
+[sub_resource type="PrismMesh" id="PrismMesh_7287a"]
 material = SubResource("StandardMaterial3D_swvke")
 left_to_right = 0.0
-size = Vector3(3.125, 2.625, 0.75)
+size = Vector3(3.125, 2.625, 0.8125)
 
 [sub_resource type="PrismMesh" id="PrismMesh_7a7f3"]
 material = SubResource("StandardMaterial3D_swvke")
@@ -4035,8 +4035,8 @@ metadata/ship = &"platform"
 metadata/name = &"E deck"
 
 [node name="Platform_e_38_2" type="CSGBox3D" parent="Platforms" unique_id=1831953266]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.15625, -6.0375, 3.8500004)
-size = Vector3(2.6875, 0.2, 20.2)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.15625, -6.0375, 3.8812504)
+size = Vector3(2.6875, 0.2, 20.1375)
 material = SubResource("StandardMaterial3D_b7bnx")
 metadata/ship = &"platform"
 metadata/name = &"E deck"
@@ -10714,8 +10714,8 @@ mesh = SubResource("PrismMesh_cmvkf")
 metadata/ship = &"ramp"
 
 [node name="Ramp_e_ladder_7" type="MeshInstance3D" parent="Ramps" unique_id=1091212792]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.9375, -7.25, -6.625)
-mesh = SubResource("PrismMesh_52b13")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -19.9375, -7.25, -6.59375)
+mesh = SubResource("PrismMesh_7287a")
 metadata/ship = &"ramp"
 
 [node name="Ramp_e_third_class_ladderway_8" type="MeshInstance3D" parent="Ramps" unique_id=1426348225]
@@ -43680,8 +43680,8 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_e_well_3_1_0" type="CSGBox3D" parent="Blockers" unique_id=1112961932]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.15625, -4.5625, -6.015)
-size = Vector3(2.6275, 2.75, 0.47)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.15625, -4.5625, -5.98375)
+size = Vector3(2.6275, 2.75, 0.4075)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
@@ -121102,8 +121102,8 @@ metadata/kind = "STAIRWELL"
 metadata/joins = Array[StringName]([&"hold_2_tween", &"d_deck_forward"])
 
 [node name="Opening_stair_e_ladder_7" type="CSGBox3D" parent="Structure/Openings" unique_id=1433458844]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.1562, -5.9375, -6.625)
-size = Vector3(2.6875, 0, 0.75)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -20.1562, -5.9375, -6.5938)
+size = Vector3(2.6875, 0, 0.8125)
 material = SubResource("StandardMaterial3D_nubv8")
 metadata/ship = &"opening"
 metadata/name = &"stair_e_ladder_7"
