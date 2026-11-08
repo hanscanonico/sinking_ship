@@ -346,9 +346,10 @@ MADE_SOLID = [(-68.0, -10.95)]
 # The refrigerated hold's door into No. 5 hatch's piece forward of G deck's hold ladder's
 # foot: the plate's opened onto the ladder's side (#514).
 DOOR_MOVES = [((-96.6875, -2.75), (-94.0, -2.75))]
-# The CO2 evaporator room's door out onto the landing at its ladder's head, its whole width
-# over the landing: half over the ladder's well, a body's way through it was 1/8 m (#549).
-DOOR_MOVES += [((-42.25, -9.0), (-41.6875, -9.0))]
+# The CO2 evaporator room's door out onto the landing at its ladder's head, in the landing's
+# middle, its gap a hair past the landing's ends (gen_titanic.py): half over the ladder's
+# well, a body's way through it was 1/8 m (#549).
+DOOR_MOVES += [((-42.25, -9.0), (-41.78125, -9.0))]
 # The trunk the after hold's forward end only touches: walled (#514).
 WALLED_SOLIDS = [(-118.2, 0.0, "fore")]
 # Boiler room 6's forward cross bunker's forward face, bulkhead D, along the baggage room and
