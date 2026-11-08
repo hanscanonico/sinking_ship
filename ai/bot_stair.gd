@@ -7,6 +7,11 @@ extends RefCounted
 ## the Surfaces and the walk graph of the floors it stands on; nothing here rolls the
 ## bot's stream.
 
+## How long a walk short of a stair's end a bot turning onto it follows its route from
+## where its own walks have stepped it (nears): a second's, room enough to turn and the
+## lag of its view several times over.
+const TURNING_S := 1.0
+
 var _surfaces: Surfaces
 var _walk_graph: WalkGraph
 var _rules: BrawlRules
@@ -40,6 +45,31 @@ func heading(leg: WalkGraph.Portal, seen_surface: int, at: Vector3) -> Vector2:
 	if ahead >= -radius and onto.length() <= leg.half_width + radius * 2.0:
 		return onto.normalized()
 	return Vector2.ZERO
+
+
+## Whether [param at] stands within TURNING_S's walk of the near end of [param leg]'s
+## stair, where a bot turns onto it: there its view, a lag behind, still shows the walk
+## it turned from, and it follows the route from where its own walks have stepped it
+## (BotReckoning.by_steps) — past its railing's end, short of the berth that stops it.
+func nears(leg: WalkGraph.Portal, at: Vector3) -> bool:
+	if leg.ramp == WalkGraph.NONE:
+		return false
+	var off := Vector2(at.x - leg.entry.x, at.z - leg.entry.z).length()
+	return off <= _rules.walk_speed * TURNING_S
+
+
+## Whether [param at] stands at the head of [param leg]'s stair — or its foot, the way the
+## leg runs — within its width and no more than a body's width short of its end: where the
+## walk graph reads the zone the leg leaves from (WalkGraph._end_zone). The floor there
+## may be laid in another room, or between rooms, but a body there is at the stair, and
+## turns onto it.
+func at_head(leg: WalkGraph.Portal, at: Vector3) -> bool:
+	if leg.ramp == WalkGraph.NONE:
+		return false
+	var offset := Vector2(at.x - leg.entry.x, at.z - leg.entry.z)
+	var ahead := offset.dot(leg.along)
+	var lead := _rules.body_radius * 2.0
+	return ahead <= 0.0 and ahead >= -lead and absf(offset.cross(leg.along)) <= leg.half_width
 
 
 ## The way along the stair the bot stands on — seen there, [param my_surface], and still
