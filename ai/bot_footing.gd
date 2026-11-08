@@ -50,6 +50,19 @@ func slides(pose: ShipPose) -> bool:
 	return pose.slope_deg() > seat_rules.grip_angle_deg
 
 
+## Where to walk to reach [param target_pos]: straight at it, except past the
+## grip angle, where the bot first gets uphill of it so that its shove goes
+## downhill.
+func approach(my_pos: Vector3, target_pos: Vector3, pose: ShipPose) -> Vector3:
+	if not slides(pose):
+		return target_pos
+	var gravity := pose.ship_gravity(_rules.gravity)
+	var uphill := -Vector3(gravity.x, 0.0, gravity.z).normalized()
+	if (my_pos - target_pos).dot(uphill) >= 0.0:
+		return target_pos
+	return target_pos + uphill * (_rules.body_radius * 2.0 + _rules.shove_reach)
+
+
 ## The probe direction [param index], of PROBES.
 static func probe(index: int) -> Vector2:
 	return _probes[index]
