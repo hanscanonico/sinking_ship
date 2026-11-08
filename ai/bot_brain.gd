@@ -186,6 +186,9 @@ var _reckoning: BotReckoning
 ## grip angle by its seen velocity too — the same place on a deck that grips.
 var _edge_from := Vector3.ZERO
 var _edge_also := Vector3.ZERO
+## Where it follows a route nearing a stair from this tick: its walks stepped as its feet
+## take them, and past the grip angle where its seen velocity carries it.
+var _stepped := Vector3.ZERO
 ## How hard it fights, as the last think found the match: how much it presses and its
 ## spar margin.
 var _pacing: BotPacing
@@ -245,12 +248,15 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	_footing.seat_rules = _props.rules(seen)
 	# As a player sees them, for the footing's probes too: broken railings, crates.
 	_floors.honour(_up, pose, seen)
-	# The route is followed from where its seen velocity carries it; the edges are kept
-	# from where its own walks have, which a turn toward one since cannot hide — and,
-	# past the grip angle, where it slides wherever it walks, from both.
+	# The route is followed from where its seen velocity carries it — nearing a stair, from
+	# where its walks have stepped it; the edges are kept from where its own walks have,
+	# which a turn toward one since cannot hide — and, past the grip angle, where it
+	# slides wherever it walks, from both.
 	var now_pos := _reckoning.reckon(me)
+	var slides := _footing.slides(pose)
 	_edge_from = _reckoning.by_walks(me, seen["tick"], now_pos)
-	_edge_also = now_pos if _footing.slides(pose) else _edge_from
+	_edge_also = now_pos if slides else _edge_from
+	_stepped = now_pos if slides else _reckoning.by_steps(me, seen["tick"], now_pos)
 	if me["state"] == PlayerState.Body.SWIMMING:
 		intent = Intent.SWIM_OUT
 		return _swim_out(me, now_pos, pose, tick)
@@ -767,8 +773,12 @@ func _ride(
 ## is no portal left to go through.
 func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> bool:
 	# The route is followed from where the bot's seen velocity has carried it: a
-	# doorway is narrower than what the reaction lag would overshoot. Off the foot of a
-	# stair there, it is off the stair, whatever the view still says.
+	# doorway is narrower than what the reaction lag would overshoot. Nearing a stair, from
+	# where its walks have stepped it (BotStair.nears): turning at the head, it is where it
+	# turned to, not where the walk it turned from would have taken it (#543). Off the
+	# foot of a stair there, it is off the stair, whatever the view still says.
+	if not _legs.is_empty() and _stair.nears(_legs[0], _stepped):
+		now_pos = _stepped
 	var my_surface: int = me["surface"]
 	var under := _surfaces.under(now_pos, _rules.step_height)
 	if under != Surfaces.NONE:
@@ -1033,7 +1043,7 @@ func _waypoint(
 		var on_its_ramp := (
 			leg.ramp != WalkGraph.NONE and my_surface == _surfaces.ramp_surface(leg.ramp)
 		)
-		if on_its_ramp or my_zone == leg.from_zone:
+		if on_its_ramp or my_zone == leg.from_zone or _stair.at_head(leg, my_pos):
 			break
 		if my_zone == leg.to_zone:
 			_legs.pop_front()

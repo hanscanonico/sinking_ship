@@ -3,8 +3,8 @@ extends RefCounted
 ## Where a bot stands now (D10): its view shows it as it was reaction_ticks ago, so it
 ## reckons on from there — by the velocity it was seen at, or, on its feet and free to
 ## walk, by the walks it has sent since, which it knows: what it pressed and has yet to see
-## itself do. Asked of the footing and the Surfaces of the floors it stands on (stand_on);
-## nothing here rolls the bot's stream.
+## itself do, summed or stepped as its feet take them. Asked of the footing and the
+## Surfaces of the floors it stands on (stand_on); nothing here rolls the bot's stream.
 
 var _rules: BrawlRules
 var _reaction_ticks: int
@@ -54,16 +54,58 @@ func reckon(me: Dictionary) -> Vector3:
 ## it knows what it pressed, so a turn since is no surprise to it. Otherwise where
 ## [param reckoned] by its seen velocity.
 func by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
-	if me["state"] != PlayerState.Body.GROUNDED or me["stagger"] != 0 or me["hitstop"] != 0:
+	if not _walking(me):
 		return reckoned
-	var seen_pos: Vector3 = me["pos"]
 	var walked := Vector2.ZERO
 	for index in _sent_ticks.size():
 		if _sent_ticks[index] >= seen_tick:
 			walked += _sent_moves[index]
-	var height := _rules.height_at(_surfaces, seen_pos)
-	var pace := _rules.walk_speed if height >= _rules.body_height else _rules.crawl_speed
-	walked *= pace * Ticks.SECONDS_PER_TICK
+	var height := _rules.height_at(_surfaces, me["pos"])
+	walked *= _pace(height) * Ticks.SECONDS_PER_TICK
+	return _carried(me, walked, height, reckoned)
+
+
+## As by_walks, but stepped as its feet take the walks, tick by tick: from the velocity it
+## was seen at, toward each walk by ground_accel, or slowing by ground_friction with none
+## pressed — a turn or a stop since is no surprise to it, nor the ticks its feet take to
+## make it. Otherwise, or where a wall or a railing stands across them, where
+## [param reckoned] by its seen velocity.
+func by_steps(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
+	if not _walking(me):
+		return reckoned
+	var seen_vel: Vector3 = me["vel"]
+	var height := _rules.height_at(_surfaces, me["pos"])
+	var pace := _pace(height)
+	var dt := Ticks.SECONDS_PER_TICK
+	var vel := Vector2(seen_vel.x, seen_vel.z)
+	var walked := Vector2.ZERO
+	for tick in range(seen_tick, seen_tick + _sent_ticks.size()):
+		var index := tick % _sent_ticks.size()
+		if _sent_ticks[index] != tick:
+			break
+		var wish := _sent_moves[index] * pace
+		var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
+		vel = vel.move_toward(wish, rate * dt)
+		walked += vel * dt
+	return _carried(me, walked, height, reckoned)
+
+
+## Whether [param me] stands on its feet, free to walk: neither in the air, the sea nor a
+## stagger or a hitstop.
+func _walking(me: Dictionary) -> bool:
+	return me["state"] == PlayerState.Body.GROUNDED and me["stagger"] == 0 and me["hitstop"] == 0
+
+
+## How fast a body walks where its headroom is [param height]: crawling under a low one.
+func _pace(height: float) -> float:
+	return _rules.walk_speed if height >= _rules.body_height else _rules.crawl_speed
+
+
+## Where [param walked] (x/z) carries [param me] from where it was seen, its feet risen or
+## sunk with the walk — unless a wall or a railing stands across it for a body of
+## [param height]'s headroom: then where [param reckoned].
+func _carried(me: Dictionary, walked: Vector2, height: float, reckoned: Vector3) -> Vector3:
+	var seen_pos: Vector3 = me["pos"]
 	var walked_to := seen_pos + Vector3(walked.x, 0.0, walked.y)
 	if (
 		_surfaces.blocked(seen_pos, walked_to, height, _rules.step_height)
