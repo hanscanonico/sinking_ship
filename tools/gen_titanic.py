@@ -1278,6 +1278,27 @@ for plan in (BOAT_PLAN, A_PLAN, B_OUTLINE, C_OUTLINE, D_OUTLINE, E_OUTLINE, F_OU
         if plan is G_OUTLINE and name != "hold ladder":
             G_WAITED.append(into[-1])
 
+# Her third-class stairway up to C deck rises forward from her deck at P's top over her
+# step down to the deck aft of O (D_STEP_P). A flight stands as a solid wedge on the deck
+# at its foot (ShipRamp): over the lower deck forward of the step it left a slot under its
+# run 0.5 m high, too low to crawl into (the layout lint). That deck is taken up under its
+# run, and the wedge is carried down to it on a solid the run's length from the step's
+# riser, its top the flight's treads at the riser's face: under them all along, and no top
+# a body steps onto from the deck aft (laid flush with it, the walk graph read a doorway
+# onto it, over the hole).
+UNDER_STAIR_P = [r for r in ramp_geo if r[4] == 0 and r[0] < D_STEP_P < r[1]
+                 and abs(r[5] - d_at(D_STEP_P - 0.01)) < 1e-6 and r[6] > r[5]]
+if UNDER_STAIR_P:
+    _u = (D_STEP_P, max(r[1] for r in UNDER_STAIR_P), min(r[2] for r in UNDER_STAIR_P),
+          max(r[3] for r in UNDER_STAIR_P))
+    assert abs(sum((r[3] - r[2]) for r in UNDER_STAIR_P) - (_u[3] - _u[2])) < 1e-6, "the lanes side by side"
+    _r = UNDER_STAIR_P[0]
+    _top = _r[5] + (_r[6] - _r[5]) * (_u[0] + T - _r[0]) / (_r[1] - _r[0])
+    assert all(abs(r[0] - _r[0]) < 1e-6 and abs(r[6] - _r[6]) < 1e-6 for r in UNDER_STAIR_P), "the lanes level"
+    assert _top > d_at(D_STEP_P - 0.01) + rule("step_height"), "a top a body steps onto"
+    holes["d"].append(_u)
+    box("d_under_stair_p", _u[0] + T, _u[1], _u[2], _u[3], d_at(D_STEP_P + 0.01), _top)
+
 HOLD3 = (BX["D"], BX["C"])
 SALOON_Z = 13.0  # the half breadth of the stokeholds' F deck (est.)
 # A flight up to F deck from her estimated spaces under it: the deck is cut only over the
@@ -2553,6 +2574,16 @@ def step_flight(fid, line, z0, z1):
     low, high = d_at(line + 0.01), d_at(line - 0.01)
     run = math.ceil((high - low) / RUN_ON * 16) / 16
     _name, _x0, _x1, z0, z1, *_rest = clear_sides(("step", line, line + run, z0, z1, "aft", "d", "d"))
+    # A wall from E deck that ends on the line, standing up to the deck aft, stands its end
+    # more than a step tall over the deck forward across the flight's head, a doorway onto
+    # the flight either side of it: the flight is held to the side of it a doorway is the
+    # layout lint's least (DOOR_LEAST) wide on.
+    for b in block_geo:
+        if (abs(b[1] - line) < 1e-6 and b[4] < low - 1e-6 and b[5] >= high - 1e-6 and high - low > rule("step_height")
+                and z0 < b[2] and b[3] < z1):
+            port, starboard = b[2] - z0 >= DOOR_LEAST, z1 - b[3] >= DOOR_LEAST
+            assert port or starboard, ("a step's flight no doorway wide either side of a wall", fid)
+            z0, z1 = (z0, z1) if port and starboard else (z0, b[2]) if port else (b[3], z1)
     ramp(fid, line, line + run, z0, z1, 0, high, low)
     STEP_FLIGHTS.append((line, line + run, z0, z1))
 
