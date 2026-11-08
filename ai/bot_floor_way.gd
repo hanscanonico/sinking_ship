@@ -82,7 +82,16 @@ func _init(walk_graph: WalkGraph, rules: BrawlRules, think_period: int) -> void:
 	_lean = rules.body_radius * LEAN
 	_every = think_period
 	_native_rules = PackedFloat64Array(
-		[CELL, MARGIN, MOST, _snug, rules.step_height, rules.body_height, rules.crawl_height]
+		[
+			CELL,
+			MARGIN,
+			MOST,
+			_snug,
+			rules.step_height,
+			rules.body_height,
+			rules.crawl_height,
+			rules.railing_height
+		]
 	)
 	_native_fine = _native_rules.duplicate()
 	_native_fine[0] = CELL * FINER
@@ -242,7 +251,12 @@ func _walks(from: Vector3, to: Vector3, keep: PackedInt32Array, reach: float) ->
 ## carried on by a walk the railing stopped, puts it there, and a walk from there says nothing
 ## of which side of that railing the body is on.
 func _clear_of_rails(from: Vector3, surface: int) -> bool:
-	return surface == Surfaces.NONE or _surfaces.rail_contacts(from, _snug, surface).is_empty()
+	if surface == Surfaces.NONE:
+		return true
+	var railed := _surfaces.rail_contacts(
+		from, _snug, surface, _rules.step_height, _rules.railing_height
+	)
+	return railed.is_empty()
 
 
 ## Whether a walk straight from [param from] at [param to], as far as [param reach] metres of
@@ -276,7 +290,12 @@ func _stands(point: Vector3, surface: int, keep: PackedInt32Array, radius: float
 	var contacts := _surfaces.obstacle_contacts(
 		feet, radius, _rules.body_height, _rules.step_height, Surfaces.NONE, _rules.crawl_height
 	)
-	return contacts.is_empty() and _surfaces.rail_contacts(feet, radius, surface).is_empty()
+	if not contacts.is_empty():
+		return false
+	var railed := _surfaces.rail_contacts(
+		feet, radius, surface, _rules.step_height, _rules.railing_height
+	)
+	return railed.is_empty()
 
 
 ## The shortest way round by the floor from [param from] to [param end] — a leg's entry, or

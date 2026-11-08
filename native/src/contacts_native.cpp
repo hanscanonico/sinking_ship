@@ -841,11 +841,12 @@ PackedFloat64Array NativeSurfaces::obstacle_contacts(const Vector3 &p_ship_point
 }
 
 // Surfaces._rail_contact.
-bool NativeSurfaces::rail_contact(int32_t p_index, const Vector2 &p_point, double p_radius,
+bool NativeSurfaces::rail_contact(int32_t p_index, const Vector2 &p_point, double p_radius, bool p_off,
 		ContactHit &r_hit) const {
 	const Vector2 offset = p_point - rail_from_[p_index];
+	const Vector2 normal = p_off ? -rail_normals_[p_index] : rail_normals_[p_index];
 	// Clear of its line first: most railings a body is asked about are.
-	const double inside = double(offset.dot(rail_normals_[p_index]));
+	const double inside = double(offset.dot(normal));
 	if (std::fabs(inside) >= p_radius) {
 		return false;
 	}
@@ -855,26 +856,52 @@ bool NativeSurfaces::rail_contact(int32_t p_index, const Vector2 &p_point, doubl
 		return false;
 	}
 	r_hit = ContactHit();
-	r_hit.normal = rail_normals_[p_index];
+	r_hit.normal = normal;
 	r_hit.depth = p_radius - inside;
 	r_hit.railing = p_index;
 	return true;
 }
 
-void NativeSurfaces::rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface,
-		std::vector<ContactHit> &r_found) const {
+void NativeSurfaces::rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
+		double p_railing_height, std::vector<ContactHit> &r_found) const {
 	r_found.clear();
+	const Vector2 point(p_ship_point.x, p_ship_point.z);
+	ContactHit hit;
+	if (p_surface >= first_ramp_ && p_surface < first_top_) {
+		// On a stair: every railing whose deck the feet step up onto or whose top stands
+		// over them, held to from the stair's side of its line (#552).
+		const Vector2 corner = Vector2(real_t(p_radius), real_t(p_radius));
+		const Vector2 box_position = point - corner;
+		const Vector2 box_end = box_position + corner * real_t(2.0);
+		const double feet = double(p_ship_point.y);
+		const Vector2 middle = area_position_[p_surface] + area_size_[p_surface] * real_t(0.5);
+		std::vector<int32_t> &near = near_inner;
+		rail_grid_.near(box_position, box_end, feet - p_railing_height, feet + p_step, near);
+		for (int32_t index : near) {
+			if (rail_gone_[index] == 1) {
+				continue;
+			}
+			const double deck = tops_[rail_platforms_[index]];
+			if (deck > feet + p_step || feet >= deck + p_railing_height) {
+				continue;
+			}
+			const bool off = double((middle - rail_from_[index]).dot(rail_normals_[index])) < 0.0;
+			if (rail_contact(index, point, p_radius, off, hit)) {
+				r_found.push_back(hit);
+			}
+		}
+		deepest_per_direction(r_found);
+		return;
+	}
 	if (p_surface < 0 || p_surface >= first_ramp_) {
 		return;
 	}
-	const Vector2 point(p_ship_point.x, p_ship_point.z);
-	ContactHit hit;
 	for (int32_t at = platform_rails_from_[p_surface]; at < platform_rails_from_[p_surface + 1]; at++) {
 		const int32_t index = platform_rails_[at];
 		if (rail_gone_[index] == 1) {
 			continue;
 		}
-		if (rail_contact(index, point, p_radius, hit)) {
+		if (rail_contact(index, point, p_radius, false, hit)) {
 			r_found.push_back(hit);
 		}
 	}
@@ -904,7 +931,7 @@ void NativeSurfaces::airborne_rails(const Vector3 &p_ship_point, const Vector2 &
 		if (double((p_came_from - rail_from_[index]).dot(rail_normals_[index])) < 0.0) {
 			continue;
 		}
-		if (rail_contact(index, point, p_radius, hit)) {
+		if (rail_contact(index, point, p_radius, false, hit)) {
 			r_found.push_back(hit);
 		}
 	}
@@ -912,9 +939,9 @@ void NativeSurfaces::airborne_rails(const Vector3 &p_ship_point, const Vector2 &
 }
 
 PackedFloat64Array NativeSurfaces::rail_contacts(const Vector3 &p_ship_point, double p_radius,
-		int64_t p_surface) const {
+		int64_t p_surface, double p_step, double p_railing_height) const {
 	std::vector<ContactHit> &found = rails_found;
-	rails(p_ship_point, p_radius, int32_t(p_surface), found);
+	rails(p_ship_point, p_radius, int32_t(p_surface), p_step, p_railing_height, found);
 	return packed(found);
 }
 
@@ -944,7 +971,8 @@ void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("obstacle_contacts", "ship_point", "radius", "body_height", "step", "except_prop",
 								 "crawl_height", "crawl_reach"),
 			&NativeSurfaces::obstacle_contacts);
-	ClassDB::bind_method(D_METHOD("rail_contacts", "ship_point", "radius", "surface"), &NativeSurfaces::rail_contacts);
+	ClassDB::bind_method(D_METHOD("rail_contacts", "ship_point", "radius", "surface", "step", "railing_height"),
+			&NativeSurfaces::rail_contacts);
 	ClassDB::bind_method(D_METHOD("airborne_rail_contacts", "ship_point", "came_from", "radius", "body_height",
 								 "railing_height"),
 			&NativeSurfaces::airborne_rail_contacts);
@@ -1148,7 +1176,7 @@ bool NativeCrates::railings(int32_t p_prop, const Callable &p_damage) {
 			surfaces_->airborne_rails(mover.pos, came_from_[p_prop], radii_[p_prop], heights_[p_prop],
 					railing_height_, contacts);
 		} else {
-			surfaces_->rails(mover.pos, radii_[p_prop], mover.surface, contacts);
+			surfaces_->rails(mover.pos, radii_[p_prop], mover.surface, step_height_, railing_height_, contacts);
 		}
 	}
 	bool held = false;
