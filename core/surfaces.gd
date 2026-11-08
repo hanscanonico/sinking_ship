@@ -424,14 +424,35 @@ func obstacle_contacts(
 	)
 
 
-## Every railing of [param surface] that a circle of [param radius] centred on
-## [param ship_point] overlaps, one per direction. A railing holds only along its
-## span: a centre level with a gap is touching nothing.
-func rail_contacts(ship_point: Vector3, radius: float, surface: int) -> Array[Contact]:
+## Every railing that holds back a circle of [param radius] on its feet on
+## [param surface], centred on [param ship_point], one per direction. On a platform, the
+## platform's own railings, which keep it on its deck. On a stair, every railing whose
+## deck the feet could step up onto, or whose top stands over them — the floor's railing
+## along the stair's side near its head or foot, across the way off it there (#552) — each
+## held to from the stair's side of its line. A railing holds only along its span: a
+## centre level with a gap is touching nothing.
+func rail_contacts(
+	ship_point: Vector3, radius: float, surface: int, step: float, railing_height: float
+) -> Array[Contact]:
 	var contacts: Array[Contact] = []
+	var point := Vector2(ship_point.x, ship_point.z)
+	if is_ramp(surface):
+		var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
+		var feet := ship_point.y
+		var middle := _areas[surface].get_center()
+		for index: int in _rail_grid.near(box, feet - railing_height, feet + step):
+			if _rail_gone[index] == 1:
+				continue
+			var deck := _platforms[_railings[index].platform].height
+			if deck > feet + step or feet >= deck + railing_height:
+				continue
+			var side := (middle - _railings[index].from).dot(_rail_normals[index])
+			var contact := _rail_contact(index, point, radius, side < 0.0)
+			if contact != null:
+				contacts.append(contact)
+		return PlaneShapes.deepest_per_direction(contacts)
 	if surface < 0 or surface >= _platforms.size():
 		return contacts
-	var point := Vector2(ship_point.x, ship_point.z)
 	for index: int in _platform_rails[surface]:
 		if _rail_gone[index] == 1:
 			continue
@@ -885,20 +906,21 @@ func _platform_at(point: Vector2, height: float) -> int:
 
 
 ## The layout's railing at [param index] holding back a circle of [param radius] at
-## [param point], or null when the circle is clear of it or level with no part of
-## its span.
-func _rail_contact(index: int, point: Vector2, radius: float) -> Contact:
+## [param point] onto its platform's side, or off it when [param off], or null when the
+## circle is clear of it or level with no part of its span.
+func _rail_contact(index: int, point: Vector2, radius: float, off := false) -> Contact:
 	var railing := _railings[index]
 	var offset := point - railing.from
+	var normal := -_rail_normals[index] if off else _rail_normals[index]
 	# Clear of its line first: most railings a body is asked about are.
-	var inside := offset.dot(_rail_normals[index])
+	var inside := offset.dot(normal)
 	if absf(inside) >= radius:
 		return null
 	var span := railing.to - railing.from
 	var along := offset.dot(span) / span.length_squared()
 	if along < 0.0 or along > 1.0:
 		return null
-	return Contact.new(_rail_normals[index], radius - inside, index)
+	return Contact.new(normal, radius - inside, index)
 
 
 ## Each cell's platforms and their clearances, into _floors and _floor_clearances: the

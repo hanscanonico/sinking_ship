@@ -183,9 +183,11 @@ static func across(door: ShipRoom.Door, off: float, floor_height: float) -> Vect
 ## [param out]: from where it first stands clear on the room's side — a body's radius before
 ## the line at most, every STRIDE nearer, on the line at the last, never first past it — on
 ## until it stands clear past it, its feet on a floor or a stair all the way and nothing
-## pushing it back (BACK); railings among what holds it unless [param rails] is false. Where
-## [param begins] is a callable, it stands there only where begins(feet, surface, out) is
-## true: in the zone the way leads out of (WalkDoors._begins).
+## pushing it back (BACK); a floor's railings among what holds it unless [param rails] is
+## false. On a stair none: the railings along its sides by its head hold a body on it (#552),
+## but the graph's ways through are read as before (#561). Where [param begins] is a
+## callable, it stands there only where begins(feet, surface, out) is true: in the zone the
+## way leads out of (WalkDoors._begins).
 static func _crosses(
 	surfaces: Surfaces,
 	rules: BrawlRules,
@@ -211,8 +213,12 @@ static func _crosses(
 		var held := surfaces.obstacle_contacts(
 			point, radius, rules.body_height, rules.step_height, Surfaces.NONE, rules.crawl_height
 		)
-		if rails:
-			held.append_array(surfaces.rail_contacts(point, radius, surface))
+		if rails and not surfaces.is_ramp(surface):
+			held.append_array(
+				surfaces.rail_contacts(
+					point, radius, surface, rules.step_height, rules.railing_height
+				)
+			)
 		if stood and step > 0 and held.is_empty():
 			return true
 		if not stood:
