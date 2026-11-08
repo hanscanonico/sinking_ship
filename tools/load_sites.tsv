@@ -49,6 +49,7 @@ tests/unit/ai/test_bot_floors.gd	load("res://data/bots/%s.tres" % tiers[seat])	d
 tests/unit/ai/test_bot_profile.gd	load("res://data/bonuses/%s" % file)	data/bonuses/*.tres
 tests/unit/ai/test_floor_way_native.gd	load(path)	data/ships/steamer.tres data/ships/titanic.tres
 tests/unit/ai/test_titanic_open_decks.gd	load(path)	data/ships/titanic.tres tests/fixtures/ships/titanic_britannic.tres tests/fixtures/ships/titanic_olympic_1913.tres
+tests/unit/ai/test_titanic_shell_line.gd	load(path)	data/ships/titanic.tres tests/fixtures/ships/titanic_britannic.tres tests/fixtures/ships/titanic_olympic_1913.tres
 tests/unit/ai/test_water_native.gd	load(path)	data/ships/steamer.tres data/ships/small_titanic.tres
 tests/unit/ai/test_walk_search_native.gd	load(path)	data/ships/steamer.tres data/ships/small_titanic.tres
 tests/unit/ai/test_way_through.gd	load("res://data/ships/%s.tres" % ship)	data/ships/steamer.tres data/ships/trawler.tres data/ships/tug.tres data/ships/barque.tres data/ships/ferry.tres data/ships/freighter.tres
