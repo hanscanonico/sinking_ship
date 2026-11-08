@@ -424,14 +424,35 @@ func obstacle_contacts(
 	)
 
 
-## Every railing of [param surface] that a circle of [param radius] centred on
-## [param ship_point] overlaps, one per direction. A railing holds only along its
-## span: a centre level with a gap is touching nothing.
-func rail_contacts(ship_point: Vector3, radius: float, surface: int) -> Array[Contact]:
+## Every railing that holds back a circle of [param radius] on its feet on
+## [param surface], centred on [param ship_point], one per direction. On a platform, the
+## platform's own railings, which keep it on its deck. On a stair, every railing whose
+## deck the feet could step up onto, or whose top stands over them — the floor's railing
+## along the stair's side near its head or foot, across the way off it there (#552) — each
+## held to from the stair's side of its line. A railing holds only along its span: a
+## centre level with a gap is touching nothing.
+func rail_contacts(
+	ship_point: Vector3, radius: float, surface: int, step: float, railing_height: float
+) -> Array[Contact]:
 	var contacts: Array[Contact] = []
+	var point := Vector2(ship_point.x, ship_point.z)
+	if is_ramp(surface):
+		var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
+		var feet := ship_point.y
+		var middle := _areas[surface].get_center()
+		for index: int in _rail_grid.near(box, feet - railing_height, feet + step):
+			if _rail_gone[index] == 1:
+				continue
+			var deck := _platforms[_railings[index].platform].height
+			if deck > feet + step or feet >= deck + railing_height:
+				continue
+			var side := (middle - _railings[index].from).dot(_rail_normals[index])
+			var contact := _rail_contact(index, point, radius, side < 0.0)
+			if contact != null:
+				contacts.append(contact)
+		return PlaneShapes.deepest_per_direction(contacts)
 	if surface < 0 or surface >= _platforms.size():
 		return contacts
-	var point := Vector2(ship_point.x, ship_point.z)
 	for index: int in _platform_rails[surface]:
 		if _rail_gone[index] == 1:
 			continue
@@ -473,19 +494,41 @@ func airborne_rail_contacts(
 	return PlaneShapes.deepest_per_direction(contacts)
 
 
-## Whether the straight path from [param from_point] to [param to_point] (x/z)
-## crosses a railing span of [param surface] — the only railings a body standing
-## on it can meet.
-func railed(from_point: Vector3, to_point: Vector3, surface: int) -> bool:
-	if surface < 0 or surface >= _platforms.size():
-		return false
+## Whether a railing holds back a body on its feet walking the straight path from
+## [param from_point], on [param surface], to [param to_point] (x/z), its feet from the
+## one's height to the other's: a span of [param surface]'s own it crosses; on a stair,
+## one along its side that holds a body there (rail_contacts), crossed going away from the
+## stair; and one along the edge of a floor the walk crosses onto at its feet's height,
+## crossed going off that floor (#553) — a railing holds a body on its own floor.
+func railed(from_point: Vector3, to_point: Vector3, surface: int, rules: BrawlRules) -> bool:
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
-	for index: int in _platform_rails[surface]:
+	if surface >= 0 and surface < _platforms.size():
+		for index: int in _platform_rails[surface]:
+			var railing := _railings[index]
+			if _rail_gone[index] == 1:
+				continue
+			if Geometry2D.segment_intersects_segment(start, end, railing.from, railing.to) != null:
+				return true
+	var way := end - start
+	var low := minf(from_point.y, to_point.y)
+	var high := maxf(from_point.y, to_point.y) + rules.step_height
+	var stair := is_ramp(surface)
+	var middle := _areas[surface].get_center() if stair else Vector2.ZERO
+	var bottom := low - (rules.railing_height if stair else rules.step_height)
+	for index: int in _rail_grid.along(start, end, bottom, high):
 		var railing := _railings[index]
-		if _rail_gone[index] == 1:
+		if _rail_gone[index] == 1 or railing.platform == surface:
 			continue
-		if Geometry2D.segment_intersects_segment(start, end, railing.from, railing.to) != null:
+		var deck := _platforms[railing.platform].height
+		if deck < bottom or deck > high:
+			continue
+		if Geometry2D.segment_intersects_segment(start, end, railing.from, railing.to) == null:
+			continue
+		var across := way.dot(_rail_normals[index])
+		if across < 0.0 and deck >= low - rules.step_height:
+			return true
+		if stair and across * (middle - railing.from).dot(_rail_normals[index]) < 0.0:
 			return true
 	return false
 
@@ -885,20 +928,21 @@ func _platform_at(point: Vector2, height: float) -> int:
 
 
 ## The layout's railing at [param index] holding back a circle of [param radius] at
-## [param point], or null when the circle is clear of it or level with no part of
-## its span.
-func _rail_contact(index: int, point: Vector2, radius: float) -> Contact:
+## [param point] onto its platform's side, or off it when [param off], or null when the
+## circle is clear of it or level with no part of its span.
+func _rail_contact(index: int, point: Vector2, radius: float, off := false) -> Contact:
 	var railing := _railings[index]
 	var offset := point - railing.from
+	var normal := -_rail_normals[index] if off else _rail_normals[index]
 	# Clear of its line first: most railings a body is asked about are.
-	var inside := offset.dot(_rail_normals[index])
+	var inside := offset.dot(normal)
 	if absf(inside) >= radius:
 		return null
 	var span := railing.to - railing.from
 	var along := offset.dot(span) / span.length_squared()
 	if along < 0.0 or along > 1.0:
 		return null
-	return Contact.new(_rail_normals[index], radius - inside, index)
+	return Contact.new(normal, radius - inside, index)
 
 
 ## Each cell's platforms and their clearances, into _floors and _floor_clearances: the
