@@ -616,7 +616,7 @@ func _railed(surfaces: Surfaces, railing: ShipRailing) -> bool:
 	var across := (railing.to - railing.from).orthogonal().normalized() * 0.5
 	var from := Vector3(middle.x - across.x, 0.0, middle.y - across.y)
 	var to := Vector3(middle.x + across.x, 0.0, middle.y + across.y)
-	return surfaces.railed(from, to, railing.platform)
+	return surfaces.railed(from, to, railing.platform, SimFixtures.rules())
 
 
 ## That [param pose] holds [param expected]'s values, and each piece's its piece's.

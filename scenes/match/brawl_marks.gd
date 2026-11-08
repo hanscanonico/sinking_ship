@@ -147,7 +147,7 @@ static func fitted(
 			clear = (
 				clear
 				and not surfaces.blocked(feet, end, rules.body_height, rules.step_height)
-				and not surfaces.railed(feet, end, surface)
+				and not surfaces.railed(feet, end, surface, rules)
 				and surfaces.under(end, FLOOR_STEP) != Surfaces.NONE
 			)
 		if clear:
