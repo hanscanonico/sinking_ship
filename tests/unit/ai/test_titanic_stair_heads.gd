@@ -41,6 +41,20 @@ const PASSAGE_FROM := -4.8
 const HANDED_IN_THE_PASSAGE: Array[float] = [-6.2, -6.4]
 const BOILER_ROOM_2 := Vector3(-8.1562, -18.1875, 2.65)
 const DOWN_FROM_E_DECK := -7.0
+## B deck's second-class entrance aft, beside the head of the stair down to C deck (ramp 16):
+## to starboard of the railing along its side, short of a body's width aft of the head. The
+## first is where a bot sets out for G deck's two-berth third-class room in #491's sample (row
+## 2). Going for that room's bonus, a bot with its feet below DOWN_FROM_B_DECK is down the stair.
+const B_DECK := 2.75
+const BESIDE_B_DECK_S_STAIR: Array[Vector3] = [
+	Vector3(-90.53125, B_DECK, 0.0625),
+	Vector3(-90.6, B_DECK, 0.0),
+	Vector3(-90.5, B_DECK, -0.3),
+	Vector3(-90.4, B_DECK, -0.3),
+	Vector3(-90.3, B_DECK, -0.3),
+]
+const TWO_BERTH_ROOM := Vector3(-95.4688, -11.0, -5.8438)
+const DOWN_FROM_B_DECK := 2.0
 
 static var _layout: ShipLayout
 static var _floors: BotFloors
@@ -183,3 +197,16 @@ func test_a_bot_through_a_doorway_turns_onto_the_stair_beside_it() -> void:
 			)
 			var down := _down(walk[0], walk[1], DOWN_FROM_E_DECK, 2.0)
 			assert_lt(down, 2.0, "from x %.2f, handed at z %.1f: %.1f s" % [x, handed, down])
+
+
+## From beside the head of B deck's stair aft, a bot going for G deck's two-berth third-class
+## room goes round the walls beside the head, onto the stair and down within 3.5 s. On main its
+## way over the floor held a walk straight at the head across the railing along the stair's
+## side, its steps stepping over the railing's line: it walked into the pocket between the
+## railing's end and the end of the wall beside the head, 0.68 m apart, and none of these was
+## down in 3.5 s, the first not for 8 s (#550).
+func test_a_bot_beside_a_stair_s_head_goes_round_onto_it() -> void:
+	for from: Vector3 in BESIDE_B_DECK_S_STAIR:
+		var sim := _sim(TWO_BERTH_ROOM, from)
+		var down := _down(sim, _bot(sim), DOWN_FROM_B_DECK, 3.5)
+		assert_lt(down, 3.5, "from %s: %.1f s" % [from, down])

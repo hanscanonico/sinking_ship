@@ -206,7 +206,11 @@ func _nearest(from: Vector3) -> int:
 ## Whether a body could walk straight from [param from] at [param to], as far as
 ## [param reach] metres of it: its feet carried along it a step at a time — up and down a
 ## stair on [param keep] — every one where a body LEAN of its radius round could stand
-## (_stands).
+## (_stands), and never across a railing of a floor or stair it steps on (Surfaces.railed)
+## but one that holds a body at [param from] (_clear_of_rails). Its steps, twice LEAN apart,
+## step over a railing's line: beside a stair's head, from the floor short of the railing
+## along its side onto the stair past it, where none of the floor's railings holds a body,
+## and the walk held across it (#550).
 func _walks(from: Vector3, to: Vector3, keep: PackedInt32Array, reach: float) -> bool:
 	var flat := Vector2(to.x - from.x, to.z - from.z)
 	var length := minf(flat.length(), reach)
@@ -216,14 +220,29 @@ func _walks(from: Vector3, to: Vector3, keep: PackedInt32Array, reach: float) ->
 	var way := flat.normalized()
 	var steps := ceili(length / stride)
 	var feet := from.y
+	var point := from
+	var walked := PackedInt32Array([_surfaces.under(from, _rules.step_height)])
 	for index in range(1, steps + 1):
 		var at := Vector2(from.x, from.z) + way * (length * index / steps)
-		var point := Vector3(at.x, feet, at.y)
+		point = Vector3(at.x, feet, at.y)
 		var surface := _surfaces.under(point, _rules.step_height)
 		if not _stands(point, surface, keep, _lean):
 			return false
+		if not surface in walked:
+			walked.append(surface)
 		feet = _surfaces.height_at(surface, point)
+	for surface: int in walked:
+		if _surfaces.railed(from, point, surface) and _clear_of_rails(from, surface):
+			return false
 	return true
+
+
+## Whether no railing of [param surface] holds a body SNUG of its radius round with its feet
+## at [param from] (Surfaces.rail_contacts). Where one does, no body stands: its reckoning,
+## carried on by a walk the railing stopped, puts it there, and a walk from there says nothing
+## of which side of that railing the body is on.
+func _clear_of_rails(from: Vector3, surface: int) -> bool:
+	return surface == Surfaces.NONE or _surfaces.rail_contacts(from, _snug, surface).is_empty()
 
 
 ## Whether a walk straight from [param from] at [param to], as far as [param reach] metres of
