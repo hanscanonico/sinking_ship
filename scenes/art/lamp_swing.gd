@@ -4,21 +4,26 @@ extends RefCounted
 ## lamp processing as a node of its own — the Titanic hangs 2,700, and as she turns
 ## some 540 swing every frame (#410). ShipArt steps it each frame (step), where its
 ## lamps would have processed. A lamp whose light still has something to show — fading,
-## flickering, a fire wavering — takes its whole frame as its own (ShipLamp.step); one
-## whose light is settled (ShipLamp.settled) only swings, and its swing is carried here,
-## in arrays, until something it shows changes (unsettle): the same sums, in the same
-## order, as the lamp would do them, so every lamp hangs and burns to the bit as it did.
-## A lamp woken comes awake on the next frame, as a node set processing within a frame
-## does (Early).
+## flickering, a fire's flame changing its mind — takes its whole frame as its own
+## (ShipLamp.step); one whose light is settled (ShipLamp.settled) only swings, and its
+## swing is carried here, in arrays, until something it shows changes (unsettle); and a
+## fire burning steady (ShipLamp.steady) only runs its clock on, carried here until its
+## flame next changes (ShipLamp.flame) — some 85 fires on the Titanic, each a whole
+## frame of its own before (#410). The same sums, in the same order, as the lamp would do
+## them, so every lamp hangs and burns to the bit as it did. A lamp woken comes awake on
+## the next frame, as a node set processing within a frame does (Early).
 
 enum State { ASLEEP, WOKEN, AWAKE }
+## Per slot, what is carried here: nothing (the lamp steps itself), its swing, or a
+## fire's clock.
+enum Carried { NONE, SWING, FIRE }
 
 ## Every lamp it carries, by its slot (carry), and the node each hangs from.
 var lamps: Array[ShipLamp] = []
 var _parents: Array[Node3D] = []
 var _parent_of := PackedInt32Array()
-## Per slot: asleep, woken, or awake (State); whether it is in _awake; and whether its
-## swing is carried here (fast) rather than by the lamp.
+## Per slot: asleep, woken, or awake (State); whether it is in _awake; and what of it is
+## carried here (Carried) rather than by the lamp.
 var _state := PackedByteArray()
 var _listed := PackedByteArray()
 var _fast := PackedByteArray()
@@ -34,6 +39,10 @@ var _clock := PackedFloat64Array()
 var _since := PackedFloat64Array()
 var _at := PackedVector3Array()
 var _globe := PackedInt32Array()
+## Per fire carried here: its flame's phase, and the moment its flame shows
+## (ShipLamp.flame's), until which a frame of it changes nothing but its clock.
+var _phase := PackedFloat64Array()
+var _moment := PackedFloat64Array()
 ## The globes that draw the models of the lamps that do not draw their own (LampGlobes).
 var _drawn_by: LampGlobes
 ## Per parent, the world's down under it this frame, and whether it is worked out yet.
@@ -58,6 +67,8 @@ func reset(art: Node) -> void:
 	_since.clear()
 	_at.clear()
 	_globe.clear()
+	_phase.clear()
+	_moment.clear()
 	_drawn_by = null
 	_downs.clear()
 	_down_known.clear()
@@ -83,13 +94,15 @@ func carry(lamp: ShipLamp) -> ShipLamp:
 	_parent_of.append(at)
 	_state.append(State.ASLEEP)
 	_listed.append(0)
-	_fast.append(0)
+	_fast.append(Carried.NONE)
 	_hang.append(Vector3.DOWN)
 	_swing.append(Vector3.ZERO)
 	_clock.append(0.0)
 	_since.append(0.0)
 	_at.append(Vector3.ZERO)
 	_globe.append(-1)
+	_phase.append(0.0)
+	_moment.append(0.0)
 	lamp.carried_by(self, slot)
 	wake(slot)
 	return lamp
@@ -112,18 +125,18 @@ func awake(slot: int) -> bool:
 	return _state[slot] != State.ASLEEP
 
 
-## Hands [param slot]'s swing back to its lamp, if it is carried here, and wakes it:
-## something it shows has changed (ShipLamp's setters).
+## Hands [param slot]'s swing or clock back to its lamp, if either is carried here, and
+## wakes it: something it shows has changed (ShipLamp's setters).
 func unsettle(slot: int) -> void:
-	if _fast[slot] == 1:
-		_fast[slot] = 0
-		lamps[slot].carry_on(_hang[slot], _swing[slot], _clock[slot], _since[slot])
+	if _fast[slot] != Carried.NONE:
+		_hand_back(slot)
 	wake(slot)
 
 
 ## Steps every lamp awake by [param delta] seconds: as ShipLamp.step would, a lamp at a
 ## time, each toward the world's down under the node it hangs from. A lamp only swinging
-## is swung here, its sums as the lamp's own, and its model drawn with the others' at once.
+## is swung here, its sums as the lamp's own, and its model drawn with the others' at once;
+## a fire burning steady only runs its clock on here.
 func step(delta: float) -> void:
 	_down_known.fill(0)
 	var awake := PackedInt32Array()
@@ -136,11 +149,24 @@ func step(delta: float) -> void:
 			continue
 		var lamp := lamps[slot]
 		var on := true
-		if _fast[slot] == 0:
+		var carried := _fast[slot]
+		if carried == Carried.FIRE:
+			# A fire burning steady: its clock runs on here, as its own would, until its
+			# flame changes its mind; that frame it takes as its own.
+			var clock := _clock[slot] + delta
+			if floorf((clock + _phase[slot]) * ShipLamp.FIRE_RATE) == _moment[slot]:
+				_clock[slot] = clock
+				_since[slot] += delta
+			else:
+				_hand_back(slot)
+				carried = Carried.NONE
+		if carried == Carried.NONE:
 			on = lamp.step(delta)
 			if lamp.settled() and lamp.kind() != ShipLamp.Kind.FIRE:
-				_take(slot)
-		else:
+				_take(slot, Carried.SWING)
+			elif lamp.steady():
+				_take(slot, Carried.FIRE)
+		elif carried == Carried.SWING:
 			_clock[slot] += delta
 			var parent := _parent_of[slot]
 			if _down_known[parent] == 0:
@@ -189,16 +215,25 @@ func _come_awake() -> void:
 	_woken.clear()
 
 
-## Carries [param slot]'s swing here from its lamp, its light settled.
-func _take(slot: int) -> void:
+## Hands [param slot]'s swing or clock, carried here, back to its lamp to step itself.
+func _hand_back(slot: int) -> void:
+	_fast[slot] = Carried.NONE
+	lamps[slot].carry_on(_hang[slot], _swing[slot], _clock[slot], _since[slot])
+
+
+## Carries [param slot]'s swing here from its lamp, its light settled, or a fire's clock,
+## its flame steady: as [param carried] has it.
+func _take(slot: int, carried: Carried) -> void:
 	var state := lamps[slot].swing_state()
-	_fast[slot] = 1
+	_fast[slot] = carried
 	_hang[slot] = state[0]
 	_swing[slot] = state[1]
 	_clock[slot] = state[2]
 	_since[slot] = state[3]
 	_at[slot] = state[4]
 	_globe[slot] = state[6]
+	_phase[slot] = state[7]
+	_moment[slot] = floorf((_clock[slot] + _phase[slot]) * ShipLamp.FIRE_RATE)
 	if state[5] != null:
 		assert(_drawn_by == null or _drawn_by == state[5], "one ShipArt's lamps, one globes")
 		_drawn_by = state[5]

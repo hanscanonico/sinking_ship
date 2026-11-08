@@ -5,6 +5,7 @@
 #include "contacts_native.h"
 #include "hull_native.h"
 #include "motion_native.h"
+#include "sight_native.h"
 #include "sink_native.h"
 #include "still_native.h"
 #include "walk_search_native.h"
@@ -25,6 +26,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeWalkGraph);
 	GDREGISTER_CLASS(NativeWalkSearch);
 	GDREGISTER_CLASS(NativeWater);
+	GDREGISTER_CLASS(NativeSight);
 	GDREGISTER_CLASS(NativeSink);
 	GDREGISTER_CLASS(NativeMotion);
 	GDREGISTER_CLASS(NativeLevelHull);

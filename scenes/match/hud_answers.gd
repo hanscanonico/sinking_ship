@@ -32,7 +32,7 @@ var _faces: Faces
 var _surfaces: Surfaces
 var _pieces: Pieces
 ## The crates of the snapshot asked, and that snapshot's crate entries they were made
-## from: made again only for another snapshot's.
+## from: made again only for another snapshot's, and then only those whose entry is new.
 var _crates: Array[PropState] = []
 var _crates_of: Array = []
 ## The snapshot last asked, its tick, its seat and what else it was asked with.
@@ -104,9 +104,10 @@ func _answer(snapshot: Dictionary, seat: int) -> void:
 	pose = whole.of_piece(piece)
 	# As the snapshot has them: the railings the match has broken, and its crates.
 	var broken := MatchState.broken_in(snapshot["railing_hp"])
-	if not is_same(_crates_of, snapshot["props"]):
-		_crates_of = snapshot["props"]
-		_crates = PropState.from_snapshot(snapshot, _crates)
+	var entries: Array = snapshot["props"]
+	if not is_same(_crates_of, entries):
+		_crates = _kept(entries)
+		_crates_of = entries
 	deck = _surfaces
 	if piece == 0:
 		_surfaces.honour(whole, broken, _crates)
@@ -127,3 +128,22 @@ func _answer(snapshot: Dictionary, seat: int) -> void:
 	framed_pose = null
 	if me["state"] == PlayerState.Body.SWIMMING:
 		framed_pose = faces.framed(pose, up)
+
+
+## The crates [param entries] hold — a snapshot's props — each the last snapshot's crate
+## where its entry is the very one that crate was made from, every other made anew: the
+## crates PropState.from_snapshot keeps, as none of these is ever changed once made, but
+## without asking each crate its entry. The wire hands an unchanged prop's entry on from
+## snapshot to snapshot, and the Titanic carries 594.
+func _kept(entries: Array) -> Array[PropState]:
+	var crates: Array[PropState] = []
+	crates.resize(entries.size())
+	var last := _crates_of
+	var kept := mini(last.size(), entries.size())
+	for index in entries.size():
+		var entry: Dictionary = entries[index]
+		if index < kept and is_same(last[index], entry):
+			crates[index] = _crates[index]
+		else:
+			crates[index] = PropState.from_dict(entry)
+	return crates
