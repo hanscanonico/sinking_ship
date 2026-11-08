@@ -125,6 +125,41 @@ func test_the_railings_along_her_stairs_answer_alike() -> void:
 	assert_gt(held, 100, "bodies on her stairs held by railings")
 
 
+func test_pieces_meeting_answer_alike_round_their_corners() -> void:
+	# Abutting pieces' edges are one edge (#566): round every corner of a made-up deck whose
+	# pieces meet flush, stepped back, within a hair, a wall's end under a deck and two walls
+	# in an L, a body's middle out from it every way at a hair, a hand and nearly its radius,
+	# its feet under the pieces' tops and over a wall's.
+	if not _loaded():
+		return
+	var layout := _seamed()
+	var native := Surfaces.new(layout)
+	ContactsNative.off = true
+	var reference := Surfaces.new(layout)
+	ContactsNative.off = false
+	var rules := SimFixtures.rules()
+	var body := Vector2(rules.body_radius, rules.body_height)
+	var ways: Array[Vector2] = [Vector2(1, 1), Vector2(1, -1), Vector2(-1, 1), Vector2(-1, -1)]
+	for index in ways.size():
+		ways[index] = ways[index].normalized()
+	ways.append_array([Vector2(0.3, 1).normalized(), Vector2(-1, 0.3).normalized()])
+	for surface in _surface_count(layout):
+		var area := reference._areas[surface]
+		for corner: Vector2 in [
+			area.position,
+			area.end,
+			Vector2(area.position.x, area.end.y),
+			Vector2(area.end.x, area.position.y)
+		]:
+			for way: Vector2 in ways:
+				for out: float in [1e-4, 0.1, 0.25, 0.39]:
+					var spot := corner + way * out
+					for feet: float in [0.0, 0.8]:
+						var at := Vector3(spot.x, feet, spot.y)
+						_obstacles(native, reference, at, body, rules.step_height, -1, INF, -1.0)
+	_assert_none("pieces meeting")
+
+
 func test_a_saloon_afloat_steps_alike_tick_by_tick() -> void:
 	if not _loaded():
 		return
@@ -560,6 +595,53 @@ static func _made_up() -> ShipLayout:
 	props.append(SimFixtures.crate(Vector3(9.6, 0.0, 4.6)))
 	props.append(SimFixtures.lifebuoy(Vector3(-5.0, 0.0, 4.8)))
 	layout.props = props
+	return layout
+
+
+## A deck of pieces meeting (#566), a metre up: two flush end to end, two with one's face 2.5 cm
+## back, two with one's face back by less than a millimetre, a deck with a wall flush with its
+## face and another's end under its edge, a slab beside a deck, a stair along a deck's side,
+## and two walls meeting in an L.
+static func _seamed() -> ShipLayout:
+	var layout := ShipLayout.new()
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [
+		[Rect2(-6, -2, 2, 2), false],
+		[Rect2(-4, -2, 2, 2), false],
+		[Rect2(-1, -2, 2, 1.975), false],
+		[Rect2(1, -2, 2, 2), false],
+		[Rect2(4, -2, 2, 1.9995), false],
+		[Rect2(6, -2, 2, 2), false],
+		[Rect2(-6, 4, 2, 2), false],
+		[Rect2(4, 4, 2, 2), true],
+		[Rect2(6, 4, 2, 2), false],
+	]:
+		var platform := ShipPlatform.new()
+		platform.name = &"piece"
+		platform.area = row[0]
+		platform.height = 1.0
+		platform.slab = row[1]
+		platforms.append(platform)
+	layout.platforms = platforms
+	var ramp := ShipRamp.new()
+	ramp.area = Rect2(-4, -3, 2, 1)
+	ramp.axis = ShipRamp.Axis.X
+	ramp.start_height = 1.0
+	ramp.end_height = 0.0
+	layout.ramps = [ramp] as Array[ShipRamp]
+	var blockers: Array[ShipBlocker] = []
+	for area: Rect2 in [
+		Rect2(-4, 5.9, 2, 0.1),
+		Rect2(-5, 3, 0.1, 1.5),
+		Rect2(0, 4, 3, 0.1),
+		Rect2(0, 4, 0.1, 3),
+	]:
+		var blocker := ShipBlocker.new()
+		blocker.shape = ShipBlocker.Shape.BOX
+		blocker.area = area
+		blocker.top = 2.0
+		blockers.append(blocker)
+	layout.blockers = blockers
 	return layout
 
 
