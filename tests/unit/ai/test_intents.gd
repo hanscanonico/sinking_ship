@@ -334,6 +334,8 @@ func test_a_bot_climbing_out_from_below_decks_never_turns_back_on_a_stair() -> v
 	var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
 	var runner := _runner(sim, source)
 	var passed: Array[int] = []
+	# The floor it first stood on off a stair in each zone it walked into, NAN until then.
+	var floors: Array[float] = []
 	var climbed := false
 	for _tick in 40 * Ticks.RATE:
 		runner.step()
@@ -346,12 +348,26 @@ func test_a_bot_climbing_out_from_below_decks_never_turns_back_on_a_stair() -> v
 		var zone := WalkGraph.NONE if on_top else graph.zone_at(bot.pos, bot.surface)
 		if zone != WalkGraph.NONE and (passed.is_empty() or passed.back() != zone):
 			passed.append(zone)
+			floors.append(NAN)
+		if zone != WalkGraph.NONE and is_nan(floors.back()):
+			if not sim.surfaces.is_ramp(bot.surface):
+				floors[-1] = bot.pos.y
 		if zone == bridge and not sim.surfaces.is_ramp(bot.surface):
 			break
 	assert_true(climbed, "it climbed out")
 	assert_eq(passed.back(), bridge, "it reached the bridge: at %s" % sim.state.seats[0].pos)
-	var again := passed.filter(func(zone: int) -> bool: return passed.count(zone) > 1)
-	assert_eq(again, [], "it never went back into a zone it had left: %s" % [passed])
+	# Down a stair it came up is back onto a floor lower than one it stood on. On the main
+	# deck its way forward may pass through a room there, the saloon, and out again: that is
+	# no stair. (Within 2 cm of this start, half its ways do on main: #567.)
+	var highest := -INF
+	var lower: Array[int] = []
+	for index in passed.size():
+		if is_nan(floors[index]):
+			continue
+		if floors[index] < highest - SimFixtures.rules().step_height:
+			lower.append(passed[index])
+		highest = maxf(highest, floors[index])
+	assert_eq(lower, [] as Array[int], "it never went back down: %s on %s" % [passed, floors])
 
 
 ## A deck 30 × 20 m with a perch 4 m square on it, 2.2 m up, and a stair 1.4 m wide
