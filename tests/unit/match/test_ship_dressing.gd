@@ -7,6 +7,8 @@ extends GutTest
 ## sinking and seed it was made for: the one Play makes on the next match dressed ahead.
 ## One started ahead of her sinking dresses her as one started after, whether or not her
 ## sinking draws her as the frame it drew while it waited (ShipArt.build_frame).
+## Headless, as here, she is dressed on the caller's thread (ShipDressing.threaded): what
+## the main thread makes meanwhile breaks nothing (#571).
 
 const MATCH := preload("res://scenes/match/match.tscn")
 const MATCH_DATA := "res://data/match/default.tres"
@@ -147,3 +149,44 @@ func test_a_dressing_started_ahead_and_let_go_before_her_sinking_frees_her() -> 
 	await wait_until(dressing.done, PATIENCE)
 	assert_true(dressing.done(), "her thread let her go without her sinking")
 	assert_false(is_instance_valid(art), "and freed what it built")
+
+
+## A mesh, a multimesh, a particles' emitter and materials made here, and let go.
+func _make_rids() -> void:
+	var made: Array[Object] = []
+	for each in 20:
+		var mesh := ArrayMesh.new()
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = PackedVector3Array([Vector3.ZERO, Vector3.UP, Vector3.RIGHT])
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var many := MultiMesh.new()
+		many.mesh = mesh
+		made.append_array([mesh, many, ShaderMaterial.new(), StandardMaterial3D.new()])
+		made.append(CPUParticles3D.new())
+	for each: Object in made:
+		if each is Node:
+			each.free()
+
+
+## Headless, a dressing started is dressed by the time it is: none is left on a thread.
+func test_a_dressing_started_headless_is_dressed_on_the_caller_s_thread() -> void:
+	assert_false(ShipDressing.threaded(), "nothing drawn here")
+	var dressing := ShipDressing.new(_trawler()).start()
+	assert_true(dressing.done(), "dressed as it was started")
+	assert_eq(ShipDressing.under_way(), 0, "on no thread")
+	assert_gt(dressing.art.get_child_count(), 0, "she is dressed")
+	dressing.drop()
+
+
+## The main thread's meshes, multimeshes, emitters and materials made as a ship is dressed
+## break neither hers nor its own: the dummy RenderingServer, which hands its RIDs out
+## without a lock, once gave a breach's emitter and a ship's mesh the same one (#571).
+func test_what_the_main_thread_makes_as_she_is_dressed_breaks_nothing() -> void:
+	for ship: ShipLayout in [load(TRAWLER), SimFixtures.steamer()]:
+		var dressing := ShipDressing.new(SimFixtures.config(2, null, 1, ship)).start()
+		while not dressing.done():
+			_make_rids()
+			RenderingServer.force_sync()
+		assert_gt(dressing.art.get_child_count(), 0, "she is dressed")
+		dressing.drop()
