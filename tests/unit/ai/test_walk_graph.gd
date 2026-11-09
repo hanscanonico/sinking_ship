@@ -861,3 +861,70 @@ func test_each_way_of_searching_keeps_its_own_closed_portals() -> void:
 				elif found.costs() != walked:
 					differ = true
 	assert_true(differ, "the ways part somewhere as she floods")
+
+
+## Test data, no ship's: a cabin on the upper deck (0 m) whose fore side, open, gives onto
+## the top of a box stood flush with that deck in a hole cut in it; under the hole a stair
+## runs from the lower deck (−2.5 m) up to the upper deck forward of the hole, under the
+## box's middle — the box's footing.
+func _box_over_a_stair_layout() -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	layout.min_seats = 1
+	layout.max_seats = 1
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [
+		[&"upper aft", Rect2(-10.0, -4.0, 10.0, 8.0), 0.0],
+		[&"upper fore", Rect2(6.0, -4.0, 4.0, 8.0), 0.0],
+		[&"lower", Rect2(-10.0, -4.0, 20.0, 8.0), -2.5],
+	]:
+		var platform := ShipPlatform.new()
+		platform.name = row[0]
+		platform.area = row[1]
+		platform.height = row[2]
+		platforms.append(platform)
+	layout.platforms = platforms
+	var stair := ShipRamp.new()
+	stair.area = Rect2(0.0, -1.0, 6.0, 2.0)
+	stair.axis = ShipRamp.Axis.X
+	stair.start_height = -2.5
+	stair.end_height = 0.0
+	var ramps: Array[ShipRamp] = [stair]
+	layout.ramps = ramps
+	var box := ShipBlocker.new()
+	box.area = Rect2(0.0, -2.0, 2.0, 4.0)
+	box.bottom = -1.0
+	box.top = 0.0
+	var blockers: Array[ShipBlocker] = [box]
+	layout.blockers = blockers
+	var cabin := ShipRoom.new()
+	cabin.name = &"cabin"
+	cabin.area = Rect2(-4.0, -2.0, 4.0, 4.0)
+	var rooms: Array[ShipRoom] = [cabin]
+	layout.rooms = rooms
+	return layout
+
+
+func test_a_doorway_onto_a_box_top_standing_on_a_stair_reads_the_stair_s_end() -> void:
+	# A door's depth is found before any stair's ends are (WalkDoors.find_depths): the box
+	# top through the cabin's fore doorway, whose footing is the stair, is no zone then,
+	# never a stair end not yet found (#579). Once they are, a body on it is at the stair's
+	# end nearer its height, the upper deck forward, and the doorway leads there.
+	var layout := _box_over_a_stair_layout()
+	var surfaces := Surfaces.new(layout)
+	var top := Vector3(0.8, 0.0, 0.0)
+	var on := surfaces.under(top, SimFixtures.rules().step_height)
+	assert_eq(on, layout.platforms.size() + layout.ramps.size(), "past the doorway, the box's top")
+	assert_eq(surfaces.footing(on), surfaces.ramp_surface(0), "which stands on the stair")
+	var graph := _graph(layout, surfaces)
+	var fore := graph.deck_of(SimFixtures.platform_named(layout, &"upper fore"))
+	assert_eq(graph.zone_at(top, on), fore, "on the box, at the stair's head")
+	var cabin := _room(layout, &"cabin")
+	var dry := _pose(layout, SimFixtures.calm())
+	var inside := Vector3(-2.0, 0.0, 0.0)
+	var route := graph.route(
+		inside, surfaces.under(inside, SimFixtures.rules().step_height), fore, dry
+	)
+	assert_false(route.is_empty(), "out of the cabin to the upper deck forward")
+	if not route.is_empty():
+		assert_eq(route.front().from_zone, cabin, "from the cabin")
