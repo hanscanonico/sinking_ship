@@ -791,7 +791,7 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 	if waypoint.is_empty():
 		return false
 	var leg := _legs[0]
-	var aim := _floor_way.toward(now_pos, my_surface, leg, waypoint[0], me["surface"])
+	var aim := _floor_way.toward(now_pos, my_surface, leg, waypoint[0])
 	var wish := Vector2(aim.x - now_pos.x, aim.z - now_pos.z).normalized()
 	# Down a stair the route does not take is into another zone, whose route is back up
 	# it: on one — as it sees itself or reckons — with the way on back across it, off it
