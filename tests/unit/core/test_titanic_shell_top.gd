@@ -8,8 +8,9 @@ extends GutTest
 ## deck's side stands inside her shell: where one runs, her shell's top is that deck's, on
 ## her and on her sisters.
 
+const SHIP := "res://data/ships/titanic.tres"
 const SHIPS: Array[String] = [
-	"res://data/ships/titanic.tres",
+	SHIP,
 	"res://tests/fixtures/ships/titanic_britannic.tres",
 	"res://tests/fixtures/ships/titanic_olympic_1913.tres",
 ]
@@ -47,7 +48,7 @@ func test_no_railing_along_her_bridge_decks_side_stands_inside_her_shell() -> vo
 
 
 func test_her_side_stands_to_a_deck_to_her_house_corners_only() -> void:
-	var layout: ShipLayout = load(SHIPS[0])
+	var layout: ShipLayout = load(SHIP)
 	var sections := layout.structure.sections
 	for way: int in [1, -1]:
 		var aft := _section_at(sections, CORNERS - 0.3)

@@ -84,6 +84,7 @@ tests/unit/core/test_ship_structure_lint.gd	load("%s/%s" % [SHIPS, file])	data/s
 tests/unit/core/test_sink_schedule.gd	load(hit)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_sink_timeline.gd	load(path)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_survival_transcript.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
+tests/unit/core/test_titanic_shell_top.gd	load(path)	data/ships/titanic.tres tests/fixtures/ships/titanic_britannic.tres tests/fixtures/ships/titanic_olympic_1913.tres
 tests/unit/core/test_wrecks.gd	load(path)	tests/fixtures/wrecks/*.tres
 tests/unit/core/titanic_sisters.gd	load(HITS % hit_name)	tests/fixtures/sinking/hits/*.tres
 tests/unit/game/test_bake_cache.gd	FileAccess.file_exists(path)	-
