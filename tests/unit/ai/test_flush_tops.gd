@@ -99,3 +99,34 @@ func test_a_box_stands_on_a_floor_a_float32_rounds_under() -> void:
 		SimFixtures.platform_named(layout, &"raised"),
 		"on the raised floor, not the one under it"
 	)
+
+
+## A step's riser stands half under the edge of the floor it climbs to, its top flush with
+## that floor: past the edge a body on it is over the floor below, which it stands on, not
+## on the one above. Read as the floor above, it stood in no room of that floor's, in its
+## open deck: the Titanic's doorways onto such risers below her main deck opened onto floor
+## no room holds (test_titanic_open_decks).
+func test_a_step_s_riser_top_past_the_floor_it_climbs_to_is_the_floor_below() -> void:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [
+		[&"upper", Rect2(-4.0, -3.0, 4.0, 6.0), 0.5], [&"lower", Rect2(0.0, -3.0, 4.0, 6.0), 0.0]
+	]:
+		var platform := ShipPlatform.new()
+		platform.name = row[0]
+		platform.area = row[1]
+		platform.height = row[2]
+		platforms.append(platform)
+	layout.platforms = platforms
+	var riser := ShipBlocker.new()
+	riser.area = Rect2(-0.1, -3.0, 0.2, 6.0)
+	riser.bottom = 0.0
+	riser.top = 0.5
+	var blockers: Array[ShipBlocker] = [riser]
+	layout.blockers = blockers
+	var surfaces := Surfaces.new(layout)
+	var past_the_edge := Vector3(0.05, 0.5, 0.0)
+	var top := surfaces.under(past_the_edge, SimFixtures.rules().step_height)
+	assert_eq(top, layout.platforms.size(), "on the riser's top")
+	assert_eq(surfaces.footing(top), SimFixtures.platform_named(layout, &"lower"), "below")

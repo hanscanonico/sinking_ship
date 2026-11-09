@@ -365,8 +365,9 @@ func ceiling(ship_point: Vector3, clearance: float) -> float:
 
 ## The platform or ramp a body on [param surface] walks on: a blocker top's is the
 ## highest of them under its middle at or below that top, past every blocker top — the
-## deck a wall's top stands flush with, which a body steps onto it from and walks on as
-## that deck (#558), else where a body stepping off its middle comes down — or NONE when
+## deck a wall's top stands flush with, over it across its width there, which a body steps
+## onto it from and walks on as that deck (#558), but not a floor whose edge a step's riser
+## stands half under; else where a body stepping off its middle comes down — or NONE when
 ## that is the sea; any other surface is its own. Its top is read as the layout has it,
 ## never as a point's float32: a floor at a height that rounds under it is not passed.
 func footing(surface: int) -> int:
@@ -378,8 +379,11 @@ func footing(surface: int) -> int:
 		)
 	if not _is_blocker_top(surface):
 		return surface
-	var middle := _area(surface).get_center()
+	var area := _area(surface)
+	var middle := area.get_center()
 	var at := Vector3(middle.x, 0.0, middle.y)
+	var half := minf(area.size.x, area.size.y) * 0.5
+	var across := Vector3(half, 0.0, half)
 	var top := _blocker_of(surface).top
 	var best := NONE
 	var best_height := -INF
@@ -389,9 +393,12 @@ func footing(surface: int) -> int:
 		if _gone[below] == 1 or not _contains(below, at):
 			continue
 		var height := height_at(below, at)
-		if height <= top and height > best_height:
-			best = below
-			best_height = height
+		if height > top or height <= best_height:
+			continue
+		if height == top and not (_contains(below, at - across) and _contains(below, at + across)):
+			continue
+		best = below
+		best_height = height
 	return best
 
 
