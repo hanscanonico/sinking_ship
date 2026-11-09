@@ -111,8 +111,13 @@ func depth_room(point: Vector2, height: float) -> int:
 ## A portal out through each of a room's doors for each zone of [param graph] it gives onto
 ## (_lanes), and back in from an open deck — a room's own scan adds the way back from a room
 ## —, each where a body could go through it that way within that zone's lane, nearest the
-## door's middle (WayThrough.crossings), beginning in the zone it leads out of (_begins), as
-## wide as the lane; in the order they are found.
+## door's middle (WayThrough.crossings), beginning in the zone it leads out of and ending in
+## the one it leads into (_begins), as wide as the lane; in the order they are found. Its
+## room's end is the piece a body walking in through the doorway there first stands in
+## (WalkPieces.zone_in): where it stands in none a body's width in, no body in the room comes
+## to that way — the Titanic's C deck after second-class entrance's way out onto her well
+## deck, along a strip by a stair's railing narrower than a body (#561) — and the graph
+## leaves it out.
 func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 	var found: Array[WalkGraph.Portal] = []
 	for room in _doors.size():
@@ -132,8 +137,9 @@ func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 				for way in ways:
 					if not is_nan(offs[way]):
 						var at := WayThrough.across(door, offs[way], floor_height)
-						var inside := Vector2(at.x, at.z) - door.outward * _lead
-						var mine := pieces.zone(room, inside)
+						var mine := pieces.zone_in(room, Vector2(at.x, at.z), -door.outward)
+						if mine == NONE:
+							continue
 						var ends := Vector2i(mine, other) if way == 0 else Vector2i(other, mine)
 						var out := door.outward if way == 0 else -door.outward
 						var wide := 2.0 * minf(offs[way] - low, high - offs[way])
@@ -148,7 +154,9 @@ func portals(graph: WalkGraph, rules: BrawlRules) -> Array[WalkGraph.Portal]:
 ## [param other] on the way in. A body on a stair is in the zone of the end it is nearer in
 ## height (WalkGraph.zone_at): on the foot of a stair run on up through the doorway, or down
 ## in the well of one run on under it, it is in the zone the stair leads to, never on the
-## floor the stair cuts, which no body walks from to where it stands (#551).
+## floor the stair cuts, which no body walks from to where it stands (#551). A way ends where
+## the way back would begin (WayThrough._crosses): a body walking on onto such a stair is in
+## its zone, never in the room past the doorway (#575).
 func _begins(
 	point: Vector3,
 	surface: int,

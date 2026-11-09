@@ -22,6 +22,9 @@ const FINE := BotFloorWay.CELL * 0.5
 ## How far from a point its piece is looked for, when no body could stand at it: a body
 ## against a wall stands nearer it than a square's middle a body could stand on.
 const REACH := 0.75
+## What a square a body stands on stands on (_stands): a floor, or a stair's end.
+const ON_FLOOR := 1
+const ON_STAIR := 2
 
 var _layout: ShipLayout
 var _surfaces: Surfaces
@@ -92,6 +95,15 @@ func zone(room: int, point: Vector2) -> int:
 		return room
 	var piece := _piece_at(_grid_of[room], point)
 	return room if piece < 0 else piece
+
+
+## The zone of the piece of [param room] a body walking in from [param from] (x/z), on its
+## edge, the way [param inward] first stands in (_walked_in): the room's own where it is not
+## split; -1 where it is and the body stands in none.
+func zone_in(room: int, from: Vector2, inward: Vector2) -> int:
+	if not _grid_of.has(room):
+		return room
+	return _walked_in(_grid_of[room], from, inward)
 
 
 ## Puts back into its room's own zone each piece of a split room that no route from
@@ -172,7 +184,9 @@ static func _reached(portals: Array, start: int, zone_count: int) -> PackedByteA
 
 ## The pieces of [param room] over squares [param side] across: the grid laid on the
 ## room's area, square for square on BotFloorWay's grid — from world multiples of the side —
-## and per square its piece, or -1 where no body stands.
+## and per square its piece, or -1 where no body stands. A piece no square of which is on
+## the room's floor, all of it on a stair, is none: a body standing on a stair is in the zone
+## of the stair's end it is nearer (WalkGraph.zone_at), never in the room's (#561).
 func _read(room: int, side: float) -> Dictionary:
 	var area := _layout.rooms[room].area
 	var height := _layout.rooms[room].floor_height
@@ -184,14 +198,19 @@ func _read(room: int, side: float) -> Dictionary:
 	pieces.fill(-1)
 	var stands := _stands_grid(origin, width, depth, side, height, area)
 	var count := 0
+	# Per piece, 1 where a square of it is on the room's floor.
+	var floored := PackedByteArray()
 	for first in width * depth:
 		if stands[first] == 0 or pieces[first] >= 0:
 			continue
 		pieces[first] = count
+		floored.append(0)
 		var open := PackedInt32Array([first])
 		while not open.is_empty():
 			var at := open[open.size() - 1]
 			open.resize(open.size() - 1)
+			if stands[at] == ON_FLOOR:
+				floored[count] = 1
 			var x := at % width
 			var z := at / width
 			for dz in range(-1, 2):
@@ -213,18 +232,50 @@ func _read(room: int, side: float) -> Dictionary:
 					pieces[next] = count
 					open.append(next)
 		count += 1
+	for index in pieces.size():
+		if pieces[index] >= 0 and floored[pieces[index]] == 0:
+			pieces[index] = -1
 	return {"side": side, "origin": origin, "width": width, "depth": depth, "pieces": pieces}
 
 
-## The pieces [param ways] (points x/z) land in over [param grid], each once, in the order
-## of the first way to land in it.
-func _landings(grid: Dictionary, ways: PackedVector2Array) -> PackedInt32Array:
+## The pieces [param ways] land in over [param grid], each once, in the order of the first
+## way to land in it: through a doorway, where a body walking in from its middle first stands
+## (_walked_in); off a flight's end, the piece at the point a body's width on past it, or the
+## nearest within REACH (_piece_at).
+func _landings(grid: Dictionary, ways: Array[PackedVector2Array]) -> PackedInt32Array:
 	var landed := PackedInt32Array()
-	for way: Vector2 in ways:
-		var piece := _piece_at(grid, way)
+	for way: PackedVector2Array in ways:
+		var piece := -1
+		if way[1].is_zero_approx():
+			piece = _piece_at(grid, way[0])
+		else:
+			piece = _walked_in(grid, way[0], way[1])
 		if piece >= 0 and not piece in landed:
 			landed.append(piece)
 	return landed
+
+
+## The piece of [param grid] a body walking in from [param from] the way [param inward]
+## first stands in, read every half a square along its middle as far as a body's width in;
+## -1 where it stands in none. Not the nearest piece to a point a body's width in, which can
+## lie past a wall (#561: in the Titanic's grand staircase on C deck a partition stands 0.72 m
+## in from its doorway aft, and a body's width in is past it).
+func _walked_in(grid: Dictionary, from: Vector2, inward: Vector2) -> int:
+	var side: float = grid["side"]
+	var origin: Vector2 = grid["origin"]
+	var width: int = grid["width"]
+	var depth: int = grid["depth"]
+	var pieces: PackedInt32Array = grid["pieces"]
+	var step := side * 0.5
+	var along := step * 0.5
+	while along <= _lead:
+		var at := ((from + inward * along - origin) / side).floor()
+		var x := int(at.x)
+		var z := int(at.y)
+		if x >= 0 and z >= 0 and x < width and z < depth and pieces[z * width + x] >= 0:
+			return pieces[z * width + x]
+		along += step
+	return -1
 
 
 ## The piece of [param grid] at [param point], or the nearest one within REACH of it; -1
@@ -253,18 +304,19 @@ func _piece_at(grid: Dictionary, point: Vector2) -> int:
 	return best
 
 
-## The ways into [param room]: a body's width in through each doorway a body fits, and a
-## body's width on past each end of a flight that lands on its floor in it ([param ends]).
-func _ways(room: int, ends: Array) -> PackedVector2Array:
-	var ways := PackedVector2Array()
+## The ways into [param room], each a point and the way in from it: the middle of each
+## doorway a body fits, in through it; and a body's width on past each end of a flight that
+## lands on its floor in it ([param ends]), with none (Vector2.ZERO).
+func _ways(room: int, ends: Array) -> Array[PackedVector2Array]:
+	var ways: Array[PackedVector2Array] = []
 	var data := _layout.rooms[room]
 	for door: ShipRoom.Door in data.doors(_surfaces, _rules.crawl_height, _rules.step_height):
 		if door.width() >= _rules.body_radius * 2.0:
-			ways.append(door.middle() - door.outward * _lead)
+			ways.append(PackedVector2Array([door.middle(), -door.outward]))
 	for end: Vector3 in ends:
 		var flat := Vector2(end.x, end.z)
 		if absf(end.y - data.floor_height) <= _rules.step_height and data.area.has_point(flat):
-			ways.append(flat)
+			ways.append(PackedVector2Array([flat, Vector2.ZERO]))
 	return ways
 
 
@@ -281,45 +333,51 @@ func _flight_ends() -> Array:
 
 
 ## Per square of the grid from [param origin], [param width] squares wide and [param depth]
-## deep, each [param side] across, 1 where its middle lies in [param within] and a body could
-## stand with its feet there at [param height] (_stands): in the game's extension where it is
-## loaded (NativeSurfaces.stands_grid), square for square.
+## deep, each [param side] across, where its middle lies in [param within] and a body could
+## stand with its feet there at [param height], what it stands on (_stands), else 0: in the
+## game's extension where it is loaded (NativeSurfaces.stands_grid), square for square.
 func _stands_grid(
 	origin: Vector2, width: int, depth: int, side: float, height: float, within: Rect2
 ) -> PackedByteArray:
 	var mirror := _surfaces.native
 	if mirror != null:
 		var rules := PackedFloat64Array(
-			[_radius, _rules.step_height, _rules.body_height, _rules.crawl_height]
+			[
+				_radius,
+				_rules.step_height,
+				_rules.body_height,
+				_rules.crawl_height,
+				_rules.railing_height
+			]
 		)
 		return mirror.stands_grid(origin, width, depth, side, height, within, rules)
 	var stands := PackedByteArray()
 	stands.resize(width * depth)
 	for index in width * depth:
 		var middle := origin + (Vector2(index % width, index / width) + Vector2(0.5, 0.5)) * side
-		if within.has_point(middle) and _stands(Vector3(middle.x, height, middle.y)):
-			stands[index] = 1
+		if within.has_point(middle):
+			stands[index] = _stands(Vector3(middle.x, height, middle.y))
 	return stands
 
 
-## Whether a body could stand with its feet at [param point]: on a floor within a step of
-## its height — a stair's end too, which a body walks across — clear of all that holds a
-## body back (BotFloorWay._stands), of railings a floor's own: the railings along a stair's
-## sides by its head that hold a body on it (#552) are not read into a room's pieces yet
-## (#561).
-func _stands(point: Vector3) -> bool:
+## What a body with its feet at [param point] would stand on: ON_FLOOR on a floor within a
+## step of its height, ON_STAIR on a stair's end there, which a body walks across; 0 where
+## it stands on neither, or something holds it back (BotFloorWay._stands): every obstacle and
+## every railing the sim holds it by — on a stair, the floor's railings along its sides by
+## its head (Surfaces.rail_contacts, #552, #561).
+func _stands(point: Vector3) -> int:
 	var surface := _surfaces.under(point, _rules.step_height)
 	if surface == Surfaces.NONE:
-		return false
+		return 0
 	var feet := Vector3(point.x, _surfaces.height_at(surface, point), point.z)
 	var held := _surfaces.obstacle_contacts(
 		feet, _radius, _rules.body_height, _rules.step_height, Surfaces.NONE, _rules.crawl_height
 	)
 	if not held.is_empty():
-		return false
-	if _surfaces.is_ramp(surface):
-		return true
+		return 0
 	var railed := _surfaces.rail_contacts(
 		feet, _radius, surface, _rules.step_height, _rules.railing_height
 	)
-	return railed.is_empty()
+	if not railed.is_empty():
+		return 0
+	return ON_STAIR if _surfaces.is_ramp(surface) else ON_FLOOR

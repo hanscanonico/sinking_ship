@@ -12,6 +12,12 @@ const E_DECK := -5.9375
 ## head of the stair down to F deck, beside the stair down from D deck aft of B.
 const OFF_THE_STAIR_UP := Vector3(103.0, E_DECK, -2.55)
 const OFF_THE_STAIR_DOWN := Vector3(101.9375, E_DECK, 3.0)
+## The after second-class entrance on B deck, round the head of its stair down to C deck, and
+## its after end on C deck, round the head of the stair up to it from D deck: the railings
+## along a stair's sides by its head hold a body on it (Surfaces.rail_contacts, #552), and its
+## squares are read so (#561).
+const IN_THE_ENTRANCE := Vector3(-91.0, 2.75, 0.0)
+const IN_ITS_AFTER_END := Vector3(-91.5, 0.0, 0.0)
 const BRITANNIC := "res://tests/fixtures/ships/titanic_britannic.tres"
 const OLYMPIC := "res://tests/fixtures/ships/titanic_olympic_1913.tres"
 ## The steamer's aft stores: between her wells, and by the foot of a stair down into them.
@@ -108,7 +114,8 @@ func test_a_room_cut_between_railed_wells_is_held_whole() -> void:
 	_assert_held_whole(load(SimFixtures.STEAMER), BETWEEN_THE_WELLS, BY_THE_STAIR_FOOT)
 
 
-## The extension reads a room's squares as the GDScript does, square for square.
+## The extension reads a room's squares as the GDScript does, square for square: floor and
+## stair, and held back by the railings along a stair's sides by its head.
 func test_a_room_s_squares_are_read_alike_in_the_extension() -> void:
 	if not ClassDB.class_exists(&"NativeCrates"):
 		if OS.get_environment("SINKING_NATIVE_REQUIRED") == "1":
@@ -123,16 +130,29 @@ func test_a_room_s_squares_are_read_alike_in_the_extension() -> void:
 	var twin := Surfaces.new(layout)
 	ContactsNative.off = false
 	assert_null(twin.native, "its twin answers in GDScript")
-	var room := _room(layout, OFF_THE_STAIR_UP)
-	var area := layout.rooms[room].area
-	var height := layout.rooms[room].floor_height
-	for side: float in [WalkPieces.CELL, WalkPieces.FINE]:
-		var origin := (area.position / side).floor() * side
-		var width := ceili((area.end.x - origin.x) / side)
-		var depth := ceili((area.end.y - origin.y) / side)
-		var native := pieces._stands_grid(origin, width, depth, side, height, area)
-		pieces._surfaces = twin
-		var script := pieces._stands_grid(origin, width, depth, side, height, area)
-		pieces._surfaces = surfaces
-		assert_eq(native, script, "over squares %s across" % side)
-		assert_gt(native.count(1), 0, "some a body stands on")
+	var floors := 0
+	var stairs := 0
+	var rooms := {
+		OFF_THE_STAIR_UP: "passage, E deck aft",
+		IN_THE_ENTRANCE: "second-class entrance, B deck, aft",
+		IN_ITS_AFTER_END: "second-class entrance, C deck, aft, after end",
+	}
+	for at: Vector3 in rooms:
+		var room := _room(layout, at)
+		assert_eq(layout.rooms[room].name, rooms[at])
+		var area := layout.rooms[room].area
+		var height := layout.rooms[room].floor_height
+		for side: float in [WalkPieces.CELL, WalkPieces.FINE]:
+			var origin := (area.position / side).floor() * side
+			var width := ceili((area.end.x - origin.x) / side)
+			var depth := ceili((area.end.y - origin.y) / side)
+			var native := pieces._stands_grid(origin, width, depth, side, height, area)
+			pieces._surfaces = twin
+			var script := pieces._stands_grid(origin, width, depth, side, height, area)
+			pieces._surfaces = surfaces
+			var named := layout.rooms[room].name
+			assert_eq(native, script, "%s over squares %s across" % [named, side])
+			floors += native.count(WalkPieces.ON_FLOOR)
+			stairs += native.count(WalkPieces.ON_STAIR)
+	assert_gt(floors, 0, "some squares a body stands on are on a floor")
+	assert_gt(stairs, 0, "and some on a stair")

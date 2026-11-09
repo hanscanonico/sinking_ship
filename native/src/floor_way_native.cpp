@@ -17,6 +17,9 @@ using namespace godot;
 namespace {
 constexpr int32_t NONE = -1;
 constexpr double INF = std::numeric_limits<double>::infinity();
+// What a square of a room's grid stands on (WalkPieces.ON_FLOOR, ON_STAIR).
+constexpr uint8_t ON_FLOOR = 1;
+constexpr uint8_t ON_STAIR = 2;
 
 // Each query's own lists, so one asked inside another's keeps its own.
 thread_local std::vector<int32_t> under_near;
@@ -322,18 +325,19 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 	return way;
 }
 
-// WalkPieces._read: per square of a grid from p_origin, p_width squares wide and p_depth
-// deep, each p_side across, 1 where its middle lies in p_within and a body could stand
-// with its feet there at p_height (BotFloorWay._stands, the stair it is on kept: a stair's
-// end within a step of the floor is walked across), else 0, held by a floor's own railings
-// only: on a stair none, as a room's pieces are read (#561). p_rules: a square's body's
-// radius, a step's height, a body's height and how low it crawls.
+// WalkPieces._stands_grid: per square of a grid from p_origin, p_width squares wide and
+// p_depth deep, each p_side across, where its middle lies in p_within and a body could stand
+// with its feet there at p_height (WalkPieces._stands: held by no obstacle and no railing the
+// sim holds it by, on a stair too, #561), ON_FLOOR on a floor and ON_STAIR on a stair's end
+// within a step of it, which a body walks across; else 0. p_rules: a square's body's radius,
+// a step's height, a body's height, how low it crawls and a railing's height.
 PackedByteArray NativeSurfaces::stands_grid(const Vector2 &p_origin, int64_t p_width, int64_t p_depth,
 		double p_side, double p_height, const Rect2 &p_within, const PackedFloat64Array &p_rules) const {
 	const double radius = p_rules[0];
 	const double step = p_rules[1];
 	const double body_height = p_rules[2];
 	const double crawl_height = p_rules[3];
+	const double railing_height = p_rules[4];
 	FloorGrid grid;
 	grid.origin = p_origin;
 	grid.width = p_width;
@@ -358,10 +362,10 @@ PackedByteArray NativeSurfaces::stands_grid(const Vector2 &p_origin, int64_t p_w
 		if (!found.empty()) {
 			continue;
 		}
-		if (surface < first_ramp_ || surface >= first_top_) {
-			rails(feet, radius, surface, step, 0.0, found);
+		rails(feet, radius, surface, step, railing_height, found);
+		if (found.empty()) {
+			write[square] = (surface >= first_ramp_ && surface < first_top_) ? ON_STAIR : ON_FLOOR;
 		}
-		write[square] = found.empty() ? 1 : 0;
 	}
 	return stands;
 }
