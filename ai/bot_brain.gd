@@ -113,8 +113,7 @@ var _dodge: CargoDodge
 ## Its props, and the lifebuoy it goes for as the last think scored it (#273).
 var _props: BotProps
 var _buoy_score := 0.0
-## The bonuses aboard and its own, and the score of the one it goes for as the last think
-## chose it (#307).
+## The bonuses aboard and its own, and its score as the last think chose it (#307).
 var _bonuses: BotBonuses
 var _bonus_score := 0.0
 ## The floors of the frame it stands in (BotFloors, SH32), and that frame's.
@@ -134,8 +133,7 @@ var _plays_for := MatchRules.Goal.LAST_STANDING
 var _goal := WalkGraph.NONE
 ## The portals to it, as the last think found them; steered along until the next.
 var _legs: Array[WalkGraph.Portal] = []
-## Whether it is climbing because its floor was about to flood: it climbs on until it
-## stands in the zone it was making for.
+## Whether it climbs because its floor was about to flood: on until it stands in its goal.
 var _climbing := false
 ## Whether its way to where it climbs is a wade (BotRefuge.wade_out), heedless of water.
 var _wading := false
@@ -189,8 +187,7 @@ var _edge_also := Vector3.ZERO
 ## The tick of its view, from which it steps its walks since nearing a stair (_follow_route);
 ## -1 while it is seen held at its start, where no walk has moved it.
 var _seen_tick := 0
-## How hard it fights, as the last think found the match: how much it presses and its
-## spar margin.
+## How hard it fights, as the last think found the match: how much it presses, its spar margin.
 var _pacing: BotPacing
 ## How far ahead of its target it aims, as the last think found it: the share of where
 ## the target's seen velocity carries it over the bot's reaction time.
@@ -411,8 +408,11 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	var wade := _refuges.wade_out(my_zone, my_pos, my_surface, pose, refuge, _goal, _wading)
 	refuge = refuge if wade.is_empty() else wade.back().to_zone
 	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
-	_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
-	_bonus_score = _bonuses.choose(seen, me, found, _walk_graph, pose)
+	# Seen in the air, it keeps the ring or bonus it goes for, still there: a drop is no news.
+	var takes := intent == Intent.TAKE_BUOY or intent == Intent.TAKE_BONUS
+	if me["state"] != PlayerState.Body.AIRBORNE or not takes or _aim(seen).is_empty():
+		_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
+		_bonus_score = _bonuses.choose(seen, me, found, _walk_graph, pose)
 	# Going for a bonus, it reads its floor as it read its way: by the water in her now.
 	var low := (
 		floor_height
