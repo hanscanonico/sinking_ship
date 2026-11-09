@@ -841,10 +841,11 @@ func _room_middle(room: int) -> Vector3:
 
 
 ## Dijkstra over the zones from where a body on [param from_surface] at
-## [param from_pos] stands — a zone, or both ends of the ramp it is on — never entering
-## a doomed zone, nor, unless it may [param swim], a flooded one or going through a
-## portal with an end under water — nor, if it may [param wade], a flooded one or a
-## shut door, but through a portal with an end under water; ties go to the lower zone
+## [param from_pos] stands — a zone, or both ends of the ramp it is on, its foot's from
+## where it stands within a step of that floor, which its sides are a step up off (#562) —
+## never entering a doomed zone, nor, unless it may [param swim], a flooded one or going
+## through a portal with an end under water — nor, if it may [param wade], a flooded one or
+## a shut door, but through a portal with an end under water; ties go to the lower zone
 ## number. Its costs are metres walked, a crawl space's at crawl_speed (_pace). Empty
 ## when it stands on nothing. Lazy: it settles only as far as it is asked (WalkSearch).
 func search(
@@ -857,10 +858,14 @@ func search(
 	var found := WalkSearch.new(_zone_count, _native_graph)
 	if _surfaces.is_ramp(footing):
 		var ramp := footing - _surfaces.platform_count()
+		var foot := 0 if _ramps[ramp].start_height < _ramps[ramp].end_height else 1
 		for end in 2:
 			var zone := _ramp_zones[ramp][end]
 			var portal := _ramp_portals[ramp][end]
 			var exit := _ramps[ramp].end_point(end)
+			if end == foot and zone != NONE and absf(from_pos.y - exit.y) <= _step:
+				found.reach(zone, 0.0, from_pos)
+				continue
 			if portal == NONE or doomed(zone, pose):
 				continue
 			if not swim and (flooded(zone, pose) or not wade and _surfaces.wet(exit, pose)):
