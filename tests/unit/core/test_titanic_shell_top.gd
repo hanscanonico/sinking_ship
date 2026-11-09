@@ -7,6 +7,10 @@ extends GutTest
 ## house, closing that open deck in and hiding its railing. So no railing along her bridge
 ## deck's side stands inside her shell: where one runs, her shell's top is that deck's, on
 ## her and on her sisters.
+##
+## Nor along C deck's: where her shell stands over it, under her poop and B deck's after end,
+## her plating lines its edge (#580), and its promenades there were railed inside her plating,
+## 6 to 35 cm in (#598).
 
 const SHIP := "res://data/ships/titanic.tres"
 const SHIPS: Array[String] = [
@@ -22,6 +26,8 @@ const SLACK := 0.05
 const UNDER := 0.05
 ## Her bridge deck's platforms.
 const BRIDGE_DECK := &"B deck"
+## Her shelter deck's platforms.
+const SHELTER_DECK := &"C deck"
 ## Her decks, as her generator lays them (tools/gen_titanic.py).
 const B_DECK := 2.75
 const A_DECK := 5.5
@@ -33,11 +39,19 @@ var _rules := SimFixtures.rules()
 
 
 func test_no_railing_along_her_bridge_decks_side_stands_inside_her_shell() -> void:
+	_assert_none_railed_inside(BRIDGE_DECK)
+
+
+func test_no_railing_along_her_shelter_decks_side_stands_inside_her_shell() -> void:
+	_assert_none_railed_inside(SHELTER_DECK)
+
+
+func _assert_none_railed_inside(deck: StringName) -> void:
 	for path: String in SHIPS:
 		var layout: ShipLayout = load(path)
 		var railings: Array[ShipRailing] = []
 		for railing: ShipRailing in layout.railings:
-			if layout.platforms[railing.platform].name == BRIDGE_DECK:
+			if layout.platforms[railing.platform].name == deck:
 				railings.append(railing)
 		assert_gt(railings.size(), 0, path)
 		assert_eq(
