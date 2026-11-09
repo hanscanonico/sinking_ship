@@ -25,6 +25,13 @@ extends RefCounted
 ## (sinking_made) before it reads her schedule: the rest of her art is drawn from it, what
 ## falls and what the hit left open. Once it has read her schedule (schedule_read), her match may be
 ## served beside the rest of her dressing.
+##
+## Where nothing is drawn — headless, as every test and tool runs — she is dressed on the
+## caller's thread instead (threaded): there the RenderingServer is Godot's dummy, whose
+## stores of meshes, multimeshes, materials and shaders hand out their RIDs without a lock
+## up to 4.7.2 (godotengine/godot@5a4e2e8 locks them, on master). A mesh her thread made as
+## the main thread made one could take the same RID, and both were broken (#571). Started,
+## she is dressed at once — or, started ahead, as she is told her sinking is made.
 
 ## How long the main thread sleeps between flushes as it waits on a dressing, in µs.
 const WAIT_USEC := 200
@@ -83,6 +90,9 @@ var _ports := PackedVector3Array()
 var _ahead := false
 var _made := false
 var _read := false
+## Whether she was started ahead where she is dressed on the caller's thread (threaded):
+## dressed as she is told her sinking is made.
+var _waits_here := false
 ## Whether her art's frame (ShipArt.build_frame) was drawn ahead of her sinking
 ## (_frame_ahead).
 var _framed := false
@@ -119,14 +129,20 @@ static func at_rest(ship: ShipLayout, rules: BrawlRules) -> ShipDressing:
 	return dressing
 
 
-## Dresses her on a worker thread; done() says when she is. Returns itself. A match's
+## Dresses her on a worker thread where she may be (threaded), else here; done() says
+## when she is. Returns itself. A match's
 ## dressing started [param ahead] of her sinking — still baking, never to be touched —
 ## makes her sea's maps at once, and reads her schedule only once told it is made
 ## (sinking_made).
 func start(ahead := false) -> ShipDressing:
-	if _task >= 0 or _dressed:
+	if _task >= 0 or _dressed or _waits_here:
 		return self
 	_ahead = ahead and config != null
+	if not threaded():
+		_waits_here = _ahead
+		if not _ahead:
+			dress_now()
+		return self
 	_see_through()
 	# A match's dressing begun means the match before is over: its stretches are no longer
 	# wanted.
@@ -143,6 +159,9 @@ func sinking_made() -> void:
 	_guard.lock()
 	_made = true
 	_guard.unlock()
+	if _waits_here:
+		_waits_here = false
+		dress_now()
 
 
 ## Whether the dressing is done reading her match's schedule: her match may be served
@@ -244,6 +263,10 @@ func drop() -> void:
 	_guard.unlock()
 	if built:
 		_free_nodes()
+	# Let go before her sinking was made, she is done with, as her thread would be.
+	if _waits_here:
+		_waits_here = false
+		_dressed = true
 
 
 ## Finishes every dressing under way, the main thread's frames' work flowing meanwhile:
@@ -258,6 +281,12 @@ static func finish_all() -> void:
 ## How many dressings are under way, their tasks not yet seen through (finish_all).
 static func under_way() -> int:
 	return _under_way.size()
+
+
+## Whether a ship is dressed on a worker thread: never headless, where the dummy
+## RenderingServer cannot take RIDs made on two threads at once (the class's note).
+static func threaded() -> bool:
+	return DisplayServer.get_name() != "headless"
 
 
 ## Waits for, and forgets, every dressing under way whose task is over.
