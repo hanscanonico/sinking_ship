@@ -70,7 +70,14 @@ static func walked(
 	var held := PackedInt32Array()
 	for contact: Surfaces.Contact in contacts:
 		held.append(contact.railing)
-	var now := s.under(ship_point, step)
+	# The extension's under() is held to the GDScript's (test_contacts_native), and asked
+	# here at every pass of every step.
+	var mirror := s.native
+	var now: int = (
+		mirror.under(ship_point, step, Surfaces.NONE)
+		if mirror != null
+		else s.under(ship_point, step)
+	)
 	for on: int in [now, surface] if now != surface else [surface]:
 		var met: Array[Surfaces.Contact] = []
 		standing(s, on, ship_point, radius, step, railing_height, met)
