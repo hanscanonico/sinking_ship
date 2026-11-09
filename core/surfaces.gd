@@ -433,35 +433,23 @@ func obstacle_contacts(
 ## deck the feet could step up onto, or whose top stands over them — the floor's railing
 ## along the stair's side near its head or foot, across the way off it there (#552) — each
 ## held to from the stair's side of its line. A railing holds only along its span: a
-## centre level with a gap is touching nothing.
+## centre level with a gap is touching nothing. A body that has walked there this tick from
+## [param came_from] (x/z) meets those of the surface it stands over too, and any railing it
+## crossed, on the side it came from (RailContacts.walked, #592).
 func rail_contacts(
-	ship_point: Vector3, radius: float, surface: int, step: float, railing_height: float
+	ship_point: Vector3,
+	radius: float,
+	surface: int,
+	step: float,
+	railing_height: float,
+	came_from := Vector2.INF
 ) -> Array[Contact]:
+	if came_from != Vector2.INF:
+		return RailContacts.walked(
+			self, ship_point, came_from, radius, surface, step, railing_height
+		)
 	var contacts: Array[Contact] = []
-	var point := Vector2(ship_point.x, ship_point.z)
-	if is_ramp(surface):
-		var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
-		var feet := ship_point.y
-		var middle := _areas[surface].get_center()
-		for index: int in _rail_grid.near(box, feet - railing_height, feet + step):
-			if _rail_gone[index] == 1:
-				continue
-			var deck := _platforms[_railings[index].platform].height
-			if deck > feet + step or feet >= deck + railing_height:
-				continue
-			var side := (middle - _railings[index].from).dot(_rail_normals[index])
-			var contact := _rail_contact(index, point, radius, side < 0.0)
-			if contact != null:
-				contacts.append(contact)
-		return PlaneShapes.deepest_per_direction(contacts)
-	if surface < 0 or surface >= _platforms.size():
-		return contacts
-	for index: int in _platform_rails[surface]:
-		if _rail_gone[index] == 1:
-			continue
-		var contact := _rail_contact(index, point, radius)
-		if contact != null:
-			contacts.append(contact)
+	RailContacts.standing(self, surface, ship_point, radius, step, railing_height, contacts)
 	return PlaneShapes.deepest_per_direction(contacts)
 
 

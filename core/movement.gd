@@ -28,8 +28,14 @@ extends RefCounted
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
 ## between a doorway's jambs, against a wall by a crowd — can end inside one wall or
 ## slip through a gap narrower than itself. Four passes settle a body wedged between
-## two walls and another body; they stop as soon as nothing moves.
+## two walls and another body; they stop as soon as nothing moves. A body they leave
+## inside a wall or a railing had no room where it went (_unsqueeze).
 const CONTACT_PASSES := 4
+## How far into a blocker or a railing a body may stand once its step's contacts are met
+## and still be out of it: a hair over what a position rounds to — its components 32-bit
+## floats, a few micrometres at her length — so a body held against a wall is clear of it,
+## and one pressed into it by anything more is squeezed (_unsqueeze, #591).
+const SQUEEZE := 0.001
 ## How far apart a swimmer looks for a ceiling along the way it swims, out to where its
 ## circle reaches next (_headroom): half the thinnest lintel, so none slips between.
 const DUCK_LOOK := 0.1
@@ -285,9 +291,10 @@ func _moving_seats(live: Array[PlayerState]) -> Array[PlayerState]:
 ## Integration, then contacts: blockers, then railings, then bodies pushing each
 ## other apart and parting pair by pair in seat order (_bodies), pass after pass until
 ## nothing moves. Walls and rails have the last word — the last pass stops before
-## bodies push — so a crowd may end a tick pressed together, never inside a wall. A
-## climber is where its climb has it, and takes no part. Returns each seat's feet height
-## before it moved, by seat of [param state].
+## bodies push — so a crowd may end a tick pressed together, never inside a wall: a body
+## they cannot both hold out, squeezed between them, goes back to where its step began
+## (_unsqueeze). A climber is where its climb has it, and takes no part. Returns each
+## seat's feet height before it moved, by seat of [param state].
 func move(
 	state: MatchState,
 	live_seats: Array[PlayerState],
@@ -318,9 +325,12 @@ func move(
 	# nothing again and is not asked.
 	var clear_of_blockers: Dictionary[int, Vector3] = {}
 	var clear_of_railings: Dictionary[int, Vector3] = {}
+	var stepped_from := PackedVector3Array()
+	stepped_from.resize(live.size())
 	for _step in steps:
-		for player: PlayerState in live:
-			player.pos += player.vel * dt
+		for index in live.size():
+			stepped_from[index] = live[index].pos
+			live[index].pos += live[index].vel * dt
 		for contact_pass in CONTACT_PASSES:
 			var held := _blockers(state, live, feet_before, pose_now, tick, clear_of_blockers)
 			held = (
@@ -330,8 +340,58 @@ func move(
 				break
 			if not _bodies(live, tick, events) and not held:
 				break
+		for index in live.size():
+			var player := live[index]
+			if (
+				clear_of_blockers.get(player.seat) != player.pos
+				or clear_of_railings.get(player.seat) != player.pos
+			):
+				_unsqueeze(player, stepped_from[index], feet_before, pose_now, came_from)
 	_ceilings(live, feet_before)
 	return feet_before
+
+
+## [param player] where its step's contacts have left it, its step begun at
+## [param from]: still pressed into a blocker or a railing past SQUEEZE, it had no room
+## there — held out of one into the other, in a gap narrower than itself, say (#591) — so it
+## goes back in the deck plane to [param from] and stops there, its speed spent against
+## them. Where it began its step pressed in just as much, it stays where it was left.
+func _unsqueeze(
+	player: PlayerState,
+	from: Vector3,
+	feet_before: PackedFloat64Array,
+	pose_now: ShipPose,
+	came_from: PackedVector2Array
+) -> void:
+	if not _squeezed(player, player.pos, feet_before, pose_now, came_from):
+		return
+	if _squeezed(player, from, feet_before, pose_now, came_from):
+		return
+	player.pos.x = from.x
+	player.pos.z = from.z
+	player.vel.x = 0.0
+	player.vel.z = 0.0
+
+
+## Whether [param player] with its centre at [param at] is pressed into a blocker or a
+## railing by more than SQUEEZE, as _blockers and _railings meet it there: never into a
+## railing it goes over at vault_speed or more.
+func _squeezed(
+	player: PlayerState,
+	at: Vector3,
+	feet_before: PackedFloat64Array,
+	pose_now: ShipPose,
+	came_from: PackedVector2Array
+) -> bool:
+	var feet := Vector3(at.x, feet_before[player.seat], at.z)
+	for contact: Surfaces.Contact in _held_by(player, feet, pose_now):
+		if contact.depth > SQUEEZE:
+			return true
+	var planar := Vector2(player.vel.x, player.vel.z)
+	for contact: Surfaces.Contact in _railed_by(player, at, came_from[player.seat]):
+		if contact.depth > SQUEEZE and -planar.dot(contact.normal) < _rules.vault_speed:
+			return true
+	return false
 
 
 ## A rising body stops with its head — at its height there (height_of) — against the
@@ -375,19 +435,7 @@ func _blockers(
 		if clear.get(player.seat) == player.pos:
 			continue
 		var feet := Vector3(player.pos.x, feet_before[player.seat], player.pos.z)
-		var step := _rules.step_height
-		var height := _rules.body_height
-		var crawl := _rules.crawl_height
-		if player.body != PlayerState.Body.GROUNDED:
-			height = height_of(player)
-			crawl = INF
-		if player.body == PlayerState.Body.AIRBORNE:
-			step = AIR_STEP
-		elif player.body == PlayerState.Body.SWIMMING:
-			step = _swim_step(feet, pose_now.water_height(feet))
-		var contacts := _surfaces.obstacle_contacts(
-			feet, _rules.body_radius, height, step, Surfaces.NONE, crawl
-		)
+		var contacts := _held_by(player, feet, pose_now)
 		if contacts.is_empty():
 			clear[player.seat] = player.pos
 		for contact: Surfaces.Contact in contacts:
@@ -399,13 +447,31 @@ func _blockers(
 	return moved
 
 
+## What holds back [param player] with its feet at [param feet] — its height before this
+## tick's move — as _blockers meets it.
+func _held_by(player: PlayerState, feet: Vector3, pose_now: ShipPose) -> Array[Surfaces.Contact]:
+	var step := _rules.step_height
+	var height := _rules.body_height
+	var crawl := _rules.crawl_height
+	if player.body != PlayerState.Body.GROUNDED:
+		height = height_of(player)
+		crawl = INF
+	if player.body == PlayerState.Body.AIRBORNE:
+		step = AIR_STEP
+	elif player.body == PlayerState.Body.SWIMMING:
+		step = _swim_step(feet, pose_now.water_height(feet))
+	return _surfaces.obstacle_contacts(feet, _rules.body_radius, height, step, Surfaces.NONE, crawl)
+
+
 ## A railing stops a grounded body crossing it slower than vault_speed — it loses
 ## the velocity into the rail — and tips one at or above it over, into the air,
-## damaging the span by vault_damage (Hazards.damage). In the air, a body that came
-## from a rail's side with its feet below the rail's top is held the same way, unless
-## it crosses at vault_speed or more: a vaulter is never pulled back. A body still
-## where [param clear] last found it held by none is not asked again. True when it
-## moved anyone.
+## damaging the span by vault_damage (Hazards.damage). On its feet a body meets the
+## railings of the surface it stood on, of the one it stands over now, and any it crossed
+## on its way, held on the side it came from (Surfaces.rail_contacts, #592). In the
+## air, a body that came from a rail's side with its feet below the rail's top is held the
+## same way, unless it crosses at vault_speed or more: a vaulter is never pulled back. A
+## body still where [param clear] last found it held by none is not asked again. True when
+## it moved anyone.
 func _railings(
 	state: MatchState,
 	live: Array[PlayerState],
@@ -420,23 +486,7 @@ func _railings(
 		if clear.get(player.seat) == player.pos:
 			continue
 		var airborne := player.body == PlayerState.Body.AIRBORNE
-		var contacts: Array[Surfaces.Contact]
-		if airborne:
-			contacts = _surfaces.airborne_rail_contacts(
-				player.pos,
-				came_from[player.seat],
-				_rules.body_radius,
-				height_of(player),
-				_rules.railing_height
-			)
-		elif player.body == PlayerState.Body.GROUNDED:
-			contacts = _surfaces.rail_contacts(
-				player.pos,
-				_rules.body_radius,
-				player.surface,
-				_rules.step_height,
-				_rules.railing_height
-			)
+		var contacts := _railed_by(player, player.pos, came_from[player.seat])
 		if contacts.is_empty():
 			clear[player.seat] = player.pos
 		for contact: Surfaces.Contact in contacts:
@@ -466,6 +516,26 @@ func _railings(
 			_hold(player, contact)
 			moved = true
 	return moved
+
+
+## The railings that hold back [param player] with its centre at [param at], come from
+## [param came_from] (x/z) this tick, as _railings meets them: none for a swimmer.
+func _railed_by(player: PlayerState, at: Vector3, came_from: Vector2) -> Array[Surfaces.Contact]:
+	if player.body == PlayerState.Body.AIRBORNE:
+		return _surfaces.airborne_rail_contacts(
+			at, came_from, _rules.body_radius, height_of(player), _rules.railing_height
+		)
+	if player.body == PlayerState.Body.GROUNDED:
+		return _surfaces.rail_contacts(
+			at,
+			_rules.body_radius,
+			player.surface,
+			_rules.step_height,
+			_rules.railing_height,
+			came_from
+		)
+	var none: Array[Surfaces.Contact] = []
+	return none
 
 
 ## Bodies whose heights overlap push each other apart, pair by pair in seat order,
