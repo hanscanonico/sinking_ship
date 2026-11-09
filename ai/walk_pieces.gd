@@ -98,12 +98,16 @@ func zone(room: int, point: Vector2) -> int:
 
 
 ## The zone of the piece of [param room] a body walking in from [param from] (x/z), on its
-## edge, the way [param inward] first stands in (_walked_in): the room's own where it is not
-## split; -1 where it is and the body stands in none.
+## edge, the way [param inward] first stands in (_walked_in), else is pushed aside onto
+## (_walked_beside) — by the solid under a stair's head beside the walk through the Titanic's
+## T.R.S.'s doorway aft on D deck: the room's own where it is not split; -1 where it is and
+## the body comes to stand in none.
 func zone_in(room: int, from: Vector2, inward: Vector2) -> int:
 	if not _grid_of.has(room):
 		return room
-	return _walked_in(_grid_of[room], from, inward)
+	var grid: Dictionary = _grid_of[room]
+	var piece := _walked_in(grid, from, inward)
+	return piece if piece >= 0 else _walked_beside(grid, from, inward)
 
 
 ## Puts back into its room's own zone each piece of a split room that no route from
@@ -278,16 +282,32 @@ func _walked_in(grid: Dictionary, from: Vector2, inward: Vector2) -> int:
 	return -1
 
 
-## The piece of [param grid] at [param point], or the nearest one within REACH of it; -1
-## where none is.
-func _piece_at(grid: Dictionary, point: Vector2) -> int:
+## The piece of [param grid] of the nearest square within a body's radius of a walk in from
+## [param from] the way [param inward], read every half a square along it as far as a body's
+## width in, nearest the doorway first: a body walking in there, standing on no square, is
+## pushed aside onto it. -1 where there is none. A square a body stands on stands a body's
+## radius clear of every wall, so none this near the walk is past one.
+func _walked_beside(grid: Dictionary, from: Vector2, inward: Vector2) -> int:
+	var step: float = grid["side"] * 0.5
+	var along := step * 0.5
+	while along <= _lead:
+		var beside := _piece_at(grid, from + inward * along, _radius)
+		if beside >= 0:
+			return beside
+		along += step
+	return -1
+
+
+## The piece of [param grid] at [param point], or the nearest one within [param within] of
+## it; -1 where none is.
+func _piece_at(grid: Dictionary, point: Vector2, within := REACH) -> int:
 	var side: float = grid["side"]
 	var origin: Vector2 = grid["origin"]
 	var width: int = grid["width"]
 	var depth: int = grid["depth"]
 	var pieces: PackedInt32Array = grid["pieces"]
 	var at := ((point - origin) / side).floor()
-	var reach := ceili(REACH / side)
+	var reach := ceili(within / side)
 	var best := -1
 	var best_distance := INF
 	for dz in range(-reach, reach + 1):
@@ -298,7 +318,7 @@ func _piece_at(grid: Dictionary, point: Vector2) -> int:
 				continue
 			var middle := origin + (Vector2(x, z) + Vector2(0.5, 0.5)) * side
 			var distance := middle.distance_squared_to(point)
-			if distance < best_distance and distance <= REACH * REACH:
+			if distance < best_distance and distance <= within * within:
 				best = pieces[z * width + x]
 				best_distance = distance
 	return best

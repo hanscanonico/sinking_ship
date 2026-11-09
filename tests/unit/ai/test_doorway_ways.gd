@@ -10,11 +10,9 @@ extends GutTest
 ## deck narrower than a body, a doorway over a stair's head on B deck, the stairs run on
 ## through doorways on E and F decks.
 
-const SHIPS: Array[String] = [
-	"res://data/ships/titanic.tres",
-	"res://tests/fixtures/ships/titanic_britannic.tres",
-	"res://tests/fixtures/ships/titanic_olympic_1913.tres",
-]
+const TITANIC := "res://data/ships/titanic.tres"
+const BRITANNIC := "res://tests/fixtures/ships/titanic_britannic.tres"
+const OLYMPIC := "res://tests/fixtures/ships/titanic_olympic_1913.tres"
 ## How many lines either side of a portal's middle a body is tried along, spread evenly out
 ## to SPARE past either side of its width; and how far back from its line on each a body is
 ## set down, in metres.
@@ -46,8 +44,9 @@ func before_all() -> void:
 
 
 func test_every_way_through_a_doorway_by_a_stair_is_walked() -> void:
-	for path: String in SHIPS:
-		var layout: ShipLayout = load(path)
+	var ships: Array[ShipLayout] = [load(TITANIC), load(BRITANNIC), load(OLYMPIC)]
+	for layout: ShipLayout in ships:
+		var path := layout.resource_path.get_file()
 		var graph := WalkGraph.new(layout, Surfaces.new(layout), _rules)
 		var sim := _sim(layout)
 		var tried := 0
