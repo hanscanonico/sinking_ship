@@ -69,9 +69,11 @@ func by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 ## was seen at, toward each walk by ground_accel, or slowing by ground_friction with none
 ## pressed — a turn or a stop since is no surprise to it, nor the ticks its feet take to
 ## make it — its body held by every railing it meets on the way as the sim holds one on its
-## feet (Surfaces.rail_contacts): pushed back out, losing the speed into it, it slides along
-## the railing, round its end only once its body is past it (#557). Otherwise, or where a
-## wall stands across the walk, where [param reckoned] by its seen velocity.
+## feet (Surfaces.rail_contacts), walking there from where the tick before left it — on the
+## side it came from, whatever floor it stepped from (#592): pushed back out, losing the
+## speed into it, it slides along the railing, round its end only once its body is past it
+## (#557). Otherwise, or where a wall stands across the walk, where [param reckoned] by its
+## seen velocity.
 func by_steps(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 	if not _walking(me):
 		return reckoned
@@ -90,11 +92,12 @@ func by_steps(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 		var wish := _sent_moves[index] * pace
 		var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
 		vel = vel.move_toward(wish, rate * dt)
+		var came := Vector2(at.x, at.z)
 		at += Vector3(vel.x, 0.0, vel.y) * dt
 		var radius := _rules.body_radius
 		var railing := _rules.railing_height
 		for held: Surfaces.Contact in _surfaces.rail_contacts(
-			at, radius, surface, _rules.step_height, railing
+			at, radius, surface, _rules.step_height, railing, came
 		):
 			at += Vector3(held.normal.x, 0.0, held.normal.y) * held.depth
 			vel += held.normal * maxf(-vel.dot(held.normal), 0.0)

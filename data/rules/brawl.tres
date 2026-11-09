@@ -8,6 +8,7 @@ walk_speed = 5.0
 ground_accel = 35.0
 ground_friction = 30.0
 body_radius = 0.4
+body_give = 0.06
 body_height = 1.7
 gravity = 20.0
 body_restitution = 0.2

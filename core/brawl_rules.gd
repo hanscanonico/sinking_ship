@@ -9,6 +9,13 @@ extends Resource
 @export var ground_accel: float
 @export var ground_friction: float
 @export var body_radius: float
+## How much less room than its width a body takes where walls and railings press it from
+## both sides, in metres all told: through a gap that much narrower than itself it still
+## squeezes, pressed into both; one narrower still it does not get into, and stands at its
+## mouth (Movement, #591). The narrowest flights on the Titanic's plates, 0.75 m between
+## their walls, take a body 0.8 m wide, as her crew took them; the 0.72 m strip beside C
+## deck's stair head and E deck's 0.595 m pocket beside ramp 38 do not.
+@export var body_give: float
 @export var body_height: float
 @export var gravity: float
 ## How much of the speed two bodies meet at they part with, along the line between
@@ -290,6 +297,7 @@ func problems() -> PackedStringArray:
 		"ground_accel",
 		"ground_friction",
 		"body_radius",
+		"body_give",
 		"body_height",
 		"gravity",
 		"body_impact_speed",

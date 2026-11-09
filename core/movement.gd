@@ -29,13 +29,9 @@ extends RefCounted
 ## between a doorway's jambs, against a wall by a crowd — can end inside one wall or
 ## slip through a gap narrower than itself. Four passes settle a body wedged between
 ## two walls and another body; they stop as soon as nothing moves. A body they leave
-## inside a wall or a railing had no room where it went (_unsqueeze).
+## pressed into walls or railings by more than it gives had no room where it went
+## (_unsqueeze).
 const CONTACT_PASSES := 4
-## How far into a blocker or a railing a body may stand once its step's contacts are met
-## and still be out of it: a hair over what a position rounds to — its components 32-bit
-## floats, a few micrometres at her length — so a body held against a wall is clear of it,
-## and one pressed into it by anything more is squeezed (_unsqueeze, #591).
-const SQUEEZE := 0.001
 ## How far apart a swimmer looks for a ceiling along the way it swims, out to where its
 ## circle reaches next (_headroom): half the thinnest lintel, so none slips between.
 const DUCK_LOOK := 0.1
@@ -352,10 +348,11 @@ func move(
 
 
 ## [param player] where its step's contacts have left it, its step begun at
-## [param from]: still pressed into a blocker or a railing past SQUEEZE, it had no room
-## there — held out of one into the other, in a gap narrower than itself, say (#591) — so it
-## goes back in the deck plane to [param from] and stops there, its speed spent against
-## them. Where it began its step pressed in just as much, it stays where it was left.
+## [param from]: squeezed there — pressed between walls and railings into less room than
+## its width by more than it gives (body_give), held out of one into the other in a gap
+## narrower than itself (#591) — it had no room there, so it goes back in the deck plane to
+## [param from] and stops, its speed spent against them. Where it began its step squeezed
+## as well, it stays where it was left.
 func _unsqueeze(
 	player: PlayerState,
 	from: Vector3,
@@ -373,9 +370,10 @@ func _unsqueeze(
 	player.vel.z = 0.0
 
 
-## Whether [param player] with its centre at [param at] is pressed into a blocker or a
-## railing by more than SQUEEZE, as _blockers and _railings meet it there: never into a
-## railing it goes over at vault_speed or more.
+## Whether [param player] with its centre at [param at] is squeezed (_unsqueeze): the
+## blockers and railings _blockers and _railings meet it by there — never a railing it goes
+## over at vault_speed or more — leave it less room than its width by more than body_give:
+## one of them pressing that far into it, or two from opposite sides together.
 func _squeezed(
 	player: PlayerState,
 	at: Vector3,
@@ -384,13 +382,22 @@ func _squeezed(
 	came_from: PackedVector2Array
 ) -> bool:
 	var feet := Vector3(at.x, feet_before[player.seat], at.z)
-	for contact: Surfaces.Contact in _held_by(player, feet, pose_now):
-		if contact.depth > SQUEEZE:
-			return true
+	var pressing := _held_by(player, feet, pose_now)
 	var planar := Vector2(player.vel.x, player.vel.z)
 	for contact: Surfaces.Contact in _railed_by(player, at, came_from[player.seat]):
-		if contact.depth > SQUEEZE and -planar.dot(contact.normal) < _rules.vault_speed:
+		if -planar.dot(contact.normal) < _rules.vault_speed:
+			pressing.append(contact)
+	for first in pressing.size():
+		var depth := pressing[first].depth
+		if depth > _rules.body_give:
 			return true
+		for second in range(first + 1, pressing.size()):
+			var other := pressing[second]
+			if (
+				other.normal.dot(pressing[first].normal) < 0.0
+				and depth + other.depth > _rules.body_give
+			):
+				return true
 	return false
 
 

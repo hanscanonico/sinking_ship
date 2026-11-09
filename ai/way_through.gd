@@ -20,13 +20,13 @@ extends RefCounted
 ## the upper's wedge: a body walking down the upper one walks on along the lower one's head.
 ## A flight under a deck too low to crawl under, or with a solid standing in its run (the
 ## layout lint holds every ship to none of either, test_every_flight_is_walked_end_to_end,
-## #541). A railing holds a body only from its own
-## deck's side, so a doorway onto a railed hole's edge lets a body out onto her open deck,
-## pushed on its way, and never back in. A stair's high end in a doorway, machinery or
-## furniture against it, a railing in a doorway between two rooms. The layout lint holds
-## every ship's rooms to a way out and back in that a body takes (#514), so none is sealed
-## off the graph by what it leaves out (test_no_sealed_room). Asked of Surfaces once, as the
-## graph is built, before any crate or broken railing is honoured.
+## #541). A railing holds a body on the side it came from, whatever floor it stepped from
+## (#592), so a doorway across a railed hole's edge lets no body across it either way. A
+## stair's high end in a doorway, machinery or furniture against it, a railing in a doorway
+## between two rooms. The layout lint holds every ship's rooms to a way out and back in that
+## a body takes (#514), so none is sealed off the graph by what it leaves out
+## (test_no_sealed_room). Asked of Surfaces once, as the graph is built, before any crate or
+## broken railing is honoured.
 
 ## How far apart along a flight's middle, and across a doorway, a body is tried, in metres.
 const STRIDE := 0.125
@@ -191,8 +191,10 @@ static func across(door: ShipRoom.Door, off: float, floor_height: float) -> Vect
 ## the line at most, every STRIDE nearer, on the line at the last, a HAIR on the room's side
 ## of it, never first past it — on until it stands clear past it, its feet on a floor or a
 ## stair all the way and nothing pushing it back (BACK); the railings the sim holds it by
-## among what holds it unless [param rails] is false: a floor's own, and on a stair those
-## along its sides by its head (Surfaces.rail_contacts, #552, #561). Where [param begins] is
+## among what holds it unless [param rails] is false: a floor's own, on a stair those along
+## its sides by its head (Surfaces.rail_contacts, #552, #561), and, walking on from the
+## stride before, the floor's it stepped from and any it crossed, on the side it came from
+## (#592). Where [param begins] is
 ## a callable, it stands there only where begins(feet, surface, out) is true — in the zone
 ## the way leads out of (WalkDoors._begins) — and clear past the line only where
 ## begins(feet, surface, -out) is: where the way back would begin, in the zone it leads into.
@@ -209,6 +211,10 @@ static func _crosses(
 	var depth := ceili(rules.body_radius / STRIDE)
 	var feet := floor_height
 	var stood := false
+	# Where it stood the stride before, and on what, once it stands: the railings hold it as
+	# the sim holds a body walking there from that point (#592).
+	var came := Vector2.INF
+	var stood_on := Surfaces.NONE
 	for step in range(-depth, depth + 1):
 		var flat := at + out * (STRIDE * step)
 		if step == 0 and not stood:
@@ -226,7 +232,12 @@ static func _crosses(
 		if rails:
 			held.append_array(
 				surfaces.rail_contacts(
-					point, radius, surface, rules.step_height, rules.railing_height
+					point,
+					radius,
+					stood_on if stood else surface,
+					rules.step_height,
+					rules.railing_height,
+					came
 				)
 			)
 		if (
@@ -241,8 +252,12 @@ static func _crosses(
 			if not stood and step == 0:
 				return false
 			feet = point.y if stood else feet
+			came = flat if stood else came
+			stood_on = surface
 			continue
 		feet = point.y
+		came = flat
+		stood_on = surface
 		for contact: Surfaces.Contact in held:
 			if contact.normal.dot(out) < -BACK:
 				return false
