@@ -1,21 +1,31 @@
 hit 00:16.2 · starboard · x 4.7…15.9 m · 1.936 m²
 must 2 thrown · 1 bakes · drawn
-00:15.3 seat 6 out · cold · place 8
 00:16.3 hold_wing_s flooding
 00:17.1 forepeak flooding
 00:20.0 High jump aboard · spot 19
 00:20.9 hold_bilge flooding
+01:05.6 seat 7 out · cold · place 8
 01:16.5 Steady aboard · spot 10
-01:20.7 seat 7 takes Steady · spot 10
-01:30.3 seat 4 out · cold · place 7
+01:17.8 seat 3 out · cold · place 7
+01:21.7 seat 4 takes Steady · spot 10
+01:26.5 seat 0 takes High jump · spot 19
 01:31.2 hold flooding
-01:32.0 seat 0 out · cold · place 6
-01:41.5 seat 2 out · cold · place 5
-01:44.0 seat 3 out · cold · place 4
 01:46.0 hold_bilge lamps drowned
-01:52.5 seat 7 out · cold · place 3
-01:56.5 seat 5 out · cold · place 2
-winner seat 1 at 01:56.5 · digest ae21b36e2a3ec917
-sinking at the end of the match: physics 0:02:40 (on the paced clock, Q20) · seen 18% · sea 0.70 m up her · trim +3.8° · list +4.4° · hold_bilge 3.89 m · hold 0.34 m · hold_wing_s 3.98 m · forepeak 1.33 m
+01:57.7 Strong arms aboard · spot 12
+02:10.4 hold_bilge full
+02:11.2 hold_wing_p flooding
+02:38.1 railing 18 broke
+02:42.9 seat 2 out · cold · place 6
+02:43.0 seat 0 out · cold · place 4
+02:43.0 seat 4 out · cold · place 4
+02:45.6 panel_bulkhead_hold_engine_bilge_s_hold_wing_s gave way
+02:45.9 engine_bilge_s flooding
+02:46.7 engine_bilge_s lamps drowned
+02:47.1 engine_room flooding
+02:47.4 engine_bilge_s full
+02:47.4 seat 6 out · cold · place 3
+02:48.3 seat 5 out · cold · place 2
+winner seat 1 at 02:48.3 · digest 63de2ca0ed213cbc
+sinking at the end of the match: physics 0:06:39 (on the paced clock, Q20) · seen 45% · sea 0.97 m up her · trim +5.6° · list +8.8° · engine_bilge_s full · engine_room 0.31 m · hold_bilge 4.12 m · hold 1.37 m · hold_wing_p 0.42 m · hold_wing_s 4.36 m · forepeak 3.17 m
 not played: gone at 0:14:38 · trim +87.6° · list -17.9° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x -5.5 m, hogging
