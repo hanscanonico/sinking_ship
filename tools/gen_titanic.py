@@ -1502,8 +1502,8 @@ B_PLAN = plates.load("b", side=b_side)
 # of its front (B_HOUSE's end); its forwardmost cabins stand in from her side, windowed onto
 # the open deck outboard of them. Plate III's elevation draws her side open forward of that
 # curve: her plating sweeps down from A deck's edge to her bulwark's top in a quarter round
-# 1.2 m long (px 8255-8300, y 1857-1902 on the full scan), and the bulwark runs on 1.1 m
-# over B deck to its front, her railing standing for it (#580). Her shell stands to A deck
+# 1.2 m long (px 8255-8300, y 1857-1902 on the full scan), and the bulwark runs on about
+# 1.2 m over B deck to its front, her railing standing for it (#580). Her shell stands to A deck
 # to the corners and steps down square there (shell_top): the quarter round is that
 # bulwark's plating, open deck behind it, nothing her sections enclose.
 B_CORNERS = max(r[2] for r in B_PLAN.rooms if r[2] <= B_HOUSE[1] + 1e-6
