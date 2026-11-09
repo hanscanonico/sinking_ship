@@ -2,13 +2,12 @@ extends GutTest
 ## The walk graph's portals are only where a body could get through (WayThrough, #501). A
 ## flight stacked under another in one well is no way, nor one a solid stands in — as one
 ## stood in her ladder down to E deck aft of C to port, which a body now walks both ways
-## (#537, #541) — and a doorway onto a stair's foot gives onto the
-## stair, never the deck under it. On the Titanic a doorway onto a
-## stair hole's railing lets a body out, pushed on by the railing, and none in. A join beside
-## a flight's side lets none through either way: it keeps its portal, so that no room is
-## sealed off. Every doorway of hers that opened onto a flight's side or high end, or onto a
-## solid's face, is laid so a body goes through it, or walled (#514). Her other ships lose no
-## portal.
+## (#537, #541) — and a doorway onto a stair's foot gives onto the stair, never the deck under
+## it. On the Titanic a doorway over a stair's head, across the railing along its side, lets
+## no body through: the sim holds a body on the stair by it (#561). A join beside a flight's
+## side lets none through either way: it keeps its portal, so that no room is sealed off.
+## Every doorway of hers that opened onto a flight's side or high end, or onto a solid's face,
+## is laid so a body goes through it, or walled (#514). Her other ships lose no portal.
 
 const TITANIC := "res://data/ships/titanic.tres"
 const B_DECK := 2.75
@@ -79,10 +78,15 @@ const AGAINST_SOLIDS: Array[Vector3] = [
 ## reached only from inside them; and its stretch outside them, to port.
 const INSIDE_THE_W_C_S := Vector3(-118.9688, D_AFT_P, 8.48)
 const BESIDE_THE_W_C_S := Vector3(-118.9688, D_AFT_P, 5.8)
-## The after second-class entrance's doorway to port on B deck, along the railed side of the
-## hole of its stair down to C deck; and its doorway to starboard.
+## The after second-class entrance's doorway to port on B deck, over the head of its stair
+## down to C deck and across the railing along the stair's side; and its doorway to
+## starboard.
 const ONTO_THE_RAILED_HOLE := Vector3(-90.375, B_DECK, -2.875)
 const THE_WAY_TO_STARBOARD := Vector3(-90.375, B_DECK, 3.0)
+## The T.R.S. on D deck forward of B: its doorway aft, into the passage, whose floor on the
+## room's side lies beside the solid under the head of the stair down into it from the
+## forecastle's passage on C deck.
+const OUT_OF_THE_T_R_S := Vector3(98.875, -1.25, -2.5)
 ## E deck aft of bulkhead C, to port: the doorway between the passage aft of the ladder down
 ## to F deck and the passage along it, which the ladder hole's railing once ran across, the
 ## passage widened into its well; and off the port after ladderway's lane, the four-berth
@@ -325,15 +329,45 @@ func test_a_body_at_rest_walks_into_e_deck_s_rooms_aft_of_c_and_back_out() -> vo
 		assert_true(_walks(sim, _zone(walk[1]), 15.0), "from %s to %s" % walk)
 
 
-func test_a_doorway_onto_a_railed_stair_hole_lets_a_body_out_and_none_in() -> void:
-	var entrance := _zone(THE_WAY_TO_STARBOARD + Vector3(-1.0, 0.0, -1.0))
-	var deck := _zone(ONTO_THE_RAILED_HOLE + Vector3(0.0, 0.0, -0.8))
-	assert_ne(entrance, deck, "the doorway joins the entrance and her deck")
-	for portal: WalkGraph.Portal in _graph.portals():
-		if portal.ramp == WalkGraph.NONE and portal.entry.distance_to(ONTO_THE_RAILED_HOLE) < 0.6:
-			assert_eq(portal.from_zone, entrance, "only out of the entrance, pushed on")
-	assert_eq(_doorways_at(ONTO_THE_RAILED_HOLE), 1, "one portal through the doorway to port")
+## The after second-class entrance's doorway to port on B deck opens over the head of its
+## stair down to C deck, across the railing along the stair's side, which fences the deck
+## past the doorway off the hole; the entrance's floor beside the stair's head is narrower
+## than a body between the doorway's jamb and the stair. A body walking out stands on the
+## stair's head, and the sim holds a body there by the railings along a stair's sides by its
+## head (#552): no body walks out through the doorway, nor in, and the graph has no portal
+## through it (#561). Its doorway to starboard lets a body through both ways, and her deck past
+## the doorway to port is reached round by another.
+func test_a_doorway_over_a_railed_stair_s_head_lets_no_body_through() -> void:
+	var rules := SimFixtures.rules()
+	var door := _door_at(ONTO_THE_RAILED_HOLE)
+	assert_not_null(door, "the entrance's doorway to port")
+	if door == null:
+		return
+	var unrailed := WayThrough.doorway(_surfaces, rules, door, B_DECK, door.outward, false)
+	assert_false(is_nan(unrailed), "but for the railing a body on the stair's head walks out")
+	for out: Vector2 in [door.outward, -door.outward]:
+		var off := WayThrough.doorway(_surfaces, rules, door, B_DECK, out)
+		assert_true(is_nan(off), "the railing holds a body back the way %s, at %.3f" % [out, off])
+	assert_eq(_doorways_at(ONTO_THE_RAILED_HOLE), 0, "no portal through the doorway to port")
 	assert_eq(_doorways_at(THE_WAY_TO_STARBOARD), 2, "its doorway to starboard, both ways")
+	var in_the_entrance := THE_WAY_TO_STARBOARD + Vector3(-1.0, 0.0, -1.0)
+	var on_her_deck := ONTO_THE_RAILED_HOLE + Vector3(0.0, 0.0, -0.8)
+	var entrance := _zone(in_the_entrance)
+	var deck := _zone(on_her_deck)
+	assert_ne(entrance, deck, "the doorway joins the entrance and her deck")
+	for walk: Array in [[in_the_entrance, deck], [on_her_deck, entrance]]:
+		var from: Vector3 = walk[0]
+		var on := _surfaces.under(from, rules.step_height)
+		assert_false(_graph.route(from, on, walk[1], _dry).is_empty(), "a way round from %s" % from)
+
+
+## A portal's room end is the piece a body walking in through the doorway first stands in.
+## Into the T.R.S. through its doorway aft, where a body goes out, a body's straight walk in
+## runs along the solid under the stair's head, where no body stands: the solid pushes it
+## aside onto the floor by the doorway, and that floor is the way's end. The doorway keeps a
+## portal either way (#561).
+func test_a_way_in_pushed_aside_by_a_stair_s_solid_ends_beside_it() -> void:
+	assert_eq(_doorways_at(OUT_OF_THE_T_R_S), 2, "a portal through the T.R.S.'s doorway either way")
 
 
 ## A way through a doorway begins where a body stands in the zone it leads out of. Where a

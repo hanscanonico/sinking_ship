@@ -9,7 +9,11 @@ extends RefCounted
 ## came. It stands on the side it comes from, not first past the line: a stair run on under
 ## a doorway, down in its well under the floor, is no way out of the room whose floor its
 ## railings fence off (#551). WalkDoors asks too that it stands in the zone the way leads out
-## of: on a stair a body is in the zone of the end it is nearer.
+## of, and comes to stand in the one it leads into: on a stair a body is in the zone of the
+## end it is nearer, so a stair run on through a doorway is no way into the room past it
+## either (#575). Standing on the line it stands a hair on the room's side: a stair's head or
+## another room's floor that begins there is not the room's (#561). The sim holds a body on a
+## stair by the railings along its sides by its head (#552), and so is it held here.
 ##
 ## Where neither is true, a route through walks a bot into it for good: there is no way round
 ## to find, so the graph leaves it out. Two flights stacked in one well, the lower one under
@@ -39,6 +43,9 @@ const BACK := 0.5
 ## standing in its run (solid_in), as BotFooting.walled looks: the sides of a ladder's well a
 ## body's width wide stand clear of it.
 const INSIDE := 0.1
+## How far on the room's side of a doorway's line a body standing on it is read: the floor
+## there is the room's, not one that begins at the line.
+const HAIR := 0.001
 
 
 ## Whether a body could walk [param layout]'s ramp [param index] from end to end along its
@@ -181,13 +188,14 @@ static func across(door: ShipRoom.Door, off: float, floor_height: float) -> Vect
 
 ## Whether a body could walk straight through [param at] on a doorway's line the way
 ## [param out]: from where it first stands clear on the room's side — a body's radius before
-## the line at most, every STRIDE nearer, on the line at the last, never first past it — on
-## until it stands clear past it, its feet on a floor or a stair all the way and nothing
-## pushing it back (BACK); a floor's railings among what holds it unless [param rails] is
-## false. On a stair none: the railings along its sides by its head hold a body on it (#552),
-## but the graph's ways through are read as before (#561). Where [param begins] is a
-## callable, it stands there only where begins(feet, surface, out) is true: in the zone the
-## way leads out of (WalkDoors._begins).
+## the line at most, every STRIDE nearer, on the line at the last, a HAIR on the room's side
+## of it, never first past it — on until it stands clear past it, its feet on a floor or a
+## stair all the way and nothing pushing it back (BACK); the railings the sim holds it by
+## among what holds it unless [param rails] is false: a floor's own, and on a stair those
+## along its sides by its head (Surfaces.rail_contacts, #552, #561). Where [param begins] is
+## a callable, it stands there only where begins(feet, surface, out) is true — in the zone
+## the way leads out of (WalkDoors._begins) — and clear past the line only where
+## begins(feet, surface, -out) is: where the way back would begin, in the zone it leads into.
 static func _crosses(
 	surfaces: Surfaces,
 	rules: BrawlRules,
@@ -203,6 +211,8 @@ static func _crosses(
 	var stood := false
 	for step in range(-depth, depth + 1):
 		var flat := at + out * (STRIDE * step)
+		if step == 0 and not stood:
+			flat -= out * HAIR
 		var point := Vector3(flat.x, feet, flat.y)
 		var surface := surfaces.under(point, rules.step_height)
 		if surface == Surfaces.NONE:
@@ -213,13 +223,18 @@ static func _crosses(
 		var held := surfaces.obstacle_contacts(
 			point, radius, rules.body_height, rules.step_height, Surfaces.NONE, rules.crawl_height
 		)
-		if rails and not surfaces.is_ramp(surface):
+		if rails:
 			held.append_array(
 				surfaces.rail_contacts(
 					point, radius, surface, rules.step_height, rules.railing_height
 				)
 			)
-		if stood and step > 0 and held.is_empty():
+		if (
+			stood
+			and step > 0
+			and held.is_empty()
+			and (not begins.is_valid() or begins.call(point, surface, -out))
+		):
 			return true
 		if not stood:
 			stood = held.is_empty() and (not begins.is_valid() or begins.call(point, surface, out))
