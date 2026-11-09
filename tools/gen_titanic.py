@@ -1497,6 +1497,17 @@ def b_side(x0, x1):
     return min(min(-z0, z1) for p0, p1, z0, z1 in B_PIECES if p0 < x1 and p1 > x0) - T
 
 B_PLAN = plates.load("b", side=b_side)
+# Her house under A deck's forward corners (#582), where its rooms stop reaching her side —
+# the foremost a passage across her, out to it —, which the 1912 plan rounds in 6.9 m short
+# of its front (B_HOUSE's end); its forwardmost cabins stand in from her side, windowed onto
+# the open deck outboard of them. Plate III's elevation draws her side open forward of that
+# curve: her plating sweeps down from A deck's edge to her bulwark's top in a quarter round
+# 1.2 m long (px 8255-8300, y 1857-1902 on the full scan), and the bulwark runs on 1.1 m
+# over B deck to its front, her railing standing for it (#580). Her shell stands to A deck
+# to the corners and steps down square there (shell_top): the quarter round is that
+# bulwark's plating, open deck behind it, nothing her sections enclose.
+B_CORNERS = max(r[2] for r in B_PLAN.rooms if r[2] <= B_HOUSE[1] + 1e-6
+                and min(b_side(r[1], r[2]) + r[3], b_side(r[1], r[2]) - r[4]) <= rule("body_radius") + 1e-6)
 # C deck and D deck as Plate IV draws them (c.py, d.py; #368, #369), in strips as wide as
 # her hull is over each — her counter aft, her bow forward — shorter where she narrows, her
 # side narrowing STRIP_STEP at most along a strip: each room's outer wall then stands on
@@ -1743,7 +1754,10 @@ def section_spans(longest):
 
 SECTION_MAX = next(m / 100 for m in range(4000, 100, -1) if section_spans(m / 100) >= SECTION_COUNT)
 def shell_top(x):
-    return A_DECK if B_HOUSE[0] <= x <= B_HOUSE[1] else top_at(x)
+    """Her side's top at x: A deck's over her house under it, from its after end to its
+    corners (B_CORNERS), where its rooms stand out to her side; forward of them her open
+    bridge deck's, her house standing in from her side on it (B_FORE_HOUSE)."""
+    return A_DECK if B_HOUSE[0] <= x <= B_CORNERS else top_at(x)
 
 def bottom(x):
     """Her lowest point at x: her keel, or her forefoot or her counter over it. Her keel only
@@ -4363,8 +4377,9 @@ def arr(script, ids):
 # them.
 
 # The enclosed outline's top: her shell's (top_at), the B deck under A over B deck's
-# house — her plating "carried right up to the Boat deck" (BOT) —, and the houses over
-# it: A deck's between its promenades, and the boat deck's on it as Plate III draws them
+# house to its corners (shell_top) — her plating "carried right up to the Boat deck"
+# (BOT) —, forward of them the house itself (B_FORE_HOUSE), and the houses over it: A
+# deck's between its promenades, and the boat deck's on it as Plate III draws them
 # (BOAT_PLAN), side by side. (x0, x1, z0, z1, foot, top), each a cell of its own: out
 # to its walls' outer faces, but where two houses share a wall, whose middle their cells
 # meet on — cells never overlap.
@@ -4404,12 +4419,19 @@ HOUSES = ([A_HOUSE_TOP] + [house_cell(house) for house in BOAT_PLAN.houses]
           + [b_house_box(house) + (B_DECK, A_DECK) for house in B_PLAN.houses] + C_AFT_HOUSES)
 HOUSE_CELLS = (["a_deck"] + [house[0] for house in BOAT_PLAN.houses] + [house[0] for house in B_PLAN.houses]
                + ["c_deck_aft" + ("" if k == 0 else "_%d" % (k + 1)) for k in range(len(C_AFT_HOUSES))])
+# Her house under A deck forward of its corners, on her open bridge deck (shell_top), out to
+# its rooms' walls' outer faces, up to A deck: the space its rooms enclose, in B deck's cell
+# with the rest of her house (b_deck), no cell of its own.
+B_FORE_ROOMS = [r for r in B_PLAN.rooms if r[1] < B_HOUSE[1] and r[2] > B_CORNERS + 1e-6]
+B_FORE_HOUSE = (B_CORNERS, B_HOUSE[1], min(r[3] for r in B_FORE_ROOMS) - T, max(r[4] for r in B_FORE_ROOMS) + T,
+                B_DECK, A_DECK)
+OUTLINED = HOUSES + [B_FORE_HOUSE]
 
 def stacked(x, foot):
     """The outline over x of the houses standing at foot there, starboard first, each up
     its side, over the houses on its roof and down its other side."""
     points = []
-    for _x0, _x1, z0, z1, h_foot, roof in sorted([h for h in HOUSES if abs(h[4] - foot) < 1e-6 and h[0] < x < h[1]],
+    for _x0, _x1, z0, z1, h_foot, roof in sorted([h for h in OUTLINED if abs(h[4] - foot) < 1e-6 and h[0] < x < h[1]],
                                                 key=lambda h: -h[3]):
         points += [(z1, h_foot), (z1, roof)] + stacked(x, roof) + [(z0, roof), (z0, h_foot)]
     return points
@@ -4420,7 +4442,7 @@ def stacked(x, foot):
 # would enclose a slice of air no cell holds, buoyant however deep she went.
 # (And her stepped bulkheads' other stretches, so her cells' faces stand on breaks, her frames
 # otherwise as they stood.)
-SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in HOUSES for x in (x0, x1)}
+SECTION_BREAKS = sorted(set(FRAME_BREAKS) | {round(x, 4) for x0, x1, *_r in OUTLINED for x in (x0, x1)}
                         | {BX["M"], UPPER["B"], FC_RAMP[1]})
 # Each section from one break to the next, its ends shared with its neighbours', so they
 # tile her: a point on a bulkhead's line is in one of them, the one forward of it
