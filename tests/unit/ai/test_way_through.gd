@@ -83,6 +83,10 @@ const BESIDE_THE_W_C_S := Vector3(-118.9688, D_AFT_P, 5.8)
 ## starboard.
 const ONTO_THE_RAILED_HOLE := Vector3(-90.375, B_DECK, -2.875)
 const THE_WAY_TO_STARBOARD := Vector3(-90.375, B_DECK, 3.0)
+## The T.R.S. on D deck forward of B: its doorway aft, into the passage, whose floor on the
+## room's side lies beside the solid under the head of the stair down into it from the
+## forecastle's passage on C deck.
+const OUT_OF_THE_T_R_S := Vector3(98.875, -1.25, -2.5)
 ## E deck aft of bulkhead C, to port: the doorway between the passage aft of the ladder down
 ## to F deck and the passage along it, which the ladder hole's railing once ran across, the
 ## passage widened into its well; and off the port after ladderway's lane, the four-berth
@@ -355,6 +359,15 @@ func test_a_doorway_over_a_railed_stair_s_head_lets_no_body_through() -> void:
 		var from: Vector3 = walk[0]
 		var on := _surfaces.under(from, rules.step_height)
 		assert_false(_graph.route(from, on, walk[1], _dry).is_empty(), "a way round from %s" % from)
+
+
+## A portal's room end is the piece a body walking in through the doorway first stands in.
+## Into the T.R.S. through its doorway aft, where a body goes out, a body's straight walk in
+## runs along the solid under the stair's head, where no body stands: the solid pushes it
+## aside onto the floor by the doorway, and that floor is the way's end. The doorway keeps a
+## portal either way (#561).
+func test_a_way_in_pushed_aside_by_a_stair_s_solid_ends_beside_it() -> void:
+	assert_eq(_doorways_at(OUT_OF_THE_T_R_S), 2, "a portal through the T.R.S.'s doorway either way")
 
 
 ## A way through a doorway begins where a body stands in the zone it leads out of. Where a

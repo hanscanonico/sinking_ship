@@ -7,8 +7,8 @@ extends GutTest
 ## no body walks steers a bot into it for good. Only the doorways a stair stands by: there a
 ## body is on a stair, held by its railings, or in the zone of a stair's end (WalkDoors,
 ## WayThrough), and there the graph and the sim parted — a strip by a stair's railing on C
-## deck narrower than a body, a doorway over a stair's head on B deck, the stairs run on
-## through doorways on E and F decks.
+## deck narrower than a body, a box behind a partition in the grand staircase on C deck, the
+## stairs run on through doorways on D, E and F decks.
 
 const TITANIC := "res://data/ships/titanic.tres"
 const BRITANNIC := "res://tests/fixtures/ships/titanic_britannic.tres"
