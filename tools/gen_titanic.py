@@ -4095,6 +4095,142 @@ def rail_holes():
 
 rail_holes()
 
+# --- Every flight's open sides railed (#574), once her decks, her flights, her holes' rails
+# and what stands by them are all laid. In 1912 her stairs and ladders had a rail along every
+# open side, and an escape ladder ran in its own railed or cased way; the plates draw their
+# treads and not their rails. A railing (ShipRailing) runs along one deck's edge at that
+# deck's height and holds a body on a stair only within a step under it and a railing's
+# height over it (#552), so it cannot follow a flight down: a flight's side is held by a
+# rail of its own, a balustrade PLATING thick standing against it outside it, laid in steps
+# along it no longer than SIDE_STEP, as the open decks' flights' outboard sides are (#573),
+# each from its lowest tread to a railing's height over its highest (est.), standing on what
+# stands there under that and stopping under what stands over it, so it runs through no
+# wall, casing, boiler or fitting. It stands wherever a body walking off that side would
+# come down more than a step, and only there: along a stretch of it where nothing beside it
+# stands within a step of its treads — no floor, no landing, no other flight — and nothing
+# holds a body by it as the rules hold one: nothing standing within a body's radius of it
+# over its feet and under its head (a wall, a casing, a boiler, the open decks' plating, a
+# deck's edge, another flight beside it), no deck's railing along it at its feet's height.
+# So a flight's head and foot stay open, and so does its side wherever it meets a floor or a
+# landing or another flight within a step.
+SIDE_SAMPLE = 0.05  # how far apart along a flight's side what stands beside it is read
+SIDE_BESIDE = 0.05  # how far out past a flight's side what a body comes down on is read
+HOLD_GAP = rule("body_radius")  # what stands this near a flight's side holds a body on it
+STEP = rule("step_height")
+RAIL_HEIGHT = rule("railing_height")
+
+def level(h):
+    return lambda v: h
+
+def rising(r, a, b):
+    """Flight r's height at v along its rise, from a to b."""
+    return lambda v: r[5] + (r[6] - r[5]) * (v - a) / (b - a)
+
+def side_open(k, fixed, line, out, lo, hi):
+    """The stretches (from, to) along flight k's side on the line x = line (fixed 0) or z = line
+    (fixed 2), its outside toward out, between lo and hi along it, where a body walking off it
+    would come down more than a step; and the flight's height along it."""
+    tread = rising(ramp_geo[k], lo, hi)
+    beside = line + out * SIDE_BESIDE
+    floors = []  # ((along from, to), height at v, its base: None for a deck) of what is beside
+    for p in plat_geo:
+        p_across, p_along = across_along(p, fixed)
+        if p_across[0] <= beside <= p_across[1] and p_along[0] < hi and p_along[1] > lo:
+            floors.append((p_along, level(p[4]), None))
+    for j, r in enumerate(ramp_geo):
+        r_across, r_along = across_along(r, fixed)
+        if j == k or not (r_across[0] <= beside <= r_across[1] and r_along[0] < hi and r_along[1] > lo):
+            continue
+        r_lo, r_hi = (r[0], r[1]) if r[4] == 0 else (r[2], r[3])
+        if (0 if r[4] == 0 else 2) == fixed:  # rising across this side's line: level along it
+            floors.append((r_along, level(rising(r, r_lo, r_hi)(beside)), min(r[5], r[6])))
+        else:
+            floors.append((r_along, rising(r, r_lo, r_hi), min(r[5], r[6])))
+    walls = []  # ((along from, to), bottom, top) of what stands against the side (a round one by its square)
+    for b in block_geo:
+        b_across, b_along = across_along(b, fixed)
+        inner, outer = (b_across[0], b_across[1]) if out > 0 else (-b_across[1], -b_across[0])
+        if b_along[0] < hi and b_along[1] > lo and outer > out * line and inner <= out * line + HOLD_GAP:
+            walls.append((b_along, b[4], b[5]))
+    rails = []  # ((along from, to), its deck's height) of each deck's railing along the side
+    for on, a, b in rail_geo:
+        if all(-1e-6 <= out * (e[fixed // 2] - line) <= HOLD_GAP for e in (a, b)):
+            ends = sorted((a[1 - fixed // 2], b[1 - fixed // 2]))
+            if ends[0] < hi and ends[1] > lo:
+                rails.append((ends, plat_geo[on][4]))
+
+    def is_open(v):
+        t = tread(v)
+        for (a, b), bottom, top in walls:
+            if a <= v <= b and top > t + STEP and bottom < t + BODY_HEIGHT:
+                return False
+        for (a, b), deck in rails:
+            if a <= v <= b and deck - STEP <= t < deck + RAIL_HEIGHT:
+                return False
+        for (a, b), height, base in floors:
+            if a <= v <= b:
+                h = height(v)
+                if abs(h - t) <= STEP:
+                    return False  # a floor, a landing or a flight within a step of its treads
+                if h > t + STEP and (h if base is None else base) < t + BODY_HEIGHT:
+                    return False  # a deck's edge or a flight beside standing over its feet
+        return True
+
+    ends = [e for (a, b), *_rest in walls + rails + floors for e in (a, b) if lo < e < hi]
+
+    def change(a, b):
+        """Where between a and b, open at one and not at the other, that changes: at the end
+        of what stands beside there, where one ends there."""
+        state = is_open(a)
+        for _ in range(30):
+            m = (a + b) * 0.5
+            a, b = (m, b) if is_open(m) == state else (a, m)
+        return min(ends, key=lambda e: abs(e - b)) if any(abs(e - b) < 1e-3 for e in ends) else b
+
+    count = max(1, math.ceil((hi - lo) / SIDE_SAMPLE - 1e-9))
+    middles = [lerp(lo, hi, (i + 0.5) / count) for i in range(count)]
+    spans, begun = [], None
+    for i, v in enumerate(middles):
+        if is_open(v):
+            begun = (lo if i == 0 else change(middles[i - 1], v)) if begun is None else begun
+        elif begun is not None:
+            spans.append((begun, change(middles[i - 1], v)))
+            begun = None
+    if begun is not None:
+        spans.append((begun, hi))
+    return [(a, b) for a, b in spans if b - a >= RAIL_LEAST], tread
+
+def rail_flight_sides():
+    for k, (rx0, rx1, rz0, rz1, axis, start, end) in enumerate(list(ramp_geo)):
+        if abs(end - start) < HOLE_RISE:
+            continue
+        rid = ramps[k][len("Ramp_"):]
+        fixed = 2 if axis == 0 else 0  # her sides' lines: z = const for a flight along x
+        across, (lo, hi) = across_along((rx0, rx1, rz0, rz1), fixed)
+        for tag, out, line in (("lo", -1, across[0]), ("hi", 1, across[1])):
+            spans, tread = side_open(k, fixed, line, out, lo, hi)
+            side = sorted((line, line + out * PLATING))
+            for n, (a, b) in enumerate(spans):
+                steps = math.ceil((b - a) / SIDE_STEP - 1e-9)
+                for i in range(steps):
+                    p0, p1 = round(lerp(a, b, i / steps), 4), round(lerp(a, b, (i + 1) / steps), 4)
+                    t0, t1 = sorted((tread(p0), tread(p1)))
+                    ranges = (p0, p1, *side) if fixed == 2 else (*side, p0, p1)
+                    bottom, top = round(t0, 4), round(t1 + RAIL_HEIGHT, 4)
+                    # On what stands under it, under what stands over it: it runs through none.
+                    for _pass in range(2):
+                        for q in block_geo:
+                            if (q[0] < ranges[1] - 1e-3 and ranges[0] < q[1] - 1e-3 and q[2] < ranges[3] - 1e-3
+                                    and ranges[2] < q[3] - 1e-3 and q[4] < top and q[5] > bottom):
+                                if q[5] <= top:
+                                    bottom = q[5]
+                                else:
+                                    top = min(top, q[4])
+                    assert top - bottom >= RAIL_LEAST, "flight %s's side rail %s%d_%d stands in something" % (rid, tag, n, i)
+                    box("side_%s_%s%d_%d" % (rid, tag, n, i), *ranges, bottom, top)
+
+rail_flight_sides()
+
 
 # The seats a match on her takes (§SH34): four to sixteen; more is SH21.
 SEATS = (4, 16)

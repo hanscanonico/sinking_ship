@@ -62,17 +62,17 @@ func test_a_walk_into_the_sea_is_found() -> void:
 func test_a_fall_off_a_flights_side_is_found() -> void:
 	# The steamer's hull round a bare deck railed along her sides and a flight up onto a
 	# deck 3 m over it, nothing along its sides (test data): a body walks off them onto the
-	# deck under them.
+	# deck under them, wide enough that none carries on over its railings.
 	var layout: ShipLayout = SimFixtures.steamer().duplicate()
 	var railings: Array[ShipRailing] = []
-	for z: float in [-1.5, 1.5]:
+	for z: float in [-3.6, 3.6]:
 		var railing := ShipRailing.new()
 		railing.from = Vector2(-12.0, z)
 		railing.to = Vector2(8.0, z)
 		railings.append(railing)
 	var deck := ShipPlatform.new()
 	deck.name = &"main deck"
-	deck.area = Rect2(-12.0, -1.5, 20.0, 3.0)
+	deck.area = Rect2(-12.0, -3.6, 20.0, 7.2)
 	var upper := ShipPlatform.new()
 	upper.name = &"upper deck"
 	upper.area = Rect2(4.0, -1.5, 4.0, 3.0)
