@@ -3,7 +3,7 @@ extends RefCounted
 ## Where a bot stands now (D10): its view shows it as it was reaction_ticks ago, so it
 ## reckons on from there — by the velocity it was seen at, or, on its feet and free to
 ## walk, by the walks it has sent since, which it knows: what it pressed and has yet to see
-## itself do, summed or stepped as its feet take them. Asked of the footing and the
+## itself do, stepped at full pace or as its feet take them. Asked of the footing and the
 ## Surfaces of the floors it stands on (stand_on); nothing here rolls the bot's stream.
 
 var _rules: BrawlRules
@@ -50,19 +50,12 @@ func reckon(me: Dictionary) -> Vector3:
 
 
 ## Where the bot stands now — on its feet and free to walk — by the walks it has sent
-## since its view's [param seen_tick], unless a wall or a railing stands across them:
-## it knows what it pressed, so a turn since is no surprise to it. Otherwise where
-## [param reckoned] by its seen velocity.
+## since its view's [param seen_tick], each taken at full pace on the tick it was sent: it
+## knows what it pressed, so a turn since is no surprise to it. Its body is held by every
+## railing it meets on the way, as by_steps holds it (#589); position only. Otherwise, or
+## where a wall stands across the walk, where [param reckoned] by its seen velocity.
 func by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
-	if not _walking(me):
-		return reckoned
-	var walked := Vector2.ZERO
-	for index in _sent_ticks.size():
-		if _sent_ticks[index] >= seen_tick:
-			walked += _sent_moves[index]
-	var height := _rules.height_at(_surfaces, me["pos"])
-	walked *= _pace(height) * Ticks.SECONDS_PER_TICK
-	return _carried(me, walked, height, reckoned)
+	return _stepped(me, seen_tick, reckoned, false)
 
 
 ## As by_walks, but stepped as its feet take the walks, tick by tick: from the velocity it
@@ -75,6 +68,13 @@ func by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 ## (#557). Otherwise, or where a wall stands across the walk, where [param reckoned] by its
 ## seen velocity.
 func by_steps(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
+	return _stepped(me, seen_tick, reckoned, true)
+
+
+## Where the walks sent since [param seen_tick] take [param me], tick by tick, its body held
+## by every railing it meets: by its feet's velocity, eased toward each walk when
+## [param eased] (by_steps), else at each walk's full pace (by_walks).
+func _stepped(me: Dictionary, seen_tick: int, reckoned: Vector3, eased: bool) -> Vector3:
 	if not _walking(me):
 		return reckoned
 	var seen_pos: Vector3 = me["pos"]
@@ -90,8 +90,11 @@ func by_steps(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 		if _sent_ticks[index] != tick:
 			break
 		var wish := _sent_moves[index] * pace
-		var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
-		vel = vel.move_toward(wish, rate * dt)
+		if eased:
+			var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
+			vel = vel.move_toward(wish, rate * dt)
+		else:
+			vel = wish
 		var came := Vector2(at.x, at.z)
 		at += Vector3(vel.x, 0.0, vel.y) * dt
 		var radius := _rules.body_radius
@@ -119,19 +122,3 @@ func _walking(me: Dictionary) -> bool:
 ## How fast a body walks where its headroom is [param height]: crawling under a low one.
 func _pace(height: float) -> float:
 	return _rules.walk_speed if height >= _rules.body_height else _rules.crawl_speed
-
-
-## Where [param walked] (x/z) carries [param me] from where it was seen, its feet risen or
-## sunk with the walk — unless a wall or a railing stands across it for a body of
-## [param height]'s headroom: then where [param reckoned].
-func _carried(me: Dictionary, walked: Vector2, height: float, reckoned: Vector3) -> Vector3:
-	var seen_pos: Vector3 = me["pos"]
-	var walked_to := seen_pos + Vector3(walked.x, 0.0, walked.y)
-	if (
-		_surfaces.blocked(seen_pos, walked_to, height, _rules.step_height)
-		or _surfaces.railed(seen_pos, walked_to, me["surface"], _rules)
-	):
-		return reckoned
-	if me["surface"] != Surfaces.NONE:
-		walked_to.y = _footing.feet_at(seen_pos, walked_to)
-	return walked_to
