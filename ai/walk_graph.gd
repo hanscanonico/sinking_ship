@@ -363,7 +363,8 @@ func portals() -> Array[Portal]:
 ## The zone a body with its feet at [param ship_point] on [param surface] is in: the
 ## room holding it, else the open deck it stands on — a blocker top's footing for
 ## the top — and on a ramp, the zone at the end its feet are nearer in height. NONE
-## when it stands on nothing.
+## when it stands on nothing, and on a ramp whose ends' zones are not yet found: a door's
+## depth is found before them (WalkDoors.find_depths), as they are read off it (#579).
 func zone_at(ship_point: Vector3, surface: int) -> int:
 	if surface == Surfaces.NONE:
 		return NONE
@@ -371,10 +372,13 @@ func zone_at(ship_point: Vector3, surface: int) -> int:
 	if footing == Surfaces.NONE:
 		return NONE
 	if _surfaces.is_ramp(footing):
-		var ramp := _ramps[footing - _surfaces.platform_count()]
+		var index := footing - _surfaces.platform_count()
+		if index >= _ramp_zones.size():
+			return NONE
+		var ramp := _ramps[index]
 		var to_start := absf(ship_point.y - ramp.start_height)
 		var nearer := 0 if to_start <= absf(ship_point.y - ramp.end_height) else 1
-		return _ramp_zones[footing - _surfaces.platform_count()][nearer]
+		return _ramp_zones[index][nearer]
 	return _zone_on(footing, Vector2(ship_point.x, ship_point.z))
 
 
