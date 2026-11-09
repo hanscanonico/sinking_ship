@@ -1,13 +1,18 @@
 extends GutTest
-## No body walks out through the line of the Titanic's shell (#573). Where her plates draw
-## shell plating or a bulwark along a deck's edge, it holds a body; where they draw an open
-## rail, a railing stands. A body walked into the sea off B deck forward of its house, off
-## C deck under her poop and her forecastle and off the outboard sides of the A deck ladders
-## down to the forward well, and off No. 2 hold's ladders into the void past the tank top's
-## floor: walks a bot reaches. So every walk a body sets out on along her — off each side of
-## each of her floors a metre apart, off each side of each of her flights at its quarters,
-## half a metre in from the edge, straight out of it — from where the walk graph reaches
-## from her first spawn ends out of the sea: on her and on her sisters.
+## No body walks out through the line of the Titanic's shell (#573), and none walks off a
+## flight's side further down than a step (#574). Where her plates draw shell plating or a
+## bulwark along a deck's edge, it holds a body; where they draw an open rail, a railing
+## stands. A body walked into the sea off B deck forward of its house, off C deck under her
+## poop and her forecastle and off the outboard sides of the A deck ladders down to the
+## forward well, and off No. 2 hold's ladders into the void past the tank top's floor: walks
+## a bot reaches. Her stairs and ladders were railed along every open side, and an escape
+## ladder ran in its own cased way: a body stepped off the side of 34 of her flights and
+## fell as far as 7.2 m, off her boiler rooms' escape ladders onto the stokehold floor. So
+## every walk a body sets out on along her — off each side of each of her floors a metre
+## apart, off each side of each of her flights at its quarters, half a metre in from the
+## edge, straight out of it — from where the walk graph reaches from her first spawn ends
+## out of the sea, and none off a flight falls further than a step: on her and on her
+## sisters.
 
 const SHIPS: Array[String] = [
 	"res://data/ships/titanic.tres",
@@ -26,11 +31,23 @@ const STOOD := 3
 const APART := 16.0
 
 var _rules := SimFixtures.rules()
+## Per ship of SHIPS, by its path: what went wrong on its walks (_gone_wrong).
+var _walked_on := {}
+
+
+func before_all() -> void:
+	for path: String in SHIPS:
+		_walked_on[path] = _gone_wrong(load(path))
 
 
 func test_no_walk_on_her_leaves_her_shell() -> void:
 	for path: String in SHIPS:
-		assert_eq(_into_the_sea(load(path)), PackedStringArray(), path)
+		assert_eq(_ending(_walked_on[path], "", " ends swimming "), PackedStringArray(), path)
+
+
+func test_no_walk_off_her_flights_sides_falls_past_a_step() -> void:
+	for path: String in SHIPS:
+		assert_eq(_ending(_walked_on[path], "ramp ", " falls "), PackedStringArray(), path)
 
 
 func test_a_walk_into_the_sea_is_found() -> void:
@@ -38,15 +55,59 @@ func test_a_walk_into_the_sea_is_found() -> void:
 	var layout: ShipLayout = SimFixtures.steamer().duplicate()
 	layout.railings = []
 	layout.props = []
-	var found := _into_the_sea(layout)
+	var found := _ending(_gone_wrong(layout), "", " ends swimming ")
 	assert_gt(found.size(), 0, "walks off her open edges")
-	if not found.is_empty():
-		assert_string_contains(found[0], "ends swimming")
 
 
-## Every walk on [param layout] that ends in the sea, with where it set out and ended:
-## held at her floating draught, every compartment dry.
-func _into_the_sea(layout: ShipLayout) -> PackedStringArray:
+func test_a_fall_off_a_flights_side_is_found() -> void:
+	# The steamer's hull round a bare deck railed along her sides and a flight up onto a
+	# deck 3 m over it, nothing along its sides (test data): a body walks off them onto the
+	# deck under them.
+	var layout: ShipLayout = SimFixtures.steamer().duplicate()
+	var railings: Array[ShipRailing] = []
+	for z: float in [-1.5, 1.5]:
+		var railing := ShipRailing.new()
+		railing.from = Vector2(-12.0, z)
+		railing.to = Vector2(8.0, z)
+		railings.append(railing)
+	var deck := ShipPlatform.new()
+	deck.name = &"main deck"
+	deck.area = Rect2(-12.0, -1.5, 20.0, 3.0)
+	var upper := ShipPlatform.new()
+	upper.name = &"upper deck"
+	upper.area = Rect2(4.0, -1.5, 4.0, 3.0)
+	upper.height = 3.0
+	var flight := ShipRamp.new()
+	flight.area = Rect2(-2.0, -0.6, 6.0, 1.2)
+	flight.end_height = 3.0
+	var platforms: Array[ShipPlatform] = [deck, upper]
+	var ramps: Array[ShipRamp] = [flight]
+	layout.platforms = platforms
+	layout.ramps = ramps
+	layout.blockers = []
+	layout.railings = railings
+	layout.ladders = []
+	layout.props = []
+	layout.rooms = []
+	layout.bonus_spots = []
+	layout.spawns = [Vector3(-10.0, 0.0, 0.0)]
+	var found := _ending(_gone_wrong(layout), "ramp ", " falls ")
+	assert_eq(found.size(), 6, "off both its sides at each of its quarters")
+
+
+## The lines of [param found] starting with [param what] that tell of [param ending].
+func _ending(found: PackedStringArray, what: String, ending: String) -> PackedStringArray:
+	var out := PackedStringArray()
+	for line in found:
+		if line.begins_with(what) and line.contains(ending):
+			out.append(line)
+	return out
+
+
+## Every walk on [param layout] that ends in the sea or falls further than a step on its
+## way, with where it set out and ended: held at her floating draught, every compartment
+## dry.
+func _gone_wrong(layout: ShipLayout) -> PackedStringArray:
 	var surfaces := Surfaces.new(layout)
 	var pose := HeldPose.flooded(layout, -layout.freeboard, {})
 	var graph := WalkGraph.new(layout, surfaces, _rules)
@@ -115,8 +176,8 @@ func _add(
 		walks.append([start, move, what])
 
 
-## The walks of [param walks] that end in the sea, walked by [param sim]'s seats side by
-## side, in an order of its own that sets bodies out apart.
+## The walks of [param walks] that end in the sea or fall further than a step, walked by
+## [param sim]'s seats side by side, in an order of its own that sets bodies out apart.
 func _walked(sim: MatchSim, walks: Array) -> PackedStringArray:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 573
@@ -151,7 +212,9 @@ func _walked(sim: MatchSim, walks: Array) -> PackedStringArray:
 	return found
 
 
-## The walks of [param batch] that end in the sea: each a fresh body of one seat's, in turn.
+## The walks of [param batch] that end in the sea or fall further than a step on the way:
+## each a fresh body of one seat's, in turn. A fall is from where the body last stood to
+## where it lands.
 func _walk(sim: MatchSim, batch: Array) -> PackedStringArray:
 	var moving := {}
 	var still := {}
@@ -160,6 +223,9 @@ func _walk(sim: MatchSim, batch: Array) -> PackedStringArray:
 	var last: Array[Vector3] = []
 	var stood: Array[int] = []
 	var going: Array[bool] = []
+	var ground := PackedFloat64Array()
+	var air_from := PackedFloat64Array()
+	var worst := PackedFloat64Array()
 	for seat in batch.size():
 		_fresh(sim, seat)
 		SimFixtures.place(sim, seat, batch[seat][0])
@@ -167,6 +233,9 @@ func _walk(sim: MatchSim, batch: Array) -> PackedStringArray:
 		last.append(batch[seat][0])
 		stood.append(0)
 		going.append(true)
+		ground.append(batch[seat][0].y)
+		air_from.append(NAN)
+		worst.append(0.0)
 	var found := PackedStringArray()
 	var walking := Ticks.from_seconds(WALK)
 	var left := batch.size()
@@ -191,11 +260,33 @@ func _walk(sim: MatchSim, batch: Array) -> PackedStringArray:
 				)
 				going[seat] = false
 				left -= 1
-			elif player.body == PlayerState.Body.GROUNDED:
+			elif player.body == PlayerState.Body.AIRBORNE:
+				if is_nan(air_from[seat]):
+					air_from[seat] = ground[seat]
+			else:
+				if not is_nan(air_from[seat]):
+					worst[seat] = maxf(worst[seat], air_from[seat] - player.pos.y)
+					air_from[seat] = NAN
+				ground[seat] = player.pos.y
+			if going[seat] and player.body == PlayerState.Body.GROUNDED:
 				stood[seat] = stood[seat] + 1 if player.pos.distance_to(last[seat]) < 0.001 else 0
 				if stood[seat] >= STOOD or tick >= walking:
 					going[seat] = false
 					left -= 1
+					if worst[seat] > _rules.step_height:
+						found.append(
+							(
+								"%s: from %s walking %s falls %.2f m, ends at %s on surface %d"
+								% [
+									batch[seat][2],
+									start,
+									batch[seat][1],
+									worst[seat],
+									player.pos,
+									player.surface
+								]
+							)
+						)
 			last[seat] = player.pos
 		tick += 1
 	return found
