@@ -76,6 +76,12 @@ var stands: PropStands
 var shapes := 0
 ## The watertight doors, as far shut as the last pose honoured has them.
 var doors: DoorLeaves
+## The railings' grid, by index, read only: every railing whose span meets a box is among
+## those near() hands back for it, standing or gone — where none is, none holds a body
+## whose circle stays inside it (BotReckoning, #589).
+var rails: SpatialIndex:
+	get:
+		return _rail_grid
 ## The numbers of the first ramp, the first blocker top and the first crate's lid:
 ## every surface before the lids is the ship's own.
 var _first_ramp: int
