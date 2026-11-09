@@ -1,31 +1,42 @@
 hit 00:16.2 · starboard · x 4.7…15.9 m · 1.936 m²
 must 2 thrown · 1 bakes · drawn
+00:15.3 seat 1 out · cold · place 8
 00:16.3 hold_wing_s flooding
 00:17.1 forepeak flooding
 00:20.0 High jump aboard · spot 19
 00:20.9 hold_bilge flooding
-01:05.6 seat 7 out · cold · place 8
+00:50.7 railing 3 broke
+00:56.8 seat 7 out · cold · place 7
 01:16.5 Steady aboard · spot 10
-01:17.8 seat 3 out · cold · place 7
-01:21.7 seat 4 takes Steady · spot 10
-01:26.5 seat 0 takes High jump · spot 19
+01:20.8 seat 3 takes Steady · spot 10
 01:31.2 hold flooding
+01:31.6 seat 5 out · cold · place 6
+01:44.4 seat 0 out · cold · place 5
 01:46.0 hold_bilge lamps drowned
-01:57.7 Strong arms aboard · spot 12
+01:57.7 Strong arms aboard · spot 11
+02:03.9 seat 6 takes Strong arms · spot 11
 02:10.4 hold_bilge full
 02:11.2 hold_wing_p flooding
-02:38.1 railing 18 broke
-02:42.9 seat 2 out · cold · place 6
-02:43.0 seat 0 out · cold · place 4
-02:43.0 seat 4 out · cold · place 4
 02:45.6 panel_bulkhead_hold_engine_bilge_s_hold_wing_s gave way
 02:45.9 engine_bilge_s flooding
 02:46.7 engine_bilge_s lamps drowned
+02:46.8 seat 2 out · cold · place 4
 02:47.1 engine_room flooding
 02:47.4 engine_bilge_s full
-02:47.4 seat 6 out · cold · place 3
-02:48.3 seat 5 out · cold · place 2
-winner seat 1 at 02:48.3 · digest 63de2ca0ed213cbc
-sinking at the end of the match: physics 0:06:39 (on the paced clock, Q20) · seen 45% · sea 0.97 m up her · trim +5.6° · list +8.8° · engine_bilge_s full · engine_room 0.31 m · hold_bilge 4.12 m · hold 1.37 m · hold_wing_p 0.42 m · hold_wing_s 4.36 m · forepeak 3.17 m
+02:50.8 railing 13 broke
+02:51.2 prop 1 lost
+02:52.4 prop 0 lost
+02:54.4 Strong arms aboard · spot 23
+03:08.0 seat 4 out · cold · place 3
+03:11.8 High jump lost · spot 19
+03:25.0 hold_wing_s lamps drowned
+03:45.1 engine_bilge_p flooding
+03:49.6 Double life aboard · spot 8
+03:52.2 Strong arms lost · spot 23
+04:01.3 water through over_bulkhead_hold_to_hold_wing_s
+04:11.3 seat 3 grabs prop 4
+04:13.0 seat 6 out · cold · place 2
+winner seat 3 at 04:13.0 · digest 04526376ca8cc263
+sinking at the end of the match: physics 0:12:32 (on the paced clock, Q20) · seen 86% · sea 1.51 m up her · trim +8.3° · list +10.8° · engine_bilge_p 0.84 m · engine_bilge_s full · engine_room 2.42 m · hold_bilge full · hold 2.48 m · hold_wing_p 1.17 m · hold_wing_s 6.41 m · forepeak 5.35 m
 not played: gone at 0:14:38 · trim +87.6° · list -17.9° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x -5.5 m, hogging
