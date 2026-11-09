@@ -925,6 +925,6 @@ func test_a_doorway_onto_a_box_top_standing_on_a_stair_reads_the_stair_s_end() -
 	var route := graph.route(
 		inside, surfaces.under(inside, SimFixtures.rules().step_height), fore, dry
 	)
-	assert_false(route.is_empty(), "out of the cabin to the upper deck forward")
+	assert_eq(_zones_on(route), [fore] as Array[int], "out through its doorway, over the box")
 	if not route.is_empty():
 		assert_eq(route.front().from_zone, cabin, "from the cabin")
