@@ -1,13 +1,17 @@
 extends GutTest
-## A bot reckons where it stands now from the walks it has sent since its view's tick,
-## unless a wall or a railing stands across them (BotReckoning._carried): then from the
-## velocity it was seen at. Any railing that would hold its body counts, not only one of
-## the floor it was seen on (#553). In boiler room 6 on the Titanic's tank top, railing 1242
-## along the east side of the manhole down into the double bottom belongs to a 15 cm strip
-## of floor between it and the floor the bot stands on: held by it, pressing west, the bot
-## reckoned itself 0.6 m on, down the manhole, and #543's sample's row 25 paced there. And
-## on a stair a body is held by the railing along its side near its head (#552): a walk
-## through it is no more carried than one through the stair's floor's own.
+## A bot reckons where it stands now from the walks it has sent since its view's tick. By
+## its walks summed (by_walks), unless a wall or a railing stands across them
+## (BotReckoning._carried): then from the velocity it was seen at. Any railing that would
+## hold its body counts, not only one of the floor it was seen on (#553). In boiler room 6
+## on the Titanic's tank top, railing 1242 along the east side of the manhole down into the
+## double bottom belongs to a 15 cm strip of floor between it and the floor the bot stands
+## on: held by it, pressing west, the bot reckoned itself 0.6 m on, down the manhole, and
+## #543's sample's row 25 paced there. And on a stair a body is held by the railing along
+## its side near its head (#552): a walk through it is no more carried than one through the
+## stair's floor's own. By its walks stepped (by_steps), its body is held by each railing
+## on the way as the sim holds it (#557): on the Titanic's D deck a bot running at railing
+## 805 beside ramp 38's well, pressing round its end onto the stair's head, was reckoned by
+## its seen velocity once its walk's line met the railing, on through it onto the stair.
 
 const TITANIC := "res://data/ships/titanic.tres"
 const TANK_TOP := -18.1875
@@ -43,8 +47,11 @@ func test_a_walk_into_the_railing_of_the_floor_beside_it_is_not_carried() -> voi
 	var me := _seen(BY_THE_MANHOLE, floor)
 	for walk: Vector2 in [Vector2.LEFT, Vector2(-1.0, 0.2).normalized()]:
 		var reckoning := _reckoning(graph, walk)
+		# Stepped as the sim steps its body: into the strip, and pushed back out of the
+		# railing once its middle is over the strip, never past it (#557).
 		var stepped := reckoning.by_steps(me, SEEN_TICK, BY_THE_MANHOLE)
-		assert_eq(stepped, BY_THE_MANHOLE, "%s: stepped, held by the railing" % walk)
+		assert_gt(stepped.x, RAILING_1242_X, "%s: stepped, held by the railing" % walk)
+		assert_eq(stepped.y, TANK_TOP, "%s: stepped, still on the tank top" % walk)
 		var walked := reckoning.by_walks(me, SEEN_TICK, BY_THE_MANHOLE)
 		assert_eq(walked, BY_THE_MANHOLE, "%s: walked, held by the railing" % walk)
 	# Pressing away from the railing, nothing stands across the walk.
@@ -66,6 +73,67 @@ func test_a_walk_off_a_stairs_side_through_its_railing_is_not_carried() -> void:
 	# Down the stair, nothing stands across the walk.
 	var down := _reckoning(graph, Vector2.RIGHT).by_steps(me, SEEN_TICK, at)
 	assert_gt(down.x, at.x + 0.5, "down the stair: carried on")
+
+
+func test_a_body_held_by_a_railing_is_reckoned_where_the_sim_holds_it() -> void:
+	# Ramp 38's head on the Titanic's D deck, drawn small: the floor west of the stair's well,
+	# railed along the well from its head at z 0 on, and east of the railing the floor a body
+	# would stand on past it. The walks a bot has sent since its view's tick are stepped as the
+	# sim steps its body, the railing holding it (#557): seen running at the railing a hand
+	# short of its end and pressing round it, as row 4's bot was; held by it at rest, pressing
+	# round its end; and seen in front of its end, pressing on along it. On main a walk whose
+	# line crossed the railing was reckoned by the seen velocity instead, on through it, and one
+	# whose middle passed its end was carried round it as if nothing held its body.
+	var rules := SimFixtures.rules()
+	var layout := _railed_floor()
+	var graph := WalkGraph.new(layout, Surfaces.new(layout), rules)
+	for seen: Array in [
+		[Vector3(-0.57, 0.0, 0.19), Vector3(2.76, 0.0, 0.43), Vector2(1.0, -0.25)],
+		[Vector3(-rules.body_radius, 0.0, 0.15), Vector3.ZERO, Vector2(0.85, -0.53)],
+		[Vector3(-0.06, 0.0, -0.04), Vector3(3.0, 0.0, 0.3), Vector2(0.3, 1.0)],
+	]:
+		var walk: Vector2 = seen[2].normalized()
+		var me := _seen(seen[0], 0)
+		me["vel"] = seen[1]
+		var reckoning := _reckoning(graph, walk)
+		var stepped := reckoning.by_steps(me, SEEN_TICK, reckoning.reckon(me))
+		var body := _stepped_body(layout, seen[0], seen[1], walk)
+		var named := "seen at %s going %s, pressing %s" % seen
+		assert_almost_eq(stepped.x, body.x, 0.001, "%s: x where the sim holds it" % named)
+		assert_almost_eq(stepped.z, body.z, 0.001, "%s: z where the sim holds it" % named)
+
+
+## Two floors at one height either side of x 0: platform 0 west of it, railed along it from
+## z 0 to z 3 beside a stair's well, and platform 1 east of it.
+func _railed_floor() -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var platforms: Array[ShipPlatform] = []
+	for area: Rect2 in [Rect2(-2.0, -2.0, 2.0, 5.0), Rect2(0.0, -2.0, 1.0, 5.0)]:
+		var platform := ShipPlatform.new()
+		platform.area = area
+		platforms.append(platform)
+	layout.platforms = platforms
+	var railing := ShipRailing.new()
+	railing.platform = 0
+	railing.from = Vector2(0.0, 0.0)
+	railing.to = Vector2(0.0, 3.0)
+	var railings: Array[ShipRailing] = [railing]
+	layout.railings = railings
+	layout.spawns = [Vector3(-1.0, 0.0, 2.0)]
+	return layout
+
+
+## Where the sim takes a body on [param layout] at [param pos] going [param vel] that presses
+## [param walk] for as many ticks as a normal bot's view lags.
+func _stepped_body(layout: ShipLayout, pos: Vector3, vel: Vector3, walk: Vector2) -> Vector3:
+	var config := MatchConfig.new(1, 1, SimFixtures.rules(), layout, SimFixtures.calm())
+	var sim := MatchSim.create(config)
+	SimFixtures.place(sim, 0, pos)
+	sim.state.seats[0].vel = vel
+	var lag := BotProfile.for_tier(&"normal").reaction_ticks
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, walk)}, lag)
+	return sim.state.seats[0].pos
 
 
 ## A bot's reckoning on [param graph]'s floors, a normal bot's, that has pressed

@@ -68,17 +68,21 @@ func by_walks(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 ## As by_walks, but stepped as its feet take the walks, tick by tick: from the velocity it
 ## was seen at, toward each walk by ground_accel, or slowing by ground_friction with none
 ## pressed — a turn or a stop since is no surprise to it, nor the ticks its feet take to
-## make it. Otherwise, or where a wall or a railing stands across them, where
-## [param reckoned] by its seen velocity.
+## make it — its body held by every railing it meets on the way as the sim holds one on its
+## feet (Surfaces.rail_contacts): pushed back out, losing the speed into it, it slides along
+## the railing, round its end only once its body is past it (#557). Otherwise, or where a
+## wall stands across the walk, where [param reckoned] by its seen velocity.
 func by_steps(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 	if not _walking(me):
 		return reckoned
+	var seen_pos: Vector3 = me["pos"]
 	var seen_vel: Vector3 = me["vel"]
-	var height := _rules.height_at(_surfaces, me["pos"])
+	var height := _rules.height_at(_surfaces, seen_pos)
 	var pace := _pace(height)
 	var dt := Ticks.SECONDS_PER_TICK
 	var vel := Vector2(seen_vel.x, seen_vel.z)
-	var walked := Vector2.ZERO
+	var at := seen_pos
+	var surface: int = me["surface"]
 	for tick in range(seen_tick, seen_tick + _sent_ticks.size()):
 		var index := tick % _sent_ticks.size()
 		if _sent_ticks[index] != tick:
@@ -86,8 +90,21 @@ func by_steps(me: Dictionary, seen_tick: int, reckoned: Vector3) -> Vector3:
 		var wish := _sent_moves[index] * pace
 		var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
 		vel = vel.move_toward(wish, rate * dt)
-		walked += vel * dt
-	return _carried(me, walked, height, reckoned)
+		at += Vector3(vel.x, 0.0, vel.y) * dt
+		var radius := _rules.body_radius
+		var railing := _rules.railing_height
+		for held: Surfaces.Contact in _surfaces.rail_contacts(
+			at, radius, surface, _rules.step_height, railing
+		):
+			at += Vector3(held.normal.x, 0.0, held.normal.y) * held.depth
+			vel += held.normal * maxf(-vel.dot(held.normal), 0.0)
+		var under := _surfaces.under(at, _rules.step_height)
+		if under != Surfaces.NONE:
+			surface = under
+			at.y = _surfaces.height_at(under, at)
+	if _surfaces.blocked(seen_pos, at, height, _rules.step_height):
+		return reckoned
+	return at
 
 
 ## Whether [param me] stands on its feet, free to walk: neither in the air, the sea nor a
