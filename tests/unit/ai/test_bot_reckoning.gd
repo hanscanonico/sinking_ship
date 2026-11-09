@@ -1,7 +1,7 @@
 extends GutTest
 ## A bot reckons where it stands now from the walks it has sent since its view's tick. By
-## its walks summed (by_walks), unless a wall or a railing stands across them
-## (BotReckoning._carried): then from the velocity it was seen at. Any railing that would
+## its walks summed (by_walks, before #589), unless a wall or a railing stood across them:
+## then from the velocity it was seen at. Any railing that would
 ## hold its body counts, not only one of the floor it was seen on (#553). In boiler room 6
 ## on the Titanic's tank top, railing 1242 along the east side of the manhole down into the
 ## double bottom belongs to a 15 cm strip of floor between it and the floor the bot stands
@@ -12,6 +12,7 @@ extends GutTest
 ## on the way as the sim holds it (#557): on the Titanic's D deck a bot running at railing
 ## 805 beside ramp 38's well, pressing round its end onto the stair's head, was reckoned by
 ## its seen velocity once its walk's line met the railing, on through it onto the stair.
+## By its walks taken at full pace (by_walks) its body is held the same way (#589).
 
 const TITANIC := "res://data/ships/titanic.tres"
 const TANK_TOP := -18.1875
@@ -52,8 +53,10 @@ func test_a_walk_into_the_railing_of_the_floor_beside_it_is_not_carried() -> voi
 		var stepped := reckoning.by_steps(me, SEEN_TICK, BY_THE_MANHOLE)
 		assert_gt(stepped.x, RAILING_1242_X, "%s: stepped, held by the railing" % walk)
 		assert_eq(stepped.y, TANK_TOP, "%s: stepped, still on the tank top" % walk)
+		# Walked at full pace, held the same way (#589).
 		var walked := reckoning.by_walks(me, SEEN_TICK, BY_THE_MANHOLE)
-		assert_eq(walked, BY_THE_MANHOLE, "%s: walked, held by the railing" % walk)
+		assert_gt(walked.x, RAILING_1242_X, "%s: walked, held by the railing" % walk)
+		assert_eq(walked.y, TANK_TOP, "%s: walked, still on the tank top" % walk)
 	# Pressing away from the railing, nothing stands across the walk.
 	var away := _reckoning(graph, Vector2.RIGHT).by_steps(me, SEEN_TICK, BY_THE_MANHOLE)
 	assert_gt(away.x, BY_THE_MANHOLE.x + 0.5, "away from it: carried on")
@@ -101,6 +104,31 @@ func test_a_body_held_by_a_railing_is_reckoned_where_the_sim_holds_it() -> void:
 		var named := "seen at %s going %s, pressing %s" % seen
 		assert_almost_eq(stepped.x, body.x, 0.001, "%s: x where the sim holds it" % named)
 		assert_almost_eq(stepped.z, body.z, 0.001, "%s: z where the sim holds it" % named)
+
+
+func test_a_walk_held_by_a_railing_is_reckoned_on_the_side_it_came_from() -> void:
+	# #589's five cases on ramp 38's head drawn small: by its walks taken at full pace, its
+	# body is held by the railing tick by tick as by_steps holds it. On main the summed walk's
+	# line crossing the railing fell back on the seen velocity, on through it, and a line
+	# passing its end within a body's radius was carried round it, past its side. Held, it
+	# goes round the end only once its middle is past it.
+	var rules := SimFixtures.rules()
+	var layout := _railed_floor()
+	var graph := WalkGraph.new(layout, Surfaces.new(layout), rules)
+	for seen: Array in [
+		[Vector3(-0.57, 0.0, 0.19), Vector3(2.76, 0.0, 0.43), Vector2(0.97, -0.24)],
+		[Vector3(-0.40, 0.0, 0.15), Vector3.ZERO, Vector2(0.53, -0.85)],
+		[Vector3(-0.40, 0.0, 0.15), Vector3.ZERO, Vector2(0.85, -0.53)],
+		[Vector3(-0.60, 0.0, 0.50), Vector3(3.0, 0.0, 0.0), Vector2(0.86, -0.51)],
+		[Vector3(-0.06, 0.0, -0.04), Vector3(3.0, 0.0, 0.3), Vector2(0.29, 0.96)],
+	]:
+		var me := _seen(seen[0], 0)
+		me["vel"] = seen[1]
+		var reckoning := _reckoning(graph, seen[2].normalized())
+		var walked := reckoning.by_walks(me, SEEN_TICK, reckoning.reckon(me))
+		var named := "seen at %s going %s, pressing %s: %s" % (seen + [walked])
+		var beside := walked.z >= 0.0 and walked.z <= 3.0
+		assert_false(beside and walked.x > 0.0, "%s: not through the railing" % named)
 
 
 ## Two floors at one height either side of x 0: platform 0 west of it, railed along it from
