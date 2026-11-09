@@ -4112,10 +4112,15 @@ rail_holes()
 # over its feet and under its head (a wall, a casing, a boiler, the open decks' plating, a
 # deck's edge, another flight beside it), no deck's railing along it at its feet's height.
 # So a flight's head and foot stay open, and so does its side wherever it meets a floor or a
-# landing or another flight within a step.
+# landing or another flight within a step; where it meets one at its end, a body's breadth
+# of it stays open (BREADTH), so a body coming off the flight there turns off it onto that
+# as it did before. Over another flight lower than this one's treads — two flights side by
+# side, each narrower than a body and walked half over the other — it stands clear over the
+# heads of the bodies on that one, at least RAIL_BAND deep, so neither is narrowed.
 SIDE_SAMPLE = 0.05  # how far apart along a flight's side what stands beside it is read
 SIDE_BESIDE = 0.05  # how far out past a flight's side what a body comes down on is read
 HOLD_GAP = rule("body_radius")  # what stands this near a flight's side holds a body on it
+RAIL_BAND = 0.3  # the least a side rail clear over a lower flight's bodies stands (est.)
 STEP = rule("step_height")
 RAIL_HEIGHT = rule("railing_height")
 
@@ -4159,22 +4164,27 @@ def side_open(k, fixed, line, out, lo, hi):
             if ends[0] < hi and ends[1] > lo:
                 rails.append((ends, plat_geo[on][4]))
 
-    def is_open(v):
+    def state(v):
+        """At v along the side: "held", a body walking off it there "steps" onto what is
+        beside, or it is "open"."""
         t = tread(v)
         for (a, b), bottom, top in walls:
             if a <= v <= b and top > t + STEP and bottom < t + BODY_HEIGHT:
-                return False
+                return "held"
         for (a, b), deck in rails:
             if a <= v <= b and deck - STEP <= t < deck + RAIL_HEIGHT:
-                return False
+                return "held"
+        steps = False
         for (a, b), height, base in floors:
             if a <= v <= b:
                 h = height(v)
-                if abs(h - t) <= STEP:
-                    return False  # a floor, a landing or a flight within a step of its treads
                 if h > t + STEP and (h if base is None else base) < t + BODY_HEIGHT:
-                    return False  # a deck's edge or a flight beside standing over its feet
-        return True
+                    return "held"  # a deck's edge or a flight beside standing over its feet
+                steps = steps or abs(h - t) <= STEP  # a floor, a landing or a flight within a step
+        return "steps" if steps else "open"
+
+    def is_open(v):
+        return state(v) == "open"
 
     ends = [e for (a, b), *_rest in walls + rails + floors for e in (a, b) if lo < e < hi]
 
@@ -4198,6 +4208,10 @@ def side_open(k, fixed, line, out, lo, hi):
             begun = None
     if begun is not None:
         spans.append((begun, hi))
+    # A way off its end onto what is beside it there stays a body's breadth wide.
+    first = lo + BREADTH if state(middles[0]) == "steps" else lo
+    last = hi - BREADTH if state(middles[-1]) == "steps" else hi
+    spans = [(max(a, first), min(b, last)) for a, b in spans]
     return [(a, b) for a, b in spans if b - a >= RAIL_LEAST], tread
 
 def rail_flight_sides():
@@ -4217,6 +4231,18 @@ def rail_flight_sides():
                     t0, t1 = sorted((tread(p0), tread(p1)))
                     ranges = (p0, p1, *side) if fixed == 2 else (*side, p0, p1)
                     bottom, top = round(t0, 4), round(t1 + RAIL_HEIGHT, 4)
+                    # Over another flight it stands over or by, beside this one's side and lower:
+                    # clear over the heads of the bodies on that one within a body's radius of it,
+                    # so it holds this one's and keeps the other's breadth.
+                    reach = (ranges[0] - HOLD_GAP, ranges[1] + HOLD_GAP, ranges[2] - HOLD_GAP, ranges[3] + HOLD_GAP)
+                    for j, r in enumerate(ramp_geo):
+                        if j != k and r[0] < reach[1] and reach[0] < r[1] and r[2] < reach[3] and reach[2] < r[3]:
+                            r_lo, r_hi = (r[0], r[1]) if r[4] == 0 else (r[2], r[3])
+                            a_lo, a_hi = (reach[0], reach[1]) if r[4] == 0 else (reach[2], reach[3])
+                            h = max(rising(r, r_lo, r_hi)(clamp(v, r_lo, r_hi)) for v in (a_lo, a_hi))
+                            if h < t0 and h + BODY_HEIGHT > bottom:
+                                bottom = round(h + BODY_HEIGHT, 4)
+                                top = max(top, round(bottom + RAIL_BAND, 4))
                     # On what stands under it, under what stands over it: it runs through none.
                     for _pass in range(2):
                         for q in block_geo:

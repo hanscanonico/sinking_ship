@@ -12,7 +12,9 @@ extends GutTest
 ## apart, off each side of each of her flights at its quarters, half a metre in from the
 ## edge, straight out of it — from where the walk graph reaches from her first spawn ends
 ## out of the sea, and none off a flight falls further than a step: on her and on her
-## sisters.
+## sisters. Within a body's breadth of a flight's end, where it meets a floor or another
+## flight, the way off it there stays a body wide: a walk off its side there may come down
+## further than a step, never further than a metre.
 
 const SHIPS: Array[String] = [
 	"res://data/ships/titanic.tres",
@@ -29,6 +31,8 @@ const STOOD := 3
 ## Bodies walk side by side, each set out this far from every other one (metres): further
 ## than two walks and their falls carry them, so no two meet.
 const APART := 16.0
+## What a walk off a flight's side set out within a body's breadth of its end is told by.
+const BY_AN_END := " by its end"
 
 var _rules := SimFixtures.rules()
 ## Per ship of SHIPS, by its path: what went wrong on its walks (_gone_wrong).
@@ -47,7 +51,20 @@ func test_no_walk_on_her_leaves_her_shell() -> void:
 
 func test_no_walk_off_her_flights_sides_falls_past_a_step() -> void:
 	for path: String in SHIPS:
-		assert_eq(_ending(_walked_on[path], "ramp ", " falls "), PackedStringArray(), path)
+		var falls := PackedStringArray()
+		for line in _ending(_walked_on[path], "ramp ", " falls "):
+			if not line.contains(BY_AN_END):
+				falls.append(line)
+		assert_eq(falls, PackedStringArray(), path)
+
+
+func test_no_walk_off_her_flights_sides_falls_past_a_metre() -> void:
+	for path: String in SHIPS:
+		var falls := PackedStringArray()
+		for line in _ending(_walked_on[path], "ramp ", " falls "):
+			if line.get_slice(" falls ", 1).to_float() > 1.0:
+				falls.append(line)
+		assert_eq(falls, PackedStringArray(), path)
 
 
 func test_a_walk_into_the_sea_is_found() -> void:
@@ -144,7 +161,11 @@ func _gone_wrong(layout: ShipLayout) -> PackedStringArray:
 				else:
 					point.y = area.position.y + area.size.y * share
 				var start := Vector3(point.x, ramp.height_at(point.x, point.y), point.y)
-				_add(walks, graph, costs, start, move, "ramp %d" % index)
+				var length := area.size.x if ramp.axis == ShipRamp.Axis.X else area.size.y
+				var what := "ramp %d" % index
+				if minf(share, 1.0 - share) * length <= _rules.body_radius * 2.0:
+					what += BY_AN_END
+				_add(walks, graph, costs, start, move, what)
 	var seats := mini(layout.max_seats, layout.spawns.size())
 	var sim := SimFixtures.sim(seats, null, layout)
 	HeldPose.hold(sim, pose)
