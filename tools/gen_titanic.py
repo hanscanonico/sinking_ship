@@ -2148,15 +2148,25 @@ def c_covered(sign, x0, x1, half):
     return [(max(x0, r[1] - T), min(x1, r[2] + T)) for r in C_PLAN.rooms + C_PLAN.solids
             if r[1] < x1 and r[2] > x0 and (r[4] if sign > 0 else -r[3]) >= half - C_SIDE_ROOM]
 
+# Her shell stands over C deck under her poop, her bridge deck and her forecastle (top_at):
+# there her side is lined by her plating wherever no room's wall holds a body, rooms near it
+# or not — her promenades under B deck's after end were railed inside her plating (#598).
+C_OVER = [(-math.inf, POOP_TO), B_RUN, (FCSL_FROM, math.inf)]
+
+def c_over(x):
+    return any(lo < x < hi for lo, hi in C_OVER)
+
 c_gaps = [(0, at, -HALF, HALF) for at in (POOP_TO, B_RUN[0], B_RUN[1], FCSL_FROM)]
 c_shell = [(0, at, -HALF, HALF) for at in (C_TIP, C_NOSE) + C_ENDS]
 for x0, x1, z0, z1 in C_PIECES:
     tip = x1 <= C_ENDS[0] + 1e-6 or x0 >= C_ENDS[1] - 1e-6
     for sign, z in [(-1, z0), (1, z1)]:
         c_shell += [(2, z, x0, x1)] if tip else [(2, z, a, b) for a, b in c_covered(sign, x0, x1, z1)]
-        # The step to the next strip, where its rooms stand to her side either side of it.
+        c_shell += [(2, z, max(x0, lo), min(x1, hi)) for lo, hi in C_OVER if lo < x1 and hi > x0]
+        # The step to the next strip, where its rooms stand to her side either side of it, or
+        # her shell over it.
         for edge in (x0, x1):
-            if tip or c_covered(sign, edge - 0.05, edge + 0.05, z1):
+            if tip or c_over(edge) or c_covered(sign, edge - 0.05, edge + 0.05, z1):
                 c_shell.append((0, edge, -HALF, HALF))
 # Where her shell stands over C deck's open edge (her poop's sides, B deck's) a body at the
 # edge is at her side, not at a railing over the sea: the edge is lined, deck to deck (est.).
