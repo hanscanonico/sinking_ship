@@ -488,6 +488,28 @@ func test_a_bot_drops_a_bonus_gone_though_nothing_else_scores() -> void:
 	assert_eq(source.brain.intent, BotBrain.Intent.SEEK_HIGH, "gone, it is dropped")
 
 
+## A bot going for a bonus keeps going for it through the thinks its view shows it in the
+## air — a short drop on its way, off a stair's side or a deck's edge — and walks on: the
+## bonus is still there (#596).
+func test_a_bot_keeps_its_bonus_through_a_think_that_sees_it_in_the_air() -> void:
+	var profile := _tier(&"normal")
+	var sim := _in_the_hold(-1.0)
+	SimFixtures.place(sim, 0, Vector3(9.0, SimFixtures.HOLD_FLOOR, 0.0), 0.0)
+	var source := BotInputSource.new(0, profile, sim.config)
+	for _tick in profile.reaction_ticks + 2 * profile.think_period:
+		var seen := sim.snapshot()
+		if _tick > 0:
+			# From its first think on, its view shows it in the air.
+			var me: Dictionary = seen["seats"][0]
+			me["state"] = PlayerState.Body.AIRBORNE
+			me["surface"] = Surfaces.NONE
+		source.observe(seen, sim.pose())
+		var frame := source.next_frame(sim.state.tick)
+		assert_eq(source.brain.intent, BotBrain.Intent.TAKE_BONUS, "at tick %d" % _tick)
+		assert_gt(Vector2(frame.move).x, 0.0, "it walks on for the bonus at tick %d" % _tick)
+		SimFixtures.step(sim, {0: frame})
+
+
 ## Each tier goes for a bonus only while the floor it lies on stands the tier's own margin
 ## over the water: a little more, it goes; a little less, it does not.
 func test_each_tier_goes_only_while_its_margin_holds() -> void:
