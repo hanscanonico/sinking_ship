@@ -85,7 +85,6 @@ func _stepped(me: Dictionary, seen_tick: int, reckoned: Vector3, eased: bool) ->
 	var vel := Vector2(seen_vel.x, seen_vel.z)
 	var at := seen_pos
 	var surface: int = me["surface"]
-	var held_by_rails := _rails_within(seen_tick, vel.length(), pace, seen_pos)
 	for tick in range(seen_tick, seen_tick + _sent_ticks.size()):
 		var index := tick % _sent_ticks.size()
 		if _sent_ticks[index] != tick:
@@ -98,14 +97,13 @@ func _stepped(me: Dictionary, seen_tick: int, reckoned: Vector3, eased: bool) ->
 			vel = wish
 		var came := Vector2(at.x, at.z)
 		at += Vector3(vel.x, 0.0, vel.y) * dt
-		if held_by_rails:
-			var radius := _rules.body_radius
-			var railing := _rules.railing_height
-			for held: Surfaces.Contact in _surfaces.rail_contacts(
-				at, radius, surface, _rules.step_height, railing, came
-			):
-				at += Vector3(held.normal.x, 0.0, held.normal.y) * held.depth
-				vel += held.normal * maxf(-vel.dot(held.normal), 0.0)
+		var radius := _rules.body_radius
+		var railing := _rules.railing_height
+		for held: Surfaces.Contact in _surfaces.rail_contacts(
+			at, radius, surface, _rules.step_height, railing, came
+		):
+			at += Vector3(held.normal.x, 0.0, held.normal.y) * held.depth
+			vel += held.normal * maxf(-vel.dot(held.normal), 0.0)
 		var under := _surfaces.under(at, _rules.step_height)
 		if under != Surfaces.NONE:
 			surface = under
@@ -113,24 +111,6 @@ func _stepped(me: Dictionary, seen_tick: int, reckoned: Vector3, eased: bool) ->
 	if _surfaces.blocked(seen_pos, at, height, _rules.step_height):
 		return reckoned
 	return at
-
-
-## Whether a railing may hold the body on the walks sent since [param seen_tick], seen at
-## [param seen_pos] going [param speed]: one within a body's radius of everywhere they can
-## take it — never faster than the faster of that speed and its fastest walk at
-## [param pace], with no railing to push it. Where none is, stepping meets none (#589).
-func _rails_within(seen_tick: int, speed: float, pace: float, seen_pos: Vector3) -> bool:
-	var ticks := 0
-	var fastest := speed
-	for tick in range(seen_tick, seen_tick + _sent_ticks.size()):
-		var index := tick % _sent_ticks.size()
-		if _sent_ticks[index] != tick:
-			break
-		ticks += 1
-		fastest = maxf(fastest, _sent_moves[index].length() * pace)
-	var reach := fastest * ticks * Ticks.SECONDS_PER_TICK + _rules.body_radius
-	var box := Rect2(seen_pos.x - reach, seen_pos.z - reach, reach * 2.0, reach * 2.0)
-	return not _surfaces.rails.near(box.grow(0.01)).is_empty()
 
 
 ## Whether [param me] stands on its feet, free to walk: neither in the air, the sea nor a
