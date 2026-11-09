@@ -636,8 +636,8 @@ func _aim(seen: Dictionary) -> PackedVector3Array:
 	return _props.aim(seen) if intent == Intent.TAKE_BUOY else _bonuses.aim(seen)
 
 
-## Along the route to what it goes to take, [param aim] (_aim); there — on its last leg's
-## stair within a step of the floor it leads to, too (BotStair.through) — to where it stands
+## Along the route to what it goes to take, [param aim] (_aim); there — down its last leg's
+## stair within a step of its foot, too (BotStair.through) — to where it stands
 ## to take it, by the floor (BotFloorWay: a manhole's ladder opens in the floor it crosses),
 ## at a pace that would bring it there in two of its view's lags — reckoned on by its seen
 ## velocity it stands a lag's walk off however it turns, so at a walk it would carry on round

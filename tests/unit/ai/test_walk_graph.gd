@@ -968,3 +968,38 @@ func test_a_body_on_a_stair_s_foot_routes_from_the_floor_there() -> void:
 	assert_eq(_zones_on(route), [bow_perch] as Array[int], "through the head")
 	if not route.is_empty():
 		assert_eq(route.front().ramp, 0, "through the head, by the stair")
+
+
+## A bot's last leg down a stair is behind it within a step of the stair's foot, where it is
+## on that floor (BotStair.through, #562): it goes straight for what it is taking. Its last
+## leg up one is not, within a step of its head: the stair's sides drop away there, and it
+## goes on through the head.
+func test_a_bot_s_last_leg_down_a_stair_is_through_within_a_step_of_its_foot() -> void:
+	var layout := _two_way_layout()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var stair := BotStair.new(graph, SimFixtures.rules(), BotProfile.for_tier(&"normal"))
+	var ground := graph.deck_of(SimFixtures.platform_named(layout, &"ground"))
+	var bow_perch := graph.deck_of(SimFixtures.platform_named(layout, &"bow perch"))
+	var down: Array[WalkGraph.Portal] = []
+	var up: Array[WalkGraph.Portal] = []
+	for portal: WalkGraph.Portal in graph.portals():
+		if portal.ramp == 0 and portal.to_zone == ground:
+			down.append(portal)
+		elif portal.ramp == 0 and portal.to_zone == bow_perch:
+			up.append(portal)
+	assert_eq([down.size(), up.size()], [1, 1], "one leg down the stair and one up it")
+	if down.is_empty() or up.is_empty():
+		return
+	var on := surfaces.ramp_surface(0)
+	var on_its_foot := Vector3(12.0, 0.0, 4.8)
+	on_its_foot.y = surfaces.height_at(on, on_its_foot)
+	var up_it := Vector3(12.0, 0.0, 3.0)
+	up_it.y = surfaces.height_at(on, up_it)
+	var at_its_head := Vector3(12.0, 0.0, 2.2)
+	at_its_head.y = surfaces.height_at(on, at_its_head)
+	assert_true(stair.through(down, on_its_foot), "down, within a step of its foot")
+	assert_false(stair.through(down, up_it), "down, more than a step up it")
+	assert_false(stair.through(up, at_its_head), "up, within a step of its head")
+	var on_beyond: Array[WalkGraph.Portal] = [down[0], up[0]]
+	assert_false(stair.through(on_beyond, on_its_foot), "with a leg on beyond its foot")

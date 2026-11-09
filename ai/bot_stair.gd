@@ -72,13 +72,14 @@ func at_head(leg: WalkGraph.Portal, at: Vector3) -> bool:
 	return ahead <= 0.0 and ahead >= -lead and absf(offset.cross(leg.along)) <= leg.half_width
 
 
-## Whether [param legs] are down to one, along a stair, and [param at] stands on that stair
-## within a step of the floor its far end joins: there the bot is in the zone the stair leads
-## to (WalkGraph.zone_at), and steps off it straight for what it goes to take in that zone.
-## Beside the stair's foot, that is back across the foot it would otherwise come on down
-## past: on to the leg's end, and round, with its view a lag behind (#562).
+## Whether [param legs] are down to one, down a stair, and [param at] stands on that stair
+## within a step of the floor at its foot: there the bot is in the zone the stair leads to
+## (WalkGraph.zone_at), the stair's sides a step up off that floor, and it steps off straight
+## for what it goes to take in that zone. Beside the foot, that is back across the foot it
+## would otherwise come on down past: on to the leg's end, and round, with its view a lag
+## behind (#562). Up a stair, its sides drop away at its head: it goes on through the head.
 func through(legs: Array[WalkGraph.Portal], at: Vector3) -> bool:
-	if legs.size() != 1 or legs[0].ramp == WalkGraph.NONE:
+	if legs.size() != 1 or legs[0].ramp == WalkGraph.NONE or legs[0].exit.y >= legs[0].entry.y:
 		return false
 	if _surfaces.under(at, _rules.step_height) != _surfaces.ramp_surface(legs[0].ramp):
 		return false
