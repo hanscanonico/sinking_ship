@@ -5,14 +5,15 @@ extends GutTest
 ## touching, a slab over a crawlway, ramps up and down either way, a spent railing and
 ## crates touching, stacked on lids and astride the grids' cells — and on her real ships,
 ## their doors half shut and a funnel down, every obstacle, railing and airborne-railing
-## contact — a body's on its feet and in the air, stepping onto nothing — and every crate
-## near a point, asked at corners, edges and a hair either side of them, at ±0 and from
-## heights a step either side of every surface and a hair and half a step under it — and
-## where a falling body lands there and its ceiling; then matches stepped tick by tick, one
-## natively and one in GDScript, their snapshots byte for byte — a saloon's tables and
-## chairs afloat as she settles and heels, and the steamer's crates sliding hard into
-## railings that break. Where the extension is not loaded there is nothing to hold it
-## to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
+## contact — a body's on its feet, walked there across railings, and in the air, stepping
+## onto nothing — and every crate near a point, asked at corners, edges and a hair either
+## side of them, at ±0 and from heights a step either side of every surface and a hair and
+## half a step under it — and where a falling body lands there and its ceiling; then
+## matches stepped tick by tick, one natively and one in GDScript, their snapshots byte
+## for byte — a saloon's tables and chairs afloat as she settles and heels, and the
+## steamer's crates sliding hard into railings that break. Where the extension is not
+## loaded there is nothing to hold it to; CI sets SINKING_NATIVE_REQUIRED, so a missing
+## library there fails.
 
 const STEAMER := "res://data/ships/steamer.tres"
 const SMALL_TITANIC := "res://data/ships/small_titanic.tres"
@@ -31,12 +32,15 @@ const SPENT_BY_A_STAIR := 7
 var _rng := RandomNumberGenerator.new()
 var _differences: Array[String] = []
 var _asked := 0
+## How many bodies walked onto her stairs were held by a railing.
+var _walked_held := 0
 
 
 func before_each() -> void:
 	_rng.seed = 410
 	_differences.clear()
 	_asked = 0
+	_walked_held = 0
 	ContactsNative.off = false
 
 
@@ -123,6 +127,7 @@ func test_the_railings_along_her_stairs_answer_alike() -> void:
 			held += _ask_along(native, reference, layout, native.ramp_surface(ramp), rules)
 	_assert_none("her stairs' railings")
 	assert_gt(held, 100, "bodies on her stairs held by railings")
+	assert_gt(_walked_held, 100, "bodies walked onto her stairs held by railings")
 
 
 func test_pieces_meeting_answer_alike_round_their_corners() -> void:
@@ -326,6 +331,35 @@ func _rails(
 		reference.airborne_rail_contacts(point, came, shape.x, shape.y, rules.railing_height),
 		"airborne railings at %s from %s" % [point, came]
 	)
+	# Walked there this tick (RailContacts.walked's twin): from where it stood, from a step
+	# away, and from far enough off that the line runs over several stretches of the grid.
+	for reach: float in [0.0, 0.4, 3.0, 11.0]:
+		var walked_from := (
+			Vector2(point.x, point.z) + Vector2.from_angle(_rng.randf_range(0.0, TAU)) * reach
+		)
+		_walked(native, reference, point, walked_from, surface, rules)
+
+
+## rail_contacts() of a body at [param point] on [param surface] that walked there from
+## [param came] this tick, natively and in GDScript.
+func _walked(
+	native: Surfaces,
+	reference: Surfaces,
+	point: Vector3,
+	came: Vector2,
+	surface: int,
+	rules: BrawlRules
+) -> int:
+	_asked += 1
+	var radius := rules.body_radius
+	var theirs := reference.rail_contacts(
+		point, radius, surface, rules.step_height, rules.railing_height, came
+	)
+	var mine := native.rail_contacts(
+		point, radius, surface, rules.step_height, rules.railing_height, came
+	)
+	_same_contacts(mine, theirs, "railings walked to %s on %d from %s" % [point, surface, came])
+	return theirs.size()
 
 
 ## landing(), under() and ceiling() at [param point], natively and in GDScript: the lid of
@@ -442,6 +476,9 @@ func _ask_along(
 					)
 					_same_contacts(mine, theirs, "stair %d's railings at %s" % [surface, at])
 					held += 0 if theirs.is_empty() else 1
+					# Walked across the railing's line onto the stair, and along it.
+					for came: Vector2 in [on - across * 0.3, spot + railing.to - railing.from]:
+						_walked_held += _walked(native, reference, at, came, surface, rules)
 	return held
 
 
