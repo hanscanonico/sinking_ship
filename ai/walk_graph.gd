@@ -223,6 +223,7 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_pieces = WalkPieces.new(layout, surfaces, rules)
 	_room_zones = layout.rooms.size() + _pieces.extra()
 	_link_decks()
+	_zone_count = _pieces.split_decks(_decks, _zone_count)
 	_out.resize(_zone_count)
 	_zone_platforms.resize(_zone_count)
 	for zone in _zone_count:
@@ -230,6 +231,8 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 		_zone_platforms[zone] = PackedInt32Array()
 	for platform in _decks.size():
 		_zone_platforms[_decks[platform]].append(platform)
+	for zone: int in _pieces.deck_platforms:
+		_zone_platforms[zone] = PackedInt32Array(_pieces.deck_platforms[zone])
 	_pace.resize(_zone_count)
 	_pace.fill(1.0)
 	for zone in _room_zones:
@@ -823,8 +826,8 @@ func _add(portal: Portal) -> int:
 
 
 ## The zone at [param point] (x/z) on [param platform]: the room holding it there, or
-## the one whose half of a door's depth holds it (WalkDoors.depth_room), else the
-## platform's open deck.
+## the one whose half of a door's depth holds it (WalkDoors.depth_room), else the piece of
+## the platform's open deck there (WalkPieces.split_decks).
 func _zone_on(platform: int, point: Vector2) -> int:
 	var height := _layout.platforms[platform].height
 	var feet := Vector3(point.x, height, point.y)
@@ -832,7 +835,7 @@ func _zone_on(platform: int, point: Vector2) -> int:
 		if _layout.rooms[room].holds(feet, _step):
 			return _pieces.zone(room, point)
 	var held := _doors.depth_room(point, height)
-	return held if held != NONE else _decks[platform]
+	return held if held != NONE else _pieces.zone(_decks[platform], point)
 
 
 func _room_middle(room: int) -> Vector3:

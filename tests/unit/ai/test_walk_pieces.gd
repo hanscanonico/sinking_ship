@@ -25,6 +25,12 @@ const STEAMER_STORES := -3.1
 const BETWEEN_THE_WELLS := Vector3(-17.5, STEAMER_STORES, 0.0)
 const BY_THE_STAIR_FOOT := Vector3(-15.2, STEAMER_STORES, -2.0)
 
+## The steamer's main deck aft of her saloon, to starboard, and the foot of her bridge's
+## starboard stair forward of it: the deck between them runs only along strips beside the
+## head of the stair down to her side passage, narrower than a body (#603).
+const AFT_OF_THE_SALOON := Vector3(-5.0, 0.0, 3.6)
+const AT_THE_BRIDGE_STAIR := Vector3(9.3, 0.0, 2.65)
+
 var _rules := SimFixtures.rules()
 
 
@@ -108,6 +114,27 @@ func test_no_piece_of_the_titanic_or_her_sisters_is_put_back() -> void:
 				)
 			)
 		assert_gt(pieces, 0, "%s read in pieces" % path.get_file())
+
+
+## An open deck is read in pieces as a room is (#603): no route walks a bot along the
+## steamer's main deck from aft of her saloon to the foot of her bridge's stair, along a strip
+## no body passes; it goes in through the saloon and out forward.
+func test_an_open_deck_cut_by_strips_narrower_than_a_body_is_two_zones() -> void:
+	var layout: ShipLayout = load(SimFixtures.STEAMER)
+	var graph := WalkGraph.new(layout, Surfaces.new(layout), _rules)
+	var aft := _zone(graph, AFT_OF_THE_SALOON)
+	var forward := _zone(graph, AT_THE_BRIDGE_STAIR)
+	assert_ne(aft, forward, "a zone either side of the strips")
+	assert_eq(graph.room_of(aft), WalkGraph.NONE, "both open deck")
+	assert_eq(graph.room_of(forward), WalkGraph.NONE)
+	var level := HeldPose.flooded(layout, -layout.freeboard, {})
+	var surface := graph.surfaces().under(AFT_OF_THE_SALOON, _rules.step_height)
+	var legs := graph.route(AFT_OF_THE_SALOON, surface, forward, level)
+	var through := []
+	for leg: WalkGraph.Portal in legs:
+		if graph.room_of(leg.to_zone) != WalkGraph.NONE:
+			through.append(String(layout.rooms[graph.room_of(leg.to_zone)].name))
+	assert_has(through, "saloon", "the way round is through the saloon")
 
 
 func test_a_room_cut_between_railed_wells_is_held_whole() -> void:

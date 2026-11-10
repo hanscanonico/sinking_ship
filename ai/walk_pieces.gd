@@ -13,6 +13,11 @@ extends RefCounted
 ## no way lands in is left the room's, as a body standing in it was before.
 ## A room read split over squares of CELL is read again over squares of FINE: a doorway's
 ## clear width has room for a body's middle that the coarse squares' middles can miss.
+## An open deck is read the same way (split_decks, #603): her platforms of one height that
+## touch, outside every room, are one zone only while a body could walk from any of the ways
+## onto them — rooms' doorways and flights' ends — to any other. The steamer's main deck aft
+## of her saloon meets the feet of her bridge's stairs forward of it only along strips beside
+## the heads of the stairs down to her side passages, narrower than a body.
 ## Asked of Surfaces once, as the graph is built, before any crate or railing moves.
 
 ## The side of a square a room's floor is first read over: BotFloorWay's.
@@ -35,9 +40,11 @@ var _lead: float
 var _first := 0
 ## Per piece zone, from _first on, the room it is a piece of.
 var _rooms := PackedInt32Array()
-## Per room split, its grid: the room, the side of its squares, its origin and width and
-## height in squares, and per square its zone or NONE; read through _grid_of.
+## Per room or open deck split, keyed by its own zone, its grid: the side of its squares,
+## its origin and width and depth in squares, and per square its zone or -1.
 var _grid_of := {}
+## Per zone an open deck's piece adds (split_decks), the platforms its squares stand on.
+var deck_platforms := {}
 
 
 ## The pieces of every room of [param layout] whose ways land in more than one.
@@ -74,6 +81,46 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 			squares[index] = zone_of.get(squares[index], room) if squares[index] >= 0 else -1
 		fine["pieces"] = squares
 		_grid_of[room] = fine
+
+
+## Reads each open deck in pieces, as a room is: per platform its deck's zone in
+## [param decks], the zones numbered up to [param zone_count]. The piece the first way onto
+## a deck lands in keeps its zone; each other piece a way lands in is a zone of its own,
+## numbered on from [param zone_count], with the platforms its squares stand on
+## (deck_platforms). The zone count after them.
+func split_decks(decks: PackedInt32Array, zone_count: int) -> int:
+	var on := {}
+	for platform in decks.size():
+		on.get_or_add(decks[platform], []).append(platform)
+	var ends := _flight_ends()
+	var doors := {}
+	for deck: int in on:
+		var platforms: Array = on[deck]
+		var height := _layout.platforms[platforms[0]].height
+		var ways := _deck_ways(height, doors, ends)
+		if ways.size() < 2 or _landings(_read_deck(platforms, height, CELL), ways).size() < 2:
+			continue
+		var fine := _read_deck(platforms, height, FINE)
+		var landed := _landings(fine, ways)
+		if landed.size() < 2:
+			continue
+		var zone_of := {landed[0]: deck}
+		for index in range(1, landed.size()):
+			zone_of[landed[index]] = zone_count
+			deck_platforms[zone_count] = []
+			zone_count += 1
+		var squares: PackedInt32Array = fine["pieces"]
+		var under: PackedInt32Array = fine["platforms"]
+		for index in squares.size():
+			if squares[index] < 0:
+				continue
+			squares[index] = zone_of.get(squares[index], deck)
+			var zone := squares[index]
+			if zone != deck and not under[index] in deck_platforms[zone]:
+				deck_platforms[zone].append(under[index])
+		fine["pieces"] = squares
+		_grid_of[deck] = fine
+	return zone_count
 
 
 ## How many zones the pieces add after the rooms.
@@ -129,7 +176,7 @@ func glue(portals: Array, ramp_zones: Array[PackedInt32Array], start: int, zone_
 		for room: int in _grid_of:
 			var apart := {}
 			for zone: int in _grid_of[room]["pieces"]:
-				if zone >= _first:
+				if zone >= 0 and zone != room:
 					apart[zone] = true
 			whole[room] = apart.keys()
 		for room: int in whole:
@@ -158,7 +205,7 @@ func glue(portals: Array, ramp_zones: Array[PackedInt32Array], start: int, zone_
 			var split := false
 			for index in squares.size():
 				squares[index] = back.get(squares[index], squares[index])
-				split = split or squares[index] >= _first
+				split = split or squares[index] >= 0 and squares[index] != room
 			grid["pieces"] = squares
 			if not split:
 				_grid_of.erase(room)
@@ -197,10 +244,19 @@ func _read(room: int, side: float) -> Dictionary:
 	var origin := (area.position / side).floor() * side
 	var width := maxi(1, ceili((area.end.x - origin.x) / side))
 	var depth := maxi(1, ceili((area.end.y - origin.y) / side))
+	var stands := _stands_grid(origin, width, depth, side, height, area)
+	return _pieces_of(stands, origin, width, depth, side)
+
+
+## The pieces of the squares of [param stands] (_stands_grid) over the grid from
+## [param origin], [param width] squares wide and [param depth] deep, each [param side]
+## across: those that touch, eight ways and never across a corner, and none all on a stair.
+func _pieces_of(
+	stands: PackedByteArray, origin: Vector2, width: int, depth: int, side: float
+) -> Dictionary:
 	var pieces := PackedInt32Array()
 	pieces.resize(width * depth)
 	pieces.fill(-1)
-	var stands := _stands_grid(origin, width, depth, side, height, area)
 	var count := 0
 	# Per piece, 1 where a square of it is on the room's floor.
 	var floored := PackedByteArray()
@@ -338,6 +394,83 @@ func _ways(room: int, ends: Array) -> Array[PackedVector2Array]:
 		if absf(end.y - data.floor_height) <= _rules.step_height and data.area.has_point(flat):
 			ways.append(PackedVector2Array([flat, Vector2.ZERO]))
 	return ways
+
+
+## The ways onto an open deck at [param height]: out through the middle of each doorway a
+## body fits of a room on a floor there, the way out; and each end of a flight there
+## ([param ends]) outside every room, with none — those that land on another floor land in
+## no piece of the deck's. Each room's doorways are read once into [param doors].
+func _deck_ways(height: float, doors: Dictionary, ends: Array) -> Array[PackedVector2Array]:
+	var ways: Array[PackedVector2Array] = []
+	var level: Array[ShipRoom] = []
+	for room in _layout.rooms.size():
+		var data := _layout.rooms[room]
+		if absf(data.floor_height - height) > _rules.step_height:
+			continue
+		level.append(data)
+		if not doors.has(room):
+			doors[room] = data.doors(_surfaces, _rules.crawl_height, _rules.step_height)
+		for door: ShipRoom.Door in doors[room]:
+			if door.width() >= _rules.body_radius * 2.0:
+				ways.append(PackedVector2Array([door.middle(), door.outward]))
+	for end: Vector3 in ends:
+		if absf(end.y - height) > _rules.step_height:
+			continue
+		var feet := Vector3(end.x, height, end.z)
+		var roomed := false
+		for data: ShipRoom in level:
+			roomed = roomed or data.holds(feet, _rules.step_height)
+		if not roomed:
+			ways.append(PackedVector2Array([Vector2(end.x, end.z), Vector2.ZERO]))
+	return ways
+
+
+## The pieces of the open deck of [param platforms], at [param height], over squares
+## [param side] across, as _read reads a room's: the squares whose middles lie on its
+## platforms, each read over its platform's area, and in no room on a floor there. Per
+## square too ("platforms"), the platform it was read over.
+func _read_deck(platforms: Array, height: float, side: float) -> Dictionary:
+	var bounds: Rect2 = _layout.platforms[platforms[0]].area
+	for platform: int in platforms:
+		bounds = bounds.merge(_layout.platforms[platform].area)
+	var origin := (bounds.position / side).floor() * side
+	var width := maxi(1, ceili((bounds.end.x - origin.x) / side))
+	var depth := maxi(1, ceili((bounds.end.y - origin.y) / side))
+	var stands := PackedByteArray()
+	stands.resize(width * depth)
+	var under := PackedInt32Array()
+	under.resize(width * depth)
+	under.fill(-1)
+	for platform: int in platforms:
+		var area := _layout.platforms[platform].area
+		var low := Vector2i(((area.position - origin) / side).floor())
+		var high := Vector2i(((area.end - origin) / side).ceil()).min(Vector2i(width, depth))
+		var span := high - low
+		if span.x <= 0 or span.y <= 0:
+			continue
+		var corner := origin + Vector2(low) * side
+		var read := _stands_grid(corner, span.x, span.y, side, height, area)
+		for index in read.size():
+			if read[index] != 0:
+				var at := (low.y + index / span.x) * width + low.x + index % span.x
+				stands[at] = read[index]
+				under[at] = platform
+	for data: ShipRoom in _layout.rooms:
+		if (
+			absf(data.floor_height - height) > _rules.step_height
+			or not data.area.intersects(bounds)
+		):
+			continue
+		var low := Vector2i(((data.area.position - origin) / side).floor()).max(Vector2i.ZERO)
+		var high := Vector2i(((data.area.end - origin) / side).ceil()).min(Vector2i(width, depth))
+		for z in range(low.y, high.y):
+			for x in range(low.x, high.x):
+				var middle := origin + (Vector2(x, z) + Vector2(0.5, 0.5)) * side
+				if data.area.has_point(middle):
+					stands[z * width + x] = 0
+	var grid := _pieces_of(stands, origin, width, depth, side)
+	grid["platforms"] = under
+	return grid
 
 
 ## Where a body stands stepping off each end of each flight, a body's width on past it.
