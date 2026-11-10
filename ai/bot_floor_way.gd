@@ -67,6 +67,10 @@ var _aim := Vector3.INF
 var _way := PackedVector3Array()
 var _way_leg: WalkGraph.Portal = null
 var _finds := FINDS
+## Whether a search over CELL's squares found no way round along this leg from further than
+## NARROW off its end, where it does not look over FINER's: it looks again only once within
+## NARROW of it (#567).
+var _beyond := false
 ## What the extension's search is handed of these and the rules (NativeSurfaces.floor_way):
 ## over CELL's squares, and over FINER's.
 var _native_rules: PackedFloat64Array
@@ -114,6 +118,7 @@ func toward(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> 
 		_way.clear()
 		_way_leg = leg
 		_finds = FINDS
+		_beyond = false
 		_wait = 0
 	elif leg == null and not _way.is_empty() and _flat(_way[_way.size() - 1], to) > NEAR:
 		# Its target has moved on from where the way round to it ends.
@@ -139,7 +144,8 @@ func holds(leg: WalkGraph.Portal, from: Vector3) -> bool:
 ## One look (toward): Vector3.INF to walk at [param to], else the point of the way round to
 ## walk to. None found, it looks for none again along the leg — unless it looked from where no
 ## body could stand, where its reckoning, carried on by a walk that a blocker stopped, puts
-## it: none from there says nothing of the leg, and it looks again next think.
+## it: none from there says nothing of the leg, and it looks again next think; or from
+## further than NARROW off its end, where it looks again once within NARROW (#567).
 func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> Vector3:
 	var keep := PackedInt32Array([surface])
 	if leg != null and leg.ramp != WalkGraph.NONE:
@@ -151,11 +157,19 @@ func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> V
 		if _finds == 0 or _holds(from, to, heads, keep):
 			return Vector3.INF
 		var end := to if leg == null else leg.entry
+		var narrow := _flat(from, end) <= NARROW
+		if _beyond and not narrow:
+			return Vector3.INF
 		_way = _find(from, end, keep)
-		if _way.is_empty() and _flat(from, end) <= NARROW:
+		if _way.is_empty() and narrow:
 			_way = _find(from, end, keep, true)
 		var ends := _way.is_empty() and _stands(from, surface, keep, _snug)
-		_finds = 0 if ends else _finds - 1
+		if ends and not narrow:
+			# A doorway's lane may fall between CELL's squares: none found over them says
+			# nothing of the leg till FINER's are looked over too, within NARROW.
+			_beyond = true
+		else:
+			_finds = 0 if ends else _finds - 1
 		if _way.is_empty():
 			return Vector3.INF
 		near = 0
