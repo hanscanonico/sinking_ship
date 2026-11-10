@@ -53,6 +53,8 @@ struct ContactGrid {
 	int32_t band_of(double p_height) const;
 	void near(const Vector2 &p_position, const Vector2 &p_end, double p_bottom, double p_top,
 			std::vector<int32_t> &r_found) const;
+	void along(const Vector2 &p_start, const Vector2 &p_end, double p_bottom, double p_top,
+			std::vector<int32_t> &r_found) const;
 };
 
 class NativeStands : public RefCounted {
@@ -120,6 +122,8 @@ public:
 			double p_railing_height) const;
 	PackedFloat64Array airborne_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
 			double p_radius, double p_body_height, double p_railing_height) const;
+	PackedFloat64Array walked_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
+			double p_radius, int64_t p_surface, double p_step, double p_railing_height) const;
 
 	void obstacles(const Vector3 &p_ship_point, double p_radius, double p_body_height, double p_step,
 			int32_t p_except_prop, double p_crawl_height, double p_crawl_reach, std::vector<ContactHit> &r_found) const;
@@ -127,6 +131,8 @@ public:
 			double p_railing_height, std::vector<ContactHit> &r_found) const;
 	void airborne_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
 			double p_body_height, double p_railing_height, std::vector<ContactHit> &r_found) const;
+	void walked_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius, int32_t p_surface,
+			double p_step, double p_railing_height, std::vector<ContactHit> &r_found) const;
 	int64_t landing(const Vector3 &p_ship_point, int64_t p_except_prop) const;
 	double ceiling(const Vector3 &p_ship_point, double p_clearance) const;
 	NativeStands *stands() const { return stands_.ptr(); }
@@ -211,6 +217,10 @@ private:
 			ContactHit &r_hit) const;
 	bool rail_contact(int32_t p_index, const Vector2 &p_point, double p_radius, bool p_off,
 			ContactHit &r_hit) const;
+	void standing_rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
+			double p_railing_height, std::vector<ContactHit> &r_found) const;
+	void crossed_rails(const Vector2 &p_came_from, const Vector3 &p_ship_point, double p_radius, double p_step,
+			double p_railing_height, std::vector<ContactHit> &r_found) const;
 };
 
 class NativeCrates : public RefCounted {

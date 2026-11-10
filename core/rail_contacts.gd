@@ -66,18 +66,20 @@ static func walked(
 	step: float,
 	railing_height: float
 ) -> Array[Surfaces.Contact]:
+	# The extension's twin is held to this GDScript (test_contacts_native), and asked here
+	# at every pass of every step, and by the bots' reckoning at every tick it steps.
+	var mirror := s.native
+	if mirror != null:
+		return ContactsNative.contacts_of(
+			mirror.walked_rail_contacts(
+				ship_point, came_from, radius, surface, step, railing_height
+			)
+		)
 	var contacts := _crossed(s, came_from, ship_point, radius, step, railing_height)
 	var held := PackedInt32Array()
 	for contact: Surfaces.Contact in contacts:
 		held.append(contact.railing)
-	# The extension's under() is held to the GDScript's (test_contacts_native), and asked
-	# here at every pass of every step.
-	var mirror := s.native
-	var now: int = (
-		mirror.under(ship_point, step, Surfaces.NONE)
-		if mirror != null
-		else s.under(ship_point, step)
-	)
+	var now := s.under(ship_point, step)
 	for on: int in [now, surface] if now != surface else [surface]:
 		var met: Array[Surfaces.Contact] = []
 		standing(s, on, ship_point, radius, step, railing_height, met)

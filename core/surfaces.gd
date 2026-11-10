@@ -277,6 +277,10 @@ func height_at(surface: int, ship_point: Vector3) -> float:
 ## never the lid of the crate [param except_prop]. NONE when every surface under it
 ## is farther below than that — it falls — or there is none at all.
 func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
+	# The extension's twin is held to this GDScript (test_contacts_native).
+	var mirror := native
+	if mirror != null:
+		return mirror.under(ship_point, step, except_prop)
 	var best := NONE
 	var best_height := -INF
 	var x := ship_point.x

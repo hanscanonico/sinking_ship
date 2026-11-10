@@ -24,6 +24,9 @@ constexpr int32_t UNASKED = -2;
 constexpr double INF = std::numeric_limits<double>::infinity();
 // SpatialIndex.ROUNDING; PropStands.CELL and SLACK; PlaneShapes.CLIMB_MARGIN and SEAM.
 constexpr double ROUNDING = 0.000001;
+// SpatialIndex.STRETCH_CELLS and STRETCH_SLACK.
+constexpr double STRETCH_CELLS = 2.0;
+constexpr double STRETCH_SLACK = 0.001;
 constexpr double STANDS_CELL = 2.0;
 constexpr double STANDS_SLACK = 0.001;
 constexpr double CLIMB_MARGIN = 0.001;
@@ -214,6 +217,35 @@ thread_local std::vector<Vector2> flats_found;
 thread_local std::vector<Cornered> cornered_found;
 thread_local std::vector<ContactHit> rails_found;
 thread_local std::vector<int32_t> landing_found;
+thread_local std::vector<int32_t> along_found;
+thread_local std::vector<int32_t> along_stretch;
+thread_local std::vector<int32_t> crossed_met;
+thread_local std::vector<int32_t> walked_held;
+thread_local std::vector<ContactHit> walked_met;
+
+// Geometry2D.segment_intersects_segment, the engine's (core/math/geometry_2d.h), as a
+// yes or no.
+bool segments_cross(const Vector2 &p_from_a, const Vector2 &p_to_a, const Vector2 &p_from_b, const Vector2 &p_to_b) {
+	const Vector2 b = p_to_a - p_from_a;
+	Vector2 c = p_from_b - p_from_a;
+	Vector2 d = p_to_b - p_from_a;
+	const real_t length = b.dot(b);
+	if (length <= 0) {
+		return false;
+	}
+	const Vector2 bn = b / length;
+	c = Vector2(c.x * bn.x + c.y * bn.y, c.y * bn.x - c.x * bn.y);
+	d = Vector2(d.x * bn.x + d.y * bn.y, d.y * bn.x - d.x * bn.y);
+	if ((c.y < real_t(-CMP_EPSILON) && d.y < real_t(-CMP_EPSILON)) ||
+			(c.y > real_t(CMP_EPSILON) && d.y > real_t(CMP_EPSILON))) {
+		return false;
+	}
+	if (Math::is_equal_approx(c.y, d.y)) {
+		return false;
+	}
+	const real_t position = d.x + (c.x - d.x) * d.y / (d.y - c.y);
+	return !(position < 0 || position > 1);
+}
 } // namespace
 
 // --- SpatialIndex ---
@@ -288,6 +320,27 @@ void ContactGrid::near(const Vector2 &p_position, const Vector2 &p_end, double p
 	if (filled > 1) {
 		std::sort(r_found.begin(), r_found.end());
 		r_found.erase(std::unique(r_found.begin(), r_found.end()), r_found.end());
+	}
+}
+
+// SpatialIndex.along: near() of the line's box for a line no longer than STRETCH_CELLS
+// cells, else of the box of each stretch of it that long, a hair over, one after the other.
+void ContactGrid::along(const Vector2 &p_start, const Vector2 &p_end, double p_bottom, double p_top,
+		std::vector<int32_t> &r_found) const {
+	const int64_t stretches = int64_t(std::ceil(double(p_start.distance_to(p_end)) / (side * STRETCH_CELLS)));
+	if (stretches <= 1) {
+		const Rect2 box = Rect2(p_start, Vector2()).expand(p_end);
+		near(box.position, box.get_end(), p_bottom, p_top, r_found);
+		return;
+	}
+	r_found.clear();
+	std::vector<int32_t> &stretch_found = along_stretch;
+	for (int64_t stretch = 0; stretch < stretches; stretch++) {
+		const Vector2 from = p_start.lerp(p_end, real_t(double(stretch) / double(stretches)));
+		const Vector2 to = p_start.lerp(p_end, real_t(double(stretch + 1) / double(stretches)));
+		const Rect2 box = Rect2(from, Vector2()).expand(to).grow(real_t(STRETCH_SLACK));
+		near(box.position, box.get_end(), p_bottom, p_top, stretch_found);
+		r_found.insert(r_found.end(), stretch_found.begin(), stretch_found.end());
 	}
 }
 
@@ -941,6 +994,13 @@ bool NativeSurfaces::rail_contact(int32_t p_index, const Vector2 &p_point, doubl
 void NativeSurfaces::rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
 		double p_railing_height, std::vector<ContactHit> &r_found) const {
 	r_found.clear();
+	standing_rails(p_ship_point, p_radius, p_surface, p_step, p_railing_height, r_found);
+	deepest_per_direction(r_found);
+}
+
+// RailContacts.standing: into r_found, after what it holds, as found.
+void NativeSurfaces::standing_rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
+		double p_railing_height, std::vector<ContactHit> &r_found) const {
 	const Vector2 point(p_ship_point.x, p_ship_point.z);
 	ContactHit hit;
 	if (p_surface >= first_ramp_ && p_surface < first_top_) {
@@ -966,7 +1026,6 @@ void NativeSurfaces::rails(const Vector3 &p_ship_point, double p_radius, int32_t
 				r_found.push_back(hit);
 			}
 		}
-		deepest_per_direction(r_found);
 		return;
 	}
 	if (p_surface < 0 || p_surface >= first_ramp_) {
@@ -981,7 +1040,73 @@ void NativeSurfaces::rails(const Vector3 &p_ship_point, double p_radius, int32_t
 			r_found.push_back(hit);
 		}
 	}
+}
+
+// RailContacts.walked: every railing whose span its centre crossed (crossed_rails), then
+// those it meets standing on the surface it stands over now and on p_surface, each railing
+// only the first time met; one per direction.
+void NativeSurfaces::walked_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
+		int32_t p_surface, double p_step, double p_railing_height, std::vector<ContactHit> &r_found) const {
+	r_found.clear();
+	crossed_rails(p_came_from, p_ship_point, p_radius, p_step, p_railing_height, r_found);
+	std::vector<int32_t> &held = walked_held;
+	held.clear();
+	for (const ContactHit &contact : r_found) {
+		held.push_back(contact.railing);
+	}
+	const int32_t now = under_at(p_ship_point, p_step, NONE);
+	const int32_t ons[2] = { now, p_surface };
+	std::vector<ContactHit> &met = walked_met;
+	for (int32_t on_at = now != p_surface ? 0 : 1; on_at < 2; on_at++) {
+		met.clear();
+		standing_rails(p_ship_point, p_radius, ons[on_at], p_step, p_railing_height, met);
+		const std::vector<int32_t>::iterator held_end = held.end();
+		for (const ContactHit &contact : met) {
+			if (std::find(held.begin(), held_end, contact.railing) == held_end) {
+				r_found.push_back(contact);
+			}
+		}
+		for (const ContactHit &contact : met) {
+			held.push_back(contact.railing);
+		}
+	}
 	deepest_per_direction(r_found);
+}
+
+// RailContacts._crossed, into r_found after what it holds.
+void NativeSurfaces::crossed_rails(const Vector2 &p_came_from, const Vector3 &p_ship_point, double p_radius,
+		double p_step, double p_railing_height, std::vector<ContactHit> &r_found) const {
+	const Vector2 point(p_ship_point.x, p_ship_point.z);
+	if (point == p_came_from) {
+		return;
+	}
+	const double feet = double(p_ship_point.y);
+	std::vector<int32_t> &near = along_found;
+	rail_grid_.along(p_came_from, point, feet - p_railing_height, feet + p_step, near);
+	std::vector<int32_t> &met = crossed_met;
+	met.clear();
+	for (int32_t index : near) {
+		if (rail_gone_[index] == 1 || std::find(met.begin(), met.end(), index) != met.end()) {
+			continue;
+		}
+		met.push_back(index);
+		const double deck = tops_[rail_platforms_[index]];
+		if (deck > feet + p_step || feet >= deck + p_railing_height) {
+			continue;
+		}
+		const double was = double((p_came_from - rail_from_[index]).dot(rail_normals_[index]));
+		if (was == 0.0) {
+			continue;
+		}
+		if (!segments_cross(p_came_from, point, rail_from_[index], rail_to_[index])) {
+			continue;
+		}
+		ContactHit hit;
+		hit.normal = was > 0.0 ? rail_normals_[index] : -rail_normals_[index];
+		hit.depth = p_radius - double((point - rail_from_[index]).dot(hit.normal));
+		hit.railing = index;
+		r_found.push_back(hit);
+	}
 }
 
 void NativeSurfaces::airborne_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
@@ -1021,6 +1146,13 @@ PackedFloat64Array NativeSurfaces::rail_contacts(const Vector3 &p_ship_point, do
 	return packed(found);
 }
 
+PackedFloat64Array NativeSurfaces::walked_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
+		double p_radius, int64_t p_surface, double p_step, double p_railing_height) const {
+	std::vector<ContactHit> &found = rails_found;
+	walked_rails(p_ship_point, p_came_from, p_radius, int32_t(p_surface), p_step, p_railing_height, found);
+	return packed(found);
+}
+
 PackedFloat64Array NativeSurfaces::airborne_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
 		double p_radius, double p_body_height, double p_railing_height) const {
 	std::vector<ContactHit> &found = rails_found;
@@ -1052,6 +1184,9 @@ void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("airborne_rail_contacts", "ship_point", "came_from", "radius", "body_height",
 								 "railing_height"),
 			&NativeSurfaces::airborne_rail_contacts);
+	ClassDB::bind_method(D_METHOD("walked_rail_contacts", "ship_point", "came_from", "radius", "surface", "step",
+								 "railing_height"),
+			&NativeSurfaces::walked_rail_contacts);
 	ClassDB::bind_method(D_METHOD("floors", "from", "floors", "clearances"), &NativeSurfaces::floors);
 	ClassDB::bind_method(D_METHOD("under", "ship_point", "step", "except_prop"), &NativeSurfaces::under);
 	ClassDB::bind_method(D_METHOD("floor_way", "from", "end", "keep", "rules"), &NativeSurfaces::floor_way);
