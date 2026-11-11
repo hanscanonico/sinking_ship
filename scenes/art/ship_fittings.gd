@@ -323,18 +323,17 @@ func _fit_break(mesh: ShipMesh, found: Array) -> void:
 			if to - from >= BREAK_DOOR.x + 0.6 and _on_face(door, out, BREAK_DOOR_BOX.size.x, tall):
 				_break_door(mesh, door, normal)
 			continue
-		var low := Vector3(x, foot + 0.6 - RoomDressing.LIFEBELT_RADIUS, 0.0)
+		# Each fitting's foot, a lifebelt's round under its middle.
+		var low := Vector3(x, foot + 0.6 - RoomDressing.LIFEBELT_RADIUS, middle)
 		var ring := RoomDressing.LIFEBELT_RADIUS * 2.0
 		if to - from >= 3.0:
-			if _on_face(low + Vector3(0.0, 0.0, middle), out, ring, ring):
+			if _on_face(low, out, ring, ring):
 				RoomDressing.lifebelt(mesh, Vector3(x, foot + 0.6, middle), normal)
 			for side: float in [-1.0, 1.0]:
 				var z := middle + side * (to - from) * 0.27
-				if _on_face(low + Vector3(0.0, 0.0, z), out, VENT.x * 2.0, ring):
+				if _on_face(Vector3(low.x, low.y, z), out, VENT.x * 2.0, ring):
 					_vent(mesh, Vector3(x, foot + 0.6, z), normal)
-		elif (
-			to - from >= 1.0 and _on_face(low + Vector3(0.0, 0.0, middle), out, VENT.x * 2.0, ring)
-		):
+		elif to - from >= 1.0 and _on_face(low, out, VENT.x * 2.0, ring):
 			_vent(mesh, Vector3(x, foot + 0.6, middle), normal)
 
 
