@@ -320,7 +320,8 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_up = up
 	_walk_graph = _floors.graph(up, pose)
 	_surfaces = _walk_graph.surfaces()
-	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
+	var lag := (_profile.reaction_ticks + _profile.think_period) * Ticks.SECONDS_PER_TICK
+	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m, lag)
 	_stair = BotStair.new(_walk_graph, _rules, _profile)
 	_floor_way = BotFloorWay.new(_walk_graph, _rules, _profile.think_period)
 	_reckoning.stand_on(_footing, _surfaces)
@@ -455,7 +456,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	_footing.margin = _profile.edge_margin_m * (1.0 - _profile.late_margin_share * under)
 	_pacing.pace(seen, under, seats_left)
 	var walk := _rules.walk_speed * _profile.think_period * Ticks.SECONDS_PER_TICK
-	var reach := _profile.edge_margin_m + walk
+	var reach := _profile.edge_margin_m + walk + _footing.slide_reach(pose, me["vel"])
 	_edges_near = (
 		_footing.danger_within(_edge_from, pose, reach)
 		or _edge_also != _edge_from and _footing.danger_within(_edge_also, pose, reach)
@@ -1026,13 +1027,9 @@ func _near_low_side(me: Dictionary, now_pos: Vector3, pose: ShipPose, lurch: flo
 
 
 ## Whether the deck, tilted past the grip angle, would carry the bot toward water or
-## an open edge within its edge margin.
+## an open edge within its edge margin and its slide's reach (BotFooting.slipping).
 func _slipping(me: Dictionary, mark: Dictionary, now_pos: Vector3, pose: ShipPose) -> bool:
-	if not _edges_near or not _footing.slides(pose):
-		return false
-	var away := BotFooting.away(_footing.dangers(now_pos, me["surface"], pose, mark, Vector2.ZERO))
-	var gravity := pose.ship_gravity(_rules.gravity)
-	return away != Vector2.ZERO and away.dot(Vector2(gravity.x, gravity.z)) < 0.0
+	return _edges_near and _footing.slipping(now_pos, me["vel"], me["surface"], pose, mark)
 
 
 ## The next point on the way to the goal: past the portals already gone through, or

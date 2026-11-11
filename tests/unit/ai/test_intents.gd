@@ -108,10 +108,21 @@ func test_bot_recovers_uphill_near_an_edge() -> void:
 	var runner := _runner(sim, source)
 	runner.step()
 	assert_eq(source.brain.intent, BotBrain.Intent.RECOVER)
-	runner.run(2 * Ticks.RATE)
+	# How far up the slope it got, and how far down it came once out of its margin: idle up
+	# there, the deck slides it back, and it catches itself before its margin (#341).
+	var rim := SimFixtures.deck().platforms[0].area.end.y - _tier(&"normal").edge_margin_m
+	var highest := INF
+	var slid_to := -INF
+	for _tick in 2 * Ticks.RATE:
+		runner.step()
+		var z := sim.state.seats[0].pos.z
+		highest = minf(highest, z)
+		if highest < rim:
+			slid_to = maxf(slid_to, z)
 	var bot := sim.state.seats[0]
 	assert_eq(bot.body, PlayerState.Body.GROUNDED, "it stayed on the deck")
-	assert_lt(bot.pos.z, 3.0 - 1.0, "having walked uphill, away from the edge")
+	assert_lt(highest, 3.0 - 1.0, "having walked uphill, away from the edge")
+	assert_lt(slid_to, rim, "never back in its margin once out")
 
 
 func test_hysteresis_prevents_dithering() -> void:

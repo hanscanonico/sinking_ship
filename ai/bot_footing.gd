@@ -29,10 +29,17 @@ var _rules: BrawlRules
 ## How far ahead a heading is looked along: the profile's edge margin, whatever the
 ## late game makes of the margin.
 var _look_ahead: float
+## How long the bot takes to find the deck carrying it at an edge, in seconds: its view's
+## lag and the wait for its next think. An idle slide over it is what slide_reach covers.
+var _lag_s: float
 
 
 func _init(
-	surfaces: Surfaces, walk_graph: WalkGraph, rules: BrawlRules, edge_margin: float
+	surfaces: Surfaces,
+	walk_graph: WalkGraph,
+	rules: BrawlRules,
+	edge_margin: float,
+	lag_s: float = 0.0
 ) -> void:
 	assert(surfaces == walk_graph.surfaces(), "a footing reads its walk graph's surfaces")
 	_surfaces = surfaces
@@ -40,6 +47,7 @@ func _init(
 	_rules = rules
 	margin = edge_margin
 	_look_ahead = edge_margin
+	_lag_s = lag_s
 	seat_rules = SeatRules.of(rules, null)
 
 
@@ -50,11 +58,46 @@ func slides(pose: ShipPose) -> bool:
 	return pose.slope_deg() > seat_rules.grip_angle_deg
 
 
-## Where to walk to reach [param target_pos]: straight at it, except past the
-## grip angle, where the bot first gets uphill of it so that its shove goes
-## downhill.
-func approach(my_pos: Vector3, target_pos: Vector3, pose: ShipPose) -> Vector3:
+## How far down the deck under [param pose] the bot, going at [param my_vel], would be
+## carried before it could find itself slipping: on at its speed downhill, and an idle
+## slide (BrawlRules.idle_slide) on top, over its lag. None under its grip angle, where it
+## holds where it stands.
+func slide_reach(pose: ShipPose, my_vel: Vector3) -> float:
 	if not slides(pose):
+		return 0.0
+	var gravity := pose.ship_gravity(_rules.gravity)
+	var downhill := Vector2(gravity.x, gravity.z).normalized()
+	var speed := maxf(Vector2(my_vel.x, my_vel.z).dot(downhill), 0.0)
+	return (speed + 0.5 * _rules.idle_slide(pose.slope_deg()) * _lag_s) * _lag_s
+
+
+## Whether the deck under [param pose], tilted past the bot's grip angle, would carry it,
+## going at [param my_vel], toward water or an open edge within its margin and its
+## slide_reach (#341). Stood idle up the slope from there, the deck would bring it into
+## its margin too fast to stop before its lag let it see where it was: at 40° a bot with
+## Sure footing went over the edge that way. Asked at the margin too: on a narrow deck the
+## farther probes find its high edge as well, which would balance the low one out.
+func slipping(
+	my_pos: Vector3, my_vel: Vector3, my_surface: int, pose: ShipPose, mark: Dictionary
+) -> bool:
+	if not slides(pose):
+		return false
+	var gravity := pose.ship_gravity(_rules.gravity)
+	var downhill := Vector2(gravity.x, gravity.z)
+	var beyond := slide_reach(pose, my_vel)
+	for out: float in [0.0, beyond] if beyond > 0.0 else [0.0]:
+		var push := away(dangers(my_pos, my_surface, pose, mark, Vector2.ZERO, true, out))
+		if push != Vector2.ZERO and push.dot(downhill) < 0.0:
+			return true
+	return false
+
+
+## Where to walk to reach [param target_pos]: straight at it, except past the brawl
+## rules' grip angle, where the bot first gets uphill of it so that its shove goes
+## downhill. Past it the target slides on after its stagger, whatever the bot's own grip
+## (#341): only a bonus of its own would hold it.
+func approach(my_pos: Vector3, target_pos: Vector3, pose: ShipPose) -> Vector3:
+	if pose.slope_deg() <= _rules.grip_angle_deg:
 		return target_pos
 	var gravity := pose.ship_gravity(_rules.gravity)
 	var uphill := -Vector3(gravity.x, 0.0, gravity.z).normalized()
@@ -84,29 +127,32 @@ static func away(dangers: PackedVector2Array) -> Vector2:
 	return push.limit_length(1.0)
 
 
-## The directions of the probes at the margin round [param my_pos] that are wet or
-## past an open edge, as danger_toward finds them.
+## The directions of the probes at the margin round [param my_pos] — [param beyond] past
+## it — that are wet or past an open edge, as danger_toward finds them.
 func dangers(
 	my_pos: Vector3,
 	my_surface: int,
 	pose: ShipPose,
 	mark: Dictionary,
 	stair_ahead: Vector2,
-	heed_drops: bool = true
+	heed_drops: bool = true,
+	beyond: float = 0.0
 ) -> PackedVector2Array:
 	var found := PackedVector2Array()
 	for direction: Vector2 in _probes:
-		if danger_toward(my_pos, my_surface, pose, mark, stair_ahead, direction, heed_drops):
+		if danger_toward(
+			my_pos, my_surface, pose, mark, stair_ahead, direction, heed_drops, beyond
+		):
 			found.append(direction)
 	return found
 
 
-## Whether the probe at the margin from [param my_pos] along [param direction] is wet
-## or past an open edge: walking there would drop off it, even onto a surface within
-## a step of its feet beyond — a trench is an edge. One past a railing of
-## [param my_surface] is safe; one through a gap is not, unless [param mark] is lined
-## up for a shove through it — nor one into the sea, when [param mark] is climbing out
-## of it there. On a stair whose way on is [param stair_ahead], an open edge ahead of
+## Whether the probe at the margin from [param my_pos] along [param direction] —
+## [param beyond] past it — is wet or past an open edge: walking there would drop off it,
+## even onto a surface within a step of its feet beyond — a trench is an edge. One past a
+## railing of [param my_surface] is safe; one through a gap is not, unless [param mark] is
+## lined up for a shove through it — nor one into the sea, when [param mark] is climbing
+## out of it there. On a stair whose way on is [param stair_ahead], an open edge ahead of
 ## it is the stair's far end and its sides, and is no danger. Unless
 ## [param heed_drops], only a wet one is; unless heed_water, only one past an edge.
 func danger_toward(
@@ -116,9 +162,10 @@ func danger_toward(
 	mark: Dictionary,
 	stair_ahead: Vector2,
 	direction: Vector2,
-	heed_drops: bool
+	heed_drops: bool,
+	beyond: float = 0.0
 ) -> bool:
-	var probe := my_pos + Vector3(direction.x, 0.0, direction.y) * margin
+	var probe := my_pos + Vector3(direction.x, 0.0, direction.y) * (margin + beyond)
 	if heed_water and _surfaces.wet(probe, pose):
 		var guarding: bool = not mark.is_empty() and mark["climb"] > 0
 		return not (guarding and _lined_up(my_pos, probe, mark))

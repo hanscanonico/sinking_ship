@@ -231,7 +231,13 @@ func fastest_speed() -> float:
 ## slide_friction holds it back. A grip angle must be one where it does, or a body past it
 ## would hold all the same — theirs (problems), and any a bonus gives (BonusKind.problems).
 func pulls_at(slope_deg: float) -> bool:
-	return gravity * sin(deg_to_rad(slope_deg)) > slide_friction
+	return idle_slide(slope_deg) > 0.0
+
+
+## How fast a deck tilted [param slope_deg] speeds up a body sliding idle on it, in m/s²:
+## its pull less slide_friction (Movement), none where slide_friction holds it.
+func idle_slide(slope_deg: float) -> float:
+	return maxf(gravity * sin(deg_to_rad(slope_deg)) - slide_friction, 0.0)
 
 
 ## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
