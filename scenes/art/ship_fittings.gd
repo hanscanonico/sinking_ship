@@ -75,6 +75,9 @@ const CAP_DEPTH := 0.12
 const STAIR_GAP := 0.05
 const BREAK_DOOR := Vector2(0.72, 1.5)
 const VENT := Vector2(0.24, 0.17)
+## How far in from a deck's edge the wall under it may stand and still be the break's
+## face its door and vents stand on (_on_face): a wall's paint, no more.
+const BREAK_FACE := 0.05
 ## The modelled break door (assets/models/break_door): its origin on the face at the
 ## foot of its sill's middle, x along the face, z out of it; BREAK_DOOR standing on a
 ## sill BREAK_DOOR_SILL tall, in its frame; and its box over all there.
@@ -315,15 +318,41 @@ func _fit_break(mesh: ShipMesh, found: Array) -> void:
 		mesh.box(rail, head - CAP_DEPTH, head + 0.02, ShipPaints.teak)
 		var middle := (from + to) * 0.5
 		if head - foot >= BREAK_DOOR.y + 0.2:
-			if to - from >= BREAK_DOOR.x + 0.6:
-				_break_door(mesh, Vector3(x, foot, middle), normal)
+			var door := Vector3(x, foot, middle)
+			var tall := BREAK_DOOR_BOX.size.y
+			if to - from >= BREAK_DOOR.x + 0.6 and _on_face(door, out, BREAK_DOOR_BOX.size.x, tall):
+				_break_door(mesh, door, normal)
 			continue
+		var low := Vector3(x, foot + 0.6 - RoomDressing.LIFEBELT_RADIUS, 0.0)
+		var ring := RoomDressing.LIFEBELT_RADIUS * 2.0
 		if to - from >= 3.0:
-			RoomDressing.lifebelt(mesh, Vector3(x, foot + 0.6, middle), normal)
+			if _on_face(low + Vector3(0.0, 0.0, middle), out, ring, ring):
+				RoomDressing.lifebelt(mesh, Vector3(x, foot + 0.6, middle), normal)
 			for side: float in [-1.0, 1.0]:
-				_vent(mesh, Vector3(x, foot + 0.6, middle + side * (to - from) * 0.27), normal)
-		elif to - from >= 1.0:
+				var z := middle + side * (to - from) * 0.27
+				if _on_face(low + Vector3(0.0, 0.0, z), out, VENT.x * 2.0, ring):
+					_vent(mesh, Vector3(x, foot + 0.6, z), normal)
+		elif (
+			to - from >= 1.0 and _on_face(low + Vector3(0.0, 0.0, middle), out, VENT.x * 2.0, ring)
+		):
 			_vent(mesh, Vector3(x, foot + 0.6, middle), normal)
+
+
+## Whether a fitting [param wide] across and [param tall] from [param foot] (the middle
+## of its foot, on the deck's edge facing [param out]) has a face to stand on. The
+## loft draws a break's face on the edge itself (ShipHull._step); her sections' shell
+## leaves it to the wall under the edge (SectionHull._close_steps), which may stand
+## further in, or stand nowhere: there it needs that wall, within BREAK_FACE of the
+## edge, behind all of it.
+func _on_face(foot: Vector3, out: float, wide: float, tall: float) -> bool:
+	if not _hull is SectionHull:
+		return true
+	for across: float in [-0.5, 0.0, 0.5]:
+		var at := Vector2(foot.x, foot.z + across * wide)
+		var behind := at - Vector2(out * BREAK_FACE, 0.0)
+		if not _space.walled_between(at, behind, foot.y, foot.y + tall):
+			return false
+	return true
 
 
 ## A teak weather door, shut, in a break's face standing on [param sill] (its foot's
