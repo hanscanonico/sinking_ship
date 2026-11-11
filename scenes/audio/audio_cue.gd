@@ -43,6 +43,9 @@ enum Kind {
 	## A bonus aboard humming (#307), kept up for as long as it lies there
 	## (CuePlanner.hums), never one of a step's cues.
 	HUM,
+	## The finder's ping toward the bonus aboard nearest the listener (BonusSeeker), paced
+	## by MatchAudio, never one of a step's cues.
+	SEEK,
 }
 ## What a footfall or a landing comes down on.
 enum Ground { WOOD, METAL, WET }

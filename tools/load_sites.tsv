@@ -26,6 +26,7 @@ scenes/art/ship_model.gd	load(MODELS.path_join(name).path_join(name + ".glb"))	a
 scenes/audio/audio_settings.gd	ResourceLoader.exists(path)	-
 scenes/audio/audio_settings.gd	ResourceLoader.load(path)	-
 scenes/audio/match_audio.gd	load(SoundBank.DIR + file)	assets/audio/*
+scenes/audio/match_audio.gd	load(SoundBank.DIR + SoundBank.files(AudioCue.Kind.SEEK)[0])	assets/audio/bonus/seek.wav
 scenes/audio/music_player.gd	load(path)	assets/audio/music/*
 scenes/audio/sound_bank.gd	load(DIR + file)	assets/audio/*
 scenes/audio/ui_sounds.gd	load(path)	assets/audio/ui/*
