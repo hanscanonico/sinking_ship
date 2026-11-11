@@ -234,6 +234,12 @@ func pulls_at(slope_deg: float) -> bool:
 	return gravity * sin(deg_to_rad(slope_deg)) > slide_friction
 
 
+## How fast a deck tilted [param slope_deg] speeds up a body sliding idle on it, in m/s²:
+## its pull less slide_friction (Movement), none where slide_friction holds it.
+func idle_slide(slope_deg: float) -> float:
+	return maxf(gravity * sin(deg_to_rad(slope_deg)) - slide_friction, 0.0)
+
+
 ## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
 ## (Q22): halfway from the waterline it floats at, swim_depth, to the top of its head —
 ## of a body [param height] tall, so a crawler's as much lower as it is (swim_depth_of).

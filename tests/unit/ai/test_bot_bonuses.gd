@@ -657,7 +657,8 @@ func _listing_alone(heel_deg: float, sure: bool) -> MatchSim:
 ## grip angle (BotFooting.slides, by its seat's rules), so on a deck listing past the brawl
 ## rules' grip angle and under its kind's — 20° as shipped — a metre from her open low edge,
 ## it holds its ground, stepping only out of its edge margin, where a bot without it, the
-## deck pulling it toward the edge, flees up the slope (RECOVER).
+## deck pulling it toward the edge, flees up the slope (RECOVER) — and, idle there, the
+## deck sliding it back, catches itself before its margin (#341).
 func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void:
 	var heel := SimFixtures.sure_footing().grip_angle_deg - 2.0
 	var edge := SimFixtures.deck().platforms[0].area.end.y
@@ -667,9 +668,15 @@ func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void
 		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
 		var runner := _runner(sim, source)
 		var recovered := false
+		# How far up the slope it got, and how far down it slid back since.
+		var highest := INF
+		var slid_to := -INF
 		for _tick in 2 * Ticks.RATE:
 			runner.step()
 			recovered = recovered or source.brain.intent == BotBrain.Intent.RECOVER
+			var z := sim.state.seats[0].pos.z
+			slid_to = z if z < highest else maxf(slid_to, z)
+			highest = minf(highest, z)
 		var bot := sim.state.seats[0]
 		var what := "Sure footing %s" % sure
 		assert_eq(bot.body, PlayerState.Body.GROUNDED, "%s: on her deck" % what)
@@ -678,4 +685,27 @@ func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void
 			assert_eq(bot.vel, Vector3.ZERO, "%s: standing" % what)
 			assert_lt(edge - bot.pos.z, margin + 0.5, "%s: a stride out of its margin" % what)
 		else:
-			assert_lt(bot.pos.z, EDGE_BY.z - 1.0, "%s: well up the slope" % what)
+			assert_lt(highest, EDGE_BY.z - 1.0, "%s: well up the slope" % what)
+			assert_lt(slid_to, edge - margin, "%s: never slid back into its margin" % what)
+
+
+## A bot with Sure footing stays aboard a deck it can walk but not grip (#341): listing
+## past its own grip angle and under its stand limit, the deck pulls it whenever it stands
+## idle — at 40° faster than its view's lag lets it catch from its edge margin's rim — so it
+## keeps walking up out of reach of the slide rather than stand where the deck takes it
+## back over the edge. A metre from her open low edge, alone, for four seconds.
+func test_a_sure_footed_bot_stays_aboard_a_deck_it_can_walk_but_not_grip() -> void:
+	var sure_footing := SimFixtures.sure_footing()
+	var edge := SimFixtures.deck().platforms[0].area.end.y
+	var heel := sure_footing.grip_angle_deg + 4.0
+	while heel < sure_footing.stand_limit_deg:
+		var sim := _listing_alone(heel, true)
+		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+		var runner := _runner(sim, source)
+		for _tick in 4 * Ticks.RATE:
+			runner.step()
+		var bot := sim.state.seats[0]
+		var what := "at %.0f°" % heel
+		assert_eq(bot.body, PlayerState.Body.GROUNDED, "%s: on her deck" % what)
+		assert_lt(bot.pos.z, edge, "%s: inside her low edge" % what)
+		heel += 2.0

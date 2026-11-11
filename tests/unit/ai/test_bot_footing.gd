@@ -136,3 +136,29 @@ func test_a_railing_on_the_next_piece_of_deck_stops_the_walk_to_the_edge() -> vo
 	var inner := Vector3(0.0, 0.0, -1.0)
 	assert_eq(footing.edge_toward(inner, 0, Vector2.DOWN, 4.0, pose, false), INF, "railed")
 	assert_lt(footing.edge_toward(inner, 0, Vector2.DOWN, 4.0, pose, true), INF, "over it")
+
+
+## A bot with Sure footing still gets uphill of its target before it shoves, on a deck
+## listing past the brawl rules' grip angle and under its own (#341): its shove carries the
+## target downhill by the target's grip — the brawl rules', short of a bonus — not by its own.
+func test_a_sure_footed_bot_gets_uphill_of_its_target_past_the_brawl_rules_grip() -> void:
+	var layout := SimFixtures.deck()
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var heel := (rules.grip_angle_deg + SimFixtures.sure_footing().grip_angle_deg) * 0.5
+	var schedule := SinkSchedule.new(
+		SimFixtures.tilted(0.0, heel), layout.freeboard, SeedStreams.derive(1, "sink")
+	)
+	var pose := schedule.pose_at(0)
+	assert_almost_eq(pose.slope_deg(), heel, 0.5, "listing between the two grip angles")
+	var below := Vector3(0.0, 0.0, 2.0)
+	var target := Vector3(0.0, 0.0, 0.0)
+	for sure: bool in [false, true]:
+		var footing := _footing(layout, surfaces)
+		var bonuses: Array[BonusKind] = []
+		if sure:
+			bonuses.append(SimFixtures.sure_footing())
+		footing.seat_rules = SeatRules.of(rules, null, bonuses)
+		assert_eq(footing.slides(pose), not sure, "Sure footing %s: the deck pulls it" % sure)
+		var at := footing.approach(below, target, pose)
+		assert_lt(at.z, target.z, "Sure footing %s: round to its uphill side first" % sure)
