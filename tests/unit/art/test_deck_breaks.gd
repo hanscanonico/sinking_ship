@@ -120,6 +120,30 @@ func test_the_liner_s_break_doors_stand_one_to_a_face_and_on_it() -> void:
 		assert_eq(within, back, "the door at %s on its deck's own face" % sill)
 
 
+func test_the_titanic_s_break_doors_stand_on_the_walls_under_her_decks_edges() -> void:
+	# Her hull as the game draws it (SectionHull) leaves a break's face to the wall under
+	# the deck's edge. A door fitted at the edge where that wall stands further in, or
+	# where none does, stood alone in the open: 25 of her 27 tall breaks.
+	var titanic := Fleet.layout(&"titanic")
+	var space := ShipSpace.new(titanic)
+	var hull := SectionHull.of(space, _rules.railing_height)
+	assert_true(hull is SectionHull, "her hull is her sections' shell")
+	var fittings := ShipFittings.new(space, hull, _rules.body_radius)
+	fittings.build(ShipMesh.new(space.outdoors, space.room_lines()))
+	var half := ShipFittings.BREAK_DOOR_BOX.size.x * 0.5
+	var tall := ShipFittings.BREAK_DOOR_BOX.size.y
+	for door: Array in fittings.break_doors:
+		var sill: Vector3 = door[0]
+		var out: float = (door[1] as Vector3).x
+		for across: float in [-half, 0.0, half]:
+			var at := Vector2(sill.x, sill.z + across)
+			var behind := at - Vector2(out * ShipFittings.BREAK_FACE, 0.0)
+			assert_true(
+				space.walled_between(at, behind, sill.y, sill.y + tall),
+				"a wall behind the door at %s, %.2f across it" % [sill, across]
+			)
+
+
 func test_the_titanic_s_docking_bridge_stands_open_on_stanchions_with_no_break_under_it() -> void:
 	# Its deck over her poop on stanchions (#381): its edges no face, no door or vent in
 	# the air under them.
