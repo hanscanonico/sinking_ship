@@ -6,7 +6,8 @@
 # under its own `timeout`, with apt's own retries and a short network timeout, and
 # the pair is tried up to three times: a hung mirror ends an attempt in minutes and
 # the next one usually gets through; after the first, the runner's first mirror is
-# tried last. Worst case, about 12 minutes and a red step.
+# tried last. Worst case, about 12 minutes and a red step. When the runner already
+# has every package, nothing is fetched at all.
 #
 # With CI_APT_DEBS set to a directory (an actions/cache path), the mirror is skipped
 # when that directory holds the packages' .debs: they are installed with `dpkg -i`,
@@ -88,6 +89,15 @@ demote_first_mirror() {
 		sudo cp /tmp/apt-mirrors.txt "$list" &&
 		echo "ci_apt_install: mirrors now in this order:" && cat "$list"
 }
+
+# The runner's image may carry every package already (ubuntu-24.04 has the engine's X
+# and GL libraries): then neither the mirror nor the cache is needed, and a mirror
+# whose `apt-get update` hangs cannot fail the job for nothing (2026-11-11: every job
+# red for hours over six packages each runner already had).
+if all_installed "$@"; then
+	echo "ci_apt_install: $* already installed"
+	exit 0
+fi
 
 fix=()
 if [ -n "$debs_dir" ]; then
