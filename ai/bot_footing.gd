@@ -75,16 +75,21 @@ func slide_reach(pose: ShipPose, my_vel: Vector3) -> float:
 ## going at [param my_vel], toward water or an open edge within its margin and its
 ## slide_reach (#341). Stood idle up the slope from there, the deck would bring it into
 ## its margin too fast to stop before its lag let it see where it was: at 40° a bot with
-## Sure footing went over the edge that way.
+## Sure footing went over the edge that way. Asked at the margin too: on a narrow deck the
+## farther probes find its high edge as well, which would balance the low one out.
 func slipping(
 	my_pos: Vector3, my_vel: Vector3, my_surface: int, pose: ShipPose, mark: Dictionary
 ) -> bool:
 	if not slides(pose):
 		return false
-	var beyond := slide_reach(pose, my_vel)
-	var push := away(dangers(my_pos, my_surface, pose, mark, Vector2.ZERO, true, beyond))
 	var gravity := pose.ship_gravity(_rules.gravity)
-	return push != Vector2.ZERO and push.dot(Vector2(gravity.x, gravity.z)) < 0.0
+	var downhill := Vector2(gravity.x, gravity.z)
+	var beyond := slide_reach(pose, my_vel)
+	for out: float in [0.0, beyond] if beyond > 0.0 else [0.0]:
+		var push := away(dangers(my_pos, my_surface, pose, mark, Vector2.ZERO, true, out))
+		if push != Vector2.ZERO and push.dot(downhill) < 0.0:
+			return true
+	return false
 
 
 ## Where to walk to reach [param target_pos]: straight at it, except past the brawl

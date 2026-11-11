@@ -668,15 +668,16 @@ func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void
 		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
 		var runner := _runner(sim, source)
 		var recovered := false
-		# How far up the slope it got, and how far down it slid back since.
+		# How far up the slope it got, and how far down it came once out of its margin.
 		var highest := INF
 		var slid_to := -INF
 		for _tick in 2 * Ticks.RATE:
 			runner.step()
 			recovered = recovered or source.brain.intent == BotBrain.Intent.RECOVER
 			var z := sim.state.seats[0].pos.z
-			slid_to = z if z < highest else maxf(slid_to, z)
 			highest = minf(highest, z)
+			if highest < edge - margin:
+				slid_to = maxf(slid_to, z)
 		var bot := sim.state.seats[0]
 		var what := "Sure footing %s" % sure
 		assert_eq(bot.body, PlayerState.Body.GROUNDED, "%s: on her deck" % what)
@@ -686,7 +687,7 @@ func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void
 			assert_lt(edge - bot.pos.z, margin + 0.5, "%s: a stride out of its margin" % what)
 		else:
 			assert_lt(highest, EDGE_BY.z - 1.0, "%s: well up the slope" % what)
-			assert_lt(slid_to, edge - margin, "%s: never slid back into its margin" % what)
+			assert_lt(slid_to, edge - margin, "%s: never back in its margin once out" % what)
 
 
 ## A bot with Sure footing stays aboard a deck it can walk but not grip (#341): listing

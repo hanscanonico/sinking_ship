@@ -231,7 +231,7 @@ func fastest_speed() -> float:
 ## slide_friction holds it back. A grip angle must be one where it does, or a body past it
 ## would hold all the same — theirs (problems), and any a bonus gives (BonusKind.problems).
 func pulls_at(slope_deg: float) -> bool:
-	return gravity * sin(deg_to_rad(slope_deg)) > slide_friction
+	return idle_slide(slope_deg) > 0.0
 
 
 ## How fast a deck tilted [param slope_deg] speeds up a body sliding idle on it, in m/s²:
