@@ -2,9 +2,10 @@ class_name RoomCodec
 extends RefCounted
 ## The room protocol (SH12), in packets opened as every other (WireCodec): a client
 ## says HELLO with its display name, then CREATEs a room, JOINs one by its code,
-## STARTs the match as the room's host, or LEAVEs; the server answers WELCOME, or
-## REFUSED with a reason, sends the room's ROSTER whenever it changes and, as a match
-## begins, BEGIN with its seed, its seat count, the client's seat, its pace — fast or
+## STARTs the match as the room's host, says whether it WATCHes rather than plays, or
+## LEAVEs; the server answers WELCOME, or REFUSED with a reason, sends the room's ROSTER
+## whenever it changes and, as a match begins, BEGIN with its seed, its seat count, the
+## client's seat — none for a watcher —, its pace — fast or
 ## paced, the server's to say (ServerRules.fast) —, whether it has bonuses — the server's
 ## too (ServerRules.bonuses) — and the digest of the sinking's
 ## timeline the server baked — then that timeline, a TIMELINE packet a
@@ -22,6 +23,9 @@ const LAST_PRINTABLE := 0x7E
 const NOBODY := 0xFF
 const HOST_FLAG := 1
 const BOT_FLAG := 2
+const WATCH_FLAG := 4
+## No seat, in a BEGIN's byte for the client's: it watches.
+const NO_SEAT := 0xFF
 ## A timeline's digest's bytes (SHA-256): all zero in a BEGIN for a match with none.
 const DIGEST_BYTES := 32
 
@@ -31,7 +35,7 @@ const DIGEST_BYTES := 32
 ## TIMELINE is the client's own: the server's timeline was not what its digest said, or
 ## not a hit this end can draw, so the client hangs up rather than play it.
 ## BUSY: the server makes no more rooms or matches just now; CREATE or START again
-## later.
+## later. NO_PLAYERS: everyone in the room watches, and a match needs a player.
 enum Refusal {
 	VERSION,
 	DATA,
@@ -50,6 +54,7 @@ enum Refusal {
 	IN_ROOM,
 	ROOM_CLOSED,
 	BUSY,
+	NO_PLAYERS,
 }
 
 
@@ -60,11 +65,12 @@ class Message:
 	## HELLO's display name; JOIN's code as typed; BEGIN's timeline digest, hex, "" for
 	## none.
 	var text := ""
-	## REFUSED's reason, BEGIN's seed, PING's and PONG's stamp, TIMELINE's section.
+	## REFUSED's reason, BEGIN's seed, PING's and PONG's stamp, TIMELINE's section, and
+	## WATCH's word: 1 to watch, 0 to play.
 	var value := 0
 	## TIMELINE's section's bytes.
 	var bytes := PackedByteArray()
-	## BEGIN's seat count, and the seat it gives the client.
+	## BEGIN's seat count, and the seat it gives the client: -1 for none, a watcher's.
 	var seats := 0
 	var seat := -1
 	## BEGIN's pace: whether her sinking plays on the match data's fast_clock.
@@ -123,6 +129,13 @@ func encode_join(code: String) -> PackedByteArray:
 	return out.data_array
 
 
+## WATCH: the sender only watches the room's matches when [param on], else plays.
+func encode_watch(on: bool) -> PackedByteArray:
+	var out := wire.header(WireCodec.Kind.WATCH)
+	out.put_u8(1 if on else 0)
+	return out.data_array
+
+
 func encode_refused(reason: Refusal) -> PackedByteArray:
 	var out := wire.header(WireCodec.Kind.REFUSED)
 	out.put_u8(reason)
@@ -136,9 +149,10 @@ func encode_stamp(kind: WireCodec.Kind, stamp: int) -> PackedByteArray:
 	return out.data_array
 
 
-## BEGIN: [param fast] whether her sinking plays on the fast clock, [param bonuses]
-## whether bonuses come aboard, and [param timeline_digest] the digest of the sinking's
-## timeline, hex (SinkTimeline.digest), "" for a match with none.
+## BEGIN: [param seat] the client's, -1 for a watcher's none; [param fast] whether her
+## sinking plays on the fast clock, [param bonuses] whether bonuses come aboard, and
+## [param timeline_digest] the digest of the sinking's timeline, hex
+## (SinkTimeline.digest), "" for a match with none.
 func encode_begin(
 	match_seed: int,
 	seats: int,
@@ -150,7 +164,7 @@ func encode_begin(
 	var out := wire.header(WireCodec.Kind.BEGIN)
 	out.put_u32(match_seed & 0xFFFFFFFF)
 	out.put_u8(seats)
-	out.put_u8(seat)
+	out.put_u8(seat if seat >= 0 else NO_SEAT)
 	out.put_u8(1 if fast else 0)
 	out.put_u8(1 if bonuses else 0)
 	var digest := timeline_digest.hex_decode()
@@ -176,7 +190,13 @@ func encode_roster(roster: RoomRoster) -> PackedByteArray:
 	out.put_u8(roster.players.size())
 	for player: RoomRoster.Player in roster.players:
 		_put_text(out, player.name)
-		out.put_u8((HOST_FLAG if player.host else 0) | (BOT_FLAG if player.bot else 0))
+		out.put_u8(
+			(
+				(HOST_FLAG if player.host else 0)
+				| (BOT_FLAG if player.bot else 0)
+				| (WATCH_FLAG if player.watching else 0)
+			)
+		)
 	return out.data_array
 
 
@@ -201,10 +221,15 @@ func decode(bytes: PackedByteArray) -> Message:
 				return null
 		WireCodec.Kind.PING, WireCodec.Kind.PONG:
 			message.value = reader.u32()
+		WireCodec.Kind.WATCH:
+			message.value = reader.byte()
+			if message.value > 1:
+				return null
 		WireCodec.Kind.BEGIN:
 			message.value = reader.u32()
 			message.seats = reader.byte()
-			message.seat = reader.byte()
+			var seat := reader.byte()
+			message.seat = -1 if seat == NO_SEAT else seat
 			var pace := reader.byte()
 			message.fast = pace == 1
 			var bonuses := reader.byte()
@@ -252,7 +277,9 @@ static func _roster(reader: WireCodec.Reader) -> RoomRoster:
 		var player_name := _text(reader)
 		var flags := reader.byte()
 		roster.players.append(
-			RoomRoster.Player.new(player_name, flags & HOST_FLAG != 0, flags & BOT_FLAG != 0)
+			RoomRoster.Player.new(
+				player_name, flags & HOST_FLAG != 0, flags & BOT_FLAG != 0, flags & WATCH_FLAG != 0
+			)
 		)
 	if normalize_code(roster.code) != roster.code or roster.you >= roster.players.size():
 		reader.ok = false

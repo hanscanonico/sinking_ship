@@ -131,3 +131,22 @@ func test_a_watched_match_is_kept_and_replayed_as_watched() -> void:
 	assert_false(scene.watching(), "a replay, not the match")
 	assert_eq(scene._names, PackedStringArray(["Bot 1", "Bot 2", "Bot 3"]))
 	assert_eq(scene._local_seat, -1)
+
+
+## An online match whose client has no seat (#611) is watched as a local Watch is: no
+## keys play, the first seat's eyes to start, the orbit camera there for Tab.
+func test_an_online_match_with_no_seat_is_watched() -> void:
+	var config := _watched().config(load(MATCH_DATA))
+	var serving := MatchScene.serve(config, null)
+	assert_eq(serving.loopback.client.seat, -1, "a client with no seat")
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	scene.start_online(serving.loopback, null, PackedStringArray(["Ada", "Bea", "Bot 2"]))
+	scene._driver.step()
+	scene._process(0.0)
+	assert_true(scene.watching())
+	assert_not_null(scene._orbit, "the orbit camera is built")
+	assert_null(scene._local)
+	assert_eq(scene._local_seat, -1, "no seat is the watcher's")
+	assert_eq(scene._eye_seat, MatchScene.LOCAL_SEAT, "the eyes a seat's still")
+	assert_string_starts_with(_line(scene), "Watching   ·   through Ada's eyes")

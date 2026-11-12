@@ -28,7 +28,10 @@ extends RefCounted
 ## 10: BEGIN carries whether the match has bonuses beside its pace (#314), so a client of 9
 ## — which would build its match with bonuses whatever the server says, and read a BEGIN a
 ## byte longer as none — is refused VERSION at its HELLO.
-const PROTOCOL_VERSION := 10
+## 11: a room member may watch (#611): WATCH says so, the roster marks who does and BEGIN
+## gives a watcher no seat, so a client of 10 — which would read a seatless BEGIN as none
+## at all — is refused VERSION at its HELLO.
+const PROTOCOL_VERSION := 11
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
@@ -64,6 +67,7 @@ enum Kind {
 	PING,
 	PONG,
 	TIMELINE,
+	WATCH,
 }
 ## Why a packet is not one of this protocol and match: too short to tell or of no kind
 ## there is, of another protocol version, or of another match's data.

@@ -23,7 +23,8 @@ const NAME_PUNCTUATION := " -_.'"
 @export var headless_fps: int
 @export var max_connections: int
 @export var max_rooms: int
-## Players a room holds, at most the match's seats: bots take the rest.
+## Members a room holds — players and watchers alike — at most the match's seats: bots
+## take the seats nobody plays.
 @export var players_per_room: int
 @export var name_length: int
 ## CREATEs and JOINs one connection may send at once before it is turned away, and

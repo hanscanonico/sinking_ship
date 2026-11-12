@@ -141,7 +141,10 @@ _Avoid_: spectator camera, overhead, drone
 A local match nobody plays, chosen from the menu in place of Play: bots take every seat,
 and the watcher looks through any dry seat's eyes, from the orbit camera or from the free
 camera, switching at will all match long — for a stream, say. Its results name who won;
-it is kept in the replays like a match played.
+it is kept in the replays like a match played. A member of an online room may watch
+too: they take no seat when the host starts, bots and the other members play, and they
+see the room's match with the same views and results; they count toward the room's
+players_per_room.
 _Avoid_: observer (the observer camera is a tool), spectator (an out seat spectates)
 
 ### Her hull and the ways into her

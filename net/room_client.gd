@@ -3,7 +3,8 @@ extends RefCounted
 ## A player's side of a server's rooms (SH12), Node-free, so the menu, a headless
 ## autoplayer and the tests drive the same one. It says HELLO with the display name
 ## as the connection opens; then, on the caller's word, it creates a room, joins one
-## by its code, starts the match as the room's host, or leaves. What the server says
+## by its code, starts the match as the room's host, watches its matches rather than
+## plays them, or leaves. What the server says
 ## comes back as signals and in [member state] and [member roster]. As a match
 ## begins, [signal began] gives its config — at the pace and with the bonuses BEGIN
 ## said, the server's, never this end's own — and this client's seat, and play() the
@@ -27,7 +28,8 @@ signal welcomed
 signal refused(reason: int)
 ## The room changed, or was left or closed: [member roster] is null then.
 signal roster_changed(roster: RoomRoster)
-## The room's match began: [param config] is the match, [param seat] this client's.
+## The room's match began: [param config] is the match, [param seat] this client's —
+## -1 when it only watches.
 signal began(config: MatchConfig, seat: int)
 ## The connection is over: a RoomCodec.Refusal, or -1 when it was lost or never made.
 signal closed(reason: int)
@@ -85,6 +87,12 @@ func start_match() -> void:
 	_send(_codec.encode_bare(WireCodec.Kind.START))
 
 
+## Watches the room's matches without a seat when [param on], else plays them: while
+## the room waits.
+func watch(on: bool) -> void:
+	_send(_codec.encode_watch(on))
+
+
 func leave_room() -> void:
 	if state != State.ROOM and state != State.PLAYING:
 		return
@@ -103,7 +111,7 @@ func hang_up() -> void:
 
 
 ## The match [signal began] announced, played with [param source]'s frames for this
-## client's seat: the RemoteMatch to step.
+## client's seat — or only watched, with no seat and no source: the RemoteMatch to step.
 func play(source: InputSource) -> RemoteMatch:
 	_share = SharedTransport.new(_wire)
 	return RemoteMatch.new(

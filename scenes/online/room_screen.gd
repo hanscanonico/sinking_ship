@@ -3,16 +3,20 @@ extends CanvasLayer
 ## A room on a server, as its players wait in it (SH12), over the main menu's backdrop:
 ## its code, large, to read out or copy — and in a browser the page's address that
 ## brings a friend straight to it, never with a name in it — and who is aboard, seat by
-## seat: the host and "you" marked, and the seats nobody holds as the bots that will
-## take them. The host's Start asks for the match once per showing — until the server's
-## answer, a refusal or the room changed shows the room again — and is there but dead
-## for everyone else, who wait for the host. Leave room, and ui_cancel, leave.
+## seat: the host and "you" marked, the seats nobody holds as the bots that will
+## take them, and under them whoever watches rather than plays. Watch has this player
+## watch the match without a seat, while the room waits (GLOSSARY: Watch). The host's
+## Start asks for the match once per showing — until the server's answer, a refusal
+## or the room changed shows the room again — and is there but dead for everyone else,
+## who wait for the host. Leave room, and ui_cancel, leave.
 ##
 ## Every name in it is another player's typing, so it is a plain Label, cut short with
 ## an ellipsis where it is too long for its seat's line.
 
 signal start_requested
 signal leave_requested
+## Watch was toggled: this player asks to watch when [param on], else to play.
+signal watch_requested(on: bool)
 
 ## How long a Copy button says it copied.
 const COPIED_SECONDS := 1.5
@@ -37,6 +41,7 @@ var _asked := false
 @onready var _note: Label = %Note
 @onready var _start: Button = %Start
 @onready var _leave: Button = %Leave
+@onready var _watch: CheckButton = %Watch
 @onready var _aboard: Label = %Aboard
 @onready var _rows: VBoxContainer = %Rows
 
@@ -48,6 +53,7 @@ func _ready() -> void:
 	_copy_invite.pressed.connect(_copy.bind(_copy_invite, _copy_invite.text, true))
 	_start.pressed.connect(_on_start)
 	_leave.pressed.connect(leave_requested.emit)
+	_watch.toggled.connect(watch_requested.emit)
 
 
 ## Shows [param roster]'s room, and [param note] — a refusal, say — under it.
@@ -61,12 +67,16 @@ func show_room(roster: RoomRoster, note: String = "") -> void:
 	var hosting := roster.you_host()
 	_start.text = "Start"
 	_start.disabled = roster.playing or not hosting
+	_watch.set_pressed_no_signal(roster.you_watch())
+	_watch.disabled = roster.playing
 	if roster.playing:
 		_status.text = "A match is on in this room: it waits for that one to end."
 	elif hosting:
 		_status.text = "You host: start when everyone is aboard. Bots take the empty seats."
 	else:
 		_status.text = "Waiting for the host to start."
+	if roster.you_watch() and not roster.playing:
+		_status.text += " You watch: you take no seat."
 	_show_seats(roster)
 	show()
 	var focused := get_viewport().gui_get_focus_owner()
@@ -95,31 +105,49 @@ func _on_start() -> void:
 	start_requested.emit()
 
 
-## Every seat of the match, a line each: the players in seat order, then the bots'.
+## Every seat of the match, a line each: the players in seat order, then the bots' —
+## and after them a line for each who watches.
 func _show_seats(roster: RoomRoster) -> void:
 	for row: Node in _rows.get_children():
 		_rows.remove_child(row)
 		row.queue_free()
-	var players := mini(roster.players.size(), seats)
+	var seated := roster.seated()
+	var players := mini(seated.size(), seats)
 	_aboard.text = "Aboard · %d of %d" % [players, seats]
 	for seat in seats:
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		_rows.add_child(row)
-		_tag(row, str(seat + 1), UiTheme.MUTED).custom_minimum_size.x = 18.0
+		var row := _row(str(seat + 1))
 		if seat >= players:
 			_name(row, "A bot takes this seat", UiTheme.MUTED)
 			continue
-		var player := roster.players[seat]
-		_name(
-			row, player.name, UiTheme.TRIM.lightened(0.45) if seat == roster.you else UiTheme.TEXT
-		)
-		if player.bot:
-			_tag(row, "gone · a bot plays", UiTheme.MUTED)
-		if player.host:
-			_tag(row, "host", UiTheme.TRIM)
-		if seat == roster.you:
-			_tag(row, "you", UiTheme.TRIM.lightened(0.45))
+		_player(row, seated[seat], roster)
+	for player: RoomRoster.Player in roster.players:
+		if player.watching:
+			var row := _row("·")
+			_player(row, player, roster)
+			_tag(row, "watching", UiTheme.MUTED)
+
+
+## A new line of the list, led by [param lead]: a seat's number, or a watcher's dot.
+func _row(lead: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 10)
+	_rows.add_child(row)
+	_tag(row, lead, UiTheme.MUTED).custom_minimum_size.x = 18.0
+	return row
+
+
+## [param player] of [param roster] on [param row]: their name, and whether a bot plays
+## for them, they host, and they are this player.
+func _player(row: HBoxContainer, player: RoomRoster.Player, roster: RoomRoster) -> void:
+	var yours := roster.you >= 0 and roster.you < roster.players.size()
+	var is_you := yours and roster.players[roster.you] == player
+	_name(row, player.name, UiTheme.TRIM.lightened(0.45) if is_you else UiTheme.TEXT)
+	if player.bot:
+		_tag(row, "gone · a bot plays", UiTheme.MUTED)
+	if player.host:
+		_tag(row, "host", UiTheme.TRIM)
+	if is_you:
+		_tag(row, "you", UiTheme.TRIM.lightened(0.45))
 
 
 ## A player's name — or a bot's — on [param row]: as much of it as its line holds.

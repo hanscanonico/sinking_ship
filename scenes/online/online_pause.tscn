@@ -33,6 +33,7 @@ alignment = 1
 theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Panel/Box"]
+unique_name_in_owner = true
 theme_type_variation = &"TitleLabel"
 text = "Still playing"
 horizontal_alignment = 1
@@ -42,6 +43,13 @@ custom_minimum_size = Vector2(276, 0)
 theme_type_variation = &"HintLabel"
 text = "An online match never pauses: it goes on while this is open."
 horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Controls" type="Label" parent="Panel/Box"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(276, 0)
+theme_type_variation = &"HintLabel"
 autowrap_mode = 3
 
 [node name="Resume" type="Button" parent="Panel/Box"]

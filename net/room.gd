@@ -2,9 +2,10 @@ class_name Room
 extends RefCounted
 ## One room of a server (SH12): its code, the players in it — the first of them its
 ## host — and, once the host starts it, one match: a MatchHost whose seats are the
-## players', in the order they joined, and bots' after them (D10). A player who goes
-## mid-match leaves their seat to a bot that has watched it all along (ClientSeat);
-## the match never waits for anyone. Once it is over the room waits again for its
+## players', in the order they joined, and bots' after them (D10). A member who
+## watches takes no seat: the match is sent to them, and nothing of theirs reaches it.
+## A player who goes mid-match leaves their seat to a bot that has watched it all along
+## (ClientSeat); the match never waits for anyone. Once it is over the room waits again for its
 ## host. The room keeps what it measures — each tick's time, and in its wire what it
 ## sent each player — for the server's log.
 
@@ -16,8 +17,11 @@ class Member:
 	extends RefCounted
 	var peer: int
 	var name: String
-	## The seat the match gives this player; -1 while the room waits.
+	## The seat the match gives this player; -1 while the room waits, and for one who
+	## watches.
 	var seat := -1
+	## Whether this member only watches the room's matches (GLOSSARY: Watch).
+	var watching := false
 	## Whether the client has gone mid-match, its seat a bot's.
 	var gone := false
 
@@ -97,8 +101,17 @@ func remove(peer: int, beat: int) -> void:
 		seat.hand_to_bot()
 
 
-## Starts [param config]'s match: a seat for each player, in order, from
-## [param bots] — one per seat, by id — the rest of them bots. It speaks [param codec],
+## Whether the room has a member who plays rather than watches: a match needs one.
+func has_players() -> bool:
+	for each: Member in members:
+		if not each.watching:
+			return true
+	return false
+
+
+## Starts [param config]'s match: a seat for each player who does not watch, in the
+## order they joined, from [param bots] — one per seat, by id — the rest of them bots;
+## each watcher sent the match without a seat. It speaks [param codec],
 ## the room protocol's (RoomServer.data_hash) — or, with none, the match's own.
 func start(
 	config: MatchConfig,
@@ -109,15 +122,20 @@ func start(
 ) -> void:
 	var sources := bots.duplicate()
 	_seats.clear()
-	for index in members.size():
-		var player := members[index]
+	var index := 0
+	for player: Member in members:
+		player.seat = -1
+		if player.watching:
+			continue
 		player.seat = index
 		var seat := ClientSeat.new(SeatBuffer.new(index), bots[index])
 		_seats[index] = seat
 		sources[index] = seat
+		index += 1
 	host = MatchHost.new(MatchRunner.new(MatchSim.create(config), sources), wire, net_rules, codec)
 	for player: Member in members:
-		host.admit(player.peer, _seats[player.seat].buffer)
+		var seat: ClientSeat = _seats.get(player.seat)
+		host.admit(player.peer, seat.buffer if seat != null else null)
 	wire.sent_bytes.clear()
 	wire.sent_packets.clear()
 	step_usec.clear()
@@ -172,7 +190,12 @@ func roster_for(peer: int) -> RoomRoster:
 	for index in members.size():
 		var player := members[index]
 		roster.players.append(
-			RoomRoster.Player.new(player.name, player.peer == hosting, player.gone)
+			RoomRoster.Player.new(
+				player.name,
+				player.peer == hosting,
+				player.gone and not player.watching,
+				player.watching
+			)
 		)
 		if player.peer == peer:
 			roster.you = index
