@@ -531,7 +531,7 @@ double NativeSink::lift(int32_t p_cell, int32_t p_other, const double *p_heads) 
 }
 
 // SinkStepper._transfer, its memo of a solve's flows left out.
-double NativeSink::flow_of(int64_t p_index, const double *p_heads) {
+double NativeSink::flow_of(int64_t p_index, const double *p_heads, const double *p_following) {
 	const int32_t first = first_[p_index];
 	const int32_t second = second_[p_index];
 	double first_head = first == OUTSIDE ? sea_ : p_heads[first];
@@ -592,8 +592,13 @@ double NativeSink::flow_of(int64_t p_index, const double *p_heads) {
 	if (up_held && down_held) {
 		amount = min_f(amount, INF);
 	} else {
-		const double lifted = first_lift - second_lift;
-		const double most = levelling(up, down, p_heads, bottom, forward ? lifted : -lifted);
+		const double lifted = forward ? first_lift - second_lift : -(first_lift - second_lift);
+		double most = levelling(up, down, p_heads, bottom, lifted);
+		if (up_held && p_following != nullptr) {
+			// Past its box, no higher than the held side's push where the sweep brought it.
+			const double room = capacity_[down] - volume(down, p_following[down]);
+			most = min_f(most, max_f(levelling(up, down, p_following, bottom, lifted), room));
+		}
 		amount = min_f(amount, most);
 	}
 	return forward ? amount : -amount;
@@ -1073,7 +1078,8 @@ PackedFloat64Array NativeSink::sweep(bool p_reverse, const PackedFloat64Array &p
 			moved[index] = 0.0;
 			continue;
 		}
-		double amount = flow_of(index, standing);
+		// A held cell's neighbour the sweep has filled first takes no more than levels them.
+		double amount = flow_of(index, standing, heads);
 		const int32_t giver = amount > 0.0 ? first : second;
 		if (giver != OUTSIDE && by_held) {
 			const double holds = max_f(water[giver], 0.0);
