@@ -162,3 +162,33 @@ func test_a_sure_footed_bot_gets_uphill_of_its_target_past_the_brawl_rules_grip(
 		assert_eq(footing.slides(pose), not sure, "Sure footing %s: the deck pulls it" % sure)
 		var at := footing.approach(below, target, pose)
 		assert_lt(at.z, target.z, "Sure footing %s: round to its uphill side first" % sure)
+
+
+## A bot standing in water grips the deck less, as a body does (#620): on a deck listing
+## under the grip angle it finds the deck pulling it where the sea stands 0.1 m deep over
+## its floor, and holding it where the floor is dry.
+func test_a_bot_standing_in_water_finds_the_deck_pulling_it() -> void:
+	var layout := SimFixtures.low_deck(0.4)
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var heel := rules.grip_angle_deg - 2.0
+	var sinking := SimFixtures.scenario([[0.0, layout.freeboard, 0.0, heel]])
+	var schedule := SinkSchedule.new(sinking, layout.freeboard, SeedStreams.derive(1, "sink"))
+	var pose := schedule.pose_at(0)
+	var footing := _footing(layout, surfaces)
+	var wet := Vector3.INF
+	var dry := Vector3.INF
+	for step in range(-25, 26):
+		var feet := Vector3(0.0, 0.0, step * 0.1)
+		var depth := pose.water_height(feet)
+		if absf(depth - 0.1) < 0.05 and surfaces.wet(feet, pose):
+			wet = feet
+		elif not surfaces.wet(feet, pose):
+			dry = feet
+	assert_ne(wet, Vector3.INF, "the sea stands about 0.1 m deep somewhere on her deck")
+	assert_ne(dry, Vector3.INF, "and somewhere it is dry")
+	assert_false(footing.slides(pose), "before it stands anywhere, by the dry grip")
+	footing.stand(wet, surfaces.under(wet, rules.step_height), pose)
+	assert_true(footing.slides(pose), "0.1 m deep, the deck pulls it")
+	footing.stand(dry, surfaces.under(dry, rules.step_height), pose)
+	assert_false(footing.slides(pose), "dry, it holds")

@@ -202,7 +202,8 @@ func _reseat(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 ## [param rules_by_seat], indexed by seat (SeatRules). Gravity is the world's, turned
 ## into ship space by the pose; a grounded body feels its downhill part only once it has
 ## lost its grip — staggered, or idle on a deck steeper than its grip angle. On a floor
-## tilted past its stand limit it does not walk: a brace holds where it is up to
+## tilted past its stand limit it does not walk — both angles lower for a body standing
+## in water (BrawlRules.wet_angle): a brace holds where it is up to
 ## brace_holds_to, the same for everyone, and a body that does not brace slides into the
 ## corner and walks only along it (_slid). Wading slows a walk, the more the deeper
 ## (_wade_speed), crawling to crawl_speed, and what a body holds to its walk cap (#273);
@@ -236,8 +237,9 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 		elif player.bracing:
 			wish = Vector2.ZERO
 		var push := Vector2.ZERO
+		var depth := 0.0
 		if _surfaces.wet(player.pos, pose_now):
-			var depth := sea_over(player.surface, player.pos, pose_now)
+			depth = sea_over(player.surface, player.pos, pose_now)
 			wish = wish.limit_length(_wade_speed(depth))
 			var flowing := _current(player)
 			if depth > 0.0 and flowing != Vector2.ZERO:
@@ -246,14 +248,16 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 		if height_of(player) < _rules.body_height:
 			wish = wish.limit_length(_rules.crawl_speed)
 		wish = wish.limit_length(mine.walk_cap)
-		# A brace is rooted: the deck past the grip angle does not pull it.
-		var pulled := slope > mine.grip_angle_deg and not (player.bracing and holds)
+		# A brace is rooted: the deck past the grip angle does not pull it. Standing in
+		# water, a body grips less (BrawlRules.wet_angle).
+		var grip := _rules.wet_angle(mine.grip_angle_deg, depth)
+		var pulled := slope > grip and not (player.bracing and holds)
 		if player.is_staggered():
 			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
 			player.stagger_ticks -= 1
 		elif wish == Vector2.ZERO and pulled:
 			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.slide_friction * dt)
-		elif slope > mine.stand_limit_deg and pulled:
+		elif slope > _rules.wet_angle(mine.stand_limit_deg, depth) and pulled:
 			planar = _slid(planar, wish, downhill)
 		else:
 			if pulled:

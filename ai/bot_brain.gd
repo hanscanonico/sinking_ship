@@ -250,6 +250,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	# which a turn toward one since cannot hide — and, past the grip angle, where it
 	# slides wherever it walks, from both.
 	var now_pos := _reckoning.reckon(me)
+	_footing.stand(now_pos, me["surface"], pose)
 	var slides := _footing.slides(pose)
 	_edge_from = _reckoning.by_walks(me, seen["tick"], now_pos)
 	_edge_also = now_pos if slides else _edge_from
