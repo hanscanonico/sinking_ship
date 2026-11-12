@@ -139,9 +139,14 @@ func split(piece: BakePiece, span: Vector2, aft_id: int) -> Array[BakePiece]:
 		var from := span.x if side == 0 else spot.x
 		var to := spot.x if side == 0 else span.y
 		var structure := PieceStructure.cut(_structure, from, to)
-		var stepper := SinkStepper.new(
-			structure, PieceStructure.damaged(_damage, structure, from, to), _sea
-		)
+		var damaged := PieceStructure.damaged(_damage, structure, from, to)
+		var stepper: SinkStepper
+		if piece.stepper is WatchedStepper:
+			# Watched as the piece it broke from was (FloodWatch).
+			stepper = WatchedStepper.new(structure, damaged, _sea)
+			(stepper as WatchedStepper).watch = (piece.stepper as WatchedStepper).watch
+		else:
+			stepper = SinkStepper.new(structure, damaged, _sea)
 		var state := _carried(piece, structure, stepper)
 		var wrecked := PackedInt32Array()
 		for index: int in _wrecked(structure, stepper, spot.wrecks):
