@@ -63,3 +63,18 @@ func test_the_keyboard_looks_with_the_mouse_and_the_pad_with_its_stick() -> void
 	assert_string_contains(InputPrompts.pause_controls_for(true), "Right stick — look")
 	assert_string_contains(InputPrompts.pause_controls_for(false), "Esc — pause")
 	assert_string_contains(InputPrompts.pause_controls_for(true), "Start — pause")
+
+
+## A watcher plays nothing: the pause names only what switches the seat and flies the
+## orbit and free cameras.
+func test_a_watchers_pause_names_only_the_views() -> void:
+	var pause := _pause()
+	var prompts: InputPrompts = autofree(InputPrompts.new())
+	pause.open(prompts, true, true)
+	var label: Label = pause.get_node("%PauseControls")
+	assert_string_contains(label.text, "Q / E — switch seat")
+	assert_string_contains(label.text, "Tab — orbit camera")
+	assert_string_contains(label.text, "C — free camera")
+	assert_string_contains(label.text, "Esc — pause")
+	assert_false(label.text.contains("shove"), "nothing of play")
+	assert_string_contains(InputPrompts.watch_controls_for(true), "Back — orbit camera")

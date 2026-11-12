@@ -2,8 +2,8 @@ class_name Hud
 extends CanvasLayer
 ## Seats left, the match clock and the countdown, read from the latest snapshot,
 ## with what the match is played for and what to press under the countdown; and,
-## once the local seat is out, whose eyes the view is in — none of it over the
-## results. The tilt is the first-person HUD's inclinometer.
+## once the local seat is out — or all match long for a watcher — whose eyes the view is
+## in, none of it over the results. The tilt is the first-person HUD's inclinometer.
 
 ## How long "Go!" stays up once the countdown is over.
 const GO_SECONDS := 0.8
@@ -14,6 +14,10 @@ const NAME_WIDTH := 130.0
 const SPECTATING_CLEAR := 12.0
 ## Whose view the spectating line names from the free camera: nobody's.
 const FREE_VIEW := "free camera"
+
+## The views a watcher may look from (watching_text): a seat's eyes, the orbit camera or
+## the free camera.
+enum Camera { EYES, ORBIT, FREE }
 
 var _countdown_ticks: int
 
@@ -100,6 +104,46 @@ static func spectating_text(
 	)
 	if not free_key.is_empty():
 		text += "   ·   %s %s" % [free_key, "eyes" if free else "free camera"]
+	return text
+
+
+## The watcher's line (GLOSSARY: Watch), along the bottom all match long: whose view it
+## is from [param camera] — [param seat_name]'s eyes, the orbit camera on that seat while
+## [param locked] says it follows it, or the free camera —, then what switches the seat,
+## [param previous] and [param next], and what flies the free camera, [param free_key],
+## as the spectating line has them, and last the orbit camera's [param orbit_key] and,
+## from it, [param lock_key], which locks it on the seat or lets go of it.
+static func watching_text(
+	seat_name: String,
+	camera: Camera,
+	locked: bool,
+	previous: String,
+	next: String,
+	free_key: String,
+	orbit_key: String,
+	lock_key: String
+) -> String:
+	var whose := whose_view(seat_name, false, false)
+	if camera == Camera.FREE:
+		whose = FREE_VIEW
+	elif camera == Camera.ORBIT:
+		whose = "orbiting %s" % seat_name if locked else "orbit camera"
+	var free := camera == Camera.FREE
+	var orbit := camera == Camera.ORBIT
+	var text := (
+		"Watching   ·   %s\n%s / %s to switch   ·   %s %s\n%s %s"
+		% [
+			whose,
+			previous,
+			next,
+			free_key,
+			"eyes" if free else "free camera",
+			orbit_key,
+			"eyes" if orbit else "orbit camera",
+		]
+	)
+	if orbit:
+		text += "   ·   %s %s" % [lock_key, "let go" if locked else "lock on"]
 	return text
 
 

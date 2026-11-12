@@ -78,6 +78,58 @@ func test_the_line_says_how_into_the_free_camera_and_back() -> void:
 	)
 
 
+## A watcher's line names the seat watched, from its eyes or the orbit camera following
+## it, and the keys to switch seat and camera — the orbit's lock only from the orbit.
+func test_the_watchers_line_names_the_seat_and_the_cameras() -> void:
+	var eyes := Hud.Camera.EYES
+	var orbit := Hud.Camera.ORBIT
+	var free := Hud.Camera.FREE
+	assert_eq(
+		Hud.watching_text("Bot 3", eyes, false, "Q", "E", "C", "Tab", "F"),
+		"Watching   ·   through Bot 3's eyes\nQ / E to switch   ·   C free camera\nTab orbit camera"
+	)
+	assert_eq(
+		Hud.watching_text("Bot 3", orbit, true, "Q", "E", "C", "Tab", "F"),
+		"Watching   ·   orbiting Bot 3\nQ / E to switch   ·   C free camera\nTab eyes   ·   F let go"
+	)
+	assert_eq(
+		Hud.watching_text("Bot 3", orbit, false, "Q", "E", "C", "Tab", "F"),
+		"Watching   ·   orbit camera\nQ / E to switch   ·   C free camera\nTab eyes   ·   F lock on"
+	)
+	assert_eq(
+		Hud.watching_text("Bot 3", free, false, "Q", "E", "C", "Tab", "F"),
+		"Watching   ·   free camera\nQ / E to switch   ·   C eyes\nTab orbit camera"
+	)
+
+
+## The watcher's line, the widest name and either device's keys, fits each of its lines
+## in the spectating line's box.
+func test_the_watchers_line_fits_its_box() -> void:
+	var box := Hud.spectating_box(SIZES[0])
+	var font := UiTheme.shared().get_font(&"font", &"Label")
+	var widest := UiTheme.fit("WWWWWWWWWWWWWWWW", font, FONT_SIZE, Hud.NAME_WIDTH)
+	for pad: bool in [false, true]:
+		var keys := PackedStringArray()
+		for action: StringName in [
+			&"spectate_previous",
+			&"spectate_next",
+			&"spectate_free",
+			&"replay_camera_toggle",
+			&"replay_orbit_lock",
+		]:
+			keys.append(InputPrompts.word_for(InputMap.action_get_events(action), pad))
+		for camera: Hud.Camera in [Hud.Camera.EYES, Hud.Camera.ORBIT, Hud.Camera.FREE]:
+			for locked: bool in [false, true]:
+				var text := Hud.watching_text(
+					widest, camera, locked, keys[0], keys[1], keys[2], keys[3], keys[4]
+				)
+				for line: String in text.split("\n"):
+					var width := (
+						font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+					)
+					assert_lt(width + OUTLINE * 2.0, box.size.x, "%s fits on one line" % line)
+
+
 ## The longest name the line shows — clipped to Hud.NAME_WIDTH as the HUD clips it, in
 ## the font the HUD draws it in — with the keyboard's or the pad's prompts, gone
 ## overboard or sunk with her, still fits each line in the box, and the box stands

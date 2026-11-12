@@ -1,12 +1,13 @@
 class_name OrbitCamera
 extends RefCounted
-## The replay viewer's orbit camera (R5, #213): an eye orbiting a pivot above the
-## ship — turned by a mouse drag or the right stick, the pivot panned by a middle drag
-## or the left stick, the distance zoomed by the wheel or the triggers — held over the
-## sea and outside her hull's box (OrbitMath). Locked, the pivot follows the seat
-## watched; unlocked, it stays where it was panned. It opens framing the whole ship as
-## the observer camera does. The one elevated view a player ever has (D14, replay
-## only); presentation only, as FreeCamera is: nothing of it is sent or read by a rule.
+## The replay viewer's orbit camera (R5, #213), and a watcher's (GLOSSARY: Watch): an
+## eye orbiting a pivot above the ship — turned by a mouse drag or the right stick, the
+## pivot panned by a middle drag or the left stick, the distance zoomed by the wheel or
+## the triggers — held over the sea and outside her hull's box (OrbitMath). Locked, the
+## pivot follows the seat watched; unlocked, it stays where it was panned. It opens
+## framing the whole ship as the observer camera does. The one elevated view a player ever
+## has (D14, a replay's and a watcher's); presentation only, as FreeCamera is: nothing of
+## it is sent or read by a rule.
 
 ## The pitch the eye may be raised to above the level, in degrees, and the distances it
 ## may stand off at, in metres.

@@ -154,3 +154,44 @@ func test_a_match_hands_the_results_its_sinking() -> void:
 	var results: EndOverlay = scene.get_node("EndOverlay")
 	assert_eq(results._schedule, scene._driver.sim().schedule)
 	assert_eq(results._ship_name, String(Fleet.name_of(config.ship)).capitalize())
+
+
+## A watcher has no seat (-1): the title names who won, or who lasted longest under
+## survival, and no row of the table is picked out as theirs.
+func test_a_watchers_title_names_who_won() -> void:
+	var scene: Node = MATCH_SCENE.instantiate()
+	add_child_autofree(scene)
+	var names := PackedStringArray(["Bot 1", "Bot 2", "Bot 3"])
+	var stats := MatchStats.new(3, 0)
+	(
+		stats
+		. add(
+			[
+				SimEvent.seat_out(30 * Ticks.RATE, 2, 3, PlayerState.Cause.COLD, 1),
+				SimEvent.seat_out(134 * Ticks.RATE, 0, 2, PlayerState.Cause.COLD, -1),
+				SimEvent.match_ended(134 * Ticks.RATE, 1),
+			]
+		)
+	)
+	var results: EndOverlay = scene.get_node("EndOverlay")
+	results.show_results(stats, -1, names, 1701)
+	assert_eq((results.get_node("%Title") as Label).text, "Last one dry: Bot 2")
+	var table: GridContainer = results.get_node("%Table")
+	for cell: Node in table.get_children():
+		assert_ne((cell as Label).get_theme_color(&"font_color"), EndOverlay.LOCAL_COLOUR)
+	assert_eq(EndOverlay.watched_title(stats, names, true), "Lasted longest: Bot 2 · 02:14.0")
+
+	var draw := MatchStats.new(2, 0)
+	(
+		draw
+		. add(
+			[
+				SimEvent.seat_out(90, 0, 1, PlayerState.Cause.COLD, -1),
+				SimEvent.seat_out(90, 1, 1, PlayerState.Cause.COLD, -1),
+				SimEvent.match_ended(90, -1),
+			]
+		)
+	)
+	var two := PackedStringArray(["Bot 1", "Bot 2"])
+	assert_eq(EndOverlay.watched_title(draw, two, false), "The sea wins — nobody stays dry")
+	assert_eq(EndOverlay.watched_title(draw, two, true), "Lasted longest: Bot 1, Bot 2 · 00:03.0")

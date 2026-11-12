@@ -61,8 +61,11 @@ func controls() -> String:
 
 
 ## Every control of play, one to a line, on the device last used — and, when
-## [param spectating], what switches the view once out.
-func pause_controls(spectating := false) -> String:
+## [param spectating], what switches the view once out; or, when [param watching], only
+## what a watcher has (watch_controls_for).
+func pause_controls(spectating := false, watching := false) -> String:
+	if watching:
+		return watch_controls_for(pad)
 	return pause_controls_for(pad, spectating)
 
 
@@ -101,6 +104,29 @@ static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 		var next := _word_of(&"spectate_next", on_pad)
 		lines.append(["%s / %s" % [previous, next], "switch view"])
 		lines.append([_word_of(&"spectate_free", on_pad), "free camera"])
+	var text := PackedStringArray()
+	for line: Array in lines:
+		text.append("%s — %s" % line)
+	return "\n".join(text)
+
+
+## A watcher's controls (GLOSSARY: Watch), one to a line, on the pad when [param on_pad],
+## else on the keyboard and mouse: what switches the seat watched, the orbit camera — in
+## and out, its lock, its turn, pan and zoom — the free camera and the pause; nothing of
+## play, as nobody plays.
+static func watch_controls_for(on_pad: bool) -> String:
+	var previous := _word_of(&"spectate_previous", on_pad)
+	var next := _word_of(&"spectate_next", on_pad)
+	var lines: Array[Array] = [
+		["%s / %s" % [previous, next], "switch seat"],
+		[_word_of(&"replay_camera_toggle", on_pad), "orbit camera"],
+		[_word_of(&"replay_orbit_lock", on_pad), "lock the orbit on the seat"],
+		["Right stick" if on_pad else "Mouse drag", "turn the orbit"],
+		[_move_of(on_pad), "pan the orbit"],
+		["Triggers" if on_pad else "Wheel", "zoom the orbit"],
+		[_word_of(&"spectate_free", on_pad), "free camera"],
+		[_word_of(&"pause", on_pad), "pause"],
+	]
 	var text := PackedStringArray()
 	for line: Array in lines:
 		text.append("%s — %s" % line)

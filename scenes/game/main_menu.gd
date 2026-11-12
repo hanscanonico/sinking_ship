@@ -4,8 +4,11 @@ extends CanvasLayer
 ## bot tier there is a profile for, a seed — blank for a random one —, whether she
 ## sinks fast, whether the match is survival (MatchRules.Goal) and whether bonuses come
 ## aboard, handed on as they stand: one MatchChoices, which Game turns into a match (D13).
-## Beside it, Play online opens the Online screen (SH12). It stands over the ship at dusk
-## (MenuBackdrop) under the wordmark in her livery: cream on a boot-top red rule
+## Watch plays the same match with bots on every seat, the local one's too, for the
+## player only to watch (MatchChoices.watch, GLOSSARY: Watch) — from any seat's eyes, the
+## orbit camera or the free camera. Beside it, Play online opens the Online screen
+## (SH12). It stands over the ship at dusk (MenuBackdrop) under the wordmark in her
+## livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put
 ## away (show_behind). The seed, the pace and the bonuses are a tester's knobs: folded
 ## under Custom match — Fast sinking unticked for a player (MatchArgs.player_choices),
@@ -32,6 +35,7 @@ signal quit_requested
 @onready var _survival: CheckButton = %Survival
 @onready var _problem: Label = %Problem
 @onready var _play: Button = %Play
+@onready var _watch: Button = %Watch
 @onready var _custom: Button = %Custom
 @onready var _custom_choices: Control = %CustomChoices
 @onready var _panel: PanelContainer = $Panel
@@ -50,6 +54,7 @@ func _ready() -> void:
 	_backdrop.frame_beside(_panel)
 	visibility_changed.connect(func() -> void: _backdrop.run(visible))
 	_play.pressed.connect(_on_play)
+	_watch.pressed.connect(_on_watch)
 	_ship.item_selected.connect(_on_ship_picked)
 	_seed.text_submitted.connect(func(_text: String) -> void: _on_play())
 	_seed.gui_input.connect(leave_field.bind(_seed))
@@ -216,3 +221,10 @@ func _on_ship_picked(_index: int) -> void:
 
 func _on_play() -> void:
 	play_requested.emit(choices())
+
+
+## The choices as they stand, the match only watched.
+func _on_watch() -> void:
+	var watched := choices()
+	watched.watch = true
+	play_requested.emit(watched)
