@@ -78,6 +78,10 @@ extends Resource
 ## In that band a brace holds its body where it is up to this tilt; anyone else slides
 ## into the corner (D8, est.).
 @export var brace_holds_to: float
+## The share of its dry friction a sole keeps on a wet deck, 0…1: the grip angle and the
+## stand limit hold in water as wet_angle has them (#620; est. 0.6, wet over dry floors in
+## slip-resistance testing, 0.5–0.7).
+@export var wet_grip: float
 
 @export_group("Levels and falls")
 ## The most a body steps up or down without a ramp; a drop deeper than this is a fall.
@@ -254,6 +258,17 @@ func idle_slide(slope_deg: float) -> float:
 	return maxf(gravity * sin(deg_to_rad(slope_deg)) - slide_friction, 0.0)
 
 
+## The slope a body holding to [param angle_deg] on a dry deck — a grip angle or a stand
+## limit, its seat's — holds to with water [param depth] deep over its floor (#620): its
+## friction, the angle's tangent, times wet_grip for its wet soles, less the share of its
+## weight the water carries, depth over body_height. Dry, the angle itself.
+func wet_angle(angle_deg: float, depth: float) -> float:
+	if depth <= 0.0:
+		return angle_deg
+	var buoyed := clampf(depth / body_height, 0.0, 1.0)
+	return rad_to_deg(atan(tan(deg_to_rad(angle_deg)) * wet_grip * (1.0 - buoyed)))
+
+
 ## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
 ## (Q22): halfway from the waterline it floats at, swim_depth, to the top of its head —
 ## of a body [param height] tall, so a crawler's as much lower as it is (swim_depth_of).
@@ -415,6 +430,7 @@ func problems() -> PackedStringArray:
 		"crate_restitution",
 		"crate_brace_reduction",
 		"current_wade_share",
+		"wet_grip",
 	]:
 		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
 			found.append("brawl rules: %s must be within 0…1" % field)

@@ -32,6 +32,9 @@ var _look_ahead: float
 ## How long the bot takes to find the deck carrying it at an edge, in seconds: its view's
 ## lag and the wait for its next think. An idle slide over it is what slide_reach covers.
 var _lag_s: float
+## How deep the water stands over the floor the bot stands on, in metres, as its view
+## shows it (stand): 0 dry.
+var _wading := 0.0
 
 
 func _init(
@@ -51,11 +54,21 @@ func _init(
 	seat_rules = SeatRules.of(rules, null)
 
 
+## Takes the water over the floor the bot stands on, [param surface] under
+## [param feet], in [param pose] — its view's — for its grip (slides): set as it decides,
+## as seat_rules is; none until then.
+func stand(feet: Vector3, surface: int, pose: ShipPose) -> void:
+	_wading = 0.0
+	if surface != Surfaces.NONE and _surfaces.wet(feet, pose):
+		_wading = pose.water_height(feet) - _surfaces.height_at(surface, feet)
+
+
 ## Whether the deck under [param pose] is tilted past the bot's own grip angle
-## (seat_rules): idle there it is pulled downhill, and wherever it walks it slides; under
-## it, it holds where it stands.
+## (seat_rules), lower in the water it stands in (stand; BrawlRules.wet_angle): idle there
+## it is pulled downhill, and wherever it walks it slides; under it, it holds where it
+## stands.
 func slides(pose: ShipPose) -> bool:
-	return pose.slope_deg() > seat_rules.grip_angle_deg
+	return pose.slope_deg() > _rules.wet_angle(seat_rules.grip_angle_deg, _wading)
 
 
 ## How far down the deck under [param pose] the bot, going at [param my_vel], would be
