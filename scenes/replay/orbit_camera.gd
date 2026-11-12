@@ -115,6 +115,19 @@ func zoom(notches: float) -> void:
 	distance = clampf(distance * pow(ZOOM_STEP, notches), DISTANCE_LIMITS.x, DISTANCE_LIMITS.y)
 
 
+## How many notches [param event] turns the wheel: one in (up) or out (down) as it is
+## pressed, none for anything else.
+static func wheel_notches(event: InputEvent) -> float:
+	if not (event is InputEventMouseButton and event.is_pressed()):
+		return 0.0
+	match (event as InputEventMouseButton).button_index:
+		MOUSE_BUTTON_WHEEL_UP:
+			return 1.0
+		MOUSE_BUTTON_WHEEL_DOWN:
+			return -1.0
+	return 0.0
+
+
 ## A mouse [param motion] with a button held: the left drag orbits, the middle pans.
 func drag(motion: InputEventMouseMotion) -> void:
 	if motion.button_mask & MOUSE_BUTTON_MASK_LEFT:
