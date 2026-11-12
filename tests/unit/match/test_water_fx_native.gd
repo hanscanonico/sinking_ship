@@ -2,7 +2,7 @@ extends GutTest
 ## The water's effects' loops natively (#410, NativeWaterFx) against the GDScript they
 ## stand in for, bit for bit: on her real ships' sinkings, step after step from her
 ## first tick to her last, the water inside her drawn by an InnerWater whose loops go to
-## the extension and by one whose loops run in GDScript — every sheet, stack, pour,
+## the extension and by one whose loops run in GDScript — every sheet, sloshing, stack, pour,
 ## froth and light the same, shown or hidden, placed and painted alike, and the same
 ## state kept — and an FxPlanner's and a CuePlanner's effects and sounds of each step
 ## the same, field for field — on a hull that breaks too, each piece of her read as it
@@ -88,7 +88,9 @@ func test_her_water_is_drawn_alike_as_she_sinks() -> void:
 			for alpha: float in ALPHAS:
 				var drawn: Array[PackedByteArray] = []
 				for water: InnerWater in waters:
-					water.show_water(then, now, alpha)
+					# At its moment, so each sheet sloshes as she turns (CellSlosh).
+					var seconds := (tick + STRIDE * alpha) * Ticks.SECONDS_PER_TICK
+					water.show_water(then, now, alpha, seconds)
 					if water.is_processing():
 						water._process(Ticks.SECONDS_PER_TICK * STRIDE / ALPHAS.size())
 					drawn.append(var_to_bytes(_state(water, shown if water == waters[0] else {})))
