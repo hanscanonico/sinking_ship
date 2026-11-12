@@ -171,7 +171,7 @@ private:
 			double p_high, double p_high_held) const;
 	double push(int32_t p_first, const double *p_heads);
 	double lift(int32_t p_cell, int32_t p_other, const double *p_heads);
-	double flow_of(int64_t p_index, const double *p_heads);
+	double flow_of(int64_t p_index, const double *p_heads, const double *p_following = nullptr);
 	double orifice(double p_area, double p_difference, double p_give) const;
 	double weir(double p_width, double p_depth, double p_give) const;
 	double flow(double p_width, double p_bottom, double p_top, double p_high, double p_low) const;

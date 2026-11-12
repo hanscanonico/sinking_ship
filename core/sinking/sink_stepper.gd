@@ -308,7 +308,7 @@ func step(state: FloodState, seconds: float) -> FloodState:
 	next.seconds = state.seconds + seconds
 	next.steps = state.steps + 1
 	if _motion == null:
-		next.sea = _settled(state.sea, _own_volume + next.total(), seconds)
+		next.sea = _hull.settled(state.sea, _own_volume + next.total(), seconds, _plan, _sea)
 	else:
 		var ceilings := _ceiling.duplicate()
 		_motion.move(state, next, _boxes, seconds)
@@ -358,7 +358,7 @@ func _sweep(
 		):
 			next.moved[index] = 0.0
 			continue
-		var amount := _transfer(index, standing, sea, state.seconds, seconds)
+		var amount := _transfer(index, standing, sea, state.seconds, seconds, heads)
 		# A cell passing what a solve said gives no more than it holds: its neighbours' caps
 		# may have kept back some of what the solve counted on coming in.
 		var giver := first if amount > 0.0 else second
@@ -812,7 +812,9 @@ func _surplus(
 			continue
 		var amount := _transfer(index, heads, sea, since, seconds)
 		into += amount if _second[index] == cell else -amount
-	into += _shipped.into(cell, at) * seconds
+	# A full well is the sea's own: nothing comes over its edges (ShippedWater.ship).
+	if water < _capacity[cell]:
+		into += _shipped.into(cell, at) * seconds
 	heads[cell] = was
 	return into - (_boxes[cell].volume(at) - water)
 
@@ -958,10 +960,17 @@ static func open_share(shut_time: float, seconds: float, opened := 0.0) -> float
 ## its water covers the opening, or its air would not be trapped. Solved over the step
 ## where the flow has a closed form with the two sides' surfaces held — under water on
 ## both sides, over a sill, falling through a floor — else the flow now times the step;
-## and never more than levels the two sides. Within a solve together, a flow asked again
-## at the same two heads is the one worked out the first time (_flows).
+## and never more than levels the two sides, nor — from a held side into a cell not held
+## — fills that cell past its box higher than they level as [param following], the
+## sweep's heads, stands them. Within a solve together, a flow asked again at the same two
+## heads is the one worked out the first time (_flows).
 func _transfer(
-	index: int, heads: PackedFloat64Array, sea: float, since: float, seconds: float
+	index: int,
+	heads: PackedFloat64Array,
+	sea: float,
+	since: float,
+	seconds: float,
+	following := PackedFloat64Array()
 ) -> float:
 	var first := _first[index]
 	var second := _second[index]
@@ -1035,7 +1044,12 @@ func _transfer(
 		amount = minf(amount, INF)
 	else:
 		var lifted := first_lift - second_lift
-		var most := _levelling(up, down, heads, sea, bottom, lifted if forward else -lifted)
+		lifted = lifted if forward else -lifted
+		var most := _levelling(up, down, heads, sea, bottom, lifted)
+		if up_held and not following.is_empty():
+			# Past its box, no higher than the held side's push where the sweep brought it.
+			var room := _capacity[down] - _boxes[down].volume(following[down])
+			most = minf(most, maxf(_levelling(up, down, following, sea, bottom, lifted), room))
 		amount = minf(amount, most)
 	var passed := amount if forward else -amount
 	if kept:
@@ -1083,14 +1097,3 @@ func _levelling(
 		var total := water + _boxes[down].volume(heads[down])
 		level = TiltedBox.common_level(_boxes[up], _boxes[down], breaks, total)
 	return maxf(water - _boxes[up].volume(maxf(level, sill)), 0.0)
-
-
-## Where the sea stands up her once she carries [param displaced] m³ of weight as sea,
-## [param seconds] after it stood at [param sea]: level where her lift is her weight;
-## where no height of the sea holds her, lower by the speed a hull sinks at whose
-## weight past her lift is dragged through the water broadside (sink_drag), est.
-func _settled(sea: float, displaced: float, seconds: float) -> float:
-	if displaced <= _hull.whole():
-		return _hull.height_of(displaced)
-	var excess := displaced - _hull.volume(sea)
-	return sea + sqrt(2.0 * _g * excess / (_sea.sink_drag * _plan)) * seconds

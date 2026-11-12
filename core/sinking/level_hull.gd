@@ -119,6 +119,21 @@ func waterplane(height: float) -> float:
 	return _areas[index] + _growth[index] * (height - _heights[index])
 
 
+## Where the sea stands up her once she carries [param displaced] m³ of weight as sea,
+## [param seconds] after it stood at [param sea]: level where her lift is her weight;
+## where no height of the sea holds her, lower by the speed a hull of waterplane
+## [param plan] sinks at whose weight past her lift is dragged through the water
+## broadside (SeaPhysics.sink_drag of [param physics]), est. (SinkStepper without the
+## attitude stage).
+func settled(
+	sea: float, displaced: float, seconds: float, plan: float, physics: SeaPhysics
+) -> float:
+	if displaced <= whole():
+		return height_of(displaced)
+	var excess := displaced - volume(sea)
+	return sea + sqrt(2.0 * physics.gravity * excess / (physics.sink_drag * plan)) * seconds
+
+
 ## Everything her hull holds, in m³.
 func whole() -> float:
 	return _volumes[_volumes.size() - 1]
