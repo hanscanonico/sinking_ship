@@ -2,8 +2,8 @@ class_name InnerWater
 extends Node3D
 ## The water inside her (§5b.1, D7), drawn as the sinking has it at the moment drawn:
 ## each cell's at its own level, level with the world however she leans — but as it
-## sloshes when she turns (CellSlosh) — and drawn only inside its cell (CellSurface) — in the sea's colours, lit as the room it stands in is
-## (inner_water.gdshader) — the watertight doors the ship slides shut at the hit, water
+## sloshes when she turns (CellSlosh) — and drawn only inside its cell (CellSurface) —
+## in the sea's colours, lit as the room it stands in is (inner_water.gdshader) — the watertight doors the ship slides shut at the hit, water
 ## pouring through an opening wherever one side's water stands over its bottom and
 ## higher than the other side's, falling along the world's down (spill.gdshader),
 ## boiling into froth where it lands, and air blown out of an opening as the water
