@@ -625,6 +625,10 @@ func clear_stretches(
 ## one answer to who sees whom (D13): the bots' view and the
 ## first-person HUD's marks both ask it.
 func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bool:
+	# The extension's twin is held to this GDScript (test_contacts_native).
+	var mirror := native
+	if mirror != null:
+		return mirror.line_of_sight(from_point, to_point, pose.collapsed)
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
 	var low := minf(from_point.y, to_point.y)

@@ -83,6 +83,11 @@ func native(surfaces: Surfaces) -> Object:
 	for cell: PackedFloat64Array in s._floor_clearances:
 		clearances.append_array(cell)
 	_native.floors(floors[0], floors[1], clearances)
+	# Her platforms' names, for line_of_sight's collapsed decks.
+	var names: Array[StringName] = []
+	for platform: ShipPlatform in s._platforms:
+		names.append(platform.name)
+	_native.named(names)
 	return _native
 
 
