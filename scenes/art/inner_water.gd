@@ -90,13 +90,18 @@ const INFLOW_CALM := 1e-3
 ## A cell's water's slosh (CellSlosh, #621): how damped its first mode is (ζ, est.: it
 ## settles in a few swings), the furthest it lifts or drops at a box's end in metres
 ## (est.), the longest a frame may follow the last before it restarts from level, the most
-## of a swing's radian one step turns, the least depth its period is reckoned at, gravity.
+## of a swing's radian one step turns, the least depth its period is reckoned at, gravity;
+## and, so a calm sinking costs nothing a frame, a hull turning slower than SLOSH_CALM in
+## radians a second — the night's trim creeps at a thirtieth of it — leaves water lying
+## within SLOSH_REST radians of level asleep: level, unswung.
 const SLOSH_DAMPING := 0.08
 const SLOSH_MOST := 0.3
 const SLOSH_GAP := 0.5
 const SLOSH_STEP := 0.3
 const SLOSH_SHALLOWEST := 0.05
 const GRAVITY := 9.81
+const SLOSH_CALM := 2e-3
+const SLOSH_REST := 5e-4
 ## The global shader parameters her water's world to ship space is set in, one a frame
 ## for every cell's surface at once (inner_water.gdshader): one per InnerWater drawn —
 ## hers whole, or each piece's once she breaks (ShipPieces) — each held by the one that

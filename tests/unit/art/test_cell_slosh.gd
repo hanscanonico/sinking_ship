@@ -171,3 +171,16 @@ func test_her_sheet_tilts_and_stays_in_its_box() -> void:
 	assert_eq(surface.transform, flat, "a jump in time: level")
 	water.show_water(level, level, 0.0)
 	assert_eq(surface.transform, placed, "drawn at no moment: level")
+
+
+func test_on_a_hull_creeping_slower_than_calm_her_water_sleeps_level() -> void:
+	var water := _water()
+	var cell := _long_cell(water)
+	var box := water._boxes[cell]
+	var depth := box.size.y * 0.4
+	var creep := InnerWater.SLOSH_CALM * 0.5
+	for frame in 240:
+		var pose := _pose(creep * FRAME * frame, cell, depth)
+		water.show_water(pose, pose, 0.0, 10.0 + FRAME * frame)
+		var flat := CellSurface.placed(water._ship, water._level, box, pose.levels[cell])
+		assert_eq(water._surfaces[cell].transform, flat, "asleep: drawn level, unswung")

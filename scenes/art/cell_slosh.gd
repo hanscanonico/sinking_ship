@@ -32,6 +32,9 @@ var _ends: Array[PackedVector3Array] = []
 var _swings := PackedVector4Array()
 var _stamps := PackedInt32Array()
 var _slopes := PackedVector3Array()
+## Per cell, 1 while its water sleeps: level within InnerWater.SLOSH_REST, on a hull
+## turning slower than InnerWater.SLOSH_CALM.
+var _asleep := PackedByteArray()
 ## This frame: its count, its moment in seconds, the seconds since the last, her angles
 ## (trim, heel) now and at the last and how fast they turn, the ship as drawn, the world's
 ## up in her and her two ways laid level in her space.
@@ -66,6 +69,7 @@ func _init(structure: ShipStructure, boxes: Array[AABB], stacks: Array) -> void:
 	_stamps.resize(_middles.size())
 	_stamps.fill(-2)
 	_slopes.resize(_middles.size())
+	_asleep.resize(_middles.size())
 
 
 func _add_ends(cell: int, box: AABB) -> void:
@@ -157,10 +161,19 @@ func _flat(direction: Vector3) -> Vector3:
 
 
 ## [param cell]'s water's world slope this frame, its level at [param level]: worked out
-## once a frame, from level where it was not worked out the frame before.
+## once a frame, from level where it was not worked out the frame before. Water asleep on
+## a calm hull stays asleep, level, with nothing worked out.
 func _slope_of(cell: int, level: float) -> Vector3:
 	if _stamps[cell] == _frame:
 		return _slopes[cell]
+	var calm := (
+		absf(_turning.x) < InnerWater.SLOSH_CALM and absf(_turning.y) < InnerWater.SLOSH_CALM
+	)
+	if calm and _asleep[cell] == 1 and _stamps[cell] == _frame - 1:
+		_swings[cell] = Vector4(-_angles.x, -_turning.x, -_angles.y, -_turning.y)
+		_stamps[cell] = _frame
+		_slopes[cell] = Vector3.ZERO
+		return Vector3.ZERO
 	var row := Vector3(_ship.basis.x.y, _ship.basis.y.y, _ship.basis.z.y)
 	var rise := _ship.origin.y
 	var depth := maxf(level - row.dot(_floors[cell]) - rise, InnerWater.SLOSH_SHALLOWEST)
@@ -179,8 +192,10 @@ func _slope_of(cell: int, level: float) -> Vector3:
 	_swings[cell] = swing
 	_stamps[cell] = _frame
 	var tilt := Vector2(swing.x + _angles.x, swing.z + _angles.y)
+	var resting := absf(tilt.x) < InnerWater.SLOSH_REST and absf(tilt.y) < InnerWater.SLOSH_REST
+	_asleep[cell] = 1 if calm and resting else 0
 	var slope := Vector3.ZERO
-	if tilt != Vector2.ZERO:
+	if tilt != Vector2.ZERO and _asleep[cell] == 0:
 		slope = (
 			tan(clampf(tilt.x, -STEEPEST, STEEPEST)) * _along
 			+ tan(clampf(tilt.y, -STEEPEST, STEEPEST)) * _across
