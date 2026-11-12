@@ -19,10 +19,11 @@ extends RefCounted
 ## no grip angle to hold it and none on an even keel, into her walls, blockers and the
 ## other crates as a sliding crate meets them — and off an open edge or through a broken
 ## span into the sea, lost. Its planar speed keeps crate_float_drag of itself a tick,
-## against a standing crate's friction. The water falling back under wade_depth over
-## its floor sets it down there again. Running into a brawler at crate_impact_speed or
-## more, it staggers it and knocks it back through a hit-stop, as a shove does (D12),
-## and keeps going, slowed; slower, it pushes it. Either way the two part with the
+## against a standing crate's friction — of itself over the water's, where the water
+## moves (Currents, #616): afloat, it drifts with the current. The water falling back
+## under wade_depth over its floor sets it down there again. Running into a brawler at
+## crate_impact_speed or more, it staggers it and knocks it back through a hit-stop, as a
+## shove does (D12), and keeps going, slowed; slower, it pushes it. Either way the two part with the
 ## closing speed by their masses. A shove sends a crate at its knockback weighed by
 ## the two masses, never faster than the shove's own. Two crates meeting part the same
 ## way, by their masses — with crate_restitution of the speed they met at from
@@ -93,6 +94,8 @@ var _surfaces: Surfaces
 ## The piece of her these are, and her pieces; null for a ship that never breaks.
 var _piece := 0
 var _pieces: Pieces
+## The currents of the piece that drift its props afloat (Currents), or null for none.
+var _currents: Currents
 ## Per crate, 1 while it is over this piece's stretch, as of this tick's step.
 var _aboard := PackedByteArray()
 var _stagger_ticks: int
@@ -133,9 +136,17 @@ enum Turn { NONE, RESTS, STEPS }
 
 
 ## The hazards of [param config]'s ship asked of [param surfaces] — or of piece
-## [param piece] of [param pieces], its decks' own.
-func _init(config: MatchConfig, surfaces: Surfaces, piece := 0, pieces: Pieces = null) -> void:
+## [param piece] of [param pieces], its decks' own — its props afloat drifting with
+## [param currents], the piece's (none without).
+func _init(
+	config: MatchConfig,
+	surfaces: Surfaces,
+	piece := 0,
+	pieces: Pieces = null,
+	currents: Currents = null
+) -> void:
 	_rules = config.rules
+	_currents = currents
 	_layout = config.ship
 	_props = config.ship.props
 	_surfaces = surfaces
@@ -501,8 +512,8 @@ func damage(
 
 
 ## Gravity in the air; afloat, crate_float_pull of the downhill pull at any slope, and
-## the water's drag; on the deck, the downhill pull past its grip angle, and its
-## friction.
+## the water's drag toward the current there (Currents); on the deck, the downhill pull
+## past its grip angle, and its friction.
 func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose.ship_gravity(_rules.gravity)
@@ -514,7 +525,11 @@ func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 			continue
 		if crate.body == PropState.Body.FLOATING:
 			var afloat := Vector2(crate.vel.x, crate.vel.z) + downhill * _rules.crate_float_pull
-			afloat *= _rules.crate_float_drag
+			var flowing := Vector2.ZERO if _currents == null else _currents.at(pose, crate.pos)
+			if flowing == Vector2.ZERO:
+				afloat *= _rules.crate_float_drag
+			else:
+				afloat = flowing + (afloat - flowing) * _rules.crate_float_drag
 			crate.vel = Vector3(afloat.x, 0.0, afloat.y)
 			continue
 		var prop := _props[crate.prop]

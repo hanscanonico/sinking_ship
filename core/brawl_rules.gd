@@ -151,6 +151,20 @@ extends Resource
 ## The fastest a body wades in water wade_depth deep, in m/s: the cap eases from
 ## wade_speed to this as the water over the floor deepens. At most wade_speed.
 @export var wade_speed_deep: float
+## Moving water (Currents, #616): an opening passing less than this, in m³ a second,
+## moves nothing a body feels (est. 0.05).
+@export var current_least_flow: float
+## How far from an opening its current is felt, in metres (est. 8).
+@export var current_reach: float
+## A current slower than this, in m/s, is none (est. 0.1).
+@export var current_least: float
+## The share of the current a wader's walk is pushed by in water wade_depth deep, less in
+## shallower; 0…1 (est. a half).
+@export var current_wade_share: float
+## The depth times the current's speed, in m²/s, that sweeps a wader off its feet into
+## the water: the flood-safety limit for an adult (est. 0.6; Jonkman & Penning-Rowsell
+## 2008, RESCDAM 2000 0.64–1.26, Abt et al. 1989).
+@export var topple_hv: float
 ## Seconds of swimming a full cold meter holds.
 @export var cold_meter: float
 ## Seconds of the cold meter regained per second out of the sea.
@@ -335,6 +349,8 @@ func problems() -> PackedStringArray:
 		"stand_depth",
 		"wade_speed",
 		"wade_speed_deep",
+		"current_reach",
+		"topple_hv",
 		"cold_meter",
 		"cold_regen",
 		"pocket_cold_rate",
@@ -369,6 +385,8 @@ func problems() -> PackedStringArray:
 		"credit_window",
 		"vault_damage",
 		"crate_damage",
+		"current_least_flow",
+		"current_least",
 	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
@@ -392,7 +410,11 @@ func problems() -> PackedStringArray:
 	if brace_reduction < 0.0 or brace_reduction > 1.0:
 		found.append("brawl rules: brace_reduction must be within 0…1")
 	for field: String in [
-		"air_control", "body_restitution", "crate_restitution", "crate_brace_reduction"
+		"air_control",
+		"body_restitution",
+		"crate_restitution",
+		"crate_brace_reduction",
+		"current_wade_share",
 	]:
 		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
 			found.append("brawl rules: %s must be within 0…1" % field)
