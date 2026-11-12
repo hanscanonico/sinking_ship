@@ -143,7 +143,8 @@ var pockets := PackedFloat64Array()
 var lits := PackedByteArray()
 ## The openings the whole ship's stepper moves water through, by name, in its order; and
 ## per state kept, per one, the m³ a second that passed it either way since the state kept
-## before (flow, SinkBake.passed): presentation reads it (ShipPose.flows), never the match.
+## before (flow, SinkBake.passed): presentation reads it (ShipPose.flows), and the match its
+## currents (Currents), through the poses the schedule hands out.
 var passages: Array[StringName] = []
 var flows := PackedFloat64Array()
 ## In the order they happen.

@@ -23,6 +23,10 @@ extends RefCounted
 ##
 ## Once she has broken (SH33) a Movement moves the bodies on one piece of her (Pieces):
 ## in the frame of that piece's own faces, its points in that piece's space.
+##
+## Moving water moves bodies in it (Currents, #616): a swimmer swims relative to the
+## water, and a wader is pushed by it, the more the deeper, and swept off its feet into
+## the water once its depth times the current's speed reaches topple_hv (swept).
 
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
@@ -58,10 +62,21 @@ var _crowd_up := Faces.Up.DECK
 var _climb_ticks: int
 var _stagger_ticks: int
 var _credit_window_ticks: int
+## The currents of the piece (Currents), or null for none; the piece's own pose the tick
+## stands under, and the frame it stands in (face).
+var _currents: Currents
+var _piece_pose: ShipPose
+var _up := Faces.Up.DECK
+## Per seat, the current forces found where it was this tick, x/z in the tick's frame:
+## none for a body out of the water, in the air, climbing or frozen.
+var _flowing := PackedVector2Array()
 
 
-func _init(rules: BrawlRules, faces: Faces, hazards: Hazards, piece := 0) -> void:
+func _init(
+	rules: BrawlRules, faces: Faces, hazards: Hazards, piece := 0, currents: Currents = null
+) -> void:
 	_rules = rules
+	_currents = currents
 	_faces = faces
 	_piece = piece
 	_surfaces = faces.surfaces(Faces.Up.DECK)
@@ -100,6 +115,8 @@ func face(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 		if reseated:
 			_reseat(player, tick, events)
 	state.up[_piece] = up
+	_piece_pose = pose
+	_up = up
 	return framed
 
 
@@ -189,8 +206,9 @@ func _reseat(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 ## brace_holds_to, the same for everyone, and a body that does not brace slides into the
 ## corner and walks only along it (_slid). Wading slows a walk, the more the deeper
 ## (_wade_speed), crawling to crawl_speed, and what a body holds to its walk cap (#273);
-## swimming is _swim's. A body frozen in a hit-stop feels none of it, and its stagger
-## waits.
+## the current there pushes a wader's walk by current_wade_share of it in water
+## wade_depth deep, less in shallower (Currents). Swimming is _swim's. A body frozen in a
+## hit-stop feels none of it, and its stagger waits.
 func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[SeatRules]) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
@@ -198,6 +216,9 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 	var slope := pose_now.slope_deg()
 	var holds := slope <= _rules.brace_holds_to
 	for player: PlayerState in live:
+		if player.seat >= _flowing.size():
+			_flowing.resize(player.seat + 1)
+		_flowing[player.seat] = Vector2.ZERO
 		if player.is_frozen():
 			continue
 		if player.body == PlayerState.Body.AIRBORNE:
@@ -214,8 +235,14 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 			wish = wish.limit_length(_rules.charge_walk)
 		elif player.bracing:
 			wish = Vector2.ZERO
+		var push := Vector2.ZERO
 		if _surfaces.wet(player.pos, pose_now):
-			wish = wish.limit_length(_wade_speed(player, pose_now))
+			var depth := sea_over(player.surface, player.pos, pose_now)
+			wish = wish.limit_length(_wade_speed(depth))
+			var flowing := _current(player)
+			if depth > 0.0 and flowing != Vector2.ZERO:
+				_flowing[player.seat] = flowing
+				push = flowing * minf(depth / _rules.wade_depth, 1.0) * _rules.current_wade_share
 		if height_of(player) < _rules.body_height:
 			wish = wish.limit_length(_rules.crawl_speed)
 		wish = wish.limit_length(mine.walk_cap)
@@ -232,10 +259,10 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 			if pulled:
 				planar += downhill
 			var rate := _rules.ground_accel if wish != Vector2.ZERO else _rules.ground_friction
-			planar = planar.move_toward(wish, rate * dt)
+			planar = planar.move_toward(wish + push, rate * dt)
 			# The shove is spent once the body moves as its own input says; until then
 			# a slide that outlasts the stagger is still the shover's.
-			if planar == wish:
+			if planar == wish + push:
 				player.forget_hit()
 		player.vel = Vector3(planar.x, player.vel.y, planar.y)
 
@@ -715,7 +742,8 @@ func ground(
 		events.append(SimEvent.landed(tick, player.seat, below, stagger))
 
 
-## A swimmer moves across the sea at swim_speed, without control while staggered.
+## A swimmer moves across the sea at swim_speed relative to the water — carried by the
+## current where it is (Currents) — and drifts with it without control while staggered.
 ## A body above the sea falls into it; in it, the water takes a dive's speed — no
 ## more than dunk_drag stops within dunk_depth — and floats it back to where it rests
 ## (_rest_at). A climber hangs where its climb has it (_water).
@@ -724,14 +752,17 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 		return
 	var dt := Ticks.SECONDS_PER_TICK
 	var planar := Vector2(player.vel.x, player.vel.z)
+	var wet := _surfaces.wet(player.pos, pose_now)
+	var flowing := _current(player) if wet else Vector2.ZERO
+	_flowing[player.seat] = flowing
 	if player.is_staggered():
-		planar = planar.move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
+		planar = planar.move_toward(flowing, _rules.stagger_friction * dt)
 		player.stagger_ticks -= 1
 	else:
 		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.swim_speed
-		planar = planar.move_toward(wish, _rules.ground_accel * dt)
+		planar = planar.move_toward(wish + flowing, _rules.ground_accel * dt)
 	var rise := player.vel.y
-	if _surfaces.wet(player.pos, pose_now):
+	if wet:
 		var rest := _rest_at(player.pos, player.pos.y, pose_now, _heading(player))
 		var toward := signf(rest - player.pos.y)
 		rise = maxf(rise, -sqrt(2.0 * _rules.dunk_drag * _rules.dunk_depth))
@@ -834,12 +865,32 @@ func sea_over(surface: int, feet: Vector3, pose_now: ShipPose) -> float:
 	return pose_now.water_height(feet) - _surfaces.height_at(surface, feet)
 
 
-## The fastest [param player] wades over its surface under [param pose_now]: wade_speed
+## The fastest a body wades in water [param depth] deep over its surface: wade_speed
 ## in a film of water, easing to wade_speed_deep as the water deepens to wade_depth.
-func _wade_speed(player: PlayerState, pose_now: ShipPose) -> float:
-	var depth := sea_over(player.surface, player.pos, pose_now)
+func _wade_speed(depth: float) -> float:
 	var deep := clampf(depth / _rules.wade_depth, 0.0, 1.0)
 	return lerpf(_rules.wade_speed, _rules.wade_speed_deep, deep)
+
+
+## The current at [param player] under the piece's pose (Currents), x/z in the tick's
+## frame: none without currents.
+func _current(player: PlayerState) -> Vector2:
+	if _currents == null or _piece_pose == null:
+		return Vector2.ZERO
+	if _up == Faces.Up.DECK:
+		return _currents.at(_piece_pose, player.pos)
+	var flowing := _currents.at(_piece_pose, Faces.to_ship(_up) * player.pos)
+	var turned := Faces.to_frame(_up) * Vector3(flowing.x, 0.0, flowing.y)
+	return Vector2(turned.x, turned.z)
+
+
+## Whether [param player], in water [param depth] deep over the floor under it, is swept
+## off its feet: that depth times the speed of the current forces found it in this tick
+## reaches topple_hv. A swimmer there finds no footing; a wader goes into the water.
+func swept(player: PlayerState, depth: float) -> bool:
+	if depth <= 0.0 or player.seat >= _flowing.size():
+		return false
+	return depth * _flowing[player.seat].length() >= _rules.topple_hv
 
 
 ## After this tick's move: on the bottom, if it went under it; at rest, if it rose
