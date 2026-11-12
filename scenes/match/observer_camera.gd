@@ -4,7 +4,7 @@ extends Node3D
 ## looking across the beam, never rolling with the ship, so the world stays level
 ## and the deck visibly tilts. Captures, QA (--observer) and the arena tools use
 ## it; no menu reaches it. Which side it watches from is this setting and nothing
-## else.
+## else. The wheel brings it in and back out, no farther than it opened.
 
 enum Beam { STARBOARD, PORT }
 
@@ -13,6 +13,10 @@ enum Beam { STARBOARD, PORT }
 ## share of her length away.
 const LONG_HULL := 3.0
 const LONG_HULL_DISTANCE := 0.8
+## A wheel notch's zoom, as a share of the distance, and the nearest it comes, in metres:
+## the orbit camera's.
+const ZOOM_STEP := OrbitCamera.ZOOM_STEP
+const NEAREST := OrbitCamera.DISTANCE_LIMITS.x
 
 @export var side: Beam = Beam.STARBOARD
 @export var pitch_deg: float = 50.0
@@ -23,8 +27,10 @@ const LONG_HULL_DISTANCE := 0.8
 ## handed: the cut-away's framing, which shows every room at once.
 var whole_ship := false
 
-## The ship-plane box the rig's target stays inside.
+## The ship-plane box the rig's target stays inside, and how far off reset() put the
+## camera: the farthest the wheel takes it back.
 var _bounds := Rect2()
+var _opened := 0.0
 
 @onready var _camera: Camera3D = $Camera3D
 
@@ -43,9 +49,8 @@ func reset(target: Vector3, bounds: Rect2) -> void:
 	_bounds = bounds
 	rotation = Vector3(-deg_to_rad(pitch_deg), yaw(), 0.0)
 	var long_hull := bounds.size.x > distance * LONG_HULL
-	_camera.position = Vector3(
-		0.0, 0.0, bounds.size.x * LONG_HULL_DISTANCE if long_hull else distance
-	)
+	_opened = bounds.size.x * LONG_HULL_DISTANCE if long_hull else distance
+	_camera.position = Vector3(0.0, 0.0, _opened)
 	whole_ship = whole_ship or long_hull
 	position = _aim(target)
 
@@ -54,14 +59,24 @@ func follow(target: Vector3, delta: float) -> void:
 	position = position.lerp(_aim(target), clampf(follow_rate * delta, 0.0, 1.0))
 
 
-## [param target] held inside the bounds, or their middle while it watches the whole
-## ship.
+## Brings the camera [param notches] in (positive) or out, a wheel notch each, between
+## NEAREST and where reset() put it.
+func zoom(notches: float) -> void:
+	_camera.position.z = clampf(_camera.position.z * pow(ZOOM_STEP, notches), NEAREST, _opened)
+
+
+## [param target] held inside the bounds; while it watches the whole ship, their middle
+## as it opened, and nearer the target the nearer it is zoomed, on it at NEAREST, so the
+## seat it follows stays in view.
 func _aim(target: Vector3) -> Vector3:
-	if whole_ship:
-		var middle := _bounds.get_center()
-		return Vector3(middle.x, 0.0, middle.y)
-	return Vector3(
+	var held := Vector3(
 		clampf(target.x, _bounds.position.x, _bounds.end.x),
 		maxf(target.y, 0.0),
 		clampf(target.z, _bounds.position.y, _bounds.end.y)
 	)
+	if not whole_ship:
+		return held
+	var middle := _bounds.get_center()
+	var whole := Vector3(middle.x, 0.0, middle.y)
+	var share := inverse_lerp(NEAREST, _opened, _camera.position.z)
+	return whole if share >= 1.0 else held.lerp(whole, share)

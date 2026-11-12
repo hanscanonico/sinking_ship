@@ -290,7 +290,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("spectate_previous"):
 		_free.leave()
 		_order.cycle(_driver.current, -1)
-	# A watcher's orbit keys after the switches, which the player may have put on them.
+	# The observer's wheel and a watcher's orbit keys after the switches, which the player
+	# may have put on them.
+	elif _observer and OrbitCamera.wheel_notches(event) != 0.0:
+		_observer_camera.zoom(OrbitCamera.wheel_notches(event))
 	elif not (watching() and _orbit_input(event)):
 		return
 	get_viewport().set_input_as_handled()
@@ -746,14 +749,8 @@ func _orbit_input(event: InputEvent) -> bool:
 		_free.leave()
 	elif event.is_action_pressed("replay_orbit_lock"):
 		_orbit.locked = not _orbit.locked
-	elif event is InputEventMouseButton and event.is_pressed() and _orbiting():
-		var button := (event as InputEventMouseButton).button_index
-		if button == MOUSE_BUTTON_WHEEL_UP:
-			_orbit.zoom(1.0)
-		elif button == MOUSE_BUTTON_WHEEL_DOWN:
-			_orbit.zoom(-1.0)
-		else:
-			return false
+	elif _orbiting() and OrbitCamera.wheel_notches(event) != 0.0:
+		_orbit.zoom(OrbitCamera.wheel_notches(event))
 	else:
 		return false
 	return true
