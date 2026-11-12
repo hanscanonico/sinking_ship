@@ -5,9 +5,10 @@ extends CanvasLayer
 ## brings a friend straight to it, never with a name in it — and who is aboard, seat by
 ## seat: the host and "you" marked, the seats nobody holds as the bots that will
 ## take them, and under them whoever watches rather than plays. Watch has this player
-## watch the match without a seat, while the room waits (GLOSSARY: Watch). The host's Start asks for the match once per showing — until the server's
-## answer, a refusal or the room changed shows the room again — and is there but dead
-## for everyone else, who wait for the host. Leave room, and ui_cancel, leave.
+## watch the match without a seat, while the room waits (GLOSSARY: Watch). The host's
+## Start asks for the match once per showing — until the server's answer, a refusal
+## or the room changed shows the room again — and is there but dead for everyone else,
+## who wait for the host. Leave room, and ui_cancel, leave.
 ##
 ## Every name in it is another player's typing, so it is a plain Label, cut short with
 ## an ellipsis where it is too long for its seat's line.

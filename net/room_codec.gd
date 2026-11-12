@@ -149,9 +149,10 @@ func encode_stamp(kind: WireCodec.Kind, stamp: int) -> PackedByteArray:
 	return out.data_array
 
 
-## BEGIN: [param seat] the client's, -1 for a watcher's none; [param fast] whether her sinking plays on the fast clock, [param bonuses]
-## whether bonuses come aboard, and [param timeline_digest] the digest of the sinking's
-## timeline, hex (SinkTimeline.digest), "" for a match with none.
+## BEGIN: [param seat] the client's, -1 for a watcher's none; [param fast] whether her
+## sinking plays on the fast clock, [param bonuses] whether bonuses come aboard, and
+## [param timeline_digest] the digest of the sinking's timeline, hex
+## (SinkTimeline.digest), "" for a match with none.
 func encode_begin(
 	match_seed: int,
 	seats: int,
