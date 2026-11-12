@@ -370,6 +370,17 @@ hits:
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
 		-- $(if $(SHIP),--ship=$(SHIP)) --seeds=$(SEEDS) | grep -v '^\[godot_ai'
 
+# `make flood-invariants [SHIP=] [SCENARIO=open_sea|coast|all] [SEEDS=5] [HIT=sure|night|N]
+# [STEPS=1]`: the flooding's invariants (FloodWatch) checked at every step of each ship's
+# sure hit and seeds' hits, one line per invariant per bake; STEPS=1 bakes the sure hit
+# and seed 1 at step_max and a quarter of it. Headless; the Titanic takes minutes a bake.
+# Rules live in tools/flood_invariants.gd.
+flood-invariants:
+	$(call require-godot)
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/flood_invariants.gd \
+		-- $(if $(SHIP),--ship=$(SHIP)) $(if $(SCENARIO),--scenario=$(SCENARIO)) \
+		$(if $(filter command,$(firstword $(origin SEEDS))),--seeds=$(SEEDS)) $(if $(HIT),--hit=$(HIT)) $(if $(STEPS),--steps=$(STEPS)) | grep -v '^\[godot_ai'
+
 # `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME] [FAST=1]`: a seed's sinking alone, no match played (§5b.4):
 # the hit the must-sink rule chose (or HIT='s), how it came to it, every event of the
 # bake in physics time, how she ends and her labels, and what the bake cost and the
@@ -822,7 +833,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import native run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
+.PHONY: import native run replay match capture smoke flood-invariants net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene preview \
