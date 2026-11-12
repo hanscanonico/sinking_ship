@@ -728,7 +728,10 @@ double NativeSink::surplus_of(int64_t p_cell, double p_at, double p_water, doubl
 		const double amount = flow_of(index, p_heads);
 		into += second_[index] == p_cell ? amount : -amount;
 	}
-	into += ship_into(p_cell, p_at) * seconds_;
+	// A full well is the sea's own: nothing comes over its edges (ShippedWater.ship).
+	if (p_water < capacity_[p_cell]) {
+		into += ship_into(p_cell, p_at) * seconds_;
+	}
 	p_heads[p_cell] = was;
 	return into - (volume(p_cell, p_at) - p_water);
 }

@@ -812,7 +812,9 @@ func _surplus(
 			continue
 		var amount := _transfer(index, heads, sea, since, seconds)
 		into += amount if _second[index] == cell else -amount
-	into += _shipped.into(cell, at) * seconds
+	# A full well is the sea's own: nothing comes over its edges (ShippedWater.ship).
+	if water < _capacity[cell]:
+		into += _shipped.into(cell, at) * seconds
 	heads[cell] = was
 	return into - (_boxes[cell].volume(at) - water)
 
