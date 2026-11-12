@@ -403,3 +403,86 @@ func test_a_finished_match_is_let_go() -> void:
 	assert_null(room.host)
 	assert_false(players[0].roster.playing, "the player is told")
 	assert_eq(players[0].state, RoomClient.State.ROOM)
+
+
+## A member who watches takes no seat (GLOSSARY: Watch): the players take the first
+## seats in the order they joined, the bots fill in behind them, and the watcher is
+## told the match with no seat of its own.
+func test_a_watcher_takes_no_seat() -> void:
+	var fixture := RoomFixtures.new()
+	var players := fixture.room_of(3)
+	players[1].watch(true)
+	fixture.beat()
+	assert_true(players[0].roster.players[1].watching, "the room is told who watches")
+	assert_false(players[0].roster.players[0].watching)
+	var seats: Array[int] = []
+	for player: RoomClient in players:
+		player.began.connect(func(_config: MatchConfig, seat: int) -> void: seats.append(seat))
+	players[0].start_match()
+	fixture.beat()
+	assert_eq(seats, [0, -1, 1] as Array[int], "the watcher has none, the next player seat 1")
+	var room := fixture.room(players[0])
+	for seat: int in room.host.runner.sim.config.seats:
+		assert_eq(room.is_bot(seat), seat >= 2, "seat %d" % seat)
+	assert_eq(players[1].state, RoomClient.State.PLAYING, "the watcher has the match")
+	assert_true(fixture.logged("· Player 1 watching"), "the log says who watches")
+
+
+## A match needs a player: with everyone in the room watching, START is refused, and
+## once the match is on nobody changes whether they watch.
+func test_only_watchers_cannot_start() -> void:
+	var fixture := RoomFixtures.new()
+	var players := fixture.room_of(2)
+	var reasons := RoomFixtures.refusals(players[0])
+	for player: RoomClient in players:
+		player.watch(true)
+	fixture.beat()
+	players[0].start_match()
+	fixture.beat()
+	assert_eq(reasons, [RoomCodec.Refusal.NO_PLAYERS] as Array[int])
+	assert_eq(fixture.room(players[0]).phase, Room.Phase.WAITING)
+	players[1].watch(false)
+	fixture.beat()
+	players[0].start_match()
+	fixture.beat()
+	assert_eq(fixture.room(players[0]).phase, Room.Phase.PLAYING, "a player is enough")
+	players[0].watch(false)
+	fixture.beat()
+	assert_eq(reasons, [RoomCodec.Refusal.NO_PLAYERS, RoomCodec.Refusal.PLAYING] as Array[int])
+
+
+## A watcher's client follows the match the player plays, and nothing it sends —
+## frames claiming the player's seat or the one it would have had — reaches a seat.
+func test_a_watcher_sees_the_match_and_plays_no_seat() -> void:
+	var fixture := RoomFixtures.new(null, RoomFixtures.flat_rules())
+	var players := fixture.room_of(2)
+	players[1].watch(true)
+	fixture.beat()
+	players[0].start_match()
+	fixture.beat()
+	var played := players[0].play(Walking.new())
+	var watched := players[1].play(null)
+	assert_eq(watched.client.seat, -1, "the watcher's client has no seat")
+	var room := fixture.room(players[0])
+	var wire := fixture.codec.wire
+	var start: Vector3 = room.host.runner.snapshot["seats"][0]["pos"]
+	for _beat in 2 * Ticks.RATE:
+		var tick := room.host.tick()
+		var claiming: Array[InputFrame] = [
+			InputFrame.new(0, tick, Vector2i(InputFrame.AXIS_MAX, 0)),
+			InputFrame.new(1, tick, Vector2i(InputFrame.AXIS_MAX, 0)),
+		]
+		for frame: InputFrame in claiming:
+			fixture.end_of(players[1]).send(
+				RoomFixtures.SERVER_PEER, wire.encode_inputs([frame] as Array[InputFrame])
+			)
+		played.step()
+		watched.step()
+		fixture.beat()
+	var host_seat: Dictionary = room.host.runner.snapshot["seats"][0]
+	assert_eq(host_seat["last_input"][0], 0, "the watcher's frames moved nothing")
+	assert_eq(host_seat["last_input"][1], InputFrame.AXIS_MAX, "the player's did")
+	assert_gt(host_seat["pos"].z - start.z, 1.0)
+	var seen: Dictionary = watched.client.view()["seats"][0]
+	assert_almost_eq(seen["pos"].z, host_seat["pos"].z, 0.5, "the watcher sees it there")
+	assert_eq(fixture.server.connection_count(), 2, "nobody was cut off")

@@ -4,7 +4,9 @@ extends Node
 ## connects, creates the room or joins it by its code, and shows the room (RoomScreen),
 ## whose host starts the match. The match is the offline game's MatchScene, its seat
 ## played from this player's keys, mouse and pad (LocalInputSource) through the server's
-## RemoteMatch. Esc opens the online pause over it (OnlinePause) — the match goes on
+## RemoteMatch — or, for a player who chose to watch in the room, no seat at all: the
+## match only watched, as a local Watch is (GLOSSARY: Watch). Esc opens the online
+## pause over it (OnlinePause) — the match goes on
 ## under it, as nothing online pauses, the seat standing still while the pause has the
 ## keys, the pad and the mouse — whose Leave match hangs up for the main menu, the server
 ## handing the seat to a bot. In a browser, whose first Esc only takes the mouse back, the
@@ -70,6 +72,7 @@ const REFUSALS := {
 	RoomCodec.Refusal.IN_ROOM: "This game is in a room already.",
 	RoomCodec.Refusal.ROOM_CLOSED: "The room has closed.",
 	RoomCodec.Refusal.BUSY: "The server is busy: try again in a moment.",
+	RoomCodec.Refusal.NO_PLAYERS: "Everyone here watches: someone has to play.",
 }
 const NO_CONNECTION := "Could not reach the server: check its address, or try again later."
 const LOST := "The connection to the server was lost."
@@ -111,6 +114,8 @@ var _frame_msec := -1
 ## while the server knew this player; -1 before any did.
 var _away_msec := -1
 var _silence_msec: int
+## Whether the match up is only watched: its BEGIN gave this player no seat.
+var _watching := false
 ## The code of the room last shown: Rejoin's, should the connection drop.
 var _code := ""
 var _welcomed := false
@@ -159,6 +164,7 @@ func _ready() -> void:
 	_room.began.connect(_on_began)
 	_room.closed.connect(_on_closed)
 	_room_screen.start_requested.connect(_room.start_match)
+	_room_screen.watch_requested.connect(_room.watch)
 
 
 func _process(_delta: float) -> void:
@@ -255,7 +261,10 @@ func _on_began(config: MatchConfig, seat: int) -> void:
 		return
 	_built_msec = now
 	_leave_match()
-	var local := LocalInputSource.new(seat, 0.0, ViewSettings.local())
+	_watching = seat < 0
+	var local: LocalInputSource = null
+	if not _watching:
+		local = LocalInputSource.new(seat, 0.0, ViewSettings.local())
 	_begun = [_room.play(local), local, _seat_names(config.seats, seat)]
 	if not _dresses:
 		_show_match()
@@ -312,7 +321,10 @@ func _open_pause() -> bool:
 	if _match == null or _pause.visible or _match.call(&"is_over"):
 		return false
 	_match.call(&"free_mouse", true)
-	_pause.open()
+	var prompts: InputPrompts = null
+	if _watching and _match.has_method(&"prompts"):
+		prompts = _match.call(&"prompts")
+	_pause.open(prompts)
 	return true
 
 
@@ -376,13 +388,13 @@ func _build_match(played: PlayedMatch, local: LocalInputSource, names: PackedStr
 	return scene
 
 
-## Every seat's name as the room listed its players — seat order — this player's as
-## "You", and the seats nobody holds as their bots.
+## Every seat's name as the room listed its players who play — seat order, a watcher
+## never a seat — this player's as "You", and the seats nobody holds as their bots.
 func _seat_names(seats: int, seat: int) -> PackedStringArray:
 	var names := PackedStringArray()
 	var players: Array[RoomRoster.Player] = []
 	if _room.roster != null:
-		players = _room.roster.players
+		players = _room.roster.seated()
 	for each in seats:
 		if each == seat:
 			names.append("You")

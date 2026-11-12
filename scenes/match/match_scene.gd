@@ -394,11 +394,14 @@ static func serve(
 ## Starts [param played] — a match on a server, RemoteMatch (SH12) — from its first
 ## tick: the local player on its client's seat through [param local]'s keys, mouse
 ## and pad, every seat named by [param names]. Seen through that seat's eyes; nothing
-## of it pauses.
+## of it pauses. A client with no seat only watches (GLOSSARY: Watch), [param local]
+## null: the first seat's eyes, then any dry seat's, the orbit or the free camera.
 func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStringArray) -> void:
 	var seat := played.client.seat
 	_online = true
-	_watcher = false
+	_watcher = seat < 0
+	if _watcher:
+		seat = LOCAL_SEAT
 	_loopback = null
 	last_replay = null
 	session = null

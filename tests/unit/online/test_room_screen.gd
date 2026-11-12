@@ -121,3 +121,25 @@ func test_cancel_leaves() -> void:
 	get_viewport().push_input(cancel)
 	(_screen.get_node("%Leave") as Button).pressed.emit()
 	assert_signal_emit_count(_screen, "leave_requested", 2)
+
+
+## Watch is this player's own: it asks to watch or play, shows what the room says, and
+## is dead while a match is on. Whoever watches is listed under the seats, on none.
+func test_watchers_are_listed_and_watch_toggles() -> void:
+	watch_signals(_screen)
+	var watch: CheckButton = _screen.get_node("%Watch")
+	var roster := _roster(["Ada", "Bea", "Cy"], 1)
+	roster.players[1].watching = true
+	_screen.show_room(roster)
+	assert_true(watch.button_pressed, "the room says Bea watches")
+	var lines := _lines()
+	assert_eq(lines.size(), SEATS + 1, "a line a seat, and one a watcher")
+	assert_eq(lines[0], "1 Ada host")
+	assert_eq(lines[1], "2 Cy")
+	assert_eq(lines[2], "3 A bot takes this seat")
+	assert_eq(lines[SEATS], "· Bea you watching")
+	assert_eq((_screen.get_node("%Aboard") as Label).text, "Aboard · 2 of 8")
+	watch.button_pressed = false
+	assert_signal_emitted_with_parameters(_screen, "watch_requested", [false])
+	_screen.show_room(_roster(["Ada", "Bea"], 1, true))
+	assert_true(watch.disabled, "dead while a match is on")
