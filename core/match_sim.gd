@@ -72,8 +72,9 @@ func _init(match_config: MatchConfig) -> void:
 		_rules.brace_holds_to,
 		SeaPhysics.load_default().capsized_movement
 	)
-	_hazards = Hazards.new(config, surfaces, 0, pieces)
-	_movement = Movement.new(_rules, faces, _hazards)
+	var currents := Currents.of_piece(config, schedule, 0)
+	_hazards = Hazards.new(config, surfaces, 0, pieces, currents)
+	_movement = Movement.new(_rules, faces, _hazards, 0, currents)
 	_hazards_of[0] = _hazards
 	_movements[0] = _movement
 	_windup_ticks = Ticks.from_seconds(_rules.shove_windup)
@@ -259,8 +260,11 @@ func _honour(pose_now: ShipPose) -> void:
 func _stand_on(piece: int) -> void:
 	if not _movements.has(piece):
 		var deck := pieces.faces(piece).surfaces(Faces.Up.DECK)
-		_hazards_of[piece] = Hazards.new(config, deck, piece, pieces)
-		_movements[piece] = Movement.new(_rules, pieces.faces(piece), _hazards_of[piece], piece)
+		var currents := Currents.of_piece(config, schedule, piece)
+		_hazards_of[piece] = Hazards.new(config, deck, piece, pieces, currents)
+		_movements[piece] = Movement.new(
+			_rules, pieces.faces(piece), _hazards_of[piece], piece, currents
+		)
 	_movement = _movements[piece]
 	_hazards = _hazards_of[piece]
 
@@ -921,10 +925,12 @@ func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector
 
 
 ## The water is a countdown (SH5). A body whose feet go wade_depth into the sea, or that falls
-## into it, swims. A swimmer comes to rest (Movement.come_to_rest), stands up where the bottom
-## rises within stand_depth of the sea, and climbs out where it can (Movement.start_climb) —
-## onto a dry face in a pocket as onto a deck edge; while it swims and does not climb, its cold
-## meter drains — at pocket_cold_rate of the open water's with its head in trapped air (Q22),
+## into it, or that the current sweeps off its feet (Movement.swept), swims. A swimmer comes to
+## rest (Movement.come_to_rest), stands up where the bottom rises within stand_depth of the sea
+## and no current there would sweep it off its feet again, and climbs out where it can
+## (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it swims
+## and does not climb, its cold meter drains — at pocket_cold_rate of the open water's with its
+## head in trapped air (Q22),
 ## at the sea_cold_rate of a prop it holds that keeps it afloat (#273), the lower of the two
 ## where both do — and it is out when that is empty, but for a seat with a bonus that gives a
 ## spare meter (Double life, #307): that fills it again, once, and the bonus is spent — one of
@@ -944,7 +950,7 @@ func _water(
 		if player.is_frozen():
 			continue
 		if player.body != PlayerState.Body.SWIMMING:
-			if not _movement.in_the_sea(player, pose_now):
+			if not _movement.in_the_sea(player, pose_now) and not _swept(player, pose_now):
 				player.cold = minf(player.cold + _rules.cold_regen * dt, _rules.cold_meter)
 				continue
 			_fall_in(player, tick, events)
@@ -953,10 +959,14 @@ func _water(
 			continue
 		_movement.come_to_rest(player, feet_before[player.seat], pose_now)
 		var ground := _here().under(player.pos, _rules.step_height)
+		var depth := 0.0
+		if ground != Surfaces.NONE:
+			depth = _movement.sea_over(ground, player.pos, pose_now)
 		if (
 			ground != Surfaces.NONE
 			and _here().wet(player.pos, pose_now)
-			and _movement.sea_over(ground, player.pos, pose_now) < _rules.stand_depth
+			and depth < _rules.stand_depth
+			and not _movement.swept(player, depth)
 		):
 			_movement.stand(player, ground, tick, events)
 			continue
@@ -1001,6 +1011,14 @@ func _spares(seats: Array[PlayerState]) -> PackedFloat64Array:
 	for player: PlayerState in seats:
 		spares[player.seat] = _rules.cold_meter * _spares_of(player).size()
 	return spares
+
+
+## Whether [param player], a wader, is swept off its feet by the current (Movement.swept):
+## on its feet in water over the floor under it.
+func _swept(player: PlayerState, pose_now: ShipPose) -> bool:
+	if player.body != PlayerState.Body.GROUNDED or not _here().wet(player.pos, pose_now):
+		return false
+	return _movement.swept(player, _movement.sea_over(player.surface, player.pos, pose_now))
 
 
 ## Into the sea: whatever [param player] was readying is dropped, and a shove or a
