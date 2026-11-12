@@ -28,7 +28,10 @@ extends RefCounted
 ## room their water leaves it, at the atmosphere's pressure, falls only by its leak: it
 ## neither gains nor, while all its cells stay trapped, loses more — but a pocket its
 ## cells leave no more room than pocket_least, which SinkAir works out at that room at
-## least and lets go once under it, the model's floor (squeezed counts those).
+## least and lets go once under it, the model's floor (squeezed counts those); one whose
+## air leaks under pocket_least, which SinkAir counts gone (let_go); and one whose room
+## grows past pocket_least from under it, its air read again past what the floor's push
+## left unread (floored).
 ## Only the steps a stepper takes are checked: a bake's carrying water into the pieces she
 ## breaks into is not a step.
 
@@ -57,8 +60,12 @@ var cut_steps := 0
 var passed_on := 0
 ## The flows against both that ran into a side the sweep had drawn down first (DOWNHILL).
 var swept := 0
-## Pockets squeezed into less room than pocket_least, their air let go (BOYLE).
+## Pockets squeezed into less room than pocket_least, their air let go; pockets leaked
+## under pocket_least, let go; and pockets whose room grew past pocket_least from under
+## it, the air its floor left unread read again (BOYLE).
 var squeezed := 0
+var let_go := 0
+var floored := 0
 ## Per law: breaches, the worst one's size and the words of the first KEPT and the worst.
 var counts := PackedInt32Array()
 var worst := PackedFloat64Array()
@@ -87,6 +94,9 @@ var _crests := PackedFloat64Array()
 var _pockets := PackedInt32Array()
 var _air_after_leak := PackedFloat64Array()
 var _boyle := PackedFloat64Array()
+## Per pocket begun, by its first cell, the free air its push leaves unread where its
+## cells' heads leave it less room than pocket_least (_floor_hides).
+var _hidden := PackedFloat64Array()
 var _marks: Array[PackedFloat64Array] = []
 var _least := 0.0
 ## The stepper's own: per opening, 1 for a hole in a floor; per cell, its water at any
@@ -158,6 +168,7 @@ func begun(
 	_pockets = (pockets[0] as PackedInt32Array).duplicate()
 	_air_after_leak = (pockets[1] as PackedFloat64Array).duplicate()
 	_boyle = _pocket_air(stepper, state, state.air, false)
+	_hidden = _floor_hides(stepper, state)
 
 
 ## Notes the cells' water as the step stands: before its wells take the sea's, after, and
@@ -268,6 +279,19 @@ func stepped(
 		if gain < 0.0 and _squeezed(stepper, next, first):
 			squeezed += 1
 			continue
+		if gain < 0.0 and _held_after(next, first) <= _least:
+			# Leaked under pocket_least: SinkAir counts such a pocket gone, its water moving
+			# as though its air were free — the model's floor, not air lost.
+			let_go += 1
+			continue
+		if gain > 0.0 and _hidden[first] > 0.0:
+			# Its room stood under pocket_least at the step's start, its push worked out at
+			# that room (SinkAir): the air the floor's push left unread is read again once
+			# its room grows past it — air it held all along, not air made.
+			var read_again := minf(gain, _hidden[first])
+			gain -= read_again
+			if read_again > TOLERANCE * maxf(_boyle[first], 1.0):
+				floored += 1
 		if absf(gain) > TOLERANCE * maxf(_boyle[first], 1.0):
 			_breach(
 				Law.BOYLE,
@@ -447,9 +471,9 @@ func report(prefix: String) -> PackedStringArray:
 		(
 			(
 				"%s steps: %d (%d cut), %d flows passed on down a chain, %d into a side swept"
-				+ " lower, %d pockets squeezed"
+				+ " lower, %d pockets squeezed, %d let go, %d read past their floor"
 			)
-			% [prefix, steps, cut_steps, passed_on, swept, squeezed]
+			% [prefix, steps, cut_steps, passed_on, swept, squeezed, let_go, floored]
 		)
 	)
 	for law in NAMES.size():
@@ -621,6 +645,37 @@ func _pocket_air(
 			continue
 		found[first] = held * by_water / maxf(by_heads, _least)
 	return found
+
+
+## Per pocket of [param state] begun, by its first cell, the free air its push leaves
+## unread: SinkAir works a pocket's push out at no less room than pocket_least, so where
+## its cells' heads leave it less, its air as that push reads it (_pocket_air) is less
+## than the air it holds by as much as the room falls short.
+func _floor_hides(stepper: SinkStepper, state: FloodState) -> PackedFloat64Array:
+	var found := PackedFloat64Array()
+	found.resize(_pockets.size())
+	var capacity := stepper.capacities()
+	for first in _pockets.size():
+		if _pockets[first] != first or _boyle[first] <= 0.0:
+			continue
+		var held := 0.0
+		var by_heads := 0.0
+		for cell in _pockets.size():
+			if _pockets[cell] == first:
+				held += state.air[cell]
+				by_heads += maxf(capacity[cell] - stepper.volume_at(cell, state.heads[cell]), 0.0)
+		if by_heads < _least:
+			found[first] = maxf(held - _boyle[first], 0.0)
+	return found
+
+
+## The air pocket [param first]'s cells still trapped at [param next] hold.
+func _held_after(next: FloodState, first: int) -> float:
+	var held := 0.0
+	for cell in _pockets.size():
+		if _pockets[cell] == first and next.air[cell] >= 0.0:
+			held += next.air[cell]
+	return held
 
 
 ## Whether a cell of pocket [param first] has its air free at [param next]: its share of
