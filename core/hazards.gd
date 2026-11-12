@@ -218,7 +218,7 @@ func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 			_stir_near(state, crates, crate)
 	_forces(crates, here)
 	_move(state, crates, pose, tick, events)
-	_run_into_bodies(state, crates, loose, pose, tick, events)
+	_run_into_bodies(state, crates, pose, tick, events)
 	_ground(crates)
 	_sea(crates, here, tick, events)
 	for crate: PropState in crates:
@@ -824,16 +824,11 @@ func _hold(crate: PropState, contact: Surfaces.Contact) -> void:
 ## Every crate against every body on board its circle and height overlap, crate by
 ## crate and seat by seat — a body standing on a crate's lid is not in its way, and a
 ## crate never comes down on a swimmer: it is lost or afloat as it reaches the water.
-## The crates are [param crates], this tick's, and those of [param loose] at rest a body
-## stands within reach of — none other could meet one — and a crate at rest a body meets
-## joins [param crates] (_wake).
+## The crates are [param crates], this tick's, and those at rest a body stands within
+## reach of — none other could meet one — and a crate at rest a body meets joins
+## [param crates] (_wake).
 func _run_into_bodies(
-	state: MatchState,
-	crates: Array[PropState],
-	loose: Array[PropState],
-	pose: ShipPose,
-	tick: int,
-	events: Array[SimEvent]
+	state: MatchState, crates: Array[PropState], pose: ShipPose, tick: int, events: Array[SimEvent]
 ) -> void:
 	var bodies: Array[PlayerState] = []
 	for player: PlayerState in state.seats:
@@ -845,14 +840,15 @@ func _run_into_bodies(
 	if bodies.is_empty():
 		return
 	var visit := PackedInt32Array()
-	var broken := _pieces != null and _pieces.count() > 1
 	# Once she is in pieces a crate may stand over one piece and be stood on another's
-	# Surfaces: every crate is asked, as all were before any rested.
-	for crate: PropState in loose if broken else crates:
+	# Surfaces: the crates at rest are asked of this piece's own, where every loose crate
+	# over it not stepped this tick rests (_stirring), as it stood all along.
+	var broken := _pieces != null and _pieces.count() > 1
+	var grid := _at_rest if broken else _surfaces.stands
+	for crate: PropState in crates:
 		visit.append(crate.prop)
-	if not broken:
-		for player: PlayerState in bodies:
-			_within_reach(visit, player, -1)
+	for player: PlayerState in bodies:
+		_within_reach(visit, grid, player, -1)
 	visit.sort()
 	var box := _box_of(bodies)
 	var at := 0
@@ -893,8 +889,7 @@ func _run_into_bodies(
 			_collide(crate, player, normal, reach - distance, tick, events)
 			box = _box_of(bodies)
 			# The body moved: a later crate at rest it now reaches is asked in its turn.
-			if not broken:
-				_within_reach(visit, player, crate.prop)
+			_within_reach(visit, grid, player, crate.prop)
 	for crate: PropState in crates:
 		_stand_one(crate, pose)
 
@@ -910,11 +905,13 @@ static func _box_of(bodies: Array[PlayerState]) -> PackedFloat64Array:
 	return box
 
 
-## Adds to [param visit] every crate standing within reach of [param player]'s circle
-## whose index is above [param after], unless it is there already, keeping its order
-## from [param after] on.
-func _within_reach(visit: PackedInt32Array, player: PlayerState, after: int) -> void:
-	for index: int in _surfaces.stands.near(player.pos.x, player.pos.z, _rules.body_radius):
+## Adds to [param visit] every crate standing on [param grid] within reach of
+## [param player]'s circle whose index is above [param after], unless it is there
+## already, keeping its order from [param after] on.
+func _within_reach(
+	visit: PackedInt32Array, grid: PropStands, player: PlayerState, after: int
+) -> void:
+	for index: int in grid.near(player.pos.x, player.pos.z, _rules.body_radius):
 		if index <= after:
 			continue
 		var at := visit.bsearch(index)
