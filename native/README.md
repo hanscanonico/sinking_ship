@@ -10,7 +10,8 @@ cells a step holds stiff and her failures' heads across what can give way
 (`core/sinking/ship_motion.gd`, #411), her level hull's build and her girder's bending
 (`core/sinking/level_hull.gd`, `core/sinking/hull_girder.gd`, #492), the floating furniture's contacts: where her
 props stand (`core/prop_stands.gd`), what holds a circle back
-(`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`) and the
+(`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`), who sees
+whom (`Surfaces.line_of_sight`, the bots' view and the HUD's marks), and the
 cargo's contact passes (`Hazards._move`, `core/hazards.gd`), a bot's search for a way
 round by the floor and the surface under each square it asks of (`ai/bot_floor_way.gd`,
 `Surfaces.under`), the dressed ship's face
