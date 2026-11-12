@@ -36,10 +36,11 @@ enum Law { CONSERVED, DOWNHILL, DOWNHILL_CUT, CAPACITY, FED, BOYLE }
 
 ## A breach this small, as a share of the cell's capacity (of a pocket's air), is the
 ## floats' rounding. A held cell's head is solved only until the step's water on it is
-## out by SinkStepper.SURPLUS_TOLERANCE, a slip that stays in its own water: a flow no
-## larger to or from one, its rise or what it holds past its box by no more, is that
-## slip — on a full cell, whose thin surface is a hundredth of its plan, centimetres of
-## head.
+## out by SinkStepper.SURPLUS_TOLERANCE, a slip the sweep passes on: in a step holding
+## cells, water no more than that tolerance times their number, moved through an opening
+## of a held cell or of one beside it, risen in such a cell or held past its box — on a
+## full cell, whose thin surface is a hundredth of its plan, centimetres of head, more
+## with a pocket's push — is that slip, not judged.
 const TOLERANCE := 1e-6
 ## The water an opening may pass, in m³, under which its way is not judged.
 const SLIGHT := 1e-9
@@ -96,8 +97,11 @@ var _boxes: Array[TiltedBox] = []
 var _last_stepper: SinkStepper
 var _last: FloodState
 var _last_shares := PackedFloat64Array()
-## The breaches the step under way has found.
+## The breaches the step under way has found; per cell, 1 where it is held or beside a
+## held cell, and the water the step's solves may slip (TOLERANCE).
 var _step_breaches: Array = []
+var _near := PackedByteArray()
+var _step_slip := 0.0
 
 
 func _init() -> void:
@@ -186,6 +190,7 @@ func stepped(
 	var where := "%.3f s (+%.3f%s)" % [state.seconds, seconds, "" if advancing else ", cut"]
 	var cells := next.water.size()
 	var capacity := stepper.capacities()
+	_near_held(stepper, held, shares, cells)
 	var shipped := PackedFloat64Array()
 	var pumped := PackedFloat64Array()
 	shipped.resize(cells)
@@ -223,7 +228,7 @@ func stepped(
 		var ceiling := minf(_ceilings[cell], stepper.ceiling_of(cell))
 		var full_area := _boxes[cell].full_area()
 		var most := capacity[cell] + full_area * maxf(_highest - ceiling, 0.0)
-		var slip := SinkStepper.SURPLUS_TOLERANCE if cell in held else room
+		var slip := _step_slip if _near[cell] == 1 else room
 		if next.water[cell] > most + slip or next.water[cell] < -slip:
 			var past := next.water[cell] - most if next.water[cell] > most else next.water[cell]
 			_breach(
@@ -320,10 +325,6 @@ func _downhill(
 	for cell in cells:
 		if shipped[cell] > 0.0:
 			feeds[cell] = _crests[cell]
-	var holding := PackedByteArray()
-	holding.resize(cells)
-	for cell: int in held:
-		holding[cell] = 1
 	# What each cell gave away through its openings in the step.
 	var gave := PackedFloat64Array()
 	gave.resize(cells)
@@ -343,7 +344,7 @@ func _downhill(
 			if absf(amount) <= SLIGHT or downhill[index] == 1:
 				continue
 			var sides := stepper.opening_sides(index)
-			if absf(amount) <= _slip(sides, holding):
+			if absf(amount) <= _slip(sides):
 				continue
 			var from_side := sides.x if amount > 0.0 else sides.y
 			var to_side := sides.y if amount > 0.0 else sides.x
@@ -373,7 +374,7 @@ func _downhill(
 		var at := index * 4
 		var from_push := ends[at]
 		var to_push := ends[at + 1]
-		if absf(amount) <= _slip(sides, holding):
+		if absf(amount) <= _slip(sides):
 			# Not judged, and not a breach of FED where it feeds a cell.
 			if to_side != SinkStepper.OUTSIDE:
 				fed[to_side] = 1
@@ -411,12 +412,31 @@ func _downhill(
 
 
 ## The water a flow through an opening between [param sides] may pass either way as the
-## solve's slip: SURPLUS_TOLERANCE where a side is a cell [param holding] marks held.
-static func _slip(sides: Vector2i, holding: PackedByteArray) -> float:
+## solve's slip (TOLERANCE): the step's where a side is held or beside a held cell.
+func _slip(sides: Vector2i) -> float:
 	for side: int in [sides.x, sides.y]:
-		if side != SinkStepper.OUTSIDE and holding[side] == 1:
-			return SinkStepper.SURPLUS_TOLERANCE
+		if side != SinkStepper.OUTSIDE and _near[side] == 1:
+			return maxf(_step_slip, SLIGHT)
 	return SLIGHT
+
+
+## Marks for the step the cells [param held] and those an opening open by [param shares]
+## joins to one of them, and the slip their solves may leave (TOLERANCE).
+func _near_held(
+	stepper: SinkStepper, held: PackedInt32Array, shares: PackedFloat64Array, cells: int
+) -> void:
+	_near.resize(cells)
+	_near.fill(0)
+	_step_slip = SinkStepper.SURPLUS_TOLERANCE * held.size()
+	for cell: int in held:
+		_near[cell] = 1
+	for index in shares.size():
+		var sides := stepper.opening_sides(index)
+		if shares[index] <= 0.0 or sides.x == SinkStepper.OUTSIDE or sides.y == SinkStepper.OUTSIDE:
+			continue
+		if sides.x in held or sides.y in held:
+			_near[sides.x] = 1
+			_near[sides.y] = 1
 
 
 ## Words for every law: one line each, its breaches, its worst and where.

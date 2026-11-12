@@ -14,6 +14,11 @@ const PLANTED_STEPS := 20
 class Making:
 	extends WatchedStepper
 
+	func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void:
+		super(structure, damage, sea)
+		# Its sweep in GDScript, where the breach is planted, the extension loaded or not.
+		_native = null
+
 	func _give_to(side: int, amount: float, state: FloodState, heads: PackedFloat64Array) -> void:
 		super._give_to(side, amount, state, heads)
 		if side != OUTSIDE:
@@ -24,10 +29,20 @@ class Making:
 class Uphill:
 	extends WatchedStepper
 
+	func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void:
+		super(structure, damage, sea)
+		# Its sweep in GDScript, where the breach is planted, the extension loaded or not.
+		_native = null
+
 	func _transfer(
-		index: int, heads: PackedFloat64Array, sea: float, since: float, seconds: float
+		index: int,
+		heads: PackedFloat64Array,
+		sea: float,
+		since: float,
+		seconds: float,
+		following := PackedFloat64Array()
 	) -> float:
-		return -super._transfer(index, heads, sea, since, seconds)
+		return -super._transfer(index, heads, sea, since, seconds, following)
 
 
 func _damage(ship: StringName) -> HitDamage:
