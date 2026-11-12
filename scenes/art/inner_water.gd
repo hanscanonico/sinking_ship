@@ -666,7 +666,8 @@ func _place_at(
 		surface.visible = showing
 		surface.top_level = not showing
 	if showing:
-		surface.transform = _slosh.tilted(placed, cell, _levels[cell]) if _slosh.on else placed
+		var sloshing := _slosh.on and not _slosh.still
+		surface.transform = _slosh.tilted(placed, cell, _levels[cell]) if sloshing else placed
 		if _slot == -1:
 			_param(surface, &"world_to_ship", to_ship)
 

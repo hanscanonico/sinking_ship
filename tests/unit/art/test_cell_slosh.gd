@@ -184,3 +184,5 @@ func test_on_a_hull_creeping_slower_than_calm_her_water_sleeps_level() -> void:
 		water.show_water(pose, pose, 0.0, 10.0 + FRAME * frame)
 		var flat := CellSurface.placed(water._ship, water._level, box, pose.levels[cell])
 		assert_eq(water._surfaces[cell].transform, flat, "asleep: drawn level, unswung")
+		if frame > 1:
+			assert_true(water._slosh.still, "a calm frame asks no sheet's tilt")

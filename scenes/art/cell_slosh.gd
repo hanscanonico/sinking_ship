@@ -20,6 +20,10 @@ const FLAT_LEAST := 0.3
 ## Whether this frame sloshes at all: a frame drawn at no moment (begin) leaves her water
 ## level with the world, as before.
 var on := false
+## Whether this frame leaves every cell's water level with nothing to work out: her hull
+## turning calmly and no cell's water swinging — InnerWater then asks no sheet's tilt, so
+## the calm hours of a sinking cost the slosh nothing past begin().
+var still := false
 ## Per cell, its box's length along her and across her, its middle, and its middle at its
 ## floor; and the corners of every box it is drawn in, three a corner: its offset from the
 ## middle across her (y 0), and the corner at the box's floor and at its top.
@@ -33,8 +37,10 @@ var _swings := PackedVector4Array()
 var _stamps := PackedInt32Array()
 var _slopes := PackedVector3Array()
 ## Per cell, 1 while its water sleeps: level within InnerWater.SLOSH_REST, on a hull
-## turning slower than InnerWater.SLOSH_CALM.
+## turning slower than InnerWater.SLOSH_CALM; and the cells whose water was swinging the
+## last frame they were worked out in.
 var _asleep := PackedByteArray()
+var _awake: Dictionary[int, bool] = {}
 ## This frame: its count, its moment in seconds, the seconds since the last, her angles
 ## (trim, heel) now and at the last and how fast they turn, the ship as drawn, the world's
 ## up in her and her two ways laid level in her space.
@@ -44,6 +50,7 @@ var _step := 0.0
 var _angles := Vector2.ZERO
 var _angles_was := Vector2.ZERO
 var _turning := Vector2.ZERO
+var _turning_was := Vector2.ZERO
 var _ship := Transform3D.IDENTITY
 var _up := Vector3.UP
 var _along := Vector3.ZERO
@@ -88,6 +95,7 @@ func _add_ends(cell: int, box: AABB) -> void:
 ## start — restarts every cell's water from level.
 func begin(drawn: Transform3D, up: Vector3, seconds: float) -> void:
 	on = not is_nan(seconds)
+	still = false
 	if not on:
 		_seconds = NAN
 		return
@@ -95,6 +103,7 @@ func begin(drawn: Transform3D, up: Vector3, seconds: float) -> void:
 		asin(clampf(drawn.basis.x.y, -1.0, 1.0)), asin(clampf(drawn.basis.z.y, -1.0, 1.0))
 	)
 	var step := seconds - _seconds
+	_turning_was = _turning
 	if step >= 0.0 and step <= InnerWater.SLOSH_GAP:
 		_frame += 1
 		_step = step
@@ -111,6 +120,15 @@ func begin(drawn: Transform3D, up: Vector3, seconds: float) -> void:
 	_up = up
 	_along = _flat(Vector3.RIGHT)
 	_across = _flat(Vector3.BACK)
+	# A cell not worked out the frame before starts from level again (_slope_of): it
+	# swings no more.
+	for cell: int in _awake.keys():
+		if _stamps[cell] != _frame - 1:
+			_awake.erase(cell)
+	var calm := (
+		absf(_turning.x) < InnerWater.SLOSH_CALM and absf(_turning.y) < InnerWater.SLOSH_CALM
+	)
+	still = calm and _awake.is_empty()
 
 
 ## [param placed], a sheet of [param cell]'s water at world height [param level]
@@ -161,8 +179,11 @@ func _flat(direction: Vector3) -> Vector3:
 
 
 ## [param cell]'s water's world slope this frame, its level at [param level]: worked out
-## once a frame, from level where it was not worked out the frame before. Water asleep on
-## a calm hull stays asleep, level, with nothing worked out.
+## once a frame. Where it was not worked out the frame before — hidden, or level on a
+## still frame — its water lay level as she stood then, and swings from there through
+## this frame's turn: a sudden turn carries it with her all the same. After a jump in
+## time it starts level as she stands now. Water asleep on a calm hull stays asleep,
+## level, with nothing worked out.
 func _slope_of(cell: int, level: float) -> Vector3:
 	if _stamps[cell] == _frame:
 		return _slopes[cell]
@@ -178,9 +199,12 @@ func _slope_of(cell: int, level: float) -> Vector3:
 	var rise := _ship.origin.y
 	var depth := maxf(level - row.dot(_floors[cell]) - rise, InnerWater.SLOSH_SHALLOWEST)
 	var swing := _swings[cell]
-	if _stamps[cell] != _frame - 1:
+	var fresh := _stamps[cell] != _frame - 1
+	if fresh and _step > 0.0:
+		swing = Vector4(-_angles_was.x, -_turning_was.x, -_angles_was.y, -_turning_was.y)
+	elif fresh:
 		swing = Vector4(-_angles.x, -_turning.x, -_angles.y, -_turning.y)
-	else:
+	if not fresh or _step > 0.0:
 		var lengths := _lengths[cell]
 		var along := swung(
 			Vector2(swing.x, swing.y), _angles_was.x, _angles.x, _step, omega_of(lengths.x, depth)
@@ -194,6 +218,10 @@ func _slope_of(cell: int, level: float) -> Vector3:
 	var tilt := Vector2(swing.x + _angles.x, swing.z + _angles.y)
 	var resting := absf(tilt.x) < InnerWater.SLOSH_REST and absf(tilt.y) < InnerWater.SLOSH_REST
 	_asleep[cell] = 1 if calm and resting else 0
+	if resting:
+		_awake.erase(cell)
+	else:
+		_awake[cell] = true
 	var slope := Vector3.ZERO
 	if tilt != Vector2.ZERO and _asleep[cell] == 0:
 		slope = (
