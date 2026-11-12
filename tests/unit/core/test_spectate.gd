@@ -68,3 +68,25 @@ func test_a_replay_cycles_every_seat_out_or_not() -> void:
 	assert_eq(SpectateOrder.every(4, 1, 5), 0, "round past the last")
 	assert_eq(SpectateOrder.every(0, -1, 5), 4, "and back round")
 	assert_eq(SpectateOrder.every(2, 1, 1), 0, "one seat only")
+
+
+## A watcher has no seat of its own (-1): it starts in the best-placed dry seat's eyes
+## and keeps to them as the standings change, until that seat is out or Q / E moves it.
+func test_a_watcher_keeps_to_the_seat_it_is_in() -> void:
+	var stats := MatchStats.new(4, 0)
+	var order := SpectateOrder.new(-1, stats)
+	var dry := _snapshot(4, [])
+	assert_eq(order.target(dry), 0, "no stats yet: the lowest dry seat")
+	stats.add([SimEvent.shove_landed(10, 2, 1)])
+	assert_eq(order.target(dry), 0, "seat 2 leads now, but the view stays put")
+	order.cycle(dry, 1)
+	assert_eq(order.target(dry), 1, "every seat cycles: none is the watcher's own")
+	order.cycle(dry, -1)
+	order.cycle(dry, -1)
+	assert_eq(order.target(dry), 3, "and round the other way")
+
+	stats.add([SimEvent.seat_out(30, 3, 4, COLD, 2)])
+	var three_out := _snapshot(4, [3])
+	assert_eq(order.target(three_out), 2, "its seat out: the best-placed survivor")
+	stats.add([SimEvent.shove_landed(40, 1, 0), SimEvent.shove_landed(41, 1, 0)])
+	assert_eq(order.target(three_out), 2, "and it keeps to that one too")

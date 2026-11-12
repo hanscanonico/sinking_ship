@@ -196,13 +196,21 @@ theme_override_constants/separation = 16
 [node name="Play" type="Button" parent="MainMenu/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
-focus_neighbor_right = NodePath("../Settings")
+focus_neighbor_right = NodePath("../Watch")
 text = "Play"
+
+[node name="Watch" type="Button" parent="MainMenu/Panel/Box/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 0)
+tooltip_text = "Bots play every seat; watch from any seat's eyes or the orbit camera"
+focus_neighbor_left = NodePath("../Play")
+focus_neighbor_right = NodePath("../Settings")
+text = "Watch"
 
 [node name="Settings" type="Button" parent="MainMenu/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
-focus_neighbor_left = NodePath("../Play")
+focus_neighbor_left = NodePath("../Watch")
 focus_neighbor_right = NodePath("../Replays")
 text = "Settings"
 

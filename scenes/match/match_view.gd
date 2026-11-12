@@ -98,9 +98,10 @@ var _waders_tick := -1
 @onready var _art: ShipArt = $Ship/ShipArt
 
 
-## Draws [param sim]'s match as [param driver] steps it; [param local_seat] gets a
-## marker overhead (look_out_of), and each correction to its predicted body is drawn
-## away over [param correction_time] seconds (D12). The ship is drawn as [param dressing]
+## Draws [param sim]'s match as [param driver] steps it; [param local_seat] — none, -1,
+## in a match only watched — gets a marker overhead (look_out_of), and each correction to
+## its predicted body is drawn away over [param correction_time] seconds (D12). The ship
+## is drawn as [param dressing]
 ## dressed her, its art taking the place of the ship's own; with none she is dressed here
 ## and now, which takes seconds (ShipDressing).
 func setup(
@@ -247,7 +248,9 @@ func _notification(what: int) -> void:
 ## seat, and the marker would hang before them as a blank shape.
 func look_out_of(seat: int) -> void:
 	_eye_seat = seat
-	_bodies[_local_seat].show_marker(seat == -1)
+	# A watched match has no local seat, and no marker.
+	if _local_seat >= 0:
+		_bodies[_local_seat].show_marker(seat == -1)
 	if seat != -1:
 		_bodies[seat].visible = false
 		_shadows[seat].visible = false

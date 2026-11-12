@@ -131,10 +131,18 @@ any tick. Nothing of what happened is kept — the seed and the frames make it a
 _Avoid_: recording, video, save
 
 **Orbit camera**:
-The replay viewer's elevated view: an eye orbiting a pivot — the seat watched, or wherever
-it was panned — over the sea and outside her hull. The one elevated view a player ever
-gets (D14); the observer camera stays a tool, and the free camera is an out seat's in play.
+The replay viewer's and a watcher's elevated view: an eye orbiting a pivot — the seat
+watched, or wherever it was panned — over the sea and outside her hull. The one elevated
+view a player ever gets (D14); the observer camera stays a tool, and the free camera is an
+out seat's, or a watcher's, in play.
 _Avoid_: spectator camera, overhead, drone
+
+**Watch**:
+A local match nobody plays, chosen from the menu in place of Play: bots take every seat,
+and the watcher looks through any dry seat's eyes, from the orbit camera or from the free
+camera, switching at will all match long — for a stream, say. Its results name who won;
+it is kept in the replays like a match played.
+_Avoid_: observer (the observer camera is a tool), spectator (an out seat spectates)
 
 ### Her hull and the ways into her
 
