@@ -16,9 +16,11 @@ extends RefCounted
 ## Q / (2 π r h), from every side; from the open sea into her at Q / (2 π r²), a
 ## hemisphere's sink — each at most u0. Downstream a wall opening b wide throws a jet
 ## along its normal: u0 · min(1, √(5 b / d)) at d out on its axis, nothing outside a
-## half-width of b / 2 + 0.1 d; a hole in a floor throws none sideways. An opening that
-## seeps rather than pours (LEAK, FLOOR_GAPS, VENT), one to the sky and one passing less
-## than current_least_flow move nothing. Every opening within current_reach adds in
+## half-width of b / 2 + 0.1 d; a hole in a floor throws none sideways. The sky over her
+## decks is her outside as the sea is (SinkOpenings): a deckhouse's door or window under
+## the sea in the plunge draws the sea in as a gash does. An opening that seeps rather
+## than pours (LEAK, FLOOR_GAPS, VENT) and one passing less than current_least_flow move
+## nothing. Every opening within current_reach adds in
 ## passage order (D4), the sum at most the fastest u0 among them; under current_least it
 ## is none.
 ##
@@ -77,7 +79,7 @@ func _init(
 	for opening: ShipOpening in all:
 		if named.has(opening.name) or opening.kind in SEEPS or opening.joins.size() != 2:
 			continue
-		if ShipOpening.SKY in opening.joins or opening.facing() == -1:
+		if opening.facing() == -1:
 			continue
 		var first := _side_of(structure, opening.joins[0])
 		var second := _side_of(structure, opening.joins[1])
@@ -108,9 +110,10 @@ static func of_piece(config: MatchConfig, schedule: SinkSchedule, piece: int) ->
 	return Currents.new(config.rules, structure, more, SeaPhysics.load_default().gravity)
 
 
-## Cell [param place] of [param structure], -1 for the sea, -2 for a cell it has not.
+## Cell [param place] of [param structure], -1 for her outside — the sea or the sky over
+## her decks, whose water is the sea's — -2 for a cell it has not.
 static func _side_of(structure: ShipStructure, place: StringName) -> int:
-	if place == ShipOpening.SEA:
+	if place == ShipOpening.SEA or place == ShipOpening.SKY:
 		return -1
 	var cell := structure.cell_named(place)
 	return cell if cell != -1 else -2

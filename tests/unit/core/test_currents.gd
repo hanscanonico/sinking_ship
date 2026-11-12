@@ -57,7 +57,9 @@ static func _opening(
 
 
 ## The flat deck's structure: its after and fore halves over the deck, joined by a doorway
-## at x = 0, and a hold under its after half with a gash to the sea in its port side.
+## at x = 0, and a hold under its after half with a gash to the sea in its port side and,
+## in its starboard side, a door its data names to the sky, as a deckhouse's is — under
+## the sea here, as her decks' are in the plunge.
 static func _structure() -> ShipStructure:
 	var made := ShipStructure.new()
 	var cells: Array[FloodCell] = [
@@ -81,16 +83,23 @@ static func _structure() -> ShipStructure:
 			Vector3(-5.0, -4.0, -4.0),
 			Vector3(2.0, 1.0, 0.0)
 		),
+		_opening(
+			&"sky_door",
+			ShipOpening.Kind.DOOR,
+			[&"hold", ShipOpening.SKY],
+			Vector3(-5.0, -4.0, 4.0),
+			Vector3(2.0, 1.0, 0.0)
+		),
 	]
 	made.openings = openings
 	return made
 
 
 ## A match of [param seats] on the flat deck — with [param props] aboard — whose cells
-## stand [param depths] deep over their floors (aft, fore, hold), [param door] and
-## [param gash] m³ a second passing their openings.
+## stand [param depths] deep over their floors (aft, fore, hold), [param door],
+## [param gash] and [param sky] m³ a second passing their openings.
 func _sim(
-	seats: int, depths: Vector3, door: float, gash := 0.0, props: Array[ShipProp] = []
+	seats: int, depths: Vector3, door: float, gash := 0.0, props: Array[ShipProp] = [], sky := 0.0
 ) -> MatchSim:
 	var layout := SimFixtures.crated(props) if not props.is_empty() else SimFixtures.deck()
 	layout = layout.duplicate()
@@ -100,8 +109,8 @@ func _sim(
 	flowing.structure = layout.structure
 	var deck := layout.freeboard
 	flowing.levels = PackedFloat64Array([deck + depths.x, deck + depths.y, deck - 6.0 + depths.z])
-	flowing.names = [&"door", &"gash"]
-	flowing.flows = PackedFloat64Array([door, gash])
+	flowing.names = [&"door", &"gash", &"sky_door"]
+	flowing.flows = PackedFloat64Array([door, gash, sky])
 	return MatchSim.create(config)
 
 
@@ -150,6 +159,18 @@ func test_a_swimmer_beside_a_gash_taking_water_is_drawn_toward_her_side() -> voi
 	assert_gt(near.pos.z, -5.9, "drawn toward her side")
 	assert_almost_eq(near.pos.x, -5.0, 0.01, "square to the gash")
 	assert_eq(Vector2(far.pos.x, far.pos.z), Vector2(-5.0, -14.0), "beyond current_reach: still")
+
+
+func test_a_swimmer_beside_a_door_named_to_the_sky_under_the_sea_is_drawn_toward_it() -> void:
+	var sim := _sim(2, Vector3(0.0, 0.0, 1.0), 0.0, 0.0, [], 6.0)
+	SimFixtures.swim(sim, 0, Vector3(-5.0, 0.0, 6.0))
+	SimFixtures.swim(sim, 1, Vector3(-5.0, 0.0, 14.0))
+	SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)}, Ticks.RATE)
+	var near := sim.state.seats[0]
+	var far := sim.state.seats[1]
+	assert_lt(near.pos.z, 5.9, "the sea drawn in through her deckhouse door draws it in")
+	assert_almost_eq(near.pos.x, -5.0, 0.01, "square to the door")
+	assert_eq(Vector2(far.pos.x, far.pos.z), Vector2(-5.0, 14.0), "beyond current_reach: still")
 
 
 func test_a_wader_in_shallow_flowing_water_is_pushed_downstream() -> void:
