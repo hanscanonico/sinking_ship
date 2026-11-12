@@ -33,8 +33,9 @@ var lit := PackedByteArray()
 ## second, either way, as the bake found it (SinkTimeline.flow), in the order of
 ## [member passages], their names — the whole ship's, every piece's pose sharing them.
 ## Empty before the hit and without a physical sinking: a pour is then read off the water
-## either side of it. Presentation reads it; never in a snapshot or the digest, as it is
-## the timeline's, which the match already has (D5).
+## either side of it. Presentation reads it, and the match the currents it drives
+## (Currents, #616); never in a snapshot or the digest, as it is the timeline's, which the
+## match already has (D5, D11).
 var passages: Array[StringName] = []
 var flows := PackedFloat64Array()
 ## The watertight doors the ship is shutting or has shut, by name: how far shut, 0…1.

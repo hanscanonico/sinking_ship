@@ -47,7 +47,12 @@ func test_deeper_water_drags_a_wade_harder() -> void:
 	assert_almost_eq(deep, eased, 0.0001, "eased toward wade_speed_deep by depth")
 
 
-func test_the_shipped_wade_is_the_same_at_any_depth() -> void:
+## The drag on the legs grows with depth (#616): knee-deep, a walk runs at about 60% of a
+## dry one.
+func test_the_shipped_wade_is_slower_deep_than_in_a_film() -> void:
 	var rules := _rules()
-	assert_eq(_wade(rules, 0.02), _wade(rules, 0.25), "wade_speed_deep is wade_speed")
-	assert_almost_eq(_wade(rules, 0.25), rules.wade_speed, 0.0001)
+	var film := _wade(rules, 0.02)
+	var deep := _wade(rules, 0.29)
+	assert_lt(deep, film, "slower 0.29 m deep than in a film of water")
+	var eased := lerpf(rules.wade_speed, rules.wade_speed_deep, 0.29 / rules.wade_depth)
+	assert_almost_eq(deep, eased, 0.0001)
