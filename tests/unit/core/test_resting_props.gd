@@ -13,6 +13,9 @@ const FAST_HIT := "res://tests/fixtures/sinking/hits/fast.tres"
 ## and the floor of its doorway.
 const DOOR_X := -3.0
 const DOOR_FLOOR := -2.6
+## Where seat 0 stands on the weak hull's fore piece once she has parted, between two
+## crates: clear of anything else by a metre and more, along z.
+const BETWEEN := Vector3(-1.75, 0.0, 0.25)
 
 
 func after_each() -> void:
@@ -214,3 +217,72 @@ func test_a_match_reset_to_its_own_snapshot_keeps_its_crates_as_they_stand() -> 
 			fail_test("reset to tick %d, it diverged at tick %d" % [start, tick])
 			return
 	pass_test("the reset match matched")
+
+
+## The weak hull's match a second after she parts, seat 0 on her fore piece's deck
+## between two crates at rest gripping it — crate 3 a hair past its reach — and crate 2
+## sent sliding into it: every snapshot from then on for a second, crates at rest passed
+## over or — [param stepping] — every crate stepped every tick.
+func _pushed_into_a_crate_on_a_piece(stepping: bool) -> Array[Dictionary]:
+	Hazards.never_rest = stepping
+	var config := MatchConfig.from_rules(
+		load("res://data/match/default.tres"),
+		PinnedSeeds.seed_named(&"breaks_in_two"),
+		2,
+		&"steamer_weak"
+	)
+	config.countdown_ticks = 0
+	config.ship = config.ship.duplicate()
+	config.ship.props = config.ship.props.duplicate()
+	var rules := config.rules
+	var reach := config.ship.props[3].radius + rules.body_radius
+	var spots := {2: BETWEEN.z - reach - 0.02, 3: BETWEEN.z + reach + 0.005}
+	for prop: int in spots:
+		config.ship.props[prop] = config.ship.props[prop].duplicate()
+		config.ship.props[prop].grip_angle_deg = 30.0
+	var tick := 0
+	for event: SinkTimeline.Event in config.schedule().timeline().events:
+		if event.kind == SinkTimeline.Kind.PARTED:
+			tick = config.schedule().physics_tick(event.seconds) + Ticks.RATE
+			break
+	var sim := MatchSim.from_snapshot(MatchJump.snapshot(config, tick), config)
+	var fore := sim.pose().standing[1]
+	var deck := sim.pieces.faces(fore).surfaces(Faces.Up.DECK)
+	var player := sim.state.seats[0]
+	player.piece = fore
+	player.pos = BETWEEN
+	player.vel = Vector3.ZERO
+	player.body = PlayerState.Body.GROUNDED
+	player.surface = deck.under(player.pos, rules.step_height)
+	for prop: int in spots:
+		var crate := sim.state.props[prop]
+		crate.pos = Vector3(BETWEEN.x, 0.0, spots[prop])
+		crate.vel = Vector3.ZERO
+		crate.body = PropState.Body.GROUNDED
+		crate.surface = deck.under(crate.pos, rules.step_height)
+	var idle := {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)}
+	# Two ticks for the two to come to rest where they stand.
+	SimFixtures.step(sim, idle, 2)
+	sim.state.props[2].vel = Vector3(0.0, 0.0, 6.0)
+	var snapshots: Array[Dictionary] = []
+	for _tick in Ticks.RATE:
+		SimFixtures.step(sim, idle)
+		snapshots.append(sim.snapshot())
+	Hazards.never_rest = false
+	return snapshots
+
+
+func test_a_body_pushed_into_a_crate_at_rest_on_a_piece_of_her_meets_it_that_tick() -> void:
+	var passed_over := _pushed_into_a_crate_on_a_piece(false)
+	var stepped := _pushed_into_a_crate_on_a_piece(true)
+	assert_eq(passed_over.size(), stepped.size())
+	for tick in passed_over.size():
+		if passed_over[tick] != stepped[tick]:
+			fail_test("the two diverged %d ticks in" % tick)
+			return
+	var first: Dictionary = passed_over[0]
+	assert_eq(
+		first["seats"][0]["last_hit_crate"], 3, "the body pushed into crate 3 met it that tick"
+	)
+	var pushed: Vector3 = first["props"][3]["pos"]
+	assert_gt(pushed.z, BETWEEN.z + 0.86, "and pushed it on")
