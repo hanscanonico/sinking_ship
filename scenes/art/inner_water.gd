@@ -1,9 +1,10 @@
 class_name InnerWater
 extends Node3D
 ## The water inside her (§5b.1, D7), drawn as the sinking has it at the moment drawn:
-## each cell's at its own level, level with the world however she leans and drawn only
-## inside its cell (CellSurface) — in the sea's colours, lit as the room it stands in is
-## (inner_water.gdshader) — the watertight doors the ship slides shut at the hit, water
+## each cell's at its own level, level with the world however she leans — but as it
+## sloshes when she turns (CellSlosh) — and drawn only inside its cell (CellSurface) —
+## in the sea's colours, lit as the room it stands in is (inner_water.gdshader) — the
+## watertight doors the ship slides shut at the hit, water
 ## pouring through an opening wherever one side's water stands over its bottom and
 ## higher than the other side's, falling along the world's down (spill.gdshader),
 ## boiling into froth where it lands, and air blown out of an opening as the water
@@ -86,6 +87,21 @@ const TICK_SLACK := 0.05
 const INFLOW_FULL := 0.3
 const INFLOW_EASE := 0.2
 const INFLOW_CALM := 1e-3
+## A cell's water's slosh (CellSlosh, #621): how damped its first mode is (ζ, est.: it
+## settles in a few swings), the furthest it lifts or drops at a box's end in metres
+## (est.), the longest a frame may follow the last before it restarts from level, the most
+## of a swing's radian one step turns, the least depth its period is reckoned at, gravity;
+## and, so a calm sinking costs nothing a frame, a hull turning slower than SLOSH_CALM in
+## radians a second — the night's trim creeps at a thirtieth of it — leaves water lying
+## within SLOSH_REST radians of level asleep: level, unswung.
+const SLOSH_DAMPING := 0.08
+const SLOSH_MOST := 0.3
+const SLOSH_GAP := 0.5
+const SLOSH_STEP := 0.3
+const SLOSH_SHALLOWEST := 0.05
+const GRAVITY := 9.81
+const SLOSH_CALM := 2e-3
+const SLOSH_REST := 5e-4
 ## The global shader parameters her water's world to ship space is set in, one a frame
 ## for every cell's surface at once (inner_water.gdshader): one per InnerWater drawn —
 ## hers whole, or each piece's once she breaks (ShipPieces) — each held by the one that
@@ -206,6 +222,8 @@ var native: InnerWaterNative = InnerWaterNative.made()
 ## Per opening, 1 once it has a pour; and those still to have one.
 var _made := PackedByteArray()
 var _unmade := PackedInt32Array()
+## Her cells' water swinging as she turns, tilting the sheets placed.
+var _slosh: CellSlosh
 
 
 ## Draws the water in [param structure], round [param rooms] where her cells poke out
@@ -258,6 +276,7 @@ func setup(
 		_stacks.append([cell, box, _surface(box, false)])
 	_stacks_shown.resize(_stack_cells.size())
 	_stacks_shown.fill(0)
+	_slosh = CellSlosh.new(structure, _boxes, _stacks)
 	if native != null:
 		native.lay_out(_boxes, _surfaces, _stacks, _stack_cells, _cell_stacks, _stack_bounds)
 	_leaves.clear()
@@ -371,13 +390,15 @@ static func _show_waders_on(
 
 
 ## Shows the water [param alpha] of the way from [param then] to [param now], on the
-## ship drawn between them as MatchView draws her.
-func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
+## ship drawn between them as MatchView draws her, at [param seconds] into the match: each
+## cell's sloshing as she turns (CellSlosh) — level with the world at no moment (NAN).
+func show_water(then: ShipPose, now: ShipPose, alpha: float, seconds := NAN) -> void:
 	if _structure == null:
 		return
 	_ship = then.transform.interpolate_with(now.transform, alpha)
 	_level = _ship.basis.inverse().orthonormalized()
 	_up = _level * Vector3.UP
+	_slosh.begin(_ship, _up, seconds)
 	var to_ship := _ship.affine_inverse()
 	if _slot != -1:
 		RenderingServer.global_shader_parameter_set(TO_SHIP[_slot], Projection(to_ship))
@@ -389,14 +410,15 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 		var shown := 0
 		for each: int in found[0]:
 			var showing := each & 1 == 1
-			_place_at(_surfaces[each >> 1], showing, placed[shown] if showing else null, to_ship)
+			var cell := each >> 1
+			_place_at(_surfaces[cell], cell, showing, placed[shown] if showing else null, to_ship)
 			shown += 1 if showing else 0
 		placed = found[3]
 		shown = 0
 		for each: int in found[2]:
 			var showing := each & 1 == 1
 			var stack: Array = _stacks[each >> 1]
-			_place_at(stack[2], showing, placed[shown] if showing else null, to_ship)
+			_place_at(stack[2], stack[0], showing, placed[shown] if showing else null, to_ship)
 			shown += 1 if showing else 0
 		_stacks_shown = found[4]
 	else:
@@ -405,7 +427,7 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
 			_levels[cell] = level
 			if _surfaces[cell] != null:
-				_show_surface(_surfaces[cell], _boxes[cell], level, to_ship)
+				_show_surface(_surfaces[cell], cell, _boxes[cell], level, to_ship)
 		for at in _stack_cells.size():
 			var level := _levels[_stack_cells[at]]
 			if (
@@ -417,7 +439,7 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float) -> void:
 			for index: int in _cell_stacks[at]:
 				var stack: Array = _stacks[index]
 				var surface: MeshInstance3D = stack[2]
-				_show_surface(surface, stack[1], level, to_ship)
+				_show_surface(surface, stack[0], stack[1], level, to_ship)
 				shown += 1 if surface.visible else 0
 			_stacks_shown[at] = shown
 	if now != _inflow_now:
@@ -624,36 +646,28 @@ func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
 	return surface
 
 
-## Shows [param surface], drawn in [param box], at world height [param level] while it
-## stands between the box's lowest corner and its highest as she leans, else hides it.
-func _show_surface(surface: MeshInstance3D, box: AABB, level: float, to_ship: Transform3D) -> void:
-	_place(surface, box, level, shows(level, CellSurface.reach(_ship, box)), to_ship)
-
-
-## Shows [param surface], drawn in [param box], at world height [param level] where
-## [param showing], else hides it.
-func _place(
-	surface: MeshInstance3D, box: AABB, level: float, showing: bool, to_ship: Transform3D
+## Shows [param surface] of [param cell], drawn in [param box], at world height
+## [param level] while it stands between the box's lowest corner and its highest as she
+## leans, else hides it.
+func _show_surface(
+	surface: MeshInstance3D, cell: int, box: AABB, level: float, to_ship: Transform3D
 ) -> void:
-	if surface.visible != showing:
-		surface.visible = showing
-		surface.top_level = not showing
-	if showing:
-		surface.transform = CellSurface.placed(_ship, _level, box, level)
-		if _slot == -1:
-			_param(surface, &"world_to_ship", to_ship)
+	var showing := shows(level, CellSurface.reach(_ship, box))
+	var placed: Variant = CellSurface.placed(_ship, _level, box, level) if showing else null
+	_place_at(surface, cell, showing, placed, to_ship)
 
 
-## Shows [param surface] placed at [param placed] (CellSurface.placed) where
-## [param showing], else hides it, as _place does.
+## Shows [param surface] of [param cell] placed at [param placed] (CellSurface.placed),
+## tilted by its slosh, where [param showing], else hides it.
 func _place_at(
-	surface: MeshInstance3D, showing: bool, placed: Variant, to_ship: Transform3D
+	surface: MeshInstance3D, cell: int, showing: bool, placed: Variant, to_ship: Transform3D
 ) -> void:
 	if surface.visible != showing:
 		surface.visible = showing
 		surface.top_level = not showing
 	if showing:
-		surface.transform = placed
+		var sloshing := _slosh.on and not _slosh.still
+		surface.transform = _slosh.tilted(placed, cell, _levels[cell]) if sloshing else placed
 		if _slot == -1:
 			_param(surface, &"world_to_ship", to_ship)
 

@@ -444,11 +444,10 @@ func _process(delta: float) -> void:
 	_ship.transform = pose_then.of_piece(_aft).transform.interpolate_with(
 		pose_now.of_piece(_aft).transform, alpha
 	)
+	var tick := lerpf(previous["tick"], current["tick"], alpha)
 	if _inner != null and not _broken:
-		_inner.show_water(pose_then, pose_now, alpha)
-	_show_sinking(
-		lerpf(previous["tick"], current["tick"], alpha), current["railing_hp"], pose_then, alpha
-	)
+		_inner.show_water(pose_then, pose_now, alpha, tick * Ticks.SECONDS_PER_TICK)
+	_show_sinking(tick, current["railing_hp"], pose_then, alpha)
 	_show_props(previous, current, alpha)
 	if _broken:
 		var root := _ship.global_transform.affine_inverse()
