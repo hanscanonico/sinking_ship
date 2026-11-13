@@ -123,3 +123,48 @@ func test_the_watch_sees_water_run_up_its_head() -> void:
 		0,
 		"water run up its head is seen"
 	)
+
+
+## [param ship]'s [param setting] bake of a match on [param seed_value]'s hit — or her sure
+## hit at 0 — watched to her end.
+func _watched_in(ship: StringName, setting: StringName, seed_value: int) -> FloodWatch:
+	var structure := Fleet.layout(ship).structure
+	var scenario := Fleet.setting(StringName("%s_%s" % [ship, setting]))
+	var sea := SeaPhysics.load_default()
+	var damage: HitDamage
+	if seed_value == 0:
+		damage = HitMapper.map_explicit(structure.sure_hit, structure, scenario.hit)
+	else:
+		var stream := SeedStreams.derive(seed_value, "sink")
+		damage = MustSink.choose(structure, scenario, stream, sea).damage
+	damage.sea_depth = scenario.sea_depth
+	var stepper := WatchedStepper.new(structure, damage, sea)
+	var bake := SinkBake.new(stepper, sea, scenario.bake_cap, HullBreak.of(structure, damage, sea))
+	bake.run(1 << 62)
+	stepper.watch.close()
+	return stepper.watch
+
+
+func test_a_pocket_read_past_its_floor_makes_no_air() -> void:
+	# The freighter's coast sure hit: wing_1_p leaves its pocket 0.73 m3, under
+	# pocket_least, its push worked out at that room; the next step its room grows to
+	# 1.9 m3 and the air its floor left unread is read again — 0.89 m3 that was a gain.
+	var watch := _watched_in(&"freighter", &"coast", 0)
+	assert_eq(
+		watch.counts[FloodWatch.Law.BOYLE],
+		0,
+		"her pockets keep Boyle's law: %s" % "; ".join(watch.breaches(FloodWatch.Law.BOYLE))
+	)
+	assert_gt(watch.floored, 0, "a pocket was read past its floor")
+
+
+func test_a_pocket_leaked_under_its_floor_is_let_go_not_lost() -> void:
+	# The barque's coast hit on seed 3, aground: her aft peak's pocket leaks down through
+	# pocket_least, and SinkAir counts it gone — 1 m3 that was a loss.
+	var watch := _watched_in(&"barque", &"coast", 3)
+	assert_eq(
+		watch.counts[FloodWatch.Law.BOYLE],
+		0,
+		"her pockets keep Boyle's law: %s" % "; ".join(watch.breaches(FloodWatch.Law.BOYLE))
+	)
+	assert_gt(watch.let_go, 0, "a pocket was let go under its floor")
