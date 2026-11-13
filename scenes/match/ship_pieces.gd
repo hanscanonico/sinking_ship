@@ -258,8 +258,8 @@ func flood_with(sea: ShaderMaterial, first: InnerWater) -> void:
 			structure,
 			layout.rooms,
 			layout,
-			_kept(_schedule.passages(), structure, _spans[at]),
-			_kept(_schedule.failing(), structure, _spans[at]),
+			AirVents.kept(_schedule.passages(), structure, _spans[at]),
+			AirVents.kept(_schedule.failing(), structure, _spans[at]),
 			sea,
 			paints
 		)
@@ -355,22 +355,6 @@ func _torn_tick(leaf: int, aft: bool) -> int:
 			if cut != (parent.x if aft else parent.y):
 				first = mini(first, _schedule.physics_tick(_schedule.timeline().born[piece]))
 	return first
-
-
-## Of [param openings], those of the piece [param structure] whose stretch is
-## [param span]: every cell they join its, their middle on it.
-static func _kept(
-	openings: Array[ShipOpening], structure: ShipStructure, span: Vector2
-) -> Array[ShipOpening]:
-	var found: Array[ShipOpening] = []
-	for opening: ShipOpening in openings:
-		var ours := opening.centre.x >= span.x and opening.centre.x <= span.y
-		for place: StringName in opening.joins:
-			if not place in [ShipOpening.SEA, ShipOpening.SKY]:
-				ours = ours and structure.cell_named(place) != -1
-		if ours:
-			found.append(opening)
-	return found
 
 
 ## [param broken], railings of hers, as leaf [param leaf]'s layout numbers its own.
