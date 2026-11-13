@@ -74,7 +74,8 @@ func _init(match_config: MatchConfig) -> void:
 	)
 	var currents := Currents.of_piece(config, schedule, 0)
 	_hazards = Hazards.new(config, surfaces, 0, pieces, currents)
-	_movement = Movement.new(_rules, faces, _hazards, 0, currents)
+	var falls := Falls.of_piece(config, schedule, 0, currents)
+	_movement = Movement.new(_rules, faces, _hazards, 0, currents, falls)
 	_hazards_of[0] = _hazards
 	_movements[0] = _movement
 	_windup_ticks = Ticks.from_seconds(_rules.shove_windup)
@@ -262,8 +263,9 @@ func _stand_on(piece: int) -> void:
 		var deck := pieces.faces(piece).surfaces(Faces.Up.DECK)
 		var currents := Currents.of_piece(config, schedule, piece)
 		_hazards_of[piece] = Hazards.new(config, deck, piece, pieces, currents)
+		var falls := Falls.of_piece(config, schedule, piece, currents)
 		_movements[piece] = Movement.new(
-			_rules, pieces.faces(piece), _hazards_of[piece], piece, currents
+			_rules, pieces.faces(piece), _hazards_of[piece], piece, currents, falls
 		)
 	_movement = _movements[piece]
 	_hazards = _hazards_of[piece]

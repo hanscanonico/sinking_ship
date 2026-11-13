@@ -205,6 +205,8 @@ var _leaks: Array[MeshInstance3D] = []
 var _airs := PackedFloat64Array()
 ## What of her pockets' air is drawn (InnerWaterPockets).
 var _pockets := InnerWaterPockets.new()
+## The ways her pockets' air goes out as each goes free (AirVents), the match's blast's.
+var _vents: AirVents
 ## Per cell, the glow its water was last given — in doubles, so a glow given is one kept,
 ## not given again every frame — and the light cast up into the pocket an eye is in.
 var _glows := PackedFloat64Array()
@@ -287,6 +289,7 @@ func setup(
 				_leaf(opening, paints)
 	_passages = passages.duplicate()
 	_passages.append_array(failing)
+	_vents = AirVents.new(structure, passages, failing)
 	_shut.resize(_passages.size())
 	_shut.fill(0)
 	for index in range(passages.size(), _passages.size()):

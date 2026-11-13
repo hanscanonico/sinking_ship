@@ -26,7 +26,10 @@ extends RefCounted
 ##
 ## Moving water moves bodies in it (Currents, #616): a swimmer swims relative to the
 ## water, and a wader is pushed by it, the more the deeper, and swept off its feet into
-## the water once its depth times the current's speed reaches topple_hv (swept).
+## the water once its depth times the current's speed reaches topple_hv (swept). Water
+## falling through a hole in a floor knocks a body under it off its feet, and dunks a
+## swimmer and throws it outward; air going free out of a pocket blows a swimmer by its
+## way out clear (Falls, #631).
 
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
@@ -70,13 +73,24 @@ var _up := Faces.Up.DECK
 ## Per seat, the current forces found where it was this tick, x/z in the tick's frame:
 ## none for a body out of the water, in the air, climbing or frozen.
 var _flowing := PackedVector2Array()
+## The pours and blasts of the piece (Falls), or null for none; the tick it stands at; and
+## per seat, 1 where a pour knocked it off its feet this tick.
+var _falls: Falls
+var _tick := 0
+var _knocked := PackedByteArray()
 
 
 func _init(
-	rules: BrawlRules, faces: Faces, hazards: Hazards, piece := 0, currents: Currents = null
+	rules: BrawlRules,
+	faces: Faces,
+	hazards: Hazards,
+	piece := 0,
+	currents: Currents = null,
+	falls: Falls = null
 ) -> void:
 	_rules = rules
 	_currents = currents
+	_falls = falls
 	_faces = faces
 	_piece = piece
 	_surfaces = faces.surfaces(Faces.Up.DECK)
@@ -117,6 +131,7 @@ func face(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 	state.up[_piece] = up
 	_piece_pose = pose
 	_up = up
+	_tick = tick
 	return framed
 
 
@@ -208,8 +223,10 @@ func _reseat(player: PlayerState, tick: int, events: Array[SimEvent]) -> void:
 ## corner and walks only along it (_slid). Wading slows a walk, the more the deeper
 ## (_wade_speed), crawling to crawl_speed, and what a body holds to its walk cap (#273);
 ## the current there pushes a wader's walk by current_wade_share of it in water
-## wade_depth deep, less in shallower (Currents). Swimming is _swim's. A body frozen in a
-## hit-stop feels none of it, and its stagger waits.
+## wade_depth deep, less in shallower (Currents). A pour landing on a grounded body
+## pour_topple or harder staggers it fall_stagger_per_m for every metre it fell, and
+## knocks it into water deep enough to swim (swept). Swimming is _swim's. A body frozen in
+## a hit-stop feels none of it, and its stagger waits.
 func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[SeatRules]) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose_now.ship_gravity(_rules.gravity)
@@ -219,7 +236,9 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 	for player: PlayerState in live:
 		if player.seat >= _flowing.size():
 			_flowing.resize(player.seat + 1)
+			_knocked.resize(player.seat + 1)
 		_flowing[player.seat] = Vector2.ZERO
+		_knocked[player.seat] = 0
 		if player.is_frozen():
 			continue
 		if player.body == PlayerState.Body.AIRBORNE:
@@ -229,6 +248,11 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 		if player.body == PlayerState.Body.SWIMMING:
 			_swim(player, pose_now)
 			continue
+		var poured := _pour(player)
+		if poured != null and poured.force >= _rules.pour_topple:
+			var down := Ticks.from_seconds(poured.drop * _rules.fall_stagger_per_m)
+			player.stagger_ticks = maxi(player.stagger_ticks, down)
+			_knocked[player.seat] = 1
 		var mine := rules_by_seat[player.seat]
 		var planar := Vector2(player.vel.x, player.vel.z)
 		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.walk_speed
@@ -253,7 +277,12 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 		var grip := _rules.wet_angle(mine.grip_angle_deg, depth)
 		var pulled := slope > grip and not (player.bracing and holds)
 		if player.is_staggered():
-			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
+			# Knocked down under a pour, the water washes it out from under it, as it throws
+			# a swimmer (_swim): never left lying in the cascade for as long as it falls.
+			var washed := Vector2.ZERO
+			if _knocked[player.seat] == 1:
+				washed = poured.out * poured.speed * _rules.current_wade_share
+			planar = (planar + downhill).move_toward(washed, _rules.stagger_friction * dt)
 			player.stagger_ticks -= 1
 		elif wish == Vector2.ZERO and pulled:
 			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.slide_friction * dt)
@@ -747,10 +776,12 @@ func ground(
 
 
 ## A swimmer moves across the sea at swim_speed relative to the water — carried by the
-## current where it is (Currents) — and drifts with it without control while staggered.
-## A body above the sea falls into it; in it, the water takes a dive's speed — no
-## more than dunk_drag stops within dunk_depth — and floats it back to where it rests
-## (_rest_at). A climber hangs where its climb has it (_water).
+## current where it is (Currents), thrown outward from under a pour at current_wade_share
+## of its landing speed and blown clear by air going free (Falls) — and drifts with it
+## without control while staggered. A body above the sea falls into it; in it, the water
+## takes a dive's speed — a pour's on it as if it dived from the hole — no more than
+## dunk_drag stops within dunk_depth, and floats it back to where it rests (_rest_at),
+## faster where a blast lifts it. A climber hangs where its climb has it (_water).
 func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 	if player.is_climbing():
 		return
@@ -759,18 +790,29 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 	var wet := _surfaces.wet(player.pos, pose_now)
 	var flowing := _current(player) if wet else Vector2.ZERO
 	_flowing[player.seat] = flowing
+	var dive := 0.0
+	var blast := Vector3.ZERO
+	if wet and _falls != null:
+		var poured := _pour(player)
+		if poured != null:
+			flowing += poured.out * poured.speed * _rules.current_wade_share
+			dive = sqrt(2.0 * _rules.gravity * poured.drop)
+		blast = _blast(player)
+		flowing += Vector2(blast.x, blast.z)
 	if player.is_staggered():
 		planar = planar.move_toward(flowing, _rules.stagger_friction * dt)
 		player.stagger_ticks -= 1
 	else:
 		var wish := Vector2(player.last_move) / InputFrame.AXIS_MAX * _rules.swim_speed
 		planar = planar.move_toward(wish + flowing, _rules.ground_accel * dt)
-	var rise := player.vel.y
+	var rise := player.vel.y if dive <= 0.0 else minf(player.vel.y, -dive)
 	if wet:
 		var rest := _rest_at(player.pos, player.pos.y, pose_now, _heading(player))
 		var toward := signf(rest - player.pos.y)
 		rise = maxf(rise, -sqrt(2.0 * _rules.dunk_drag * _rules.dunk_depth))
 		rise = move_toward(rise, toward * _rules.float_speed, _rules.dunk_drag * dt)
+		if blast.y > 0.0:
+			rise = maxf(rise, blast.y)
 	else:
 		rise -= _rules.gravity * dt
 	player.vel = Vector3(planar.x, rise, planar.y)
@@ -890,11 +932,39 @@ func _current(player: PlayerState) -> Vector2:
 
 ## Whether [param player], in water [param depth] deep over the floor under it, is swept
 ## off its feet: that depth times the speed of the current forces found it in this tick
-## reaches topple_hv. A swimmer there finds no footing; a wader goes into the water.
+## reaches topple_hv, or a pour knocked it down there (forces) in water stand_depth deep
+## or more. A swimmer there finds no footing; a wader goes into the water.
 func swept(player: PlayerState, depth: float) -> bool:
 	if depth <= 0.0 or player.seat >= _flowing.size():
 		return false
+	if _knocked[player.seat] == 1 and depth >= _rules.stand_depth:
+		return true
 	return depth * _flowing[player.seat].length() >= _rules.topple_hv
+
+
+## The pour landing on [param player] under the piece's pose (Falls.pour_on), its way out
+## of the footprint in the tick's frame; null for none.
+func _pour(player: PlayerState) -> Falls.Hit:
+	if _falls == null or _piece_pose == null:
+		return null
+	if _up == Faces.Up.DECK:
+		return _falls.pour_on(_piece_pose, player.pos)
+	var hit := _falls.pour_on(_piece_pose, Faces.to_ship(_up) * player.pos)
+	if hit != null:
+		var turned := Faces.to_frame(_up) * Vector3(hit.out.x, 0.0, hit.out.y)
+		hit.out = Vector2(turned.x, turned.z)
+	return hit
+
+
+## The air going free's push on [param player] under the piece's pose (Falls.blast_on), in
+## the tick's frame.
+func _blast(player: PlayerState) -> Vector3:
+	if _falls == null or _piece_pose == null:
+		return Vector3.ZERO
+	if _up == Faces.Up.DECK:
+		return _falls.blast_on(_piece_pose, _tick, player.pos)
+	var push := _falls.blast_on(_piece_pose, _tick, Faces.to_ship(_up) * player.pos)
+	return Faces.to_frame(_up) * push
 
 
 ## After this tick's move: on the bottom, if it went under it; at rest, if it rose
