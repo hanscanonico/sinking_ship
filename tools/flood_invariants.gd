@@ -16,6 +16,9 @@ const NIGHT := "res://tests/fixtures/sinking/hits/titanic_night.tres"
 const DEFAULT_SEEDS := 5
 ## How many cells of each first-water order the step check prints.
 const ORDER_SHOWN := 6
+## The share of her life two bakes' first water in a cell may stand apart by, under which
+## the step check counts them the same flooding.
+const APART_SHARE := 0.05
 
 
 func _initialize() -> void:
@@ -147,7 +150,10 @@ func _steps(
 	var halfway := (coarse.gone_at if coarse.gone_at >= 0.0 else coarse.length()) * 0.5
 	print(
 		(
-			"%s gone at %.0f s / %.0f s (step_max %.1f / %.2f); trim at %.0f s %.2f° / %.2f°"
+			(
+				"%s gone at %.0f s / %.0f s (step_max %.1f / %.2f); at %.0f s trim %.2f° / %.2f°,"
+				+ " list %.2f° / %.2f°"
+			)
 			% [
 				prefix,
 				coarse.gone_at,
@@ -157,6 +163,8 @@ func _steps(
 				halfway,
 				_trim(coarse, halfway),
 				_trim(short, halfway),
+				_list(coarse, halfway),
+				_list(short, halfway),
 			]
 		)
 	)
@@ -179,6 +187,38 @@ func _steps(
 			]
 		)
 	)
+	# One cell's place moved shifts every place after it, and cells first wet seconds
+	# apart trade places at any step: the seconds each cell first takes water at, apart
+	# by more than a share of her life, tell a different flooding from a reordered one.
+	var life := coarse.gone_at if coarse.gone_at >= 0.0 else coarse.length()
+	var at_first := _wetted_at(coarse)
+	var at_second := _wetted_at(short)
+	var apart := PackedStringArray()
+	var most := ""
+	var most_by := 0.0
+	for named: String in at_first:
+		var by := absf(float(at_first[named]) - float(at_second.get(named, life)))
+		if by > APART_SHARE * life:
+			apart.append(named)
+		if by > most_by:
+			most_by = by
+			most = named
+	for named: String in at_second:
+		if not at_first.has(named) and absf(float(at_second[named]) - life) > APART_SHARE * life:
+			apart.append(named)
+	print(
+		(
+			"%s first water: %d cells first wet over %.0f%% of her life apart%s; most %s by %.0f s"
+			% [
+				prefix,
+				apart.size(),
+				APART_SHARE * 100.0,
+				" (%s)" % ", ".join(apart.slice(0, ORDER_SHOWN)) if not apart.is_empty() else "",
+				most if not most.is_empty() else "none",
+				most_by,
+			]
+		)
+	)
 
 
 ## Her trim at [param seconds] of [param timeline], degrees, bow down: of her first piece.
@@ -187,10 +227,26 @@ static func _trim(timeline: SinkTimeline, seconds: float) -> float:
 	return rad_to_deg(asin(clampf(up[0], -1.0, 1.0)))
 
 
+## Her list at [param seconds] of [param timeline], degrees, as Attitude.up's athwartships
+## part leans: one that lolls goes either way, and a list of the other sign says so.
+static func _list(timeline: SinkTimeline, seconds: float) -> float:
+	var up := Attitude.up(timeline.rotation_of(timeline.frame_at(seconds)))
+	return rad_to_deg(asin(clampf(up[2], -1.0, 1.0)))
+
+
 ## Her cells in the order they first took water (SinkTimeline.Kind.FLOODING).
 static func _wetted(timeline: SinkTimeline) -> PackedStringArray:
 	var found := PackedStringArray()
 	for event: SinkTimeline.Event in timeline.events:
 		if event.kind == SinkTimeline.Kind.FLOODING and not found.has(String(event.name)):
 			found.append(String(event.name))
+	return found
+
+
+## Her cells by the second they first took water (SinkTimeline.Kind.FLOODING).
+static func _wetted_at(timeline: SinkTimeline) -> Dictionary:
+	var found := {}
+	for event: SinkTimeline.Event in timeline.events:
+		if event.kind == SinkTimeline.Kind.FLOODING and not found.has(String(event.name)):
+			found[String(event.name)] = event.seconds
 	return found
