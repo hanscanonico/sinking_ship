@@ -159,9 +159,10 @@ func test_a_pocket_read_past_its_floor_makes_no_air() -> void:
 
 
 func test_a_pocket_leaked_under_its_floor_is_let_go_not_lost() -> void:
-	# The barque's coast hit on seed 3, aground: her aft peak's pocket leaks down through
-	# pocket_least, and SinkAir counts it gone — 1 m3 that was a loss.
-	var watch := _watched_in(&"barque", &"coast", 3)
+	# The barque's coast hit on seed 21, aground: a pocket of hers leaks down through
+	# pocket_least, and SinkAir counts it gone — 1 m3 that was a loss. (Seed 3's did until
+	# a cell at a sill was held, #632.)
+	var watch := _watched_in(&"barque", &"coast", 21)
 	assert_eq(
 		watch.counts[FloodWatch.Law.BOYLE],
 		0,

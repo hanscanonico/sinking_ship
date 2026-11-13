@@ -102,7 +102,7 @@ class Staged:
 				if rng.randf() < 0.3:
 					held[rng.randi_range(0, held.size() - 1)] = 1
 				metre *= rng.randf_range(0.1, 10.0)
-			var answer := _native.stiff(tried, twin.water, held, _holding, _widest, sea, metre)
+			var answer := _native.stiff(tried, twin.water, held, _holding, sea, metre)
 			var kept := _held
 			_held = held.duplicate()
 			var reference := _stiff(twin, tried, sea, metre)

@@ -20,6 +20,8 @@ constexpr double INF = std::numeric_limits<double>::infinity();
 // SinkStepper's.
 constexpr double STIFF_HEAD = 1.0;
 constexpr double STILL_HEAD = 5e-3;
+// OpeningFlow's.
+constexpr double LEVEL_HEAD = 1e-2;
 // SinkFailures'.
 constexpr double REACHED = 1e-3;
 constexpr double GAVE_WAY = 1.0;
@@ -94,20 +96,18 @@ void NativeSink::watched(const PackedInt32Array &p_index, const PackedInt32Array
 
 // SinkStepper._hold_stiff up to its groups: the cells the step holds — a well its edges
 // pass water for, a cell whose air is trapped, one whose openings would pass more than
-// its room in the step — then every full cell next to a held one; p_held is _held as the
-// step finds it, p_holding SinkAir's holding, p_widest SinkStepper._widest. The shares
-// are the last given (shares), the wells' crest and lowest ends the step begun's.
+// its room in the step or standing at a sill it spills over — then every full cell next
+// to a held one; p_held is _held as the step finds it, p_holding SinkAir's holding. The
+// shares are the last given (shares), the wells' crest and lowest ends the step begun's.
 PackedInt32Array NativeSink::stiff(const PackedFloat64Array &p_heads, const PackedFloat64Array &p_water,
-		const PackedByteArray &p_held, const PackedByteArray &p_holding, const PackedFloat64Array &p_widest,
-		double p_sea, double p_per_metre) const {
+		const PackedByteArray &p_held, const PackedByteArray &p_holding, double p_sea, double p_per_metre) const {
 	const int64_t count = cells();
 	ERR_FAIL_COND_V_MSG(p_heads.size() != count || p_water.size() != count || p_held.size() != count ||
-					p_holding.size() != count || p_widest.size() != count,
+					p_holding.size() != count,
 			PackedInt32Array(), "One of each per cell.");
 	const double *heads = p_heads.ptr();
 	const double *water = p_water.ptr();
 	const uint8_t *holding = p_holding.ptr();
-	const double *widest = p_widest.ptr();
 	std::vector<uint8_t> held(p_held.ptr(), p_held.ptr() + p_held.size());
 	std::vector<int32_t> found;
 	for (int64_t cell = 0; cell < cells(); cell++) {
@@ -119,26 +119,34 @@ PackedInt32Array NativeSink::stiff(const PackedFloat64Array &p_heads, const Pack
 			held[cell] = 1;
 			continue;
 		}
-		if (!trapped && (water[cell] <= 0.0 || widest[cell] * p_per_metre <= room)) {
+		if (!trapped && water[cell] <= 0.0) {
 			continue;
 		}
 		double passes = 0.0;
 		bool moving = false;
 		const double own = heads[cell];
+		double near = INF;
 		for (int32_t at = touch_from_[cell]; at < touch_from_[cell + 1]; at++) {
 			const int32_t index = touching_[at];
 			const int32_t other = first_[index] == cell ? second_[index] : first_[index];
 			const double beyond = other == OUTSIDE ? p_sea : heads[other];
 			const double bottom = opening_bottom_[index];
+			const double share = shares_[index];
+			// A sill it spills over, dry beyond (#632).
+			const bool spills = share > 0.0 && beyond <= bottom;
+			if (spills && (in_floor_[index] == 0 || other == first_[index])) {
+				near = min_f(near, std::fabs(own - bottom));
+			}
 			if (own <= bottom && beyond <= bottom) {
 				continue;
 			}
-			const double share = shares_[index];
 			const double across = std::fabs(max_f(beyond, bottom) - max_f(own, bottom));
 			passes += flow_area_[index] * share * std::sqrt(min_f(across, STIFF_HEAD) / STIFF_HEAD);
 			moving = moving || (share > 0.0 && (trapped || across > STILL_HEAD));
 		}
-		if (moving && (trapped || passes * p_per_metre > room)) {
+		const double moves = passes * p_per_metre;
+		near -= max_f(moves / area_[cell], LEVEL_HEAD);
+		if (moving && (trapped || moves > room || near <= 0.0)) {
 			found.push_back(int32_t(cell));
 			held[cell] = 1;
 		}

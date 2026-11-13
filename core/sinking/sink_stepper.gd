@@ -30,7 +30,9 @@ extends RefCounted
 const OUTSIDE := -1
 ## A cell is stiff (_hold_stiff) when its wet openings, at the head across each but no
 ## more than STIFF_HEAD, would pass more in the step than STIFF_HEAD of its surface holds
-## or than it has room for, and some opening has more than STILL_HEAD across it. Metres.
+## or than it has room for, and some opening has more than STILL_HEAD across it; or when
+## it stands within the step's rise, at least OpeningFlow.LEVEL_HEAD, of a sill it spills
+## over, dry beyond, which the turning sweep would feed only every other step (#632). Metres.
 const STIFF_HEAD := 1.0
 const STILL_HEAD := 5e-3
 ## A held head is solved until the step's water on it is out by no more than
@@ -85,11 +87,9 @@ var _bottom := PackedFloat64Array()
 var _top := PackedFloat64Array()
 var _size := PackedFloat64Array()
 var _shut_time := PackedFloat64Array()
-## Per cell, the openings that touch it, by index, and their whole area; and, within a
-## step, 1 where it is a stiff cell whose head is held, as the sea's is, at the height
-## solved for the step.
+## Per cell, the openings that touch it, by index; and, within a step, 1 where it is a
+## stiff cell whose head is held, as the sea's is, at the height solved for the step.
 var _touching: Array[PackedInt32Array] = []
-var _widest := PackedFloat64Array()
 var _held := PackedByteArray()
 ## Her lifeboats, in her fittings' order (§5b.1, step 10 of the physics: fittings).
 var _lifeboats: Array[ShipFitting] = []
@@ -181,7 +181,6 @@ func _init(structure: ShipStructure, damage: HitDamage, sea: SeaPhysics) -> void
 	_top.resize(_names.size())
 	_size.resize(_names.size())
 	_touching.resize(_boxes.size())
-	_widest.resize(_boxes.size())
 	_opened.resize(_names.size())
 	_flows.resize(_names.size() * 2)
 	_flow_from.resize(_names.size() * 2)
@@ -431,21 +430,18 @@ func _turn_natively(up: PackedFloat64Array) -> void:
 
 
 ## Each cell's openings water can pass — every one but those shut until they fail and
-## not yet opened by [param opened] (FloodState.opened) — in her openings' order, and
-## their whole area: what the step sweeps and solves, and its air passes.
+## not yet opened by [param opened] (FloodState.opened) — in her openings' order: what
+## the step sweeps and solves, and its air passes.
 func _touch(opened: PackedFloat64Array) -> void:
 	_opened = opened
 	for cell in _boxes.size():
 		var touching := PackedInt32Array()
-		var widest := 0.0
 		for index in _names.size():
 			if _first[index] != cell and _second[index] != cell:
 				continue
 			if _shut_time[index] >= 0.0 or opened[index] > 0.0:
 				touching.append(index)
-				widest += _flow_area[index]
 		_touching[cell] = touching
-		_widest[cell] = widest
 	if _native != null:
 		_native.touched(_touching)
 
@@ -478,7 +474,7 @@ func _hold_stiff(
 	if state.seconds != _shares_at:
 		_share_out(state.seconds)
 	if _native != null:
-		held = _native.stiff(heads, state.water, _held, _holding, _widest, sea, per_metre)
+		held = _native.stiff(heads, state.water, _held, _holding, sea, per_metre)
 		for cell: int in held:
 			_held[cell] = 1
 	else:
@@ -507,28 +503,33 @@ func _stiff(
 	for cell in _area.size():
 		var room := minf(_area[cell] * STIFF_HEAD, _capacity[cell] - state.water[cell])
 		var trapped := _air.holds(cell)
-		var shipping := _shipped.ships(cell, heads[cell])
-		if shipping:
+		if _shipped.ships(cell, heads[cell]):
 			held.append(cell)
 			_held[cell] = 1
 			continue
-		if not trapped and (state.water[cell] <= 0.0 or _widest[cell] * per_metre <= room):
+		if not trapped and state.water[cell] <= 0.0:
 			continue
 		var passes := 0.0
 		var moving := false
 		var own := heads[cell]
+		var near := INF
 		for index: int in _touching[cell]:
 			var other := _second[index] if _first[index] == cell else _first[index]
 			var beyond := sea if other == OUTSIDE else heads[other]
 			var bottom := _bottom[index]
+			var share := _shares[index]
+			var spills := share > 0.0 and beyond <= bottom
+			if spills and (_in_floor[index] == 0 or other == _first[index]):
+				near = minf(near, absf(own - bottom))
 			if own <= bottom and beyond <= bottom:
 				continue
-			var share := _shares[index]
 			var across := absf(maxf(beyond, bottom) - maxf(own, bottom))
 			passes += _flow_area[index] * share * sqrt(minf(across, STIFF_HEAD) / STIFF_HEAD)
 			# Squeezed air moves water however level the two stand.
 			moving = moving or (share > 0.0 and (trapped or across > STILL_HEAD))
-		if moving and (trapped or passes * per_metre > room):
+		var moves := passes * per_metre
+		near -= maxf(moves / _area[cell], OpeningFlow.LEVEL_HEAD)
+		if moving and (trapped or moves > room or near <= 0.0):
 			held.append(cell)
 			_held[cell] = 1
 	var at := 0

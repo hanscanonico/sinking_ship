@@ -60,8 +60,8 @@ public:
 			const PackedFloat64Array &p_water, const PackedByteArray &p_held, double p_sea,
 			double p_seconds, double p_sea_given);
 	PackedInt32Array stiff(const PackedFloat64Array &p_heads, const PackedFloat64Array &p_water,
-			const PackedByteArray &p_held, const PackedByteArray &p_holding,
-			const PackedFloat64Array &p_widest, double p_sea, double p_per_metre) const;
+			const PackedByteArray &p_held, const PackedByteArray &p_holding, double p_sea,
+			double p_per_metre) const;
 	PackedFloat64Array across(const PackedFloat64Array &p_heads, const PackedFloat64Array &p_water,
 			double p_sea, const PackedFloat64Array &p_ceilings, const PackedFloat64Array &p_sills,
 			const PackedInt32Array &p_pocket, const PackedFloat64Array &p_air,
