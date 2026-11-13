@@ -56,13 +56,19 @@ var _gravity: float
 var _openings: Array[ShipOpening] = []
 var _sides := PackedInt32Array()
 var _onward := PackedFloat64Array()
+## Per opening, for a hole in a floor water may fall through (FALLS): where across her
+## plane its pour may land — the cell under it, x/z — and the farthest it may fall there,
+## that cell's diagonal; an empty rectangle and 0 for any other.
+var _landing: Array[Rect2] = []
+var _drop := PackedFloat64Array()
 ## The passages' names the openings were last matched against (ShipPose.passages), and,
 ## in passage order, those of the openings that are among them, by index, with their
-## passages; and the grid of their reaches, numbered in that order.
+## passages; and the grid of their reaches, numbered in that order, with each one's reach.
 var _names: Array[StringName] = []
 var _used := PackedInt32Array()
 var _passage := PackedInt32Array()
 var _index: SpatialIndex
+var _reaches: Array[Rect2] = []
 ## Per used opening, under the pose last asked about: the speed through it — u0; NAN until
 ## first asked, 0 for none — and its upstream side, 0 or 1.
 var _pose: ShipPose
@@ -115,6 +121,16 @@ func _init(
 		else:
 			onward = -signf(_middle(structure, first, axis) - opening.centre[axis])
 		_onward.append(onward if onward != 0.0 else 1.0)
+		var lower := second if onward < 0.0 else first
+		if axis == 1 and opening.kind in FALLS and lower != -1:
+			var box := structure.cells[lower]
+			_landing.append(
+				Rect2(box.low.x, box.low.z, box.high.x - box.low.x, box.high.z - box.low.z)
+			)
+			_drop.append((box.high - box.low).length())
+		else:
+			_landing.append(Rect2())
+			_drop.append(0.0)
 
 
 ## The currents of piece [param piece] of [param config]'s match, under [param schedule]:
@@ -189,6 +205,32 @@ func at(pose: ShipPose, point: Vector3) -> Vector2:
 			fastest = maxf(fastest, through)
 	sum = sum.limit_length(fastest)
 	return sum if sum.length() >= _rules.current_least else Vector2.ZERO
+
+
+## The fastest the water anywhere in [param area] — across her plane, this piece's ship
+## space — can carry a body under [param pose], this piece's (ContactWatch): x the fastest
+## u0 of an opening whose current reaches into it, the most any sum of currents there goes
+## (at); y the fastest a hole's pour landing in it can hit the deck — u0 and a fall of its
+## lower cell's diagonal — which throws a body under it at current_wade_share of that
+## (Falls, Movement). Bounds, not answers: the sim never asks it.
+func fastest_in(pose: ShipPose, area: Rect2) -> Vector2:
+	if pose.flows.is_empty() or _openings.is_empty() or pose.levels.is_empty():
+		return Vector2.ZERO
+	_ready_for(pose)
+	var most := Vector2.ZERO
+	if _used.is_empty():
+		return most
+	for used: int in _index.near(area):
+		if not _reaches[used].intersects(area, true):
+			continue
+		var through := _through(pose, used)
+		if through <= 0.0:
+			continue
+		most.x = maxf(most.x, through)
+		var drop := _drop[_used[used]]
+		if drop > 0.0:
+			most.y = maxf(most.y, sqrt(through * through + 2.0 * _gravity * drop))
+	return most
 
 
 ## The holes in a floor water falls through under [param pose], this piece's: each of FALLS
@@ -334,8 +376,11 @@ func _match(passages: Array[StringName]) -> void:
 		var opening := _openings[_used[used]]
 		var low := opening.centre - opening.size * 0.5
 		var area := Rect2(low.x, low.z, opening.size.x, opening.size.z).grow(reach)
+		if _drop[_used[used]] > 0.0:
+			area = area.merge(_landing[_used[used]])
 		areas.append(area)
 		bounds = area if used == 0 else bounds.merge(area)
 	_index = SpatialIndex.new(bounds, reach * GRID)
+	_reaches = areas
 	for used in areas.size():
 		_index.insert(used, areas[used])
