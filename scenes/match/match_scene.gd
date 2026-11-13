@@ -390,6 +390,7 @@ static func serve(
 			config, net_rules, conditions, played, local, sources, from, split
 		)
 	var sim := serving.loopback.client.sim
+	ShipPieces.warm_water(sim)
 	serving.planner = FxPlanner.new(config, sim.surfaces, sim.schedule)
 	return serving
 
