@@ -746,31 +746,38 @@ func _churn(cell: int, churn: float) -> void:
 
 
 ## Draws each cell's water spreading at [param now] only inside its fronts, [param alpha]
-## of the way on from [param then] (FrontMask), and every other cell's whole again.
+## of the way on from [param then] (FrontMask), and every other cell's whole again. A
+## cell's fronts' rectangles are set on its sheets once, as it starts spreading; how far
+## they have run, every frame, on its sheets shown.
 func _mask_fronts(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	for cell: int in _masked:
-		if now.spread_cells.has(cell) or cell >= _surfaces.size():
-			continue
-		_mask_cell(cell, [PackedVector4Array(), PackedFloat32Array()])
+		if not now.spread_cells.has(cell) and cell < _surfaces.size():
+			for sheet: MeshInstance3D in _sheets_of(cell):
+				_param(sheet, &"front_count", 0)
+	var was := _masked
 	_masked = now.spread_cells.duplicate()
 	for cell: int in _masked:
-		if cell < _surfaces.size():
-			_mask_cell(cell, FrontMask.of(now, cell, then, alpha))
+		if cell >= _surfaces.size():
+			continue
+		var mask := FrontMask.of(now, cell, then, alpha)
+		var rects: PackedVector4Array = mask[0]
+		var fresh := not was.has(cell)
+		for sheet: MeshInstance3D in _sheets_of(cell):
+			if fresh:
+				_param(sheet, &"front_count", rects.size())
+				_param(sheet, &"front_rects", rects)
+			if fresh or sheet.visible:
+				_param(sheet, &"front_reaches", mask[1])
 
 
-## Sets [param mask] (FrontMask.of) on every sheet cell [param cell] is drawn in.
-func _mask_cell(cell: int, mask: Array) -> void:
+## Every sheet cell [param cell]'s water is drawn in: its surface and its stacks'.
+func _sheets_of(cell: int) -> Array[MeshInstance3D]:
 	var sheets: Array[MeshInstance3D] = []
 	if _surfaces[cell] != null:
 		sheets.append(_surfaces[cell])
 	for index: int in _stacks_of(cell):
 		sheets.append(_stacks[index][2])
-	var rects: PackedVector4Array = mask[0]
-	for sheet: MeshInstance3D in sheets:
-		_param(sheet, &"front_count", rects.size())
-		if not rects.is_empty():
-			_param(sheet, &"front_rects", rects)
-			_param(sheet, &"front_reaches", mask[1])
+	return sheets
 
 
 ## The stacks [param cell] is drawn in, by index into _stacks: none for most.
