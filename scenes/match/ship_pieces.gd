@@ -47,6 +47,25 @@ static func leaves_of(schedule: SinkSchedule) -> PackedInt32Array:
 	return schedule.timeline().pieces_at(INF)
 
 
+## Starts making the boxes the water in [param sim]'s ship is drawn in (CellBoxes.warm) on
+## a worker thread, as her match's water asks for them as it is first drawn: each
+## piece's flood_with draws — the whole ship's, MatchView's, when she never breaks —
+## each piece's layout cut here, on the caller's thread, before the match is stepped. A
+## liner's take seconds, made so beside her load rather than in her first frame (#634).
+static func warm_water(sim: MatchSim) -> void:
+	if sim.schedule.timeline() == null:
+		return
+	var leaves := leaves_of(sim.schedule)
+	if leaves.is_empty():
+		var ship := sim.config.ship
+		if ship.structure != null:
+			CellBoxes.warm(ship.structure, ship.rooms, ship)
+		return
+	for leaf in leaves:
+		var layout := sim.pieces.layout(leaf)
+		CellBoxes.warm(sim.schedule.structure_of(leaf), layout.rooms, layout)
+
+
 ## The place in leaves_of of the piece [param schedule]'s sinking ends in that the point
 ## [param x] along her lies on — 0, the ship's own node's, for a hull that never breaks.
 static func leaf_at(schedule: SinkSchedule, x: float) -> int:
@@ -258,8 +277,8 @@ func flood_with(sea: ShaderMaterial, first: InnerWater) -> void:
 			structure,
 			layout.rooms,
 			layout,
-			_kept(_schedule.passages(), structure, _spans[at]),
-			_kept(_schedule.failing(), structure, _spans[at]),
+			AirVents.kept(_schedule.passages(), structure, _spans[at]),
+			AirVents.kept(_schedule.failing(), structure, _spans[at]),
 			sea,
 			paints
 		)
@@ -355,22 +374,6 @@ func _torn_tick(leaf: int, aft: bool) -> int:
 			if cut != (parent.x if aft else parent.y):
 				first = mini(first, _schedule.physics_tick(_schedule.timeline().born[piece]))
 	return first
-
-
-## Of [param openings], those of the piece [param structure] whose stretch is
-## [param span]: every cell they join its, their middle on it.
-static func _kept(
-	openings: Array[ShipOpening], structure: ShipStructure, span: Vector2
-) -> Array[ShipOpening]:
-	var found: Array[ShipOpening] = []
-	for opening: ShipOpening in openings:
-		var ours := opening.centre.x >= span.x and opening.centre.x <= span.y
-		for place: StringName in opening.joins:
-			if not place in [ShipOpening.SEA, ShipOpening.SKY]:
-				ours = ours and structure.cell_named(place) != -1
-		if ours:
-			found.append(opening)
-	return found
 
 
 ## [param broken], railings of hers, as leaf [param leaf]'s layout numbers its own.

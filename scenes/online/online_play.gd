@@ -265,7 +265,10 @@ func _on_began(config: MatchConfig, seat: int) -> void:
 	var local: LocalInputSource = null
 	if not _watching:
 		local = LocalInputSource.new(seat, 0.0, ViewSettings.local())
-	_begun = [_room.play(local), local, _seat_names(config.seats, seat)]
+	var played := _room.play(local)
+	_begun = [played, local, _seat_names(config.seats, seat)]
+	# The boxes her water is drawn in are made beside her dressing (#634).
+	ShipPieces.warm_water(played.client.sim)
 	if not _dresses:
 		_show_match()
 		return
