@@ -146,10 +146,12 @@ func _watched_in(ship: StringName, setting: StringName, seed_value: int) -> Floo
 
 
 func test_a_pocket_read_past_its_floor_makes_no_air() -> void:
-	# The freighter's coast sure hit: wing_1_p leaves its pocket 0.73 m3, under
-	# pocket_least, its push worked out at that room; the next step its room grows to
-	# 1.9 m3 and the air its floor left unread is read again — 0.89 m3 that was a gain.
-	var watch := _watched_in(&"freighter", &"coast", 0)
+	# The ferry's open-sea hit on seed 11: a pocket of hers is left less room than
+	# pocket_least, its push worked out at that room; a later step its room grows past it
+	# and the air its floor left unread is read again — what was a gain. (The freighter's
+	# coast sure hit did, 0.89 m3 in wing_1_p, until stalled held groups were solved in
+	# turn, #632.)
+	var watch := _watched_in(&"ferry", &"open_sea", 11)
 	assert_eq(
 		watch.counts[FloodWatch.Law.BOYLE],
 		0,
