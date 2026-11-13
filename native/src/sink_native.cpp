@@ -1162,7 +1162,7 @@ void NativeSink::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("newton", "group", "water", "heads", "held", "sea", "seconds"), &NativeSink::newton);
 	ClassDB::bind_method(D_METHOD("sweep", "reverse", "heads", "water", "held", "sea", "seconds", "sea_given"),
 			&NativeSink::sweep);
-	ClassDB::bind_method(D_METHOD("stiff", "heads", "water", "held", "holding", "widest", "sea", "per_metre"),
+	ClassDB::bind_method(D_METHOD("stiff", "heads", "water", "held", "holding", "sea", "per_metre"),
 			&NativeSink::stiff);
 	ClassDB::bind_method(D_METHOD("across", "heads", "water", "sea", "ceilings", "sills", "pocket", "air",
 								 "members_from", "members_count", "members"),

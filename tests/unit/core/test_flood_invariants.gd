@@ -146,10 +146,12 @@ func _watched_in(ship: StringName, setting: StringName, seed_value: int) -> Floo
 
 
 func test_a_pocket_read_past_its_floor_makes_no_air() -> void:
-	# The freighter's coast sure hit: wing_1_p leaves its pocket 0.73 m3, under
-	# pocket_least, its push worked out at that room; the next step its room grows to
-	# 1.9 m3 and the air its floor left unread is read again — 0.89 m3 that was a gain.
-	var watch := _watched_in(&"freighter", &"coast", 0)
+	# The ferry's open-sea hit on seed 11: a pocket of hers is left less room than
+	# pocket_least, its push worked out at that room; a later step its room grows past it
+	# and the air its floor left unread is read again — what was a gain. (The freighter's
+	# coast sure hit did, 0.89 m3 in wing_1_p, until stalled held groups were solved in
+	# turn, #632.)
+	var watch := _watched_in(&"ferry", &"open_sea", 11)
 	assert_eq(
 		watch.counts[FloodWatch.Law.BOYLE],
 		0,
@@ -159,9 +161,10 @@ func test_a_pocket_read_past_its_floor_makes_no_air() -> void:
 
 
 func test_a_pocket_leaked_under_its_floor_is_let_go_not_lost() -> void:
-	# The barque's coast hit on seed 3, aground: her aft peak's pocket leaks down through
-	# pocket_least, and SinkAir counts it gone — 1 m3 that was a loss.
-	var watch := _watched_in(&"barque", &"coast", 3)
+	# The barque's coast hit on seed 21, aground: a pocket of hers leaks down through
+	# pocket_least, and SinkAir counts it gone — 1 m3 that was a loss. (Seed 3's did until
+	# a cell at a sill was held, #632.)
+	var watch := _watched_in(&"barque", &"coast", 21)
 	assert_eq(
 		watch.counts[FloodWatch.Law.BOYLE],
 		0,
