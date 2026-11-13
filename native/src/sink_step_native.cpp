@@ -1,5 +1,5 @@
 // NativeSink's stages around the solves (#411), each a GDScript one line for line as in
-// sink_native.cpp: every opening's share open (SinkStepper._share_out, open_share), the
+// sink_native.cpp: every opening's share open (SinkStepper._share_out, SinkOpenings.open_share), the
 // cells a step holds stiff (SinkStepper._hold_stiff, ShippedWater.ships), and what of
 // her gives way (SinkFailures._heads_across, the loops of follow and gaps,
 // _gives_way_gap). Sums and products run in the GDScript's order, minf, maxf and clampf
@@ -43,7 +43,7 @@ void take(std::vector<T> &r_to, const P &p_from) {
 	r_to.assign(p_from.ptr(), p_from.ptr() + p_from.size());
 }
 
-// SinkStepper.open_share.
+// SinkOpenings.open_share.
 double open_share(double p_shut_time, double p_seconds, double p_opened) {
 	if (p_shut_time < 0.0) {
 		return p_opened;

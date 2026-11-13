@@ -22,7 +22,7 @@ func _init(sink: Object) -> void:
 
 ## The extension's loops for a stepper whose compiled [param openings] are its first and
 ## second sides, holes in a floor, middles, half extents, flow areas and the seconds
-## the ship takes to shut each (SinkStepper.open_share), over cells in
+## the ship takes to shut each (SinkOpenings.open_share), over cells in
 ## [param boxes] holding [param capacity], with [param air] and wells [param shipped]
 ## under [param sea]; null where the extension is not loaded.
 static func made(

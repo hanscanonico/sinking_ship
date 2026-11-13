@@ -113,7 +113,7 @@ private:
 	double trough_ = 0.0;
 	// At the step begun, per well its edges' lowest end (ShippedWater.ships).
 	std::vector<double> lowest_;
-	// Per opening, the seconds the ship takes to shut it (SinkStepper.open_share).
+	// Per opening, the seconds the ship takes to shut it (SinkOpenings.open_share).
 	std::vector<double> shut_time_;
 	// SinkFailures' watched openings, in its order: each one's index among the openings,
 	// its sides, the seconds the ship takes to shut it, the heads it leaks and gives way

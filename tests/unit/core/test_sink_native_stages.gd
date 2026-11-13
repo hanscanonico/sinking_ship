@@ -71,7 +71,7 @@ class Staged:
 			var answer := _native.shares(since, opened)
 			var reference := PackedFloat64Array()
 			for index in _names.size():
-				reference.append(open_share(_shut_time[index], since, opened[index]))
+				reference.append(SinkOpenings.open_share(_shut_time[index], since, opened[index]))
 			asked[&"shares"] += 1
 			if not alike(answer, reference):
 				note("shares at %s seconds" % var_to_str(since))

@@ -48,6 +48,8 @@ const NUDGE := 1e-7
 const HEAD_TOLERANCE := 1e-9
 const TRIES := 60
 const REACH := 1e-3
+## How many times cells held together whose solve stalls are solved alone in turn.
+const IN_TURN := 20
 
 var _sea: SeaPhysics
 var _hull: LevelHull
@@ -607,15 +609,26 @@ func _groups(held: PackedInt32Array, heads: PackedFloat64Array) -> Array[PackedI
 ## lifts its water to that head — by Newton's method on all of them at once, the
 ## slopes measured by nudging each head, every step halved until it brings the largest
 ## surplus down: one held cell's head pins its neighbour's, so a pair joined wide under
-## water moves as one, which solving them in turn would only creep towards. Whether every
-## surplus came within SURPLUS_TOLERANCE. A flow asked again at the same heads is not
-## worked out again (_transfer).
+## water moves as one, which solving them in turn would only creep towards. Where it
+## stalls — a stiff group of full cells beside a squeezed pocket, its slopes lying — they
+## creep: solved alone in turn up to IN_TURN times, then by Newton's method again from
+## there (#632). Whether every surplus came within SURPLUS_TOLERANCE. A flow asked again
+## at the same heads is not worked out again (_transfer).
 func _solve_together(
 	held: PackedInt32Array, state: FloodState, heads: PackedFloat64Array, sea: float, seconds: float
 ) -> bool:
 	_solves += 1
 	_solving = _solves
 	var solved := _newton(held, state, heads, sea, seconds)
+	for _sweep in 0 if solved else IN_TURN:
+		for cell: int in held:
+			heads[cell] = _balanced(cell, state.water[cell], heads, sea, state.seconds, seconds)
+		solved = (
+			LinearSystem.largest(_surpluses(held, state, heads, sea, seconds)) <= SURPLUS_TOLERANCE
+		)
+		if solved:
+			break
+	solved = solved or _newton(held, state, heads, sea, seconds)
 	_solving = 0
 	return solved
 
@@ -941,19 +954,6 @@ func sill_of(index: int) -> float:
 	return _bottom[index]
 
 
-## How open, 0…1, an opening is [param seconds] after the hit: one the ship shuts in
-## [param shut_time] slides shut evenly, one that jammed or that is not shut — 0 —
-## stays as it is, one shut from the start — under 0 — stays shut; and none is less
-## open than a failure has made it, [param opened] (FloodState.opened). The schedule's
-## doors and the physics' read this one answer.
-static func open_share(shut_time: float, seconds: float, opened := 0.0) -> float:
-	if shut_time < 0.0:
-		return opened
-	if shut_time == 0.0:
-		return 1.0
-	return maxf(clampf(1.0 - seconds / shut_time, 0.0, 1.0), opened)
-
-
 ## The water that passes opening [param index] in [param seconds] from [param since]
 ## seconds after the hit, with the cells' heads [param heads] and the sea at
 ## [param sea]: positive from its first side to its second. A side whose air is trapped
@@ -1064,7 +1064,7 @@ func _transfer(
 	return passed
 
 
-## Every opening's share open (open_share) [param since] seconds after the hit, as
+## Every opening's share open (SinkOpenings.open_share) [param since] seconds after the hit, as
 ## _transfer reads it.
 func _share_out(since: float) -> void:
 	_shares_at = since
@@ -1072,7 +1072,7 @@ func _share_out(since: float) -> void:
 		_shares = _native.shares(since, _opened)
 		return
 	for index in _names.size():
-		_shares[index] = open_share(_shut_time[index], since, _opened[index])
+		_shares[index] = SinkOpenings.open_share(_shut_time[index], since, _opened[index])
 
 
 ## The most that can pass from [param up] to [param down] over an edge at
