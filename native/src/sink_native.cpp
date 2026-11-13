@@ -1067,8 +1067,9 @@ PackedFloat64Array NativeSink::sweep(bool p_reverse, const PackedFloat64Array &p
 	double sea_given = p_sea_given;
 	const uint8_t *held = held_;
 	// Every opening in turn, then those whose held giver was short of what its solve
-	// said, once every other opening has passed.
+	// said, again while anything has passed since every flow waiting began to wait.
 	std::vector<int64_t> order;
+	size_t waiting = 0;
 	order.reserve(size_t(count) * 2);
 	for (int64_t turn = 0; turn < count; turn++) {
 		order.push_back(p_reverse ? count - 1 - turn : turn);
@@ -1090,8 +1091,9 @@ PackedFloat64Array NativeSink::sweep(bool p_reverse, const PackedFloat64Array &p
 		const int32_t giver = amount > 0.0 ? first : second;
 		if (giver != OUTSIDE && by_held) {
 			const double holds = max_f(water[giver], 0.0);
-			if (abs_f(amount) > holds && at < size_t(count)) {
+			if (abs_f(amount) > holds && (at < size_t(count) || waiting < order.size() - at - 1)) {
 				order.push_back(index);
+				waiting++;
 				continue;
 			}
 			amount = clamp_f(amount, -holds, holds);
@@ -1100,6 +1102,7 @@ PackedFloat64Array NativeSink::sweep(bool p_reverse, const PackedFloat64Array &p
 		if (amount == 0.0) {
 			continue;
 		}
+		waiting = 0;
 		// SinkStepper._give_to, the first side then the second.
 		const int32_t sides[2] = { first, second };
 		const double given[2] = { -amount, amount };

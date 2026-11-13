@@ -332,10 +332,9 @@ func step(state: FloodState, seconds: float) -> FloodState:
 	return next
 
 
-## Sweeps the openings of [param next], stepped [param seconds] from [param state], the
-## sea at [param sea], in a fixed order that turns round every step: each passes what
-## it would at the heads standing, capped, its sides' heads in [param heads] following.
-## Gives the heads it leaves.
+## Sweeps the openings of [param next], stepped [param seconds] from [param state], the sea
+## at [param sea], in a fixed order turning round every step: each passes what it would at
+## the heads standing, capped, its sides' [param heads] following. Gives the heads it leaves.
 func _sweep(
 	state: FloodState, next: FloodState, heads: PackedFloat64Array, sea: float, seconds: float
 ) -> PackedFloat64Array:
@@ -346,35 +345,36 @@ func _sweep(
 	var solved := heads.duplicate()
 	var order := range(count) if state.steps % 2 == 0 else range(count - 1, -1, -1)
 	var at := 0
+	var waiting := 0
 	while at < order.size():
 		var index: int = order[at]
 		at += 1
 		# Dry on both sides below it: nothing to pass, and nothing worth a call.
 		var first := _first[index]
 		var second := _second[index]
-		var bottom := _bottom[index]
 		var by_held := (first >= 0 and _held[first] == 1) or (second >= 0 and _held[second] == 1)
 		var standing := solved if by_held else heads
 		if (
-			(sea if first == OUTSIDE else standing[first]) <= bottom
-			and (sea if second == OUTSIDE else standing[second]) <= bottom
+			(sea if first == OUTSIDE else standing[first]) <= _bottom[index]
+			and (sea if second == OUTSIDE else standing[second]) <= _bottom[index]
 		):
 			next.moved[index] = 0.0
 			continue
 		var amount := _transfer(index, standing, sea, state.seconds, seconds, heads)
-		# A cell passing what a solve said gives no more than it holds once the sweep has
-		# brought in what else the solve counted on (its neighbours' caps may keep some back):
-		# short of it, its flow waits until every other opening has passed.
+		# A held cell gives no more than it holds once all else that can has passed in (caps may
+		# keep some back): short, its flow waits until every flow waiting has, since one passed.
 		var giver := first if amount > 0.0 else second
 		if giver != OUTSIDE and by_held:
 			var holds := maxf(next.water[giver], 0.0)
-			if absf(amount) > holds and at <= count:
+			if absf(amount) > holds and (at <= count or waiting < order.size() - at):
 				order.append(index)
+				waiting += 1
 				continue
 			amount = clampf(amount, -holds, holds)
 		next.moved[index] = amount
 		if amount == 0.0:
 			continue
+		waiting = 0
 		_give_to(first, -amount, next, heads)
 		_give_to(second, amount, next, heads)
 	return heads

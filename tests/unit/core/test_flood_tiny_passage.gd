@@ -34,23 +34,40 @@ func _opening(
 	return made
 
 
-func _stepper() -> SinkStepper:
+## With [param twice], a second tiny cell abaft the first, the dry room abaft that: the
+## sweep turned round reaches both ways out before either way in.
+func _stepper(twice := false) -> SinkStepper:
 	var barge := BoxBarge.new(1000.0, 1000.0, 40.0, 20.0, 10.0)
 	barge.section_length = 100.0
+	var shift := Vector3(-TINY_HIGH.x + TINY_LOW.x, 0.0, 0.0) if twice else Vector3.ZERO
 	barge.cell(&"full", FULL_LOW, FULL_HIGH)
 	barge.cell(&"tiny", TINY_LOW, TINY_HIGH)
-	barge.cell(&"dry", DRY_LOW, DRY_HIGH)
+	barge.cell(&"dry", DRY_LOW + shift, DRY_HIGH + shift)
 	barge.vent(&"full", Vector3(7.0, FULL_HIGH.y, 0.0), 1.0)
 	barge.vent(&"tiny", Vector3(-1.3, TINY_HIGH.y, 1.0), 0.05)
-	barge.vent(&"dry", Vector3(-9.6, DRY_HIGH.y, 0.0), 1.0)
+	barge.vent(&"dry", Vector3(-9.6, DRY_HIGH.y, 0.0) + shift, 1.0)
 	barge.openings.append(
 		_opening(&"gash", &"full", &"sea", Vector3(7.0, -7.0, FULL_LOW.z), Vector3(0.6, 0.0, 1.0))
 	)
 	barge.openings.append(
 		_opening(&"in", &"tiny", &"full", Vector3(0.0, -6.78, 0.95), Vector3(0.0, 2.44, 1.9))
 	)
+	var last := &"tiny"
+	if twice:
+		barge.cell(&"tiny_aft", TINY_LOW + shift, TINY_HIGH + shift)
+		barge.vent(&"tiny_aft", Vector3(-3.9, TINY_HIGH.y, 1.0), 0.05)
+		barge.openings.append(
+			_opening(
+				&"between",
+				&"tiny_aft",
+				&"tiny",
+				Vector3(-2.6, -6.78, 0.95),
+				Vector3(0.0, 2.44, 1.9)
+			)
+		)
+		last = &"tiny_aft"
 	barge.openings.append(
-		_opening(&"out", &"dry", &"tiny", Vector3(-2.6, -6.78, 0.95), Vector3(0.0, 2.44, 1.9))
+		_opening(&"out", &"dry", last, Vector3(-2.6, -6.78, 0.95) + shift, Vector3(0.0, 2.44, 1.9))
 	)
 	var sea: SeaPhysics = SeaPhysics.load_default().duplicate()
 	sea.attitude = false
@@ -72,6 +89,18 @@ func test_water_running_through_a_tiny_cell_keeps_it_within_its_box() -> void:
 		state = stepper.advance(state)
 		most = maxf(most, state.water[1])
 	assert_lte(most, stepper.capacity_of(1) + OVER, "within its box by a small slip")
+
+
+func test_water_running_through_two_tiny_cells_keeps_both_within_their_boxes() -> void:
+	var stepper := _stepper(true)
+	var state := _started(stepper)
+	var most := 0.0
+	for _step in STEPS:
+		state = stepper.advance(state)
+		for cell in stepper.capacities().size():
+			if String(stepper.cell_name(cell)).begins_with("tiny"):
+				most = maxf(most, state.water[cell] - stepper.capacity_of(cell))
+	assert_lte(most, OVER, "within their boxes by a small slip")
 
 
 func test_water_running_through_a_tiny_cell_is_conserved() -> void:
