@@ -130,6 +130,21 @@ static func of_piece(config: MatchConfig, schedule: SinkSchedule, piece: int) ->
 	return Currents.new(config.rules, structure, more, SeaPhysics.load_default().gravity)
 
 
+## Its openings among [param passages] (ShipPose.passages), in passage order: per one,
+## [the opening, its passage's place among them, its first side, its second] — a cell, or
+## -1 for the sea — as the currents match them (WaterFronts).
+func joined(passages: Array[StringName]) -> Array[Array]:
+	var at: Dictionary[StringName, int] = {}
+	for index in _openings.size():
+		at[_openings[index].name] = index
+	var found: Array[Array] = []
+	for passage in passages.size():
+		if at.has(passages[passage]):
+			var index: int = at[passages[passage]]
+			found.append([_openings[index], passage, _sides[index * 2], _sides[index * 2 + 1]])
+	return found
+
+
 ## Cell [param place] of [param structure], -1 for her outside — the sea or the sky over
 ## her decks, whose water is the sea's — -2 for a cell it has not.
 static func _side_of(structure: ShipStructure, place: StringName) -> int:

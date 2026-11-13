@@ -68,6 +68,16 @@ var lurch: float
 ## the whole ship alone, for a hull that never breaks.
 var pieces: Array[ShipPose] = []
 var standing := PackedInt32Array([0])
+## Where each cell's first water has run to (WaterFronts, #642): per cell, 1 while it is
+## spreading — beyond every one of its fronts its floor holds no water (reached) — and per
+## front how far it has run, -1 before it starts; empty, with no fronts, while no cell is
+## spreading; and the cells spreading, ascending. Of the timeline, never in a snapshot or the digest (D5). [member front_frame]
+## takes this pose's points to the ship space the fronts are in (Faces.framed).
+var fronts: WaterFronts
+var spreading := PackedByteArray()
+var spread_cells := PackedInt32Array()
+var reaches := PackedFloat64Array()
+var front_frame := Basis.IDENTITY
 ## The highest water, worked out on first asking (highest_water).
 var _highest := NAN
 
@@ -106,6 +116,24 @@ func share_with_pieces() -> void:
 		piece.standing = standing
 		piece.passages = passages
 		piece.flows = flows
+
+
+## Hands [param made], a pose of a reader's own made from this one, where the fronts stand.
+func share_fronts(made: ShipPose) -> void:
+	made.fronts = fronts
+	made.spreading = spreading
+	made.spread_cells = spread_cells
+	made.reaches = reaches
+	made.front_frame = front_frame
+
+
+## Whether the water of [param cell] has run to [param ship_point]'s x/z: true but while
+## the cell is spreading and the point lies beyond every one of its fronts (WaterFronts).
+func reached(cell: int, ship_point: Vector3) -> bool:
+	if spreading.is_empty() or spreading[cell] == 0:
+		return true
+	var at := front_frame * ship_point
+	return fronts.within(cell, at.x, at.z, reaches)
 
 
 func world_height(ship_point: Vector3) -> float:
@@ -155,7 +183,8 @@ func water_level(ship_point: Vector3) -> float:
 
 
 ## The ship-local height the water [param ship_point] is in stands at over its x/z: a
-## point there is wet below it. Its free surface: in a cell that is full, the surface
+## point there is wet below it — its cell's floor where that cell's first water has not
+## yet run to it (reached). Its free surface: in a cell that is full, the surface
 ## over its ceiling — the water of the cell over it, so a swimmer under a flooded hold's
 ## open top rises into the pocket over it (SH29) — or the sea's, where no cell is. An
 ## answer at every attitude, for the sea outside her and the water in each of her cells
@@ -166,6 +195,8 @@ func water_height(ship_point: Vector3) -> float:
 	while cell != CellMap.NONE:
 		at.y = cells.ceiling_of(cell)
 		if levels[cell] < world_height(at):
+			if not reached(cell, ship_point):
+				return cells.floor_of(cell)
 			return height_of(levels[cell], ship_point)
 		cell = cells.cell_at(at)
 	return height_of(0.0, ship_point)
@@ -235,7 +266,8 @@ func above_water_seen(
 ## [param map_cell] of this pose's CellMap (CellMap.cell_at), is below the water there —
 ## its cell's, or the sea's outside her — that cell holding more than CellMap.DRY over its
 ## floor: a dry cell's water stands at its floor, and a point on it is not wet by its
-## height's last bit. The helper behind Surfaces.wet (D13), for a point whose height and
+## height's last bit — nor beyond every front of a cell its water is still running out
+## over (reached). The helper behind Surfaces.wet (D13), for a point whose height and
 ## cell are found already.
 func wet_at(ship_point: Vector3, height: float, map_cell: int) -> bool:
 	if height >= highest_water():
@@ -248,8 +280,11 @@ func wet_at(ship_point: Vector3, height: float, map_cell: int) -> bool:
 	if cell == CellMap.NONE:
 		return true
 	return (
-		level
-		> world_height(Vector3(ship_point.x, cells.floor_of(cell), ship_point.z)) + CellMap.DRY
+		(
+			level
+			> world_height(Vector3(ship_point.x, cells.floor_of(cell), ship_point.z)) + CellMap.DRY
+		)
+		and reached(cell, ship_point)
 	)
 
 

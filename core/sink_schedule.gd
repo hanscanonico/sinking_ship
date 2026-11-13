@@ -118,6 +118,12 @@ var _aground_tick := -1
 ## it, the sound's a second back, the contact watch's ahead — each built once. Never
 ## match state: no snapshot or digest holds them.
 var _kept_ticks := PackedInt32Array()
+## The sea's constants it was baked under, and where each cell's first water has run to
+## (WaterFronts): made the first time a pose after the hit asks, from the timeline as it
+## has come — again once more of it has (TimelineStream) — null for none.
+var _sea: SeaPhysics
+var _fronts: WaterFronts
+var _fronts_of := -1
 var _kept_poses: Array[ShipPose] = []
 
 
@@ -150,6 +156,7 @@ func _init(
 	if structure == null or not scenario.is_physical():
 		return
 	var physics := sea if sea != null else SeaPhysics.load_default()
+	_sea = physics
 	if chosen != null:
 		_choice = chosen
 	elif scenario.explicit_hit != null:
@@ -452,6 +459,9 @@ func _physical(tick: int) -> ShipPose:
 		pose.flows.resize(_timeline.passages.size())
 		for passage in pose.flows.size():
 			pose.flows[passage] = _timeline.flow(frame, next, passage)
+		var fronts := water_fronts()
+		if fronts != null:
+			fronts.pose(pose, seconds)
 	for failed in _failed_ticks.size():
 		if _failed_ticks[failed] > tick:
 			break
@@ -470,6 +480,43 @@ func _physical(tick: int) -> ShipPose:
 		elif tick >= _lurch_ticks[lurch * 3 + 1] and tick < _lurch_ticks[lurch * 3 + 2]:
 			pose.lurch = _lurch_heels[lurch]
 	return pose
+
+
+## Where each cell's first water has run to (WaterFronts, #642): a pure function of the
+## timeline, made once — again as more of a timeline still coming comes — null without a
+## physical sinking or with no cell spreading. Her whole ship's cells: a piece she breaks
+## into keeps its water as before.
+func water_fronts() -> WaterFronts:
+	if _timeline == null or _timeline.passages.is_empty():
+		return null
+	if _fronts_of == _timeline.count():
+		return _fronts
+	_fronts_of = _timeline.count()
+	var structure := _structures[0]
+	var start := _piece_pose(0, 0, mini(1, _timeline.count() - 1), 0.0, 0.0)
+	var wet := PackedByteArray()
+	wet.resize(structure.cells.size())
+	for cell in wet.size():
+		var box := _cells.box_of(cell)
+		var lowest := INF
+		for corner: Vector3 in [
+			box.position,
+			box.position + Vector3(box.size.x, 0.0, 0.0),
+			box.position + Vector3(0.0, 0.0, box.size.z),
+			box.position + Vector3(box.size.x, 0.0, box.size.z),
+		]:
+			lowest = minf(lowest, start.world_height(corner))
+		wet[cell] = 1 if start.levels[cell] > lowest + CellMap.DRY else 0
+	var more: Array[ShipOpening] = []
+	if _damage != null:
+		more.append_array(_damage.openings)
+	more.append_array(_failing)
+	_fronts = WaterFronts.new(
+		_timeline, structure, more, _cell_of[0], wet, _sea.spread_froude, _sea.gravity
+	)
+	if _fronts.is_empty():
+		_fronts = null
+	return _fronts
 
 
 ## Her trim and heel at [param tick], in degrees, as her bake has them (leans_of): her

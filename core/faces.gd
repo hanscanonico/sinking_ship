@@ -154,6 +154,8 @@ func framed(pose: ShipPose, up: int) -> ShipPose:
 		if not _cells.has(up):
 			_cells[up] = pose.cells.framed(to_ship(up))
 		made.cells = _cells[up]
+	pose.share_fronts(made)
+	made.front_frame = pose.front_frame * to_ship(up)
 	made.lit = pose.lit
 	made.doors_shut = pose.doors_shut
 	made.opened = pose.opened

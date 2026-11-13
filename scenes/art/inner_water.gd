@@ -102,6 +102,8 @@ const SLOSH_SHALLOWEST := 0.05
 const GRAVITY := 9.81
 const SLOSH_CALM := 2e-3
 const SLOSH_REST := 5e-4
+## The most fronts a cell's sheet is masked by (inner_water.gdshader's front_rects).
+const MOST_FRONTS := 8
 ## The global shader parameters her water's world to ship space is set in, one a frame
 ## for every cell's surface at once (inner_water.gdshader): one per InnerWater drawn —
 ## hers whole, or each piece's once she breaks (ShipPieces) — each held by the one that
@@ -226,6 +228,8 @@ var _made := PackedByteArray()
 var _unmade := PackedInt32Array()
 ## Her cells' water swinging as she turns, tilting the sheets placed.
 var _slosh: CellSlosh
+## The cells whose sheets are drawn only inside their water's fronts now (_mask_fronts).
+var _masked := PackedInt32Array()
 
 
 ## Draws the water in [param structure], round [param rooms] where her cells poke out
@@ -445,6 +449,8 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float, seconds := NAN) -> 
 				_show_surface(surface, stack[0], stack[1], level, to_ship)
 				shown += 1 if surface.visible else 0
 			_stacks_shown[at] = shown
+	if not _masked.is_empty() or not now.spread_cells.is_empty():
+		_mask_fronts(then, now, alpha)
 	if now != _inflow_now:
 		_show_inflows(then, now)
 	for door: StringName in _leaves:
@@ -739,6 +745,69 @@ func _churn(cell: int, churn: float) -> void:
 		_param(_surfaces[cell], &"inflow", churn)
 	for index: int in _stacks_of(cell):
 		_param(_stacks[index][2], &"inflow", churn)
+
+
+## Draws each cell's water spreading at [param now] only inside its fronts, [param alpha]
+## of the way on from [param then] (front_mask), and every other cell's whole again.
+func _mask_fronts(then: ShipPose, now: ShipPose, alpha: float) -> void:
+	for cell: int in _masked:
+		if now.spread_cells.has(cell) or cell >= _surfaces.size():
+			continue
+		_mask_cell(cell, [PackedVector4Array(), PackedFloat32Array()])
+	_masked = now.spread_cells.duplicate()
+	for cell: int in _masked:
+		if cell < _surfaces.size():
+			_mask_cell(cell, front_mask(now, cell, then, alpha))
+
+
+## Sets [param mask] (front_mask) on every sheet cell [param cell] is drawn in.
+func _mask_cell(cell: int, mask: Array) -> void:
+	var sheets: Array[MeshInstance3D] = []
+	if _surfaces[cell] != null:
+		sheets.append(_surfaces[cell])
+	for index: int in _stacks_of(cell):
+		sheets.append(_stacks[index][2])
+	var rects: PackedVector4Array = mask[0]
+	for sheet: MeshInstance3D in sheets:
+		_param(sheet, &"front_count", rects.size())
+		if not rects.is_empty():
+			_param(sheet, &"front_rects", rects)
+			_param(sheet, &"front_reaches", mask[1])
+
+
+## Cell [param cell]'s fronts under [param pose] as its sheets' mask takes them
+## (inner_water.gdshader): [the rectangles they run out from — low x, low z, high x,
+## high z — and how far each has run], [param alpha] of the way on from [param then]'s
+## where that has them too; at most MOST_FRONTS of them, those first started. Empty while
+## the cell is not spreading: drawn whole.
+static func front_mask(pose: ShipPose, cell: int, then: ShipPose = null, alpha := 1.0) -> Array:
+	var rects := PackedVector4Array()
+	var reaches := PackedFloat32Array()
+	if pose.spreading.is_empty() or pose.spreading[cell] == 0:
+		return [rects, reaches]
+	var fronts := pose.fronts
+	var span := fronts.of_cell(cell)
+	var blend := then != null and is_same(then.fronts, fronts) and not then.spreading.is_empty()
+	for front in range(span.x, span.x + mini(span.y, MOST_FRONTS)):
+		var reach := pose.reaches[front]
+		if blend and then.reaches[front] >= 0.0 and reach >= 0.0:
+			reach = lerpf(then.reaches[front], reach, alpha)
+		rects.append(fronts.rect_of(front))
+		reaches.append(reach)
+	return [rects, reaches]
+
+
+## How far inside the nearest of [param rects] at [param reaches] (front_mask) ship
+## x/z ([param x], [param z]) lies — below 0 beyond them all, where a sheet draws nothing:
+## inner_water.gdshader's own reading, and WaterFronts.margin's.
+static func masked(
+	rects: PackedVector4Array, reaches: PackedFloat32Array, x: float, z: float
+) -> float:
+	var best := -INF
+	for front in rects.size():
+		if reaches[front] >= 0.0:
+			best = maxf(best, reaches[front] - WaterFronts.apart(rects[front], x, z))
+	return best
 
 
 ## The stacks [param cell] is drawn in, by index into _stacks: none for most.
