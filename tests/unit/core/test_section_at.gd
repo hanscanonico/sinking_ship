@@ -3,13 +3,13 @@ extends GutTest
 ## walking them in order answers, for every ship, past her ends, across a missing
 ## section, and after her sections change.
 
-const SHIPS: Array[String] = [
-	"res://data/ships/titanic.tres",
-	"res://data/ships/small_titanic.tres",
-	"res://data/ships/steamer.tres",
-	"res://data/ships/trawler.tres",
-	"res://data/ships/tug.tres",
-	"res://data/ships/barque.tres",
+const SHIPS: Array[ShipLayout] = [
+	preload("res://data/ships/titanic.tres"),
+	preload("res://data/ships/small_titanic.tres"),
+	preload("res://data/ships/steamer.tres"),
+	preload("res://data/ships/trawler.tres"),
+	preload("res://data/ships/tug.tres"),
+	preload("res://data/ships/barque.tres"),
 ]
 ## How finely x is swept, in metres, and how far past her ends.
 const STEP := 0.037
@@ -17,12 +17,12 @@ const PAST := 6.0
 
 
 func test_every_ship_answers_as_the_scan_does() -> void:
-	for path: String in SHIPS:
-		var structure: ShipStructure = (load(path) as ShipLayout).structure
+	for ship: ShipLayout in SHIPS:
+		var structure := ship.structure
 		var aft := structure.sections[0].x - structure.sections[0].length * 0.5
 		var x := aft - PAST
 		var wrong := _first_wrong(structure, x, aft + structure.length() + PAST, STEP)
-		assert_eq(wrong, "", path)
+		assert_eq(wrong, "", ship.resource_path)
 		# Every end exactly, and the float either side of it.
 		for section: HullSection in structure.sections:
 			for end: float in [section.x - section.length * 0.5, section.x + section.length * 0.5]:
