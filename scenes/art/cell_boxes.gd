@@ -32,6 +32,22 @@ const LEAN := 0.05
 ## alone, so the same however often asked.
 static var _made := {}
 static var _made_guard := Mutex.new()
+## Per structure, the lists being made on a worker thread (warm), which an asker waits
+## for rather than make them beside it; the worker tasks not yet seen through (_reap);
+## and how many times her lists were made, warm or asked (_made_of), for a test to tell.
+static var _warming := {}
+static var _tasks: Array[int] = []
+static var _makes := 0
+
+
+## A structure's lists being made on a worker (warm): for its rooms and layout, posted
+## once they are in _made.
+class Warming:
+	extends RefCounted
+
+	var rooms: Array[ShipRoom]
+	var layout: ShipLayout
+	var ready := Semaphore.new()
 
 
 ## The boxes of [param structure]'s cells whose water is drawn — every cell wholly
@@ -49,8 +65,60 @@ static func boxes(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array[AAB
 	return found
 
 
-## Both of [param structure]'s lists for [param rooms] (_made): [rooms, boxes, stacks].
+## Makes [param structure]'s lists for [param rooms] and [param layout] (boxes, stacked)
+## on a worker thread, unless they are made or being made: a match's load starts them
+## (ShipPieces.warm_water) so her first frame finds them made, a liner's seconds of them
+## (#634). Whoever asks for them meanwhile waits for these, never makes them beside.
+static func warm(structure: ShipStructure, rooms: Array[ShipRoom], layout: ShipLayout) -> void:
+	_reap()
+	_made_guard.lock()
+	var made: Array = _made.get(structure, [])
+	var known := made.size() >= 5 and is_same(made[0], rooms) and is_same(made[3], layout)
+	if not known and not _warming.has(structure):
+		var warming := Warming.new()
+		warming.rooms = rooms
+		warming.layout = layout
+		_warming[structure] = warming
+		_tasks.append(
+			WorkerThreadPool.add_task(_warm.bind(structure, warming), false, "Cell boxes")
+		)
+	_made_guard.unlock()
+
+
+## On a worker: [param warming]'s lists of [param structure] made, kept and posted.
+static func _warm(structure: ShipStructure, warming: Warming) -> void:
+	var rooms := warming.rooms
+	var made := [rooms, _boxes(structure, rooms), _stacked(structure, rooms)]
+	made.append(warming.layout)
+	made.append(RoomColumns.joined(structure, warming.layout, made[1], made[2]))
+	_made_guard.lock()
+	_made[structure] = made
+	_makes += 1
+	_warming.erase(structure)
+	_made_guard.unlock()
+	warming.ready.post()
+
+
+## Sees through every warm task that is over.
+static func _reap() -> void:
+	_made_guard.lock()
+	for task: int in _tasks.duplicate():
+		if WorkerThreadPool.is_task_completed(task):
+			WorkerThreadPool.wait_for_task_completion(task)
+			_tasks.erase(task)
+	_made_guard.unlock()
+
+
+## Both of [param structure]'s lists for [param rooms] (_made): [rooms, boxes, stacks] —
+## waited for while they are being made (warm).
 static func _made_of(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
+	_made_guard.lock()
+	var warming: Warming = _warming.get(structure)
+	_made_guard.unlock()
+	if warming != null:
+		warming.ready.wait()
+		warming.ready.post()
+	_reap()
 	_made_guard.lock()
 	var made: Array = _made.get(structure, [])
 	_made_guard.unlock()
@@ -58,6 +126,7 @@ static func _made_of(structure: ShipStructure, rooms: Array[ShipRoom]) -> Array:
 		made = [rooms, _boxes(structure, rooms), _stacked(structure, rooms)]
 		_made_guard.lock()
 		_made[structure] = made
+		_makes += 1
 		_made_guard.unlock()
 	return made
 
