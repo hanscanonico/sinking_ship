@@ -1066,8 +1066,15 @@ PackedFloat64Array NativeSink::sweep(bool p_reverse, const PackedFloat64Array &p
 	const std::vector<double> solved(p_heads.ptr(), p_heads.ptr() + p_heads.size());
 	double sea_given = p_sea_given;
 	const uint8_t *held = held_;
+	// Every opening in turn, then those whose held giver was short of what its solve
+	// said, once every other opening has passed.
+	std::vector<int64_t> order;
+	order.reserve(size_t(count) * 2);
 	for (int64_t turn = 0; turn < count; turn++) {
-		const int64_t index = p_reverse ? count - 1 - turn : turn;
+		order.push_back(p_reverse ? count - 1 - turn : turn);
+	}
+	for (size_t at = 0; at < order.size(); at++) {
+		const int64_t index = order[at];
 		const int32_t first = first_[index];
 		const int32_t second = second_[index];
 		const double bottom = opening_bottom_[index];
@@ -1083,6 +1090,10 @@ PackedFloat64Array NativeSink::sweep(bool p_reverse, const PackedFloat64Array &p
 		const int32_t giver = amount > 0.0 ? first : second;
 		if (giver != OUTSIDE && by_held) {
 			const double holds = max_f(water[giver], 0.0);
+			if (abs_f(amount) > holds && at < size_t(count)) {
+				order.push_back(index);
+				continue;
+			}
 			amount = clamp_f(amount, -holds, holds);
 		}
 		moved[index] = amount;

@@ -344,8 +344,11 @@ func _sweep(
 	var count := _names.size()
 	# A held cell's openings pass what its solve said: the sweep's heads overfill a small one.
 	var solved := heads.duplicate()
-	for turn in count:
-		var index := turn if state.steps % 2 == 0 else count - 1 - turn
+	var order := range(count) if state.steps % 2 == 0 else range(count - 1, -1, -1)
+	var at := 0
+	while at < order.size():
+		var index: int = order[at]
+		at += 1
 		# Dry on both sides below it: nothing to pass, and nothing worth a call.
 		var first := _first[index]
 		var second := _second[index]
@@ -359,11 +362,15 @@ func _sweep(
 			next.moved[index] = 0.0
 			continue
 		var amount := _transfer(index, standing, sea, state.seconds, seconds, heads)
-		# A cell passing what a solve said gives no more than it holds: its neighbours' caps
-		# may have kept back some of what the solve counted on coming in.
+		# A cell passing what a solve said gives no more than it holds once the sweep has
+		# brought in what else the solve counted on (its neighbours' caps may keep some back):
+		# short of it, its flow waits until every other opening has passed.
 		var giver := first if amount > 0.0 else second
 		if giver != OUTSIDE and by_held:
 			var holds := maxf(next.water[giver], 0.0)
+			if absf(amount) > holds and at <= count:
+				order.append(index)
+				continue
 			amount = clampf(amount, -holds, holds)
 		next.moved[index] = amount
 		if amount == 0.0:
@@ -630,7 +637,7 @@ func _newton(
 	for at: float in heads:
 		highest = maxf(highest, at)
 	var surplus := _surpluses(held, state, heads, sea, seconds)
-	var worst := _largest(surplus)
+	var worst := LinearSystem.largest(surplus)
 	var slopes := PackedFloat64Array()
 	slopes.resize(count * count)
 	var started := PackedFloat64Array()
@@ -687,7 +694,7 @@ func _newton(
 				var cell := held[row]
 				heads[cell] = clampf(started[row] - share * change[row], _floor[cell], highest)
 			var tried := _surpluses(held, state, heads, sea, seconds)
-			var tried_worst := _largest(tried)
+			var tried_worst := LinearSystem.largest(tried)
 			if tried_worst < worst:
 				surplus = tried
 				worst = tried_worst
@@ -711,13 +718,6 @@ func _surpluses(
 			_surplus(cell, heads[cell], state.water[cell], heads, sea, state.seconds, seconds)
 		)
 	return found
-
-
-static func _largest(values: PackedFloat64Array) -> float:
-	var most := 0.0
-	for value: float in values:
-		most = maxf(most, absf(value))
-	return most
 
 
 ## The head of held cell [param cell], holding [param water] m³, at which what the step
