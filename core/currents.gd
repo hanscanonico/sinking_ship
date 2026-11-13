@@ -27,11 +27,16 @@ extends RefCounted
 ## Her openings are kept on a grid (SpatialIndex) by how far their currents reach, built
 ## once: a point asks only those whose reach it is in, and an opening's u0 is found once
 ## a pose, the first time a point near it asks.
+##
+## Water falling through a hole in a floor — a stairwell's, a hatch's — from the side over
+## it lands on the deck below: pours() names each one pouring so (Falls, #631).
 
 ## The kinds of opening that seep rather than pour: they move no water a body feels.
 const SEEPS: Array[ShipOpening.Kind] = [
 	ShipOpening.Kind.LEAK, ShipOpening.Kind.FLOOR_GAPS, ShipOpening.Kind.VENT
 ]
+## The kinds of opening in a floor whose water falls onto the deck below (pours).
+const FALLS: Array[ShipOpening.Kind] = [ShipOpening.Kind.STAIRWELL, ShipOpening.Kind.HATCH]
 ## How far over a point its cell is looked for: a wader's feet stand on its floor's top,
 ## which belongs to the space over it already, and a crate's underside likewise.
 const LIFT := 0.05
@@ -63,6 +68,21 @@ var _index: SpatialIndex
 var _pose: ShipPose
 var _speed := PackedFloat64Array()
 var _upstream := PackedByteArray()
+## The used openings in a floor water may fall through (FALLS), and those pouring under
+## the pose last asked about (pours), and that pose.
+var _holes := PackedInt32Array()
+var _pours: Array[Pour] = []
+var _poured: ShipPose
+
+
+## Water falling through a hole in a floor onto the deck below (pours): the hole, the m³ a
+## second through it, how fast it goes through — u0 — and the side under it, a cell or -1
+## for the sea.
+class Pour:
+	var opening: ShipOpening
+	var flow: float
+	var speed: float
+	var lower: int
 
 
 ## The currents of [param structure]'s openings and [param more] — a hit's, the panels of
@@ -171,6 +191,31 @@ func at(pose: ShipPose, point: Vector3) -> Vector2:
 	return sum if sum.length() >= _rules.current_least else Vector2.ZERO
 
 
+## The holes in a floor water falls through under [param pose], this piece's: each of FALLS
+## passing at least current_least_flow, the water over it standing higher than under it.
+func pours(pose: ShipPose) -> Array[Pour]:
+	if is_same(pose, _poured):
+		return _pours
+	_poured = pose
+	_pours = []
+	if pose.flows.is_empty() or _openings.is_empty() or pose.levels.is_empty():
+		return _pours
+	_ready_for(pose)
+	for used: int in _holes:
+		var through := _through(pose, used)
+		var index := _used[used]
+		var upper := 1 if _onward[index] > 0.0 else 0
+		if through <= 0.0 or _upstream[used] != upper:
+			continue
+		var pour := Pour.new()
+		pour.opening = _openings[index]
+		pour.flow = pose.flows[_passage[used]]
+		pour.speed = through
+		pour.lower = _sides[index * 2 + 1 - upper]
+		_pours.append(pour)
+	return _pours
+
+
 ## The pull toward used opening [param used] of a body at [param point] on its upstream
 ## side, [param side] — a cell, or the sea — [param away] across from its nearest point
 ## [param near] that way, [param toward], in water [param depth] deep there.
@@ -269,12 +314,16 @@ func _match(passages: Array[StringName]) -> void:
 	_names = passages
 	_used.clear()
 	_passage.clear()
+	_holes.clear()
 	var at: Dictionary[StringName, int] = {}
 	for index in _openings.size():
 		at[_openings[index].name] = index
 	for passage in passages.size():
 		if at.has(passages[passage]):
-			_used.append(at[passages[passage]])
+			var index: int = at[passages[passage]]
+			if _openings[index].facing() == 1 and _openings[index].kind in FALLS:
+				_holes.append(_used.size())
+			_used.append(index)
 			_passage.append(passage)
 	_speed.resize(_used.size())
 	_upstream.resize(_used.size())

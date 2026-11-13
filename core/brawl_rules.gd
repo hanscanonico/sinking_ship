@@ -169,6 +169,18 @@ extends Resource
 ## the water: the flood-safety limit for an adult (est. 0.6; Jonkman & Penning-Rowsell
 ## 2008, RESCDAM 2000 0.64–1.26, Abt et al. 1989).
 @export var topple_hv: float
+## Falling water (Falls, #631): the push, in newtons, of a pour landing on a body that
+## knocks it off its feet — about what makes a standing adult step (est. 350, from
+## crowd-force and hose-reaction figures).
+@export var pour_topple: float
+## Air going free (Falls, #631): how long, in seconds, a pocket's air blows out of the
+## opening it leaves by (est. 0.6); how far from it, in metres, a swimmer is blown clear
+## (est. 3); how fast at its mouth, in m/s (est. 4); and the air, in m³ at the
+## atmosphere's pressure, that blows that hard — less blows less (est. 50).
+@export var blast_time: float
+@export var blast_reach: float
+@export var blast_speed: float
+@export var blast_full_air: float
 ## Seconds of swimming a full cold meter holds.
 @export var cold_meter: float
 ## Seconds of the cold meter regained per second out of the sea.
@@ -366,6 +378,11 @@ func problems() -> PackedStringArray:
 		"wade_speed_deep",
 		"current_reach",
 		"topple_hv",
+		"pour_topple",
+		"blast_time",
+		"blast_reach",
+		"blast_speed",
+		"blast_full_air",
 		"cold_meter",
 		"cold_regen",
 		"pocket_cold_rate",
