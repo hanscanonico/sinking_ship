@@ -92,6 +92,9 @@ uniform float outdoor = 0.0;
 uniform float inflow : hint_range(0.0, 1.0) = 0.0;
 
 varying vec3 world;
+// The sheet's own up in the world: the world's up but while its water sloshes
+// (CellSlosh), which tilts the sheet.
+varying vec3 sheet_up;
 // The share of the lamps' hue this fragment sheds (foam, the underside), and the calm
 // wobble's normal its lamps' glints turn on, fragment to light.
 varying float pale;
@@ -163,6 +166,7 @@ float broken_lace(vec2 p, float t, float width) {
 
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	sheet_up = normalize(cross(MODEL_MATRIX[2].xyz, MODEL_MATRIX[0].xyz));
 }
 
 void fragment() {
@@ -191,12 +195,12 @@ void fragment() {
 		value_noise(world.xz * 5.3 + vec2(t * 0.7, t * 0.5) + 13.0)
 	) - 0.5) * 0.5;
 	float wobble = 0.35 + 1.8 * inflow;
-	vec3 up = normalize(vec3(-slope.x * wobble, 1.0, -slope.y * wobble));
+	vec3 up = normalize(sheet_up + vec3(-slope.x * wobble, 0.0, -slope.y * wobble));
 	NORMAL = normalize((VIEW_MATRIX * vec4(up, 0.0)).xyz) * (FRONT_FACING ? 1.0 : -1.0);
 	// The mirror, the underside's sheen and the lamps' glints follow the calm wobble
 	// only: the churn's steep slopes would turn them into hard crescents of the lamps'
 	// and the room's hue.
-	calm = normalize(vec3(-slope.x * 0.35, 1.0, -slope.y * 0.35));
+	calm = normalize(sheet_up + vec3(-slope.x * 0.35, 0.0, -slope.y * 0.35));
 	calm = normalize((VIEW_MATRIX * vec4(calm, 0.0)).xyz) * (FRONT_FACING ? 1.0 : -1.0);
 	float grazing = 1.0 - abs(dot(calm, VIEW));
 	AO = mix(indoor_ambient, 1.0, outdoor);

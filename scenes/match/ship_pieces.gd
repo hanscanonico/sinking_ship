@@ -293,7 +293,7 @@ func show_pieces(
 		if at > 0:
 			_holders[at].transform = own_then.transform.interpolate_with(own_now.transform, alpha)
 		if _waters[at] != null:
-			_waters[at].show_water(own_then, own_now, alpha)
+			_waters[at].show_water(own_then, own_now, alpha, tick * Ticks.SECONDS_PER_TICK)
 		if _greyboxes[at] != null:
 			_greyboxes[at].show_sinking(collapsing, fallen, _local(leaf, broken), lit)
 			_greyboxes[at].show_power(own_now)
