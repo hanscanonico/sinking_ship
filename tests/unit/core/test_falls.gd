@@ -141,6 +141,16 @@ func test_a_body_under_a_pouring_stairwell_is_staggered_and_one_beside_it_is_not
 	assert_eq(Vector2(beside.pos.x, beside.pos.z), Vector2(WELL.x * 0.5 + 1.0, 0.0))
 
 
+func test_a_body_knocked_down_under_a_pour_is_washed_out_from_under_it() -> void:
+	var sim := _sim(1, Vector3(0.0, 1.0, 0.0), 1.0)
+	SimFixtures.place(sim, 0, Vector3(0.1, 0.0, 0.2))
+	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, Ticks.RATE * 2)
+	var knocked := sim.state.seats[0]
+	var out := Vector2(absf(knocked.pos.x) - WELL.x * 0.5, absf(knocked.pos.z) - WELL.y * 0.5)
+	assert_gt(maxf(out.x, out.y), 0.0, "washed out of the cascade's footprint")
+	assert_gt(knocked.pos.z, 0.2, "outward, the way it stood off the footprint's middle")
+
+
 func test_a_pour_under_the_topple_staggers_no_one() -> void:
 	var sim := _sim(1, Vector3(0.0, 1.0, 0.0), 0.1)
 	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, 0.0))

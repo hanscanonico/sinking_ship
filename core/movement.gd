@@ -277,7 +277,12 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 		var grip := _rules.wet_angle(mine.grip_angle_deg, depth)
 		var pulled := slope > grip and not (player.bracing and holds)
 		if player.is_staggered():
-			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.stagger_friction * dt)
+			# Knocked down under a pour, the water washes it out from under it, as it throws
+			# a swimmer (_swim): never left lying in the cascade for as long as it falls.
+			var washed := Vector2.ZERO
+			if _knocked[player.seat] == 1:
+				washed = poured.out * poured.speed * _rules.current_wade_share
+			planar = (planar + downhill).move_toward(washed, _rules.stagger_friction * dt)
 			player.stagger_ticks -= 1
 		elif wish == Vector2.ZERO and pulled:
 			planar = (planar + downhill).move_toward(Vector2.ZERO, _rules.slide_friction * dt)
