@@ -71,7 +71,8 @@ var standing := PackedInt32Array([0])
 ## Where each cell's first water has run to (WaterFronts, #642): per cell, 1 while it is
 ## spreading — beyond every one of its fronts its floor holds no water (reached) — and per
 ## front how far it has run, -1 before it starts; empty, with no fronts, while no cell is
-## spreading; and the cells spreading, ascending. Of the timeline, never in a snapshot or the digest (D5). [member front_frame]
+## spreading; and the cells spreading, ascending. Of the timeline, never in a snapshot or
+## the digest (D5). [member front_frame]
 ## takes this pose's points to the ship space the fronts are in (Faces.framed).
 var fronts: WaterFronts
 var spreading := PackedByteArray()

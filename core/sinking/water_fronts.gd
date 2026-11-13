@@ -50,7 +50,9 @@ var _cells := PackedInt32Array()
 ## The fronts of [param timeline]'s cells of [param structure] — numbered in the timeline
 ## as [param at] has them — through its openings and [param more] (Currents.joined),
 ## those holding water at the hit, [param wet] (1 per cell), left without; spreading at
-## [param froude] under [param gravity] (SeaPhysics).
+## [param froude] under [param gravity] (SeaPhysics). Per kept state, [param rises] is the
+## world height a cell's head stands over (its level, head + rise, against the sea's 0):
+## none, 0 throughout.
 func _init(
 	timeline: SinkTimeline,
 	structure: ShipStructure,
@@ -58,7 +60,8 @@ func _init(
 	at: PackedInt32Array,
 	wet: PackedByteArray,
 	froude: float,
-	gravity: float
+	gravity: float,
+	rises := PackedFloat64Array()
 ) -> void:
 	var cell_count := structure.cells.size()
 	_first.resize(cell_count)
@@ -83,7 +86,7 @@ func _init(
 			var other: int = each[3 - side]
 			if cell == -1 or wet[cell] == 1:
 				continue
-			var spread := _spread(timeline, opening, passage, stride, cell, other, at, structure)
+			var spread := _spread(timeline, opening, passage, cell, other, at, structure, rises)
 			if not spread.is_empty():
 				spread.append(pull)
 				var made := _run(timeline, spread)
@@ -106,25 +109,22 @@ func _init(
 			_spreading.append(cell)
 
 
-## The fronts of every cell — none — for a schedule with no physical sinking.
-static func none() -> WaterFronts:
-	return null
-
-
-## What a front of [param opening], passage [param passage] of [param stride], into
-## [param cell] from [param other] (-1 the sea) needs to run: [rect, half-disc or disc
+## What a front of [param opening], passage [param passage], into [param cell] from
+## [param other] (-1 the sea, upstream while the cell's level stands under its 0) needs to
+## run: [rect, half-disc or disc
 ## (π or 2π), its least width, its widest, its farthest corner, per stretch the m³ a second
 ## it brings in] — empty where it brings none in.
 func _spread(
 	timeline: SinkTimeline,
 	opening: ShipOpening,
 	passage: int,
-	stride: int,
 	cell: int,
 	other: int,
 	at: PackedInt32Array,
-	structure: ShipStructure
+	structure: ShipStructure,
+	rises: PackedFloat64Array
 ) -> Array:
+	var stride := timeline.passages.size()
 	var inflow := PackedFloat64Array()
 	inflow.resize(timeline.count() - 1)
 	var any := false
@@ -133,13 +133,15 @@ func _spread(
 		var flow := timeline.flows[(stretch + 1) * stride + passage]
 		if flow <= 0.0:
 			continue
-		if other != -1:
-			var here := at[cell]
+		var here := at[cell]
+		var mine := (
+			timeline.heads[stretch * count + here] + timeline.heads[(stretch + 1) * count + here]
+		)
+		if other == -1:
+			if not rises.is_empty() and mine + rises[stretch] + rises[stretch + 1] >= 0.0:
+				continue
+		else:
 			var there := at[other]
-			var mine := (
-				timeline.heads[stretch * count + here]
-				+ timeline.heads[(stretch + 1) * count + here]
-			)
 			var theirs := (
 				timeline.heads[stretch * count + there]
 				+ timeline.heads[(stretch + 1) * count + there]
@@ -246,6 +248,20 @@ static func apart(rect: Vector4, x: float, z: float) -> float:
 ## Whether any cell has a front.
 func is_empty() -> bool:
 	return _spreading.is_empty()
+
+
+## The cells with fronts, ascending.
+func spreading_cells() -> PackedInt32Array:
+	return _spreading
+
+
+## Leaves cell [param cell] without fronts: one already holding water as its first front
+## starts — from a leak or a deck's gaps, which start none — is wet everywhere, as before.
+func drop(cell: int) -> void:
+	_count[cell] = 0
+	_starts[cell] = INF
+	_dones[cell] = INF
+	_spreading.remove_at(_spreading.find(cell))
 
 
 ## Sets on [param pose] where the fronts stand [param seconds] after the hit

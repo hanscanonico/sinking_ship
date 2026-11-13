@@ -90,7 +90,7 @@ uniform float outdoor = 0.0;
 // a rough wobble, broad bright streaks and white foam boiling up all over it. 0 is calm
 // water.
 uniform float inflow : hint_range(0.0, 1.0) = 0.0;
-// A cell's first water running out over its floor (WaterFronts, InnerWater.front_mask):
+// A cell's first water running out over its floor (WaterFronts, FrontMask):
 // drawn only within front_reaches of one of the front_count rectangles it runs out from
 // (low x, low z, high x, high z in ship metres), with a lip of white water front_lip wide
 // at its edge — the sim's own answer of where its floor is wet. 0 fronts: drawn whole.

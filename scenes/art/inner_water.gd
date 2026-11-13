@@ -102,8 +102,6 @@ const SLOSH_SHALLOWEST := 0.05
 const GRAVITY := 9.81
 const SLOSH_CALM := 2e-3
 const SLOSH_REST := 5e-4
-## The most fronts a cell's sheet is masked by (inner_water.gdshader's front_rects).
-const MOST_FRONTS := 8
 ## The global shader parameters her water's world to ship space is set in, one a frame
 ## for every cell's surface at once (inner_water.gdshader): one per InnerWater drawn —
 ## hers whole, or each piece's once she breaks (ShipPieces) — each held by the one that
@@ -748,7 +746,7 @@ func _churn(cell: int, churn: float) -> void:
 
 
 ## Draws each cell's water spreading at [param now] only inside its fronts, [param alpha]
-## of the way on from [param then] (front_mask), and every other cell's whole again.
+## of the way on from [param then] (FrontMask), and every other cell's whole again.
 func _mask_fronts(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	for cell: int in _masked:
 		if now.spread_cells.has(cell) or cell >= _surfaces.size():
@@ -757,10 +755,10 @@ func _mask_fronts(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	_masked = now.spread_cells.duplicate()
 	for cell: int in _masked:
 		if cell < _surfaces.size():
-			_mask_cell(cell, front_mask(now, cell, then, alpha))
+			_mask_cell(cell, FrontMask.of(now, cell, then, alpha))
 
 
-## Sets [param mask] (front_mask) on every sheet cell [param cell] is drawn in.
+## Sets [param mask] (FrontMask.of) on every sheet cell [param cell] is drawn in.
 func _mask_cell(cell: int, mask: Array) -> void:
 	var sheets: Array[MeshInstance3D] = []
 	if _surfaces[cell] != null:
@@ -773,41 +771,6 @@ func _mask_cell(cell: int, mask: Array) -> void:
 		if not rects.is_empty():
 			_param(sheet, &"front_rects", rects)
 			_param(sheet, &"front_reaches", mask[1])
-
-
-## Cell [param cell]'s fronts under [param pose] as its sheets' mask takes them
-## (inner_water.gdshader): [the rectangles they run out from — low x, low z, high x,
-## high z — and how far each has run], [param alpha] of the way on from [param then]'s
-## where that has them too; at most MOST_FRONTS of them, those first started. Empty while
-## the cell is not spreading: drawn whole.
-static func front_mask(pose: ShipPose, cell: int, then: ShipPose = null, alpha := 1.0) -> Array:
-	var rects := PackedVector4Array()
-	var reaches := PackedFloat32Array()
-	if pose.spreading.is_empty() or pose.spreading[cell] == 0:
-		return [rects, reaches]
-	var fronts := pose.fronts
-	var span := fronts.of_cell(cell)
-	var blend := then != null and is_same(then.fronts, fronts) and not then.spreading.is_empty()
-	for front in range(span.x, span.x + mini(span.y, MOST_FRONTS)):
-		var reach := pose.reaches[front]
-		if blend and then.reaches[front] >= 0.0 and reach >= 0.0:
-			reach = lerpf(then.reaches[front], reach, alpha)
-		rects.append(fronts.rect_of(front))
-		reaches.append(reach)
-	return [rects, reaches]
-
-
-## How far inside the nearest of [param rects] at [param reaches] (front_mask) ship
-## x/z ([param x], [param z]) lies — below 0 beyond them all, where a sheet draws nothing:
-## inner_water.gdshader's own reading, and WaterFronts.margin's.
-static func masked(
-	rects: PackedVector4Array, reaches: PackedFloat32Array, x: float, z: float
-) -> float:
-	var best := -INF
-	for front in rects.size():
-		if reaches[front] >= 0.0:
-			best = maxf(best, reaches[front] - WaterFronts.apart(rects[front], x, z))
-	return best
 
 
 ## The stacks [param cell] is drawn in, by index into _stacks: none for most.

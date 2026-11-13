@@ -241,10 +241,10 @@ func test_inner_waters_mask_agrees_with_wet() -> void:
 	var surfaces := Surfaces.new(SimFixtures.deck())
 	for seconds: float in [1.0, 4.0, 9.0]:
 		var pose := _pose(structure, fronts, seconds, PackedFloat64Array([3.0, FILM]))
-		var mask := InnerWater.front_mask(pose, 1)
+		var mask := FrontMask.of(pose, 1)
 		assert_false((mask[0] as PackedVector4Array).is_empty(), "masked at %s s" % seconds)
 		for x in range(1, 20):
 			for z: float in [-2.5, 0.0, 2.5]:
 				var point := Vector3(float(x) - 0.3, FILM * 0.5, z)
-				var drawn := InnerWater.masked(mask[0], mask[1], point.x, point.z) >= 0.0
+				var drawn := FrontMask.margin(mask[0], mask[1], point.x, point.z) >= 0.0
 				assert_eq(drawn, surfaces.wet(point, pose), "%s s, %s" % [seconds, point])
