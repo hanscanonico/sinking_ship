@@ -24,9 +24,22 @@ func advance(state: FloodState) -> FloodState:
 
 
 func step(state: FloodState, seconds: float) -> FloodState:
+	watch.released = PackedInt32Array()
 	var next := super.step(state, seconds)
 	watch.stepped(self, state, next, seconds, _held_cells, _shares)
 	return next
+
+
+## The group let go, told to the watch (FloodWatch.RELEASED).
+func _release(
+	group: PackedInt32Array,
+	state: FloodState,
+	heads: PackedFloat64Array,
+	sea: float,
+	seconds: float
+) -> void:
+	watch.released.append_array(group)
+	super._release(group, state, heads, sea, seconds)
 
 
 ## The sweep watched: begun where the step starts — its water before its wells took the

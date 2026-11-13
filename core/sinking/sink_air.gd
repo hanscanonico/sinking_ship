@@ -386,7 +386,7 @@ func _free(state: FloodState) -> PackedByteArray:
 func _reaches(cell: int, other: int, index: int, state: FloodState) -> bool:
 	# Through what only weeps — a seal leaking (SinkFailures) — no air goes free.
 	var given := state.opened[index] if state.opened[index] >= SinkFailures.GAVE_WAY else 0.0
-	if SinkStepper.open_share(_shut_time[index], state.seconds, given) <= 0.0:
+	if SinkOpenings.open_share(_shut_time[index], state.seconds, given) <= 0.0:
 		return false
 	var top := _top[index]
 	if state.heads[cell] > top:
