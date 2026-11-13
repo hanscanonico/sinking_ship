@@ -36,6 +36,10 @@ const PATH := "res://data/physics/sea.tres"
 ## it a trough — as a share of the wave height.
 @export var shipping_discharge: float
 @export var wave_reach: float
+## The Froude number of the front of a cell's first water running over its dry floor as a
+## thin gravity current (WaterFronts), est.: Huppert & Simpson's 1.19 for a current much
+## thinner than the space over it.
+@export var spread_froude: float
 ## In kg/m³.
 @export var steel_density: float
 ## The seabed: this many contacts hold her weight sunk this far into it, in metres,
@@ -118,6 +122,8 @@ func problems() -> PackedStringArray:
 	var found := PackedStringArray()
 	if gravity <= 0.0 or sea_density <= 0.0 or air_density <= 0.0 or air_pressure <= 0.0:
 		found.append("sea: gravity, densities and pressure must be positive")
+	if spread_froude <= 0.0:
+		found.append("sea: spread_froude must be positive")
 	if discharge <= 0.0 or discharge > 1.0:
 		found.append("sea: discharge must be within 0…1")
 	if shipping_discharge <= 0.0 or shipping_discharge > 1.0 or wave_reach < 0.0:
