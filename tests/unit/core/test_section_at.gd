@@ -79,6 +79,16 @@ func test_a_change_to_her_sections_is_never_answered_stale() -> void:
 	assert_eq(_first_wrong(structure, -14.0, 7.0, 0.01), "", "a section dropped")
 
 
+func test_the_match_s_data_hash_does_not_see_the_index() -> void:
+	var config := MatchConfig.from_rules(preload("res://data/match/default.tres"), 1701)
+	var structure: ShipStructure = config.ship.structure.duplicate()
+	config.ship = config.ship.duplicate()
+	config.ship.structure = structure
+	var before := config.data_hash()
+	structure.section_at(0.0)
+	assert_eq(config.data_hash(), before)
+
+
 ## The first x from [param from] to [param to] where bisection and the scan differ,
 ## as text; empty where they never do.
 func _first_wrong(structure: ShipStructure, from: float, to: float, step: float) -> String:

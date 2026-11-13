@@ -218,12 +218,15 @@ func _prop_kinds() -> Array[PropKind]:
 	return kinds
 
 
+## A resource's saved fields only: what a script keeps for itself, unsaved (a cache, a
+## lock), is no number the match loaded.
 static func _describe(value: Variant) -> String:
 	if value is Resource:
 		var resource: Resource = value
 		var fields := PackedStringArray()
+		var saved := PROPERTY_USAGE_SCRIPT_VARIABLE | PROPERTY_USAGE_STORAGE
 		for property: Dictionary in resource.get_property_list():
-			if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
+			if (property["usage"] & saved) == saved:
 				var field: String = property["name"]
 				fields.append("%s=%s" % [field, _describe(resource.get(field))])
 		return "{%s}" % ",".join(fields)
