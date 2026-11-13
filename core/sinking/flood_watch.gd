@@ -99,6 +99,7 @@ var _boyle := PackedFloat64Array()
 var _hidden := PackedFloat64Array()
 var _marks: Array[PackedFloat64Array] = []
 var _least := 0.0
+var _atmosphere := 0.0
 ## The stepper's own: per opening, 1 for a hole in a floor; per cell, its water at any
 ## attitude.
 var _in_floor := PackedByteArray()
@@ -137,6 +138,7 @@ func begun(
 ) -> void:
 	_marks.clear()
 	_least = air.least()
+	_atmosphere = air.atmosphere()
 	_settle(stepper, state)
 	_in_floor = in_floor
 	_boxes = boxes
@@ -322,6 +324,7 @@ func _downhill(
 	# Per opening that moved water: from and to, each side's push at the start and the end.
 	var ends := PackedFloat64Array()
 	ends.resize(count * 4)
+	var end_push := _end_pushes(stepper, next)
 	for index in count:
 		var amount := next.moved[index]
 		if absf(amount) <= SLIGHT:
@@ -335,6 +338,9 @@ func _downhill(
 		ends[at + 1] = _push[index * 2 + 1] if forward else _push[index * 2]
 		ends[at + 2] = next.sea if from_side == SinkStepper.OUTSIDE else next.heads[from_side]
 		ends[at + 3] = next.sea if to_side == SinkStepper.OUTSIDE else next.heads[to_side]
+		# At the step's end too a pocket lifts its water's push, as at its start.
+		ends[at + 2] += _end_lift(end_push, from_side, to_side)
+		ends[at + 3] += _end_lift(end_push, to_side, from_side)
 		if _in_floor[index] == 1:
 			# Over the hole — its second side — water stands no lower than the hole.
 			var sill := stepper.sill_of(index)
@@ -433,6 +439,43 @@ func _downhill(
 			)
 		)
 	return fed
+
+
+## Per cell, the push of the pocket begun that holds it at [param next], its air and its
+## cells' heads as the step left them (SinkAir's push: its air over the room the heads
+## leave it, at no less room than pocket_least, times the atmosphere's pressure); 0 for a
+## cell in none, freed, or in a pocket whose air is under pocket_least.
+func _end_pushes(stepper: SinkStepper, next: FloodState) -> PackedFloat64Array:
+	var cells := next.water.size()
+	var found := PackedFloat64Array()
+	found.resize(cells)
+	var capacity := stepper.capacities()
+	var held := PackedFloat64Array()
+	var room := PackedFloat64Array()
+	held.resize(cells)
+	room.resize(cells)
+	for cell in mini(cells, _pockets.size()):
+		var first := _pockets[cell]
+		if first == -1 or next.air[cell] < 0.0:
+			continue
+		held[first] += next.air[cell]
+		room[first] += maxf(capacity[cell] - stepper.volume_at(cell, next.heads[cell]), 0.0)
+	for cell in mini(cells, _pockets.size()):
+		var first := _pockets[cell]
+		if first == -1 or next.air[cell] < 0.0 or held[first] <= _least:
+			continue
+		found[cell] = _atmosphere * (held[first] / maxf(room[first], _least) - 1.0)
+	return found
+
+
+## The lift [param end_push] gives [param side]'s water across an opening to
+## [param other]: none to a cell of its own pocket, nor for the sea.
+func _end_lift(end_push: PackedFloat64Array, side: int, other: int) -> float:
+	if side == SinkStepper.OUTSIDE or side >= _pockets.size() or _pockets[side] == -1:
+		return 0.0
+	if other != SinkStepper.OUTSIDE and _pockets[other] == _pockets[side]:
+		return 0.0
+	return end_push[side]
 
 
 ## The water a flow through an opening between [param sides] may pass either way as the
