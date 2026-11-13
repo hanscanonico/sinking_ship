@@ -18,7 +18,9 @@ extends RefCounted
 ## the openings are swept in turn, so a side that gave more away through others in the
 ## step may stand lower than its neighbour for the ones after (swept counts those). The
 ## breaches of a step a bake took outside SinkStepper.advance, cut to land on a level or
-## to keep pace with another piece, are counted apart (DOWNHILL_CUT);
+## to keep pace with another piece, are counted apart (DOWNHILL_CUT); and every breach of
+## either through an opening of a cell held stiff whose solve together did not close, let
+## go to the sweep (SinkStepper._release), is counted again (RELEASED, #632);
 ## CAPACITY — no cell holds more than its box and the thin surface over its ceiling up to
 ## the highest push about at the step's start (full_surface), nor less than nothing;
 ## FED — a cell's water rises only where something higher feeds it — an opening from a
@@ -35,7 +37,7 @@ extends RefCounted
 ## Only the steps a stepper takes are checked: a bake's carrying water into the pieces she
 ## breaks into is not a step.
 
-enum Law { CONSERVED, DOWNHILL, DOWNHILL_CUT, CAPACITY, FED, BOYLE }
+enum Law { CONSERVED, DOWNHILL, DOWNHILL_CUT, CAPACITY, FED, BOYLE, RELEASED }
 
 ## A breach this small, as a share of the cell's capacity (of a pocket's air), is the
 ## floats' rounding. A held cell's head is solved only until the step's water on it is
@@ -47,12 +49,16 @@ enum Law { CONSERVED, DOWNHILL, DOWNHILL_CUT, CAPACITY, FED, BOYLE }
 const TOLERANCE := 1e-6
 ## The water an opening may pass, in m³, under which its way is not judged.
 const SLIGHT := 1e-9
-const NAMES: Array[String] = ["conserved", "downhill", "downhill_cut", "capacity", "fed", "boyle"]
+const NAMES: Array[String] = [
+	"conserved", "downhill", "downhill_cut", "capacity", "fed", "boyle", "released"
+]
 ## How many breaches of each law are kept word for word.
 const KEPT := 8
 
-## Whether the step under way is one SinkStepper.advance chose (WatchedStepper sets it).
+## Whether the step under way is one SinkStepper.advance chose, and the cells it let go
+## (SinkStepper._release): WatchedStepper sets both.
 var advancing := false
+var released := PackedInt32Array()
 ## Steps watched, and of them the ones taken outside advance; and the flows that ran
 ## against the step's start but with its end (DOWNHILL).
 var steps := 0
@@ -421,23 +427,22 @@ func _downhill(
 			fed[to_side] = 1
 			swept += 1
 			continue
-		_breach(
-			Law.DOWNHILL if advancing else Law.DOWNHILL_CUT,
-			to_push - from_push,
-			(
-				"%s: %s passed %s m3 from %s to %s, up %s m (share %s; %s)"
-				% [
-					where,
-					stepper.opening_names()[index],
-					absf(amount),
-					_side_name(stepper, from_side),
-					_side_name(stepper, to_side),
-					to_push - from_push,
-					shares[index] if index < shares.size() else -1.0,
-					_sides_said(index, from_side, to_side, forward, next, held)
-				]
-			)
+		var words := (
+			"%s: %s passed %s m3 from %s to %s, up %s m (share %s; %s)"
+			% [
+				where,
+				stepper.opening_names()[index],
+				absf(amount),
+				_side_name(stepper, from_side),
+				_side_name(stepper, to_side),
+				to_push - from_push,
+				shares[index] if index < shares.size() else -1.0,
+				_sides_said(index, from_side, to_side, forward, next, held)
+			]
 		)
+		_breach(Law.DOWNHILL if advancing else Law.DOWNHILL_CUT, to_push - from_push, words)
+		if from_side in released or to_side in released:
+			_breach(Law.RELEASED, to_push - from_push, words)
 	return fed
 
 

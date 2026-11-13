@@ -463,7 +463,9 @@ func _physical(tick: int) -> ShipPose:
 			pose.felled.append(fall)
 	if tick >= _hit_tick:
 		for door in _doors.size():
-			pose.doors_shut[_doors[door]] = 1.0 - SinkStepper.open_share(_door_times[door], seconds)
+			pose.doors_shut[_doors[door]] = (
+				1.0 - SinkOpenings.open_share(_door_times[door], seconds)
+			)
 	for lurch in _lurch_heels.size():
 		if tick >= _lurch_ticks[lurch * 3] and tick < _lurch_ticks[lurch * 3 + 1]:
 			pose.lurch_warning = _lurch_heels[lurch]
