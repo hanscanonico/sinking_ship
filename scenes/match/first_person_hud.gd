@@ -203,10 +203,17 @@ func _ready() -> void:
 
 
 ## [param eyes] is whether the view is a seat's eyes rather than the observer's;
-## [param prompts] names the buttons a warning asks for.
-func setup(sim: MatchSim, names: PackedStringArray, eyes: bool, prompts: InputPrompts) -> void:
+## [param prompts] names the buttons a warning asks for; [param answers], when given,
+## were made ahead for [param sim] (MatchScene.Served.answers).
+func setup(
+	sim: MatchSim,
+	names: PackedStringArray,
+	eyes: bool,
+	prompts: InputPrompts,
+	answers: HudAnswers = null
+) -> void:
 	_schedule = sim.schedule
-	_answers = HudAnswers.new(sim)
+	_answers = answers if answers != null else HudAnswers.new(sim)
 	_rules = sim.config.rules
 	_layout = sim.config.ship
 	_holdable = GrabReach.holdable_of(_layout)
