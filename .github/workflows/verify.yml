@@ -38,7 +38,9 @@ jobs:
   static:
     name: check, lint, format-check
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Its steps take 15–19 minutes on a usual runner; a slow one ran past 20 and was
+    # cancelled in format-check, its last step, with nothing wrong (PR #646).
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
