@@ -123,6 +123,27 @@ func contacts(
 	return found
 
 
+## The name of door [param door].
+func name_of(door: int) -> StringName:
+	return _names[door]
+
+
+## Whether door [param door]'s leaf could stand across the line from [param start] to
+## [param end] (x/z) between [param low] and [param high] at any shut up to all the way:
+## crossed's test with the leaf across its whole doorway, so a line this says no to no
+## shut of the door from 0 to 1 ever crosses.
+func may_cross(door: int, start: Vector2, end: Vector2, low: float, high: float) -> bool:
+	if high <= _sills[door] or low >= _heads[door]:
+		return false
+	var axis := 0 if _axes[door] == 0 else 1
+	var a := start[axis] - _planes[door]
+	var b := end[axis] - _planes[door]
+	if a * b > 0.0 or a == b:
+		return false
+	var along := start.lerp(end, a / (a - b))[1 - axis]
+	return along >= _jambs[door] and along <= _jambs[door] + _widths[door]
+
+
 ## Whether a leaf stands across the line from [param start] to [param end] (x/z)
 ## anywhere between [param low] and [param high].
 func crossed(start: Vector2, end: Vector2, low: float, high: float) -> bool:
