@@ -1003,3 +1003,44 @@ func test_a_bot_s_last_leg_down_a_stair_is_through_within_a_step_of_its_foot() -
 	assert_false(stair.through(up, at_its_head), "up, within a step of its head")
 	var on_beyond: Array[WalkGraph.Portal] = [down[0], up[0]]
 	assert_false(stair.through(on_beyond, on_its_foot), "with a leg on beyond its foot")
+
+
+func test_a_sliding_door_forgets_only_what_it_can_change() -> void:
+	# A door sliding forgets only the shut answers of the portals its leaf may stand
+	# across (WalkDoorLeaves, #636): over doors shutting at their own paces, one giving
+	# way and then not, every portal answers as Surfaces.blocked does asked afresh.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var doors: Array[StringName] = []
+	for door: ShipOpening in layout.structure.openings:
+		if door.shuts_at_hit:
+			doors.append(door.name)
+	assert_gt(doors.size(), 1, "her watertight doors")
+	var step := SimFixtures.rules().step_height
+	var lines := graph._door_leaves.lines
+	var flips := 0
+	var wrong: Array[String] = []
+	var was := PackedByteArray()
+	was.resize(graph._portals.size())
+	for tick in 14:
+		var pose := HeldPose.flooded(layout, -layout.freeboard, {})
+		for index in doors.size():
+			var shut := clampf((tick - index * 2) / 5.0, 0.0, 1.0)
+			pose.doors_shut[doors[index]] = shut if tick < 12 else shut * 0.4
+		if tick >= 7 and tick < 10:
+			pose.opened[doors[0]] = 2
+		surfaces.honour(pose)
+		for index in graph._portals.size():
+			var fresh := (
+				graph._portals[index].ramp == WalkGraph.NONE
+				and surfaces.blocked(lines[index * 2], lines[index * 2 + 1], step * 2.0, step)
+			)
+			var kept := graph._shut(index, pose)
+			if kept != fresh:
+				wrong.append("tick %d portal %d" % [tick, index])
+			if tick > 0 and int(kept) != was[index]:
+				flips += 1
+			was[index] = int(kept)
+	assert_eq(wrong, [] as Array[String], "every portal as Surfaces.blocked has it")
+	assert_gt(flips, 0, "doors shut across portals and open again")
