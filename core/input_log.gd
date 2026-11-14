@@ -18,6 +18,11 @@ var seats: int
 var data_hash: String
 var first_tick: int
 var _rows := PackedInt32Array()
+## The config's data its hash was made from (MatchConfig.data_fields), and that hash:
+## matches() takes a config holding the same data at it rather than walking her whole
+## ship again, a second on a liner (#645). Empty for a log read from bytes.
+var _hashed_fields: Array = []
+var _hashed := ""
 var _count := 0
 
 
@@ -28,6 +33,8 @@ func _init(config: MatchConfig, from_tick: int = 0) -> void:
 		match_seed = config.match_seed
 		seats = config.seats
 		data_hash = config.data_hash()
+		_hashed_fields = config.data_fields()
+		_hashed = data_hash
 	first_tick = from_tick
 
 
@@ -108,11 +115,10 @@ func last_tick() -> int:
 
 ## Whether this log was played under [param config]'s seed, seats and data.
 func matches(config: MatchConfig) -> bool:
-	return (
-		config.match_seed == match_seed
-		and config.seats == seats
-		and config.data_hash() == data_hash
-	)
+	if config.match_seed != match_seed or config.seats != seats:
+		return false
+	var known := not _hashed_fields.is_empty() and config.holds(_hashed_fields)
+	return (_hashed if known else config.data_hash()) == data_hash
 
 
 ## One source per seat that answers this log's frames.

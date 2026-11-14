@@ -204,6 +204,31 @@ func data_hash() -> String:
 	return _describe(described).sha256_text()
 
 
+## What data_hash is a function of, kept as they are now: the rules, ship, scenario and
+## bonus rules as the instances themselves, the countdown and the goal (her prop kinds
+## follow from her ship). Held with a hash, it lets holds() skip the walk (#645).
+func data_fields() -> Array:
+	return [rules, ship, scenario, countdown_ticks, bonus_rules, goal]
+
+
+## Whether this config holds the very data [param fields] (data_fields) kept, told
+## without walking her ship: the same rules, ship and bonus rules — the instances —, the
+## same countdown and goal, and a scenario that is the same or describes the same (fast
+## and a chosen hit make a fresh copy each time). Where it answers true, data_hash answers
+## as it did for the config [param fields] came from — unless one of those resources was
+## changed in place since, which nothing does to a match's loaded data.
+func holds(fields: Array) -> bool:
+	return (
+		fields.size() == 6
+		and is_same(rules, fields[0])
+		and is_same(ship, fields[1])
+		and countdown_ticks == fields[3]
+		and is_same(bonus_rules, fields[4])
+		and goal == fields[5]
+		and (is_same(scenario, fields[2]) or _describe(scenario) == _describe(fields[2]))
+	)
+
+
 ## Every kind of prop her layout carries, once each, in the order of their names — as
 ## Strings: StringNames sort by where they were interned, which two engines differ on.
 func _prop_kinds() -> Array[PropKind]:
