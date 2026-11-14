@@ -10,10 +10,18 @@ const MADE := {
 	&"small_titanic": "5cb3208278f5f5f50c76703abd8f336835556b6d5bfefd352650d54199db0f0d",
 	&"titanic": "4e782d52dffecfe16f1458b2f533bc272364b09b536825ba46a8ecd6249e2c08",
 }
+const STEAMER := "res://data/ships/steamer.tres"
+const SMALL_TITANIC := "res://data/ships/small_titanic.tres"
+const TITANIC := "res://data/ships/titanic.tres"
 
 
 func _layout(ship_name: StringName) -> ShipLayout:
-	return load("res://data/ships/%s.tres" % ship_name)
+	match ship_name:
+		&"steamer":
+			return load(STEAMER)
+		&"small_titanic":
+			return load(SMALL_TITANIC)
+	return load(TITANIC)
 
 
 func test_kept_reads_make_what_fresh_reads_make() -> void:
