@@ -513,6 +513,7 @@ static func copy_of(pose: ShipPose) -> ShipPose:
 	made.levels = pose.levels
 	made.pockets = pose.pockets
 	made.cells = pose.cells
+	pose.share_fronts(made)
 	made.lit = pose.lit
 	made.doors_shut = pose.doors_shut.duplicate()
 	made.opened = pose.opened.duplicate()

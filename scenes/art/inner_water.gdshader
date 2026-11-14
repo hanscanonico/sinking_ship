@@ -90,6 +90,14 @@ uniform float outdoor = 0.0;
 // a rough wobble, broad bright streaks and white foam boiling up all over it. 0 is calm
 // water.
 uniform float inflow : hint_range(0.0, 1.0) = 0.0;
+// A cell's first water running out over its floor (WaterFronts, FrontMask):
+// drawn only within front_reaches of one of the front_count rectangles it runs out from
+// (low x, low z, high x, high z in ship metres), with a lip of white water front_lip wide
+// at its edge — the sim's own answer of where its floor is wet. 0 fronts: drawn whole.
+uniform int front_count = 0;
+uniform vec4 front_rects[8];
+uniform float front_reaches[8];
+uniform float front_lip = 0.35;
 
 varying vec3 world;
 // The sheet's own up in the world: the world's up but while its water sloshes
@@ -183,6 +191,19 @@ void fragment() {
 	vec3 ship = (to_ship * vec4(world, 1.0)).xyz;
 	if (any(lessThan(ship, clip_low)) || any(greaterThan(ship, clip_high))) {
 		discard;
+	}
+	float lip = 0.0;
+	if (front_count > 0) {
+		float inside = -1e6;
+		for (int i = 0; i < front_count; i++) {
+			vec4 rect = front_rects[i];
+			vec2 off = max(max(rect.xy - ship.xz, ship.xz - rect.zw), vec2(0.0));
+			inside = max(inside, front_reaches[i] - length(off));
+		}
+		if (inside < 0.0) {
+			discard;
+		}
+		lip = 1.0 - smoothstep(0.0, front_lip, inside);
 	}
 	float t = TIME;
 	// A slow wobble of the surface: what turns a lamp's glint on it about.
@@ -300,6 +321,13 @@ void fragment() {
 			float foam = max(edge, lacing);
 			colour = mix(colour, foam_colour.rgb, foam);
 			foamed = max(foamed, foam);
+		}
+		// The lip of white water at a spreading front, frayed.
+		if (lip > 0.0) {
+			float frayed = soft_noise(world.xz * 5.0 + vec2(t * 0.7, -t * 0.5) + 53.0);
+			float white = lip * (0.55 + 0.45 * frayed);
+			colour = mix(colour, foam_colour.rgb, white);
+			foamed = max(foamed, white);
 		}
 		// Rings spreading round the bodies wading or swimming in it.
 		if (wader_count > 0) {

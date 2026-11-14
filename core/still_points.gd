@@ -124,7 +124,9 @@ func wet_all() -> PackedByteArray:
 	if keeps and _world_own_floors.is_empty():
 		_world_own_floors = _pose.transform * _own_floors
 	if water != null:
-		return water.wet_all(_world, _cells, keeps, levels, _world_own_floors, highest, CellMap.DRY)
+		return _unreached(
+			water.wet_all(_world, _cells, keeps, levels, _world_own_floors, highest, CellMap.DRY)
+		)
 	var found := PackedByteArray()
 	found.resize(_points.size())
 	for index in _points.size():
@@ -138,6 +140,18 @@ func wet_all() -> PackedByteArray:
 		var level := levels[cell]
 		if height < level and level > _world_own_floors[index].y + CellMap.DRY:
 			found[index] = 1
+	return _unreached(found)
+
+
+## [param found] (wet_all) with every point its cell's water has not yet run to dry
+## (ShipPose.reached): as found, while no cell is spreading.
+func _unreached(found: PackedByteArray) -> PackedByteArray:
+	if _pose.spreading.is_empty():
+		return found
+	for index in found.size():
+		if found[index] == 1 and _cells[index] != CellMap.NONE:
+			if not _pose.reached(_cells[index], _points[index]):
+				found[index] = 0
 	return found
 
 
