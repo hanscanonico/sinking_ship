@@ -165,6 +165,8 @@ var _portals_closed: Array[PackedByteArray] = [
 var _shut_doors: Dictionary[StringName, float] = {}
 var _shut_opened: Dictionary[StringName, int] = {}
 var _shut_felled: Array[FunnelFall] = []
+## Which portals each door's leaf may stand across, so a door sliding forgets only theirs.
+var _door_leaves: WalkDoorLeaves
 ## Per zone under that pose: how high it stands, and its floor's lowest corner; NAN
 ## until asked.
 var _heights := PackedFloat64Array()
@@ -293,6 +295,7 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_native_graph = WalkSearch.native_graph(
 		_out, _portal_to, _portal_entry, _portal_exit, _portal_length, _pace
 	)
+	_door_leaves = WalkDoorLeaves.new(surfaces.doors, _portals, _body_radius, _step)
 
 
 ## The zone of her main deck, the first platform at her datum; the first open deck's on a
@@ -976,10 +979,8 @@ func _shut(index: int, pose: ShipPose) -> bool:
 		var portal := _portals[index]
 		var shut := false
 		if portal.ramp == NONE:
-			var through := Vector3(portal.along.x, 0.0, portal.along.y) * _body_radius
-			shut = _surfaces.blocked(
-				portal.entry - through, portal.exit + through, _step * 2.0, _step
-			)
+			var line := _door_leaves.lines
+			shut = _surfaces.blocked(line[index * 2], line[index * 2 + 1], _step * 2.0, _step)
 		_portal_shut[index] = 2 if shut else 1
 	return _portal_shut[index] == 2
 
@@ -1004,13 +1005,15 @@ func _know(pose: ShipPose) -> void:
 	_middles.read(pose)
 	_centres.read(pose)
 	_corners.read(pose)
-	# What stands across a doorway moves only with a door's leaf or a funnel coming down.
+	# What stands across a doorway moves only with a door's leaf or a funnel coming down:
+	# a leaf forgets only the portals it may stand across, a funnel every one.
 	if pose.doors_shut != _shut_doors or pose.opened != _shut_opened or pose.felled != _shut_felled:
+		var every := pose.felled != _shut_felled
 		_shut_doors = pose.doors_shut
 		_shut_opened = pose.opened
 		_shut_felled = pose.felled
-		_portal_shut.fill(0)
-		_shut_known = false
+		if _door_leaves.forget(pose, _portal_shut, every):
+			_shut_known = false
 
 
 ## Whether the water stands over the middle of [param platform] under [param pose]
