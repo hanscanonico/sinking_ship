@@ -118,6 +118,12 @@ var _aground_tick := -1
 ## it, the sound's a second back, the contact watch's ahead — each built once. Never
 ## match state: no snapshot or digest holds them.
 var _kept_ticks := PackedInt32Array()
+## The sea's constants it was baked under, and where each cell's first water has run to
+## (WaterFronts): made as the schedule is, from the timeline as it has come — again
+## once more of it has (TimelineStream) — null for none.
+var _sea: SeaPhysics
+var _fronts: WaterFronts
+var _fronts_of := -1
 var _kept_poses: Array[ShipPose] = []
 
 
@@ -150,6 +156,7 @@ func _init(
 	if structure == null or not scenario.is_physical():
 		return
 	var physics := sea if sea != null else SeaPhysics.load_default()
+	_sea = physics
 	if chosen != null:
 		_choice = chosen
 	elif scenario.explicit_hit != null:
@@ -206,6 +213,10 @@ func _init(
 		_gone_tick = _tick_of(_timeline.gone_at)
 	if _timeline.end == SinkTimeline.End.AFLOAT:
 		_afloat_tick = end_tick()
+	# Made as her match loads, not at the first pose after the hit: half a second on the
+	# Titanic would be a hitch mid-match.
+	if _timeline.is_whole():
+		water_fronts()
 
 
 ## Every piece of her the timeline has, cut from [param structure] (PieceStructure): its
@@ -452,6 +463,9 @@ func _physical(tick: int) -> ShipPose:
 		pose.flows.resize(_timeline.passages.size())
 		for passage in pose.flows.size():
 			pose.flows[passage] = _timeline.flow(frame, next, passage)
+		var fronts := water_fronts()
+		if fronts != null:
+			fronts.pose(pose, seconds)
 	for failed in _failed_ticks.size():
 		if _failed_ticks[failed] > tick:
 			break
@@ -472,6 +486,58 @@ func _physical(tick: int) -> ShipPose:
 		elif tick >= _lurch_ticks[lurch * 3 + 1] and tick < _lurch_ticks[lurch * 3 + 2]:
 			pose.lurch = _lurch_heels[lurch]
 	return pose
+
+
+## Where each cell's first water has run to (WaterFronts, #642): a pure function of the
+## timeline, made once — again as more of a timeline still coming comes — null without a
+## physical sinking or with no cell spreading. Her whole ship's cells: a piece she breaks
+## into keeps its water as before.
+func water_fronts() -> WaterFronts:
+	if _timeline == null or _timeline.passages.is_empty():
+		return null
+	if _fronts_of == _timeline.count():
+		return _fronts
+	_fronts_of = _timeline.count()
+	var structure := _structures[0]
+	var wet := PackedByteArray()
+	for cell in structure.cells.size():
+		wet.append(1 if _holds_water(cell, 0) else 0)
+	var rises := PackedFloat64Array()
+	for frame in _timeline.count():
+		var leaf := _timeline.leaf_of(_standing(0, _timeline.times[frame]))
+		rises.append(_freeboard - (_timeline.sea_of(frame, leaf) - _timeline.rest))
+	var more: Array[ShipOpening] = []
+	if _damage != null:
+		more.append_array(_damage.openings)
+	more.append_array(_failing)
+	_fronts = WaterFronts.new(
+		_timeline, structure, more, _cell_of[0], wet, _sea.spread_froude, _sea.gravity, rises
+	)
+	# A cell holding water already as its first front starts — through a leak or a deck's
+	# gaps, which start none — keeps it everywhere.
+	for cell: int in _fronts.spreading_cells().duplicate():
+		if _holds_water(cell, _timeline.frame_at(_fronts.span_of(cell).x)):
+			_fronts.drop(cell)
+	if _fronts.is_empty():
+		_fronts = null
+	return _fronts
+
+
+## Whether cell [param cell] of her whole ship holds water at kept state [param frame]:
+## more than CellMap.DRY over its floor's lowest corner as she lies then.
+func _holds_water(cell: int, frame: int) -> bool:
+	var seconds := _timeline.times[frame]
+	var turn := Basis(_timeline.blend(frame, frame, 0.0, _timeline.leaf_of(_standing(0, seconds))))
+	var box := _cells.box_of(cell)
+	var lowest := INF
+	for corner: Vector3 in [
+		box.position,
+		box.position + Vector3(box.size.x, 0.0, 0.0),
+		box.position + Vector3(0.0, 0.0, box.size.z),
+		box.position + Vector3(box.size.x, 0.0, box.size.z),
+	]:
+		lowest = minf(lowest, (turn * corner).y)
+	return _timeline.heads[frame * _timeline.cells + _cell_of[0][cell]] > lowest + CellMap.DRY
 
 
 ## Her trim and heel at [param tick], in degrees, as her bake has them (leans_of): her

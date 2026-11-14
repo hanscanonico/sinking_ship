@@ -226,6 +226,8 @@ var _made := PackedByteArray()
 var _unmade := PackedInt32Array()
 ## Her cells' water swinging as she turns, tilting the sheets placed.
 var _slosh: CellSlosh
+## The cells whose sheets are drawn only inside their water's fronts now (_mask_fronts).
+var _masked := PackedInt32Array()
 
 
 ## Draws the water in [param structure], round [param rooms] where her cells poke out
@@ -445,6 +447,8 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float, seconds := NAN) -> 
 				_show_surface(surface, stack[0], stack[1], level, to_ship)
 				shown += 1 if surface.visible else 0
 			_stacks_shown[at] = shown
+	if not _masked.is_empty() or not now.spread_cells.is_empty():
+		_mask_fronts(then, now, alpha)
 	if now != _inflow_now:
 		_show_inflows(then, now)
 	for door: StringName in _leaves:
@@ -739,6 +743,41 @@ func _churn(cell: int, churn: float) -> void:
 		_param(_surfaces[cell], &"inflow", churn)
 	for index: int in _stacks_of(cell):
 		_param(_stacks[index][2], &"inflow", churn)
+
+
+## Draws each cell's water spreading at [param now] only inside its fronts, [param alpha]
+## of the way on from [param then] (FrontMask), and every other cell's whole again. A
+## cell's fronts' rectangles are set on its sheets once, as it starts spreading; how far
+## they have run, every frame, on its sheets shown.
+func _mask_fronts(then: ShipPose, now: ShipPose, alpha: float) -> void:
+	for cell: int in _masked:
+		if not now.spread_cells.has(cell) and cell < _surfaces.size():
+			for sheet: MeshInstance3D in _sheets_of(cell):
+				_param(sheet, &"front_count", 0)
+	var was := _masked
+	_masked = now.spread_cells.duplicate()
+	for cell: int in _masked:
+		if cell >= _surfaces.size():
+			continue
+		var mask := FrontMask.of(now, cell, then, alpha)
+		var rects: PackedVector4Array = mask[0]
+		var fresh := not was.has(cell)
+		for sheet: MeshInstance3D in _sheets_of(cell):
+			if fresh:
+				_param(sheet, &"front_count", rects.size())
+				_param(sheet, &"front_rects", rects)
+			if fresh or sheet.visible:
+				_param(sheet, &"front_reaches", mask[1])
+
+
+## Every sheet cell [param cell]'s water is drawn in: its surface and its stacks'.
+func _sheets_of(cell: int) -> Array[MeshInstance3D]:
+	var sheets: Array[MeshInstance3D] = []
+	if _surfaces[cell] != null:
+		sheets.append(_surfaces[cell])
+	for index: int in _stacks_of(cell):
+		sheets.append(_stacks[index][2])
+	return sheets
 
 
 ## The stacks [param cell] is drawn in, by index into _stacks: none for most.
