@@ -29,6 +29,9 @@ class Served:
 	var local: LocalInputSource
 	## What plans the sinking's effects for its client's sim (SinkingFx).
 	var planner: FxPlanner
+	## What the first-person HUD asks of its client's sim (FirstPersonHud): a liner's
+	## Surfaces of its own, made here rather than in her first frame (#640).
+	var answers: HudAnswers
 
 
 ## The choices a local match was built from (Game), for its replay; null online.
@@ -51,6 +54,9 @@ var session: SessionTally
 ## What plans the sinking's effects for the match starting (Served.planner); null while
 ## none is, and for a match served elsewhere.
 var _planner: FxPlanner
+## What the first-person HUD asks of the match starting (Served.answers); null while none
+## is, and for a match served elsewhere.
+var _answers: HudAnswers
 
 const LOCAL_SEAT := 0
 ## The gaze through another seat's eyes, in degrees above the horizon: at a level
@@ -331,6 +337,7 @@ func start(
 	var names := _seat_names(config.seats, _watcher)
 	_loopback = serving.loopback
 	_planner = serving.planner
+	_answers = serving.answers
 	last_replay = null
 	_counted = false
 	_begin(
@@ -392,6 +399,7 @@ static func serve(
 	var sim := serving.loopback.client.sim
 	ShipPieces.warm_water(sim)
 	serving.planner = FxPlanner.new(config, sim.surfaces, sim.schedule)
+	serving.answers = HudAnswers.new(sim)
 	return serving
 
 
@@ -534,7 +542,8 @@ func _setup_view(
 	_free.set_bounds(_deck_bounds(config.ship))
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
-	_first_person_hud.setup(sim, _names, not observer and not _watcher, _prompts)
+	_first_person_hud.setup(sim, _names, not observer and not _watcher, _prompts, _answers)
+	_answers = null
 	_orbit = null
 	if watching():
 		_orbit = OrbitCamera.new(settings)
