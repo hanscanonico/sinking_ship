@@ -11,12 +11,12 @@ extends GutTest
 ## its ends too, that fall more than a metre.
 const FALLS := {
 	"res://data/ships/small_titanic.tres": [0, 0],
-	"res://data/ships/barque.tres": [8, 12],
-	"res://data/ships/ferry.tres": [22, 16],
-	"res://data/ships/freighter.tres": [32, 24],
+	"res://data/ships/barque.tres": [0, 0],
+	"res://data/ships/ferry.tres": [0, 0],
+	"res://data/ships/freighter.tres": [0, 0],
 	"res://data/ships/steamer.tres": [28, 14],
-	"res://data/ships/trawler.tres": [6, 12],
-	"res://data/ships/tug.tres": [2, 4],
+	"res://data/ships/trawler.tres": [0, 0],
+	"res://data/ships/tug.tres": [0, 0],
 }
 
 ## Per ship of FALLS, by its path: what went wrong on its flights' walks.
