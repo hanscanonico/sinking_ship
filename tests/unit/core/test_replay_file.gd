@@ -151,3 +151,26 @@ func test_changed_data_or_a_jump_start_is_not_playable() -> void:
 	jumped.log = InputLog.new(RunMatch.default_config(SEED), 40)
 	jumped.recorded_at = RECORDED_AT
 	assert_false(jumped.playable(_rules()), "a match that started at tick 40")
+
+
+## A log keeps the data its hash was made from, so a match's own replay is told
+## playable without walking her ship again (#645) — and answers just as the hash does:
+## true for its own match, rebuilt from its choices; false for other rules' numbers, or a
+## changed hash in the log; and a field reassigned since the log was made is no shortcut.
+func test_a_log_tells_its_own_data_as_its_hash_does() -> void:
+	var recorded := _choices().config(_rules())
+	var file := ReplayFile.new()
+	file.choices = _choices()
+	file.log = InputLog.new(recorded)
+	assert_true(file.playable(_rules()), "its own match, rebuilt from its choices")
+	var from_bytes := InputLog.from_bytes(file.log.to_bytes())
+	assert_true(from_bytes.matches(file.config(_rules())), "and by its hash, read from bytes")
+	var changed := _rules().duplicate() as MatchRules
+	changed.rules = changed.rules.duplicate() as BrawlRules
+	changed.rules.knockback += 1.0
+	assert_false(file.playable(changed), "another rule value")
+	recorded.rules = changed.rules
+	assert_false(file.log.matches(recorded), "a field reassigned since the log was made")
+	assert_true(file.playable(_rules()), "still its own match")
+	file.log.data_hash = "not what the match loaded"
+	assert_false(file.playable(_rules()), "a changed data hash")
