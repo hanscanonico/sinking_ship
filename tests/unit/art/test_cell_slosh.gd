@@ -115,7 +115,7 @@ func _water() -> InnerWater:
 func _long_cell(water: InnerWater) -> int:
 	var found := -1
 	for cell in water._surfaces.size():
-		if water._surfaces[cell] == null:
+		if water._boxes[cell].size == Vector3.ZERO:
 			continue
 		if found == -1 or water._boxes[cell].size.x > water._boxes[found].size.x:
 			found = cell
