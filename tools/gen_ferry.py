@@ -28,6 +28,7 @@ import struct
 import sys
 
 from floor_spots import spots_below_decks
+from flight_rails import rail_flight_sides
 
 out = sys.argv[1]
 
@@ -440,6 +441,10 @@ spawns = [
     (-27.0, PASS, -2.0), (-27.0, PASS, 2.0), (-10.0, PASS, 0.0), (10.0, PASS, -3.0),
     (-14.0, BRIDGE, -2.0), (0.0, BRIDGE, 2.0),
 ]
+# --- Every flight's open sides railed (#587), as the Small Titanic's are: once her decks,
+# her flights, her railings and what stands by them are all laid.
+rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box)
+
 # The seats a match on her takes (est.): the plan's 6–10 at most, from one as every ship.
 SEATS = (1, 10)
 
