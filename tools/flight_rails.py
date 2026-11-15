@@ -117,10 +117,15 @@ def side_open(plat_geo, ramp_geo, block_geo, rail_geo, k, fixed, line, out, lo, 
     tread = _rising(ramp_geo[k], lo, hi)
     beside = line + out * SIDE_BESIDE
     floors = []  # ((along from, to), height at v, its base: None for a deck) of what is beside
+    ledges = []  # ((along from, to), height) of each deck whose edge stands a gap outside it
     for p in plat_geo:
         p_across, p_along = across_along(p, fixed)
-        if p_across[0] <= beside <= p_across[1] and p_along[0] < hi and p_along[1] > lo:
+        if not (p_along[0] < hi and p_along[1] > lo):
+            continue
+        if p_across[0] <= beside <= p_across[1]:
             floors.append((p_along, _level(p[4]), None))
+        elif out * line < (p_across[0] if out > 0 else -p_across[1]) <= out * line + HOLD_GAP:
+            ledges.append((p_along, p[4]))
     for j, r in enumerate(ramp_geo):
         r_across, r_along = across_along(r, fixed)
         if j == k or not (r_across[0] <= beside <= r_across[1] and r_along[0] < hi and r_along[1] > lo):
@@ -153,6 +158,9 @@ def side_open(plat_geo, ramp_geo, block_geo, rail_geo, k, fixed, line, out, lo, 
         for (a, b), deck in rails:
             if a <= v <= b and deck - STEP <= t < deck + RAIL_HEIGHT:
                 return "held"
+        for (a, b), deck in ledges:  # a deck's edge within a body's radius standing over its feet
+            if a <= v <= b and t + STEP < deck < t + BODY_HEIGHT:
+                return "held"
         steps = False
         for (a, b), height, base in floors:
             if a <= v <= b:
@@ -165,7 +173,7 @@ def side_open(plat_geo, ramp_geo, block_geo, rail_geo, k, fixed, line, out, lo, 
     def is_open(v):
         return state(v) == "open"
 
-    ends = [e for (a, b), *_rest in walls + rails + floors for e in (a, b) if lo < e < hi]
+    ends = [e for (a, b), *_rest in walls + rails + ledges + floors for e in (a, b) if lo < e < hi]
 
     def change(a, b):
         """Where between a and b, open at one and not at the other, that changes: at the end
@@ -312,4 +320,5 @@ def rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box):
                     t0, t1 = sorted((tread(p0), tread(p1)))
                     piece = rail_piece(plat_geo, ramp_geo, block_geo, k, fixed, line, out, p0, p1, t0, t1, openings)
                     if piece is not None:
+                        # "side_": the art heads no doorway under one (ShipArt.FLIGHT_SIDE_RAIL).
                         box("side_%s_%s%d_%d" % (rid, tag, n, i), *piece)

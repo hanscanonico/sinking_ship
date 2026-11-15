@@ -34,13 +34,16 @@ func _cylinder(layout: ShipLayout, at: Vector2) -> ShipBlocker:
 
 
 ## [param layout]'s blockers whose box, grown by a body's radius, reaches the ship
-## plane between [param from] and [param to].
+## plane between [param from] and [param to]; never a flight's side rail, whose cap, as a
+## railing's, nobody stands on (ShipArt.FLIGHT_SIDE_RAIL).
 func _blockers_near(layout: ShipLayout, from: Vector3, to: Vector3) -> Array[ShipBlocker]:
 	var low := Vector2(minf(from.x, to.x), minf(from.z, to.z))
 	var high := Vector2(maxf(from.x, to.x), maxf(from.z, to.z))
 	var under := Rect2(low, high - low).grow(_rules.body_radius)
 	var near: Array[ShipBlocker] = []
 	for blocker: ShipBlocker in layout.blockers:
+		if blocker.resource_scene_unique_id.begins_with(ShipArt.FLIGHT_SIDE_RAIL):
+			continue
 		var area := blocker.area
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:
 			var round := Vector2.ONE * blocker.radius

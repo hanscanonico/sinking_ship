@@ -226,9 +226,16 @@ func test_a_rail_holds_a_body_that_steps_off_beside_it() -> void:
 	# The steamer's starboard poop ramp runs beside the main deck's railing. A body
 	# walking off the ramp's outboard side is in the air, its feet below the rail's
 	# top, when it reaches the rail from the deck's side: the rail holds it, and it
-	# comes down on the main deck rather than going over into the sea.
+	# comes down on the main deck rather than going over into the sea. The ramp's own
+	# side rails (#587), which hold the body on its treads, are taken off it here.
 	var rules := SimFixtures.rules()
-	var layout := SimFixtures.steamer()
+	var layout: ShipLayout = SimFixtures.steamer().duplicate()
+	var blockers: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in layout.blockers:
+		if not blocker.resource_scene_unique_id.begins_with("Blocker_side_poop_starboard_"):
+			blockers.append(blocker)
+	assert_lt(blockers.size(), layout.blockers.size(), "its side rails taken off")
+	layout.blockers = blockers
 	var surfaces := Surfaces.new(layout)
 	var ramp := surfaces.under(Vector3(-13.0, 0.8, 4.0), rules.step_height)
 	assert_true(surfaces.is_ramp(ramp), "it starts on the ramp")

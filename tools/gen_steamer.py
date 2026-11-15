@@ -24,6 +24,7 @@ import struct
 import sys
 
 from floor_spots import spots_below_decks
+from flight_rails import rail_flight_sides
 
 out = sys.argv[1]
 weak = "--weak" in sys.argv[2:]
@@ -349,8 +350,9 @@ pieces_after()
 # --- Ramps: SH3's six, then the three stairs (39°, 1.1 m wide).
 ramp("poop_port", -14, -4.5, 3, 1.4, 0, 1.2, 0)
 ramp("poop_starboard", -14, 3.1, 3, 1.4, 0, 1.2, 0)
-ramp("boat_port", 3, -3.4, 6, 1.5, 0, 2.5, 0)
-ramp("boat_starboard", 3, 1.9, 6, 1.5, 0, 2.5, 0)
+# The boat deck's two 1.4 m wide, 0.9 m clear of the hatch past their side rails (#587).
+ramp("boat_port", 3, -3.4, 6, 1.4, 0, 2.5, 0)
+ramp("boat_starboard", 3, 2.0, 6, 1.4, 0, 2.5, 0)
 ramp("forecastle", 9, -0.8, 3, 1.6, 0, 0, 1.8)
 # The forecastle's second way up (Q6): from SH27 a sinking by the stern leaves her bow
 # highest, so the forecastle is a perch like the bridge — a second stair to starboard,
@@ -395,8 +397,9 @@ centre_door = [(-DOOR / 2, DOOR / 2)]
 wall_x_doors("bulkhead_hold", 4, -4.8, 4.8, centre_door, LOWER, 0)
 wall_x_doors("bulkhead_engine", -3, -4.8, 4.8, centre_door, LOWER, 0)
 # The engine block on the stokehold floor splits it into two lanes, a body's way past
-# it beside each stair; it stands up through the opening over it.
-box("engine", 1.0, 2.75, -0.5, 0.5, TANK_TOP, -1.2)
+# it beside each stair, 0.9 m clear of the stair's side rail (#587); it stands up through
+# the opening over it.
+box("engine", 1.0, 2.75, -0.4, 0.4, TANK_TOP, -1.2)
 # Passenger cabins off the corridor (z -0.7..0.7), three a side.
 cabin_doors = [(-9.6, -8.5), (-7.6, -6.5), (-4.9, -3.8)]
 wall_z_doors("corridor_port", -0.7, -13, -3, cabin_doors, LOWER, 0)
@@ -980,6 +983,11 @@ for k, hole in enumerate(STEERING_HATCHES):
     hatch_rails("steering_hatch_%d" % (k + 1), STEERING, hole, "x0")
 hatch_rails("aft_stores_hatch", AFT_STORES, STORES_HATCH, "x0")
 hatch_rails("chain_locker_hatch", BOSUN, LOCKER_HATCH, "x1")
+
+# Every flight's open sides railed (#587), as the Small Titanic's are: once her decks,
+# her flights (her old voids' among them), her railings and what stands by them are all
+# laid.
+rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box)
 
 # The rooms, after every other.
 for side, z0, z1 in [("port", -LINING, 0), ("starboard", 0, LINING)]:

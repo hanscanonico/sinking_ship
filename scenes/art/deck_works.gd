@@ -582,7 +582,8 @@ static func _clears(layout: ShipLayout, rules: BrawlRules, line: RigLine) -> boo
 
 ## Every top a body of [param rules] can stand on whose round reaches over the ship
 ## plane between [param from] and [param to] — a platform's, a ramp's, a blocker's
-## but [param spars]', a cylinder's by the square round it — each as
+## but [param spars]' and a flight's side rails' (ShipArt.FLIGHT_SIDE_RAIL: its cap, as a
+## railing's, no top anybody stands on), a cylinder's by the square round it — each as
 ## [its area grown by a body's radius, its height].
 static func _tops_under(
 	layout: ShipLayout, rules: BrawlRules, from: Vector3, to: Vector3, spars: Array[ShipBlocker]
@@ -598,6 +599,8 @@ static func _tops_under(
 		tops.append([ramp.area, maxf(ramp.start_height, ramp.end_height)])
 	for blocker: ShipBlocker in layout.blockers:
 		if spars.has(blocker):
+			continue
+		if blocker.resource_scene_unique_id.begins_with(ShipArt.FLIGHT_SIDE_RAIL):
 			continue
 		var area := blocker.area
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:

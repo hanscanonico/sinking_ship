@@ -263,7 +263,7 @@ func test_a_body_at_a_stair_s_head_within_its_width_walks_on_onto_it() -> void:
 	var layout := SimFixtures.steamer()
 	var surfaces := Surfaces.new(layout)
 	var graph := _graph(layout, surfaces)
-	var head := Vector3(3.0, 2.5, -2.65)
+	var head := Vector3(3.0, 2.5, -2.7)
 	var leg: WalkGraph.Portal = null
 	for portal: WalkGraph.Portal in graph.portals():
 		if portal.ramp != WalkGraph.NONE and portal.entry.is_equal_approx(head):
@@ -271,7 +271,7 @@ func test_a_body_at_a_stair_s_head_within_its_width_walks_on_onto_it() -> void:
 	assert_not_null(leg, "the stair down from the boat deck's head there")
 	if leg == null:
 		return
-	var at := head + Vector3(-0.05, 0.0, 0.36)
+	var at := head + Vector3(-0.05, 0.0, 0.31)
 	var lined_up := leg.half_width - SimFixtures.rules().body_radius
 	assert_gt(absf(at.z - head.z), lined_up, "outside the line a body walks it lined up")
 	assert_lt(absf(at.z - head.z), leg.half_width, "within its width")
