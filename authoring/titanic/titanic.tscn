@@ -65840,14 +65840,14 @@ material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_side_b_ladder_2_hi0_0" type="CSGBox3D" parent="Blockers" unique_id=1045297277]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -94.993744, 1.99, -4.325)
-size = Vector3(0.7875, 0.56, 0.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.13125, 1.88, -4.325)
+size = Vector3(0.5125, 0.34, 0.1)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 
 [node name="Blocker_side_b_ladder_3_lo0_0" type="CSGBox3D" parent="Blockers" unique_id=763170943]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -94.993744, 1.99, 4.3250003)
-size = Vector3(0.7875, 0.56, 0.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -95.13125, 1.88, 4.3250003)
+size = Vector3(0.5125, 0.34, 0.1)
 material = SubResource("StandardMaterial3D_jiew5")
 metadata/ship = &"blocker"
 

@@ -894,10 +894,12 @@ func _keep_off_edges(
 		away -= move.normalized() * away.dot(move.normalized())
 	move = (away + move).normalized()
 	var cleared := _footing.clear_heading(now_pos, move, PackedInt32Array(), PackedInt32Array())
+	# Round a wall, if not toward more; edged into one, its own clear walk (by a side rail, #587).
+	if not headed and not cleared.is_equal_approx(move):
+		cleared = steer.move.normalized()
 	if not _footing.danger_toward(
 		now_pos, my_surface, pose, mark, stair_ahead, cleared, heed_drops
 	):
-		# Backing off the water must not walk it into a wall: round it, if not toward more.
 		move = cleared
 	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
 	var stop_s := _rules.walk_speed / _rules.ground_friction

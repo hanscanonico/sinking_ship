@@ -83576,15 +83576,15 @@ top = 3.75
 
 [sub_resource type="Resource" id="Blocker_side_b_ladder_2_hi0_0"]
 script = ExtResource("3_block")
-area = Rect2(-95.3875, -4.375, 0.7875, 0.1)
+area = Rect2(-95.3875, -4.375, 0.5125, 0.1)
 bottom = 1.71
-top = 2.27
+top = 2.05
 
 [sub_resource type="Resource" id="Blocker_side_b_ladder_3_lo0_0"]
 script = ExtResource("3_block")
-area = Rect2(-95.3875, 4.275, 0.7875, 0.1)
+area = Rect2(-95.3875, 4.275, 0.5125, 0.1)
 bottom = 1.71
-top = 2.27
+top = 2.05
 
 [sub_resource type="Resource" id="Blocker_side_b_ladder_3_hi0_0"]
 script = ExtResource("3_block")

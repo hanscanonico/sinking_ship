@@ -198,7 +198,9 @@ func test_crates_sliding_into_railings_step_alike_as_they_break_them() -> void:
 	if not _loaded():
 		return
 	var layout: ShipLayout = load(STEAMER)
-	var scenario := SimFixtures.scenario([[0.0, -10.0, 0.0, 0.0], [1.0, -10.0, 6.0, 32.0]])
+	# Heeled to port: her forward cargo goes into the port rail. To starboard her hatch's
+	# crates now fetch up on the boat deck's stair's side rail by its foot (#587).
+	var scenario := SimFixtures.scenario([[0.0, -10.0, 0.0, 0.0], [1.0, -10.0, 6.0, -32.0]])
 	_step_alike(layout, scenario, SLIDE_TICKS, "the steamer's sliding crates", true)
 
 

@@ -115,6 +115,15 @@ func test_a_body_fits_between_the_hatch_and_the_boat_deck_ramps() -> void:
 		)
 		if ramp.area.position.y >= hatch.area.end.y and beside:
 			ramp_side = minf(ramp_side, ramp.area.position.y)
+	# Or the inboard side of the ramp's side rail standing on the deck by its foot (#587).
+	for blocker: ShipBlocker in layout.blockers:
+		var beside := (
+			blocker.area.position.x < hatch.area.end.x
+			and blocker.area.end.x > hatch.area.position.x
+		)
+		var standing := blocker.bottom < rules.body_height and blocker.top > rules.step_height
+		if blocker.area.position.y >= hatch.area.end.y and beside and standing:
+			ramp_side = minf(ramp_side, blocker.area.position.y)
 	assert_gte(ramp_side - hatch.area.end.y, rules.body_radius * 2.0, "a body's width")
 	var lane := (hatch.area.end.y + ramp_side) * 0.5
 	# The deckhouse's forward wall, across the end of the lane.

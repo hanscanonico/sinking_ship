@@ -61,6 +61,9 @@ const BEAM_WIDTH := 0.1
 const BEAM_DEPTH := 0.12
 ## A lintel at least this far over its deck has a doorway under it.
 const DOOR_FROM := 0.5
+## A flight's side rail's id begins with this (tools/flight_rails.py lays them): hung over
+## a deck, it heads no doorway.
+const FLIGHT_SIDE_RAIL := "Blocker_side_"
 const FRAME_WIDTH := 0.1
 const FRAME_PROUD := 0.03
 const RAIL_WIDTH := 0.09
@@ -952,7 +955,11 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: Sh
 			foot,
 			blocker.top
 		)
-		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM:
+		if (
+			not is_nan(deck)
+			and blocker.bottom - deck > DOOR_FROM
+			and not blocker.resource_scene_unique_id.begins_with(FLIGHT_SIDE_RAIL)
+		):
 			DoorFrame.build(mesh, _space, blocker, deck)
 		if top < blocker.top:
 			# Where the deck laid on it stops short of its edge, it stands up to its top.

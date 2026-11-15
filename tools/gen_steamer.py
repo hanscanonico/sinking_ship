@@ -377,7 +377,9 @@ ramp("stokehold_forward", HX1 - STOKEHOLD_RUN, 1.4, STOKEHOLD_RUN, 1.1, 0, TANK_
 # --- Blockers: SH3's funnel (now through the deckhouse), mast and hatch.
 cylinder("funnel", -6, 0, 0.9, 0, 7.5)
 cylinder("mast", 16, 0, 0.2, 1.8, 11)
-HATCH = (4, 8, -1, 1)  # x0, x1, z0, z1: the hold's hatch, its cover 0.8 m over the deck
+# x0, x1, z0, z1: the hold's hatch, its cover 0.8 m over the deck; 0.9 m clear of the boat
+# deck's stairs' side rails either side (#587), the lanes beside it as wide as before them.
+HATCH = (4, 8, -0.9, 0.9)
 box("hatch", *HATCH, 0, 0.8)
 # The forecastle's after face: the hold runs on beneath it.
 box("forecastle_break", 12, 12.2, -4, 4, 0, 1.8)
@@ -396,8 +398,9 @@ centre_door = [(-DOOR / 2, DOOR / 2)]
 wall_x_doors("bulkhead_hold", 4, -4.8, 4.8, centre_door, LOWER, 0)
 wall_x_doors("bulkhead_engine", -3, -4.8, 4.8, centre_door, LOWER, 0)
 # The engine block on the stokehold floor splits it into two lanes, a body's way past
-# it beside each stair; it stands up through the opening over it.
-box("engine", 1.0, 2.75, -0.5, 0.5, TANK_TOP, -1.2)
+# it beside each stair, 0.9 m clear of the stair's side rail (#587); it stands up through
+# the opening over it.
+box("engine", 1.0, 2.75, -0.4, 0.4, TANK_TOP, -1.2)
 # Passenger cabins off the corridor (z -0.7..0.7), three a side.
 cabin_doors = [(-9.6, -8.5), (-7.6, -6.5), (-4.9, -3.8)]
 wall_z_doors("corridor_port", -0.7, -13, -3, cabin_doors, LOWER, 0)
@@ -518,10 +521,6 @@ spawns = [
     (1.5, 0, -1.5), (-2.5, 0, 2.2),
     (-17.5, 1.2, -2.5), (-5, 0, -4.3), (7.4, 0, 4.2),
 ]
-# --- Every flight's open sides railed (#587), as the Small Titanic's are: once her decks,
-# her flights, her railings and what stands by them are all laid.
-rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box)
-
 # The seats a match on her takes: the menu's 4–8 since SH8, hers from SH30; one plays
 # alone, no bots.
 SEATS = (1, 8)
@@ -985,6 +984,11 @@ for k, hole in enumerate(STEERING_HATCHES):
     hatch_rails("steering_hatch_%d" % (k + 1), STEERING, hole, "x0")
 hatch_rails("aft_stores_hatch", AFT_STORES, STORES_HATCH, "x0")
 hatch_rails("chain_locker_hatch", BOSUN, LOCKER_HATCH, "x1")
+
+# Every flight's open sides railed (#587), as the Small Titanic's are: once her decks,
+# her flights (her old voids' among them), her railings and what stands by them are all
+# laid.
+rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box)
 
 # The rooms, after every other.
 for side, z0, z1 in [("port", -LINING, 0), ("starboard", 0, LINING)]:
