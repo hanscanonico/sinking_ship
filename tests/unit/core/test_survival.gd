@@ -22,7 +22,7 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## most of a kind a seat holds and Sure footing's 44°, then #591's body_give, then #616's currents
 ## and wade_speed_deep, then #620's wet_grip, then #631's pour_topple and blasts, then #587's
 ## side rails on the steamer's flights): the goals must not move the battle royale's.
-const BATTLE_ROYALE_HASH := "82a7255c7be546c8e03f1045d8733864ecc53cdd972584757d9fc420d6eed9d6"
+const BATTLE_ROYALE_HASH := "0014343acc4ecc5be99ea799a5879f230689938443d2cc7a3591fb9744fbf000"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

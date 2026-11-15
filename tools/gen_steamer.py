@@ -350,8 +350,9 @@ pieces_after()
 # --- Ramps: SH3's six, then the three stairs (39°, 1.1 m wide).
 ramp("poop_port", -14, -4.5, 3, 1.4, 0, 1.2, 0)
 ramp("poop_starboard", -14, 3.1, 3, 1.4, 0, 1.2, 0)
-ramp("boat_port", 3, -3.4, 6, 1.5, 0, 2.5, 0)
-ramp("boat_starboard", 3, 1.9, 6, 1.5, 0, 2.5, 0)
+# The boat deck's two 1.4 m wide, 0.9 m clear of the hatch past their side rails (#587).
+ramp("boat_port", 3, -3.4, 6, 1.4, 0, 2.5, 0)
+ramp("boat_starboard", 3, 2.0, 6, 1.4, 0, 2.5, 0)
 ramp("forecastle", 9, -0.8, 3, 1.6, 0, 0, 1.8)
 # The forecastle's second way up (Q6): from SH27 a sinking by the stern leaves her bow
 # highest, so the forecastle is a perch like the bridge — a second stair to starboard,
@@ -377,9 +378,7 @@ ramp("stokehold_forward", HX1 - STOKEHOLD_RUN, 1.4, STOKEHOLD_RUN, 1.1, 0, TANK_
 # --- Blockers: SH3's funnel (now through the deckhouse), mast and hatch.
 cylinder("funnel", -6, 0, 0.9, 0, 7.5)
 cylinder("mast", 16, 0, 0.2, 1.8, 11)
-# x0, x1, z0, z1: the hold's hatch, its cover 0.8 m over the deck; 0.9 m clear of the boat
-# deck's stairs' side rails either side (#587), the lanes beside it as wide as before them.
-HATCH = (4, 8, -0.9, 0.9)
+HATCH = (4, 8, -1, 1)  # x0, x1, z0, z1: the hold's hatch, its cover 0.8 m over the deck
 box("hatch", *HATCH, 0, 0.8)
 # The forecastle's after face: the hold runs on beneath it.
 box("forecastle_break", 12, 12.2, -4, 4, 0, 1.8)

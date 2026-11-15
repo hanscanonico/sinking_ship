@@ -449,12 +449,12 @@ start_height = 1.2
 
 [sub_resource type="Resource" id="Ramp_boat_port"]
 script = ExtResource("2_ramp")
-area = Rect2(3, -3.4, 6, 1.5)
+area = Rect2(3, -3.4, 6, 1.4)
 start_height = 2.5
 
 [sub_resource type="Resource" id="Ramp_boat_starboard"]
 script = ExtResource("2_ramp")
-area = Rect2(3, 1.9, 6, 1.5)
+area = Rect2(3, 2, 6, 1.4)
 start_height = 2.5
 
 [sub_resource type="Resource" id="Ramp_forecastle"]
@@ -524,7 +524,7 @@ top = 11
 
 [sub_resource type="Resource" id="Blocker_hatch"]
 script = ExtResource("3_block")
-area = Rect2(4, -0.9, 4, 1.8)
+area = Rect2(4, -1, 4, 2)
 top = 0.8
 
 [sub_resource type="Resource" id="Blocker_forecastle_break"]
@@ -2483,72 +2483,72 @@ top = 1.7083
 
 [sub_resource type="Resource" id="Blocker_side_boat_port_hi0_0"]
 script = ExtResource("3_block")
-area = Rect2(3, -1.9, 0.86, 0.1)
+area = Rect2(3, -2, 0.86, 0.1)
 bottom = 2.1417
 top = 3.5
 
 [sub_resource type="Resource" id="Blocker_side_boat_port_hi0_1"]
 script = ExtResource("3_block")
-area = Rect2(3.86, -1.9, 0.86, 0.1)
+area = Rect2(3.86, -2, 0.86, 0.1)
 bottom = 1.7833
 top = 3.1417
 
 [sub_resource type="Resource" id="Blocker_side_boat_port_hi0_2"]
 script = ExtResource("3_block")
-area = Rect2(4.72, -1.9, 0.86, 0.1)
+area = Rect2(4.72, -2, 0.86, 0.1)
 bottom = 1.71
 top = 2.7833
 
 [sub_resource type="Resource" id="Blocker_side_boat_port_hi0_3"]
 script = ExtResource("3_block")
-area = Rect2(5.58, -1.9, 0.86, 0.1)
+area = Rect2(5.58, -2, 0.86, 0.1)
 bottom = 1.71
 top = 2.425
 
 [sub_resource type="Resource" id="Blocker_side_boat_port_hi0_4"]
 script = ExtResource("3_block")
-area = Rect2(6.44, -1.9, 0.86, 0.1)
+area = Rect2(6.44, -2, 0.86, 0.1)
 bottom = 1.71
 top = 2.0667
 
 [sub_resource type="Resource" id="Blocker_side_boat_port_hi0_5"]
 script = ExtResource("3_block")
-area = Rect2(7.3, -1.9, 0.86, 0.1)
+area = Rect2(7.3, -2, 0.86, 0.1)
 top = 1.7083
 
 [sub_resource type="Resource" id="Blocker_side_boat_starboard_lo0_0"]
 script = ExtResource("3_block")
-area = Rect2(3, 1.8, 0.86, 0.1)
+area = Rect2(3, 1.9, 0.86, 0.1)
 bottom = 2.1417
 top = 3.5
 
 [sub_resource type="Resource" id="Blocker_side_boat_starboard_lo0_1"]
 script = ExtResource("3_block")
-area = Rect2(3.86, 1.8, 0.86, 0.1)
+area = Rect2(3.86, 1.9, 0.86, 0.1)
 bottom = 1.7833
 top = 3.1417
 
 [sub_resource type="Resource" id="Blocker_side_boat_starboard_lo0_2"]
 script = ExtResource("3_block")
-area = Rect2(4.72, 1.8, 0.86, 0.1)
+area = Rect2(4.72, 1.9, 0.86, 0.1)
 bottom = 1.71
 top = 2.7833
 
 [sub_resource type="Resource" id="Blocker_side_boat_starboard_lo0_3"]
 script = ExtResource("3_block")
-area = Rect2(5.58, 1.8, 0.86, 0.1)
+area = Rect2(5.58, 1.9, 0.86, 0.1)
 bottom = 1.71
 top = 2.425
 
 [sub_resource type="Resource" id="Blocker_side_boat_starboard_lo0_4"]
 script = ExtResource("3_block")
-area = Rect2(6.44, 1.8, 0.86, 0.1)
+area = Rect2(6.44, 1.9, 0.86, 0.1)
 bottom = 1.71
 top = 2.0667
 
 [sub_resource type="Resource" id="Blocker_side_boat_starboard_lo0_5"]
 script = ExtResource("3_block")
-area = Rect2(7.3, 1.8, 0.86, 0.1)
+area = Rect2(7.3, 1.9, 0.86, 0.1)
 top = 1.7083
 
 [sub_resource type="Resource" id="Blocker_side_boat_starboard_hi0_0"]
@@ -3624,7 +3624,7 @@ name = &"hatch_hold"
 kind = 5
 joins = Array[StringName]([&"hold", &"sky"])
 centre = Vector3(6, 0, 0)
-size = Vector3(4, 0, 1.8)
+size = Vector3(4, 0, 2)
 starts = 1
 leak_head = 0.3
 collapse_head = 1

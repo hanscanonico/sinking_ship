@@ -263,7 +263,7 @@ func test_a_body_at_a_stair_s_head_within_its_width_walks_on_onto_it() -> void:
 	var layout := SimFixtures.steamer()
 	var surfaces := Surfaces.new(layout)
 	var graph := _graph(layout, surfaces)
-	var head := Vector3(3.0, 2.5, -2.65)
+	var head := Vector3(3.0, 2.5, -2.7)
 	var leg: WalkGraph.Portal = null
 	for portal: WalkGraph.Portal in graph.portals():
 		if portal.ramp != WalkGraph.NONE and portal.entry.is_equal_approx(head):
