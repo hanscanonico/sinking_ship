@@ -33,6 +33,7 @@ import struct
 import sys
 
 from floor_spots import spots_below_decks
+from flight_rails import rail_flight_sides
 
 out = sys.argv[1]
 assert len(sys.argv) == 2, "her sisters are the Titanic's variants: tools/gen_titanic.py"
@@ -2021,6 +2022,10 @@ for tag, x0, x1, side, holes in [("br4", BX["G"], BX["F"], SALOON_Z, [(GS[0], GS
     for rid, z0, z1 in [("corridor", SR_Z[1], BATHS_Z), ("baths", BATHS_Z, side)]:
         for k, (a, b, s0, s1) in enumerate(deck_pieces(x0, x1, z0, z1, holes)):
             box("%s_%s_roof_%d" % (rid, tag, k), a, b, s0, s1, E_DECK - 2 * T, E_DECK)
+
+# --- Every flight's open sides railed (#587), as the Titanic's are (#574): once her decks, her
+# flights, her railings and what stands by them, her rooms' roofs too, are all laid.
+rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box)
 
 # The seats a match on her takes (§SH34): four to sixteen; more is SH21.
 SEATS = (4, 16)
