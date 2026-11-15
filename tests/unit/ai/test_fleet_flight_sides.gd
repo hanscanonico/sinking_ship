@@ -14,7 +14,7 @@ const FALLS := {
 	"res://data/ships/barque.tres": [0, 0],
 	"res://data/ships/ferry.tres": [0, 0],
 	"res://data/ships/freighter.tres": [0, 0],
-	"res://data/ships/steamer.tres": [28, 14],
+	"res://data/ships/steamer.tres": [0, 0],
 	"res://data/ships/trawler.tres": [0, 0],
 	"res://data/ships/tug.tres": [0, 0],
 }

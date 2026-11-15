@@ -24,6 +24,7 @@ import struct
 import sys
 
 from floor_spots import spots_below_decks
+from flight_rails import rail_flight_sides
 
 out = sys.argv[1]
 weak = "--weak" in sys.argv[2:]
@@ -517,6 +518,10 @@ spawns = [
     (1.5, 0, -1.5), (-2.5, 0, 2.2),
     (-17.5, 1.2, -2.5), (-5, 0, -4.3), (7.4, 0, 4.2),
 ]
+# --- Every flight's open sides railed (#587), as the Small Titanic's are: once her decks,
+# her flights, her railings and what stands by them are all laid.
+rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box)
+
 # The seats a match on her takes: the menu's 4–8 since SH8, hers from SH30; one plays
 # alone, no bots.
 SEATS = (1, 8)
