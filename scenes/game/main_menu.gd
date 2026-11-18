@@ -5,8 +5,8 @@ extends CanvasLayer
 ## sinks fast, whether the match is survival (MatchRules.Goal) and whether bonuses come
 ## aboard, handed on as they stand: one MatchChoices, which Game turns into a match (D13).
 ## Watch plays the same match with bots on every seat, the local one's too, for the
-## player only to watch (MatchChoices.watch, GLOSSARY: Watch) — from any seat's eyes, the
-## orbit camera or the free camera. Beside it, Play online opens the Online screen
+## player only to watch (MatchChoices.watch, GLOSSARY: Watch) — from any seat's eyes or
+## the free camera. Beside it, Play online opens the Online screen
 ## (SH12). It stands over the ship at dusk (MenuBackdrop) under the wordmark in her
 ## livery: cream on a boot-top red rule
 ## between brass lines — and the online screens stand over the same, its own panel put

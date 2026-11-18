@@ -25,8 +25,8 @@ const HINTS: Array[Array] = [
 	[&"replay_seek_end", "to the end"],
 	[&"spectate_previous", "seat before"],
 	[&"spectate_next", "seat after"],
-	[&"replay_camera_toggle", "camera"],
-	[&"replay_orbit_lock", "lock on the seat"],
+	[&"spectate_free", "free camera"],
+	[&"spectate_follow", "follow"],
 	[&"ui_cancel", "back"],
 ]
 const PLATE_MARGIN := 12

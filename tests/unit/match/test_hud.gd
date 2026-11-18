@@ -11,6 +11,7 @@ const SIZES: Array[Vector2] = [
 const FONT_SIZE := 22
 const OUTLINE := 6
 const WITH_HER := PlayerState.Cause.WITH_HER
+const COLD := PlayerState.Cause.COLD
 
 
 func test_the_line_names_whose_view_it_is() -> void:
@@ -78,27 +79,39 @@ func test_the_line_says_how_into_the_free_camera_and_back() -> void:
 	)
 
 
-## A watcher's line names the seat watched, from its eyes or the orbit camera following
-## it, and the keys to switch seat and camera — the orbit's lock only from the orbit.
+## Once out, the free camera's line says how to follow the seat watched, and how to let go.
+func test_the_line_from_the_free_camera_says_how_to_follow() -> void:
+	assert_eq(
+		Hud.spectating_text("3rd", 8, "through Bot 3's eyes", "Q", "E", "C", true, COLD, "V"),
+		"Overboard — 3rd of 8   ·   free camera\nQ / E to switch   ·   C eyes\nV follow"
+	)
+	assert_eq(
+		Hud.spectating_text("3rd", 8, "", "Q", "E", "C", true, COLD, "V", true),
+		"Overboard — 3rd of 8   ·   free camera\nQ / E to switch   ·   C eyes\nV let go"
+	)
+	assert_eq(
+		Hud.spectating_text("3rd", 8, "through Bot 3's eyes", "Q", "E", "C", false, COLD, "V"),
+		"Overboard — 3rd of 8   ·   through Bot 3's eyes\nQ / E to switch   ·   C free camera",
+		"no follow from the eyes"
+	)
+
+
+## A watcher's line names the seat watched, from its eyes or the free camera following
+## it, and the keys to switch seat and camera — the follow only from the free camera.
 func test_the_watchers_line_names_the_seat_and_the_cameras() -> void:
 	var eyes := Hud.Camera.EYES
-	var orbit := Hud.Camera.ORBIT
 	var free := Hud.Camera.FREE
 	assert_eq(
-		Hud.watching_text("Bot 3", eyes, false, "Q", "E", "C", "Tab", "F"),
-		"Watching   ·   through Bot 3's eyes\nQ / E to switch   ·   C free camera\nTab orbit camera"
+		Hud.watching_text("Bot 3", eyes, false, "Q", "E", "C", "V"),
+		"Watching   ·   through Bot 3's eyes\nQ / E to switch   ·   C free camera"
 	)
 	assert_eq(
-		Hud.watching_text("Bot 3", orbit, true, "Q", "E", "C", "Tab", "F"),
-		"Watching   ·   orbiting Bot 3\nQ / E to switch   ·   C free camera\nTab eyes   ·   F let go"
+		Hud.watching_text("Bot 3", free, false, "Q", "E", "C", "V"),
+		"Watching   ·   free camera\nQ / E to switch   ·   C eyes\nV follow"
 	)
 	assert_eq(
-		Hud.watching_text("Bot 3", orbit, false, "Q", "E", "C", "Tab", "F"),
-		"Watching   ·   orbit camera\nQ / E to switch   ·   C free camera\nTab eyes   ·   F lock on"
-	)
-	assert_eq(
-		Hud.watching_text("Bot 3", free, false, "Q", "E", "C", "Tab", "F"),
-		"Watching   ·   free camera\nQ / E to switch   ·   C eyes\nTab orbit camera"
+		Hud.watching_text("Bot 3", free, true, "Q", "E", "C", "V"),
+		"Watching   ·   following Bot 3\nQ / E to switch   ·   C eyes\nV let go"
 	)
 
 
@@ -114,14 +127,13 @@ func test_the_watchers_line_fits_its_box() -> void:
 			&"spectate_previous",
 			&"spectate_next",
 			&"spectate_free",
-			&"replay_camera_toggle",
-			&"replay_orbit_lock",
+			&"spectate_follow",
 		]:
 			keys.append(InputPrompts.word_for(InputMap.action_get_events(action), pad))
-		for camera: Hud.Camera in [Hud.Camera.EYES, Hud.Camera.ORBIT, Hud.Camera.FREE]:
-			for locked: bool in [false, true]:
+		for camera: Hud.Camera in [Hud.Camera.EYES, Hud.Camera.FREE]:
+			for following: bool in [false, true]:
 				var text := Hud.watching_text(
-					widest, camera, locked, keys[0], keys[1], keys[2], keys[3], keys[4]
+					widest, camera, following, keys[0], keys[1], keys[2], keys[3]
 				)
 				for line: String in text.split("\n"):
 					var width := (
@@ -153,14 +165,17 @@ func test_the_line_fits_clear_of_the_plate_and_the_wedges() -> void:
 					"16th", 16, whose, previous, next, key, false, cause
 				)
 				lines.append_array(text.split("\n"))
-		lines.append_array(
-			Hud.spectating_text("16th", 16, "", previous, next, free, true).split("\n")
-		)
+		var follow := InputPrompts.word_for(InputMap.action_get_events(&"spectate_follow"), pad)
+		for following: bool in [false, true]:
+			var text := Hud.spectating_text(
+				"16th", 16, "", previous, next, free, true, WITH_HER, follow, following
+			)
+			lines.append_array(text.split("\n"))
 	var height := 0.0
 	for line: String in lines:
 		var width := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
 		assert_lt(width + OUTLINE * 2.0, box.size.x, "%s fits on one line" % line)
-	for line in 2:
+	for line in 3:
 		height += font.get_height(FONT_SIZE)
 	for size: Vector2 in SIZES:
 		# Anchored to the bottom middle: a wider or taller canvas moves it as a whole.

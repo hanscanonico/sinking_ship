@@ -13,10 +13,9 @@ enum Beam { STARBOARD, PORT }
 ## share of her length away.
 const LONG_HULL := 3.0
 const LONG_HULL_DISTANCE := 0.8
-## A wheel notch's zoom, as a share of the distance, and the nearest it comes, in metres:
-## the orbit camera's.
-const ZOOM_STEP := OrbitCamera.ZOOM_STEP
-const NEAREST := OrbitCamera.DISTANCE_LIMITS.x
+## A wheel notch's zoom, as a share of the distance, and the nearest it comes, in metres.
+const ZOOM_STEP := 0.88
+const NEAREST := 2.0
 
 @export var side: Beam = Beam.STARBOARD
 @export var pitch_deg: float = 50.0
@@ -63,6 +62,19 @@ func follow(target: Vector3, delta: float) -> void:
 ## NEAREST and where reset() put it.
 func zoom(notches: float) -> void:
 	_camera.position.z = clampf(_camera.position.z * pow(ZOOM_STEP, notches), NEAREST, _opened)
+
+
+## How many notches [param event] turns the wheel: one in (up) or out (down) as it is
+## pressed, none for anything else.
+static func wheel_notches(event: InputEvent) -> float:
+	if not (event is InputEventMouseButton and event.is_pressed()):
+		return 0.0
+	match (event as InputEventMouseButton).button_index:
+		MOUSE_BUTTON_WHEEL_UP:
+			return 1.0
+		MOUSE_BUTTON_WHEEL_DOWN:
+			return -1.0
+	return 0.0
 
 
 ## [param target] held inside the bounds; while it watches the whole ship, their middle

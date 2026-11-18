@@ -136,29 +136,37 @@ func test_a_play_key_never_answers_to_a_spectate_action_too() -> void:
 
 func test_the_spectate_keys_rebind_and_swap_with_play() -> void:
 	var keys := KeyBindings.new()
-	assert_true(keys.bind(&"spectate_free", _key(KEY_SPACE)))
-	assert_true(KeyBindings.same_input(keys.shown(&"jump"), _key(KEY_C)), "jump takes C")
+	assert_true(keys.bind(&"spectate_free", _key(KEY_G)))
+	assert_true(KeyBindings.same_input(keys.shown(&"grab"), _key(KEY_C)), "grab takes C")
 	assert_true(keys.bind(&"spectate_previous", _key(KEY_Z)))
-	assert_true(keys.bind(&"spectate_free", _key(KEY_LEFT)), "the free camera is not a replay's")
-	assert_false(keys.chosen.has(&"move_left"), "the arrow was only an alternate")
+	assert_true(keys.bind(&"spectate_follow", _key(KEY_X)))
 	keys.apply()
-	var left := _key(KEY_LEFT)
-	left.pressed = true
-	assert_true(left.is_action_pressed(&"spectate_free"))
-	assert_false(left.is_action_pressed(&"move_left"), "no key answers to two actions")
+	var g := _key(KEY_G)
+	g.pressed = true
+	assert_true(g.is_action_pressed(&"spectate_free"))
+	assert_false(g.is_action_pressed(&"grab"), "no key answers to two actions")
+	var x := _key(KEY_X)
+	x.pressed = true
+	assert_true(x.is_action_pressed(&"spectate_follow"), "follow rebinds like the others")
+	var v := _key(KEY_V)
+	v.pressed = true
+	assert_false(v.is_action_pressed(&"spectate_follow"), "V no longer follows")
 	var z := _key(KEY_Z)
 	z.pressed = true
 	assert_true(z.is_action_pressed(&"spectate_previous"))
 	assert_eq(_pad_events(&"spectate_free").size(), 1, "the pad's kept")
 
 
-## A replay hears its own keys and Esc before the switches of view, which there
-## switch the seat: a switch left on one could never be used, and its hint would lie.
+## A replay hears its own keys and Esc before the switches of view and the free
+## camera's keys, which there switch the seat and the camera: one left on a replay's
+## key could never be used, and its hint would lie.
 func test_a_switch_of_view_never_takes_a_replay_s_key() -> void:
 	var keys := KeyBindings.new()
 	assert_false(keys.bind(&"spectate_previous", _key(KEY_LEFT)), "a step back")
 	assert_false(keys.bind(&"spectate_next", _key(KEY_RIGHT)), "a step forward")
 	assert_false(keys.bind(&"spectate_next", _key(KEY_SPACE)), "the replay's pause")
+	assert_false(keys.bind(&"spectate_free", _key(KEY_LEFT)), "the free camera's in replays")
+	assert_false(keys.bind(&"spectate_follow", _key(KEY_HOME)), "and its follow")
 	assert_false(keys.bind(&"spectate_previous", _key(KEY_ESCAPE)), "Esc closes the replay")
 	var typed := InputEventKey.new()
 	typed.keycode = KEY_ESCAPE
@@ -182,20 +190,15 @@ func test_no_swap_leaves_a_switch_of_view_on_a_replay_s_key() -> void:
 	assert_true(keys.bind(&"brace", _key(KEY_LEFT)), "a key of play may be a replay's")
 	assert_false(keys.bind(&"brace", _key(KEY_Q)), "but not hand it to the previous view")
 	assert_true(KeyBindings.same_input(keys.shown(&"spectate_previous"), _key(KEY_Q)))
-	assert_true(keys.bind(&"brace", _key(KEY_C)), "the free camera takes it")
-	assert_true(KeyBindings.same_input(keys.shown(&"spectate_free"), _key(KEY_LEFT)))
+	assert_false(keys.bind(&"brace", _key(KEY_C)), "nor to the free camera")
+	assert_true(KeyBindings.same_input(keys.shown(&"spectate_free"), _key(KEY_C)))
 
 
-## A replay's orbit drags with the left button and pans with the middle: a switch of
-## view on either would switch the seat at every drag.
-func test_a_switch_of_view_never_takes_a_button_the_orbit_drags_with() -> void:
+## No replay drags with the mouse: a switch of view may take a button of it.
+func test_a_switch_of_view_may_take_a_mouse_button() -> void:
 	var keys := KeyBindings.new()
-	assert_false(keys.bind(&"spectate_next", _click(MOUSE_BUTTON_LEFT)), "the orbit's drag")
-	assert_false(keys.bind(&"spectate_previous", _click(MOUSE_BUTTON_MIDDLE)), "the orbit's pan")
-	assert_true(keys.chosen.is_empty(), "nothing moved")
-	assert_true(keys.bind(&"spectate_next", _click(MOUSE_BUTTON_RIGHT)), "the right is no replay's")
-	assert_false(keys.bind(&"shove", _click(MOUSE_BUTTON_RIGHT)), "nor by the swap")
-	assert_true(KeyBindings.same_input(keys.shown(&"spectate_next"), _click(MOUSE_BUTTON_RIGHT)))
+	assert_true(keys.bind(&"spectate_next", _click(MOUSE_BUTTON_MIDDLE)))
+	assert_true(KeyBindings.same_input(keys.shown(&"spectate_next"), _click(MOUSE_BUTTON_MIDDLE)))
 
 
 ## Nor does a file edited by hand put one there: such an entry is left out, as one
@@ -203,12 +206,12 @@ func test_a_switch_of_view_never_takes_a_button_the_orbit_drags_with() -> void:
 func test_a_file_never_puts_a_switch_of_view_on_a_replay_s_key() -> void:
 	_write(
 		(
-			'{"spectate_next": {"keycode": 4194305}, "spectate_previous": {"mouse": 1},'
+			'{"spectate_next": {"keycode": 4194305}, "spectate_previous": {"key": 32},'
 			+ ' "spectate_free": {"key": 4194319}}'
 		)
 	)
 	var back := KeyBindings.read(PATH)
-	assert_eq(back.chosen.keys(), [&"spectate_free"], "only the free camera may take a replay's")
+	assert_true(back.chosen.is_empty(), "none may take a replay's")
 	assert_eq(_unsound(back, "the file"), [] as Array[String])
 
 
@@ -230,6 +233,7 @@ func test_no_bind_breaks_the_keys_of_play_or_of_replays() -> void:
 		KEY_E,
 		KEY_Q,
 		KEY_C,
+		KEY_V,
 		KEY_F,
 		KEY_R,
 		KEY_J,
