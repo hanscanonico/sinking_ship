@@ -245,6 +245,65 @@ func test_full_room_refuses_a_join() -> void:
 	assert_eq(players[0].roster.players.size(), 2)
 
 
+## A roster the server sent before it read the leave is the room's last word to a member
+## gone: the client that left stays out, and a BEGIN on its way plays nothing for it.
+func test_a_room_left_stays_left() -> void:
+	var fixture := RoomFixtures.new()
+	var players := fixture.room_of(2)
+	var late := fixture.connect_client("Late")
+	fixture.beat()
+	late.join_room(players[0].roster.code)
+	players[1].leave_room()
+	fixture.beat(3)
+	assert_eq(fixture.room(players[0]).members.size(), 2, "the server has the leaver out")
+	assert_eq(players[1].state, RoomClient.State.LOBBY, "the leaver stays in the lobby")
+	assert_null(players[1].roster, "in no room")
+
+
+func test_a_match_begun_after_leaving_is_not_played() -> void:
+	var fixture := RoomFixtures.new(null, RoomFixtures.flat_rules())
+	var players := fixture.room_of(2)
+	var begun: Array[int] = []
+	players[1].began.connect(func(_config: MatchConfig, seat: int) -> void: begun.append(seat))
+	players[0].start_match()
+	players[1].leave_room()
+	fixture.beat(3)
+	assert_eq(fixture.room(players[0]).phase, Room.Phase.PLAYING, "the match began")
+	assert_eq(players[1].state, RoomClient.State.LOBBY, "a BEGIN on its way takes it nowhere")
+	assert_null(players[1].roster, "nor a roster")
+	assert_eq(begun, [] as Array[int], "and it begins no match")
+
+
+## A roster of the room left that comes after a join elsewhere is not the room joined.
+func test_a_join_takes_only_its_own_room() -> void:
+	var fixture := RoomFixtures.new()
+	var first := fixture.room_of(2)
+	var second := fixture.room_of(1)
+	var late := fixture.connect_client("Late")
+	fixture.beat()
+	late.join_room(first[0].roster.code)
+	first[1].leave_room()
+	first[1].join_room(second[0].roster.code.to_lower())
+	fixture.beat(3)
+	assert_eq(first[1].state, RoomClient.State.ROOM)
+	assert_eq(first[1].roster.code, second[0].roster.code, "in the room it joined")
+	assert_eq(first[1].roster.players.size(), 2)
+
+
+## A join the server refuses leaves the client where it was: still its room's member.
+func test_a_join_refused_keeps_the_room() -> void:
+	var fixture := RoomFixtures.new(null, RoomFixtures.flat_rules())
+	var first := fixture.room_of(2)
+	var second := fixture.room_of(1)
+	var reasons := RoomFixtures.refusals(first[1])
+	first[1].join_room(second[0].roster.code)
+	fixture.beat()
+	assert_eq(reasons, [RoomCodec.Refusal.IN_ROOM] as Array[int])
+	first[0].start_match()
+	fixture.beat()
+	assert_eq(first[1].state, RoomClient.State.PLAYING, "its room's match begins for it")
+
+
 func test_only_the_host_starts() -> void:
 	var fixture := RoomFixtures.new()
 	var players := fixture.room_of(2)
