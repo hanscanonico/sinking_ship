@@ -179,7 +179,7 @@ func _read(packet: Transport.Packet) -> void:
 				state = State.ROOM
 			roster_changed.emit(roster)
 		WireCodec.Kind.BEGIN:
-			if state == State.ROOM and not _left and _joining_code.is_empty():
+			if roster != null and not _left and _joining_code.is_empty():
 				_begin(message)
 		WireCodec.Kind.TIMELINE:
 			if not _left and _joining_code.is_empty():
