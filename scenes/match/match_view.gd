@@ -47,6 +47,8 @@ var _bodies: Array[Brawler] = []
 ## Per seat, the facing it is drawn with, in its face's plane.
 var _facings := PackedFloat64Array()
 var _shadows: Array[MeshInstance3D] = []
+## Per seat, the bonuses it was last drawn wearing (Brawler.wear_bonuses).
+var _wearing: Array = []
 ## Her props as the ship drawn draws them: the dressed art's (PropArt), or per prop the
 ## greybox's node; per prop the snapshot entry it was last drawn still at, so a prop
 ## that has not moved since is passed over; the props a hand may hold (GrabReach); and
@@ -173,6 +175,8 @@ func setup(
 	_facings.resize(sim.config.seats)
 	_feet.resize(sim.config.seats)
 	_heights.resize(sim.config.seats)
+	_wearing.resize(sim.config.seats)
+	_wearing.fill(null)
 	_rules = rules
 	_worlds.resize(sim.config.seats)
 	for seat in sim.config.seats:
@@ -497,8 +501,8 @@ func _process(delta: float) -> void:
 		_worlds[seat] = world
 		var body := _bodies[seat]
 		body.visible = not now["out"] and seat != _eye_seat
-		_shadows[seat].visible = false
 		if now["out"]:
+			_shadows[seat].visible = false
 			continue
 		var pos: Vector3 = now["pos"] if moved else (then["pos"] as Vector3).lerp(now["pos"], alpha)
 		if seat == _local_seat:
@@ -528,22 +532,25 @@ func _process(delta: float) -> void:
 		# Posed even unseen, through its eyes: the hands of a body drawn reaching for it
 		# stop at its guard (Brawler.keep_apart).
 		body.show_state(then, now, alpha, _heights[seat] < _rules.body_height)
-		var worn: Array[BonusKind] = []
-		for kind: int in now["bonuses"]:
-			worn.append(_bonus_kinds[kind])
-		body.wear_bonuses(worn)
+		if now["bonuses"] != _wearing[seat]:
+			_wearing[seat] = (now["bonuses"] as Array).duplicate()
+			var worn: Array[BonusKind] = []
+			for kind: int in now["bonuses"]:
+				worn.append(_bonus_kinds[kind])
+			body.wear_bonuses(worn)
 		if carried.has(seat):
 			body.carry(_drawn(carried[seat]), _layout.props[carried[seat]].radius)
 		if not body.visible:
+			_shadows[seat].visible = false
 			continue
 		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
 		if now["state"] == PlayerState.Body.SWIMMING:
 			below = Surfaces.NONE
 		var normal := Vector3.UP if below == Surfaces.NONE else _ground_normal(here, below, feet)
 		body.show_ground(placed.basis * (to_ship * normal))
+		_shadows[seat].visible = below != Surfaces.NONE
 		if below != Surfaces.NONE:
 			var ground := here.height_at(below, feet)
-			_shadows[seat].visible = true
 			_shadows[seat].transform = (
 				placed
 				* Transform3D(to_ship, to_ship * Vector3(feet.x, ground + SHADOW_LIFT, feet.z))
