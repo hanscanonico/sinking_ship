@@ -109,8 +109,9 @@ func section_at_by_scan(x: float) -> HullSection:
 ## section_at()'s index over her sections: their after and fore ends, and the sections
 ## themselves, nulls left out, and half_breadth()'s, their middles (_first_not_aft_of()),
 ## none where a section is missing or a middle is out of order; empty where it cannot
-## bisect them (an end out of order or not a number). Rebuilt when her sections or any section's x or length change; built
-## and read under a lock, since bots think on a thread of their own.
+## bisect them (an end out of order or not a number). Rebuilt when her sections or any
+## section's x or length change; built and read under a lock, since bots think on a
+## thread of their own.
 func _section_ends() -> Array:
 	var key := sections.hash()
 	_ends_lock.lock()
