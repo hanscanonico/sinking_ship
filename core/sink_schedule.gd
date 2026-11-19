@@ -460,7 +460,9 @@ func _physical(tick: int) -> ShipPose:
 			pose.pieces.append(own)
 	if tick > _hit_tick and not _timeline.passages.is_empty():
 		pose.passages = _timeline.passages
-		pose.flows = _timeline.flows_between(frame, next)
+		# Each passage's flow as SinkTimeline.flow reads it, its stretch of flows at once.
+		var row := maxi(frame, next) * _timeline.passages.size()
+		pose.flows = _timeline.flows.slice(row, row + _timeline.passages.size())
 		var fronts := water_fronts()
 		if fronts != null:
 			fronts.pose(pose, seconds)

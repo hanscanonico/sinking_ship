@@ -388,8 +388,8 @@ func test_a_pose_has_the_flow_through_each_opening_once_she_is_holed() -> void:
 
 
 func test_a_pose_takes_every_kept_states_flows_as_each_reads_alone() -> void:
-	# A pose takes its flows as one stretch of the timeline's (SinkTimeline.flows_between):
-	# at every state she keeps, and past the last, each is what flow reads of it alone.
+	# A pose takes its flows as one stretch of the timeline's: at every state she keeps,
+	# and past the last, each is what SinkTimeline.flow reads of it alone.
 	var layout := SimFixtures.steamer()
 	var config := SimFixtures.config(2, load(SimFixtures.STEAMER_SINKING), SEED, layout)
 	var schedule := config.schedule()
