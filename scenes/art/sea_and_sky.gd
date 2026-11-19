@@ -41,6 +41,9 @@ const BOTTOM_SIZE := 600.0
 ## LONG_HULL times its 24 m), and her haze reaches as far: HAZE_SPAN times its own over
 ## her length, so the rig sees her as clear as a short ship's and her bow sees her stern.
 const HAZE_LENGTH := 72.0
+## How far under a cell's box the sea is left out too (left_out): inside the planks
+## of the deck it stands on, so the sea leaves out nothing a deck does not hide.
+const UNDER_FLOOR := ShipArt.PLANK * 0.5
 ## A long ship's length over how much farther her haze reaches than the scene's: the
 ## rig's 24 m over the share of her length it stands back (LONG_HULL_DISTANCE, 0.8).
 const HAZE_SPAN := 30.0
@@ -151,10 +154,7 @@ func setup(end_tick: int, layout: ShipLayout, sea_depth: float = INF) -> void:
 	_lay_bottom(sea_depth)
 	_map_rooms(layout)
 	if layout.structure != null:
-		var boxes := CellBoxes.boxes(layout.structure, layout.rooms)
-		for stack: Array in CellBoxes.stacked(layout.structure, layout.rooms, layout):
-			boxes.append(stack[1])
-		_mask_cells(boxes)
+		_mask_cells(left_out(layout))
 	var bounds := layout.platforms[0].area
 	var top := -INF
 	for platform: ShipPlatform in layout.platforms:
@@ -312,6 +312,24 @@ func _mask_cells(boxes: Array[AABB]) -> void:
 	_water.set_shader_parameter(&"cell_count", drawn.size())
 	_water.set_shader_parameter(&"cells_low", around.position)
 	_water.set_shader_parameter(&"cells_high", around.end)
+
+
+## The boxes, ship space, of [param layout]'s cells the sea leaves out: each cell's
+## (CellBoxes.boxes and stacked), reaching UNDER_FLOOR down past its floor into the
+## deck's planks. A box that stopped at the floor's top let the sea's surface, where it
+## crossed the floor, win the depth test against it along a sliver: a dashed line of
+## its foam across a dark room as the waterline swept over the floor.
+static func left_out(layout: ShipLayout) -> Array[AABB]:
+	var boxes := CellBoxes.boxes(layout.structure, layout.rooms)
+	for stack: Array in CellBoxes.stacked(layout.structure, layout.rooms, layout):
+		boxes.append(stack[1])
+	var lowered: Array[AABB] = []
+	for box: AABB in boxes:
+		if box.size != Vector3.ZERO:
+			box.position.y -= UNDER_FLOOR
+			box.size.y += UNDER_FLOOR
+		lowered.append(box)
+	return lowered
 
 
 ## The boxes among [param boxes] (ship space) that hold anything, as the sea's shader
