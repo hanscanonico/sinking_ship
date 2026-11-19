@@ -219,6 +219,46 @@ func test_a_match_reset_to_its_own_snapshot_keeps_its_crates_as_they_stand() -> 
 	pass_test("the reset match matched")
 
 
+## Reset again and again, out of order, a used match stands its crates on her decks as
+## one made fresh from the same snapshot does — those it kept where they stood, those it
+## made again stood anew (MatchSim.restore) — holds that snapshot to the byte and plays on
+## from it as the fresh one does.
+func test_a_match_reset_out_of_order_stands_and_plays_as_one_made_fresh() -> void:
+	var played := _played(false)
+	var config := _started().config
+	var sim := _started()
+	for tick in Ticks.from_seconds(15.0):
+		sim.step(_frames(tick))
+	var kept := 0
+	var made := 0
+	for seconds: float in [14.0, 5.0, 21.0, 12.0, 12.5]:
+		var start := Ticks.from_seconds(seconds)
+		var crates := sim.state.props.duplicate()
+		sim.restore(played[start])
+		for index in crates.size():
+			var same := is_same(sim.state.props[index], crates[index])
+			kept += 1 if same else 0
+			made += 0 if same else 1
+		var fresh := MatchSim.from_snapshot(played[start], config)
+		assert_eq(var_to_bytes(sim.snapshot()), var_to_bytes(played[start]), "at %d" % start)
+		var stands := _stands(sim)
+		var fresh_stands := _stands(fresh)
+		assert_eq(stands.feet, fresh_stands.feet, "reset to %d, the crates' feet" % start)
+		assert_eq(stands.gone, fresh_stands.gone, "and which stand, at %d" % start)
+		for tick in range(start, start + Ticks.RATE):
+			sim.step(_frames(tick))
+			fresh.step(_frames(tick))
+			if var_to_bytes(sim.snapshot()) != var_to_bytes(fresh.snapshot()):
+				fail_test("reset to tick %d, it left the fresh one at %d" % [start, tick])
+				return
+	assert_gt(kept, 0, "crates as they stood were kept")
+	assert_gt(made, 0, "and crates moved since made again")
+
+
+func _stands(sim: MatchSim) -> PropStands:
+	return sim.pieces.faces(0).surfaces(Faces.Up.DECK).stands
+
+
 ## The weak hull's match a second after she parts, seat 0 on her fore piece's deck
 ## between two crates at rest gripping it — crate 3 a hair past its reach — and crate 2
 ## sent sliding into it: every snapshot from then on for a second, crates at rest passed

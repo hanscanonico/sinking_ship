@@ -11,6 +11,7 @@
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/packed_float64_array.hpp>
 #include <godot_cpp/variant/packed_int32_array.hpp>
+#include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/packed_vector3_array.hpp>
 
 namespace godot {
@@ -24,6 +25,13 @@ public:
 	PackedByteArray wet_all(const PackedVector3Array &p_world, const PackedInt32Array &p_cells,
 			bool p_keeps, const PackedFloat64Array &p_levels,
 			const PackedVector3Array &p_world_own_floors, double p_highest, double p_dry) const;
+	Array chains_under(const PackedVector3Array &p_points, const PackedVector3Array &p_low,
+			const PackedVector3Array &p_high, const Vector3 &p_from, const Vector3 &p_to, double p_slot,
+			const PackedInt32Array &p_slot_from, const PackedInt32Array &p_slot_cells,
+			const PackedByteArray &p_poking, const PackedFloat64Array &p_inside_port,
+			const PackedFloat64Array &p_inside_starboard, const PackedFloat64Array &p_section_x,
+			const PackedFloat64Array &p_section_length, const PackedInt32Array &p_outline_from,
+			const PackedVector2Array &p_outlines, double p_dry) const;
 	PackedFloat64Array lowest_of(const PackedInt32Array &p_groups, const PackedVector3Array &p_world,
 			const PackedInt32Array &p_chain_from, const PackedInt32Array &p_chain_cells,
 			const PackedVector3Array &p_world_floors, const PackedFloat64Array &p_levels,

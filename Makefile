@@ -204,7 +204,7 @@ smoke:
 	@SEED="$(SEED)" SHIP="$(SHIP)" FAST="$(FAST)" MAX="$(MAX)" DRY="$(DRY)" OUT="$(OUT)" \
 		BAKE_CACHE="$(BAKE_CACHE)" GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
 
-# `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
+# `make net-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says
 # (NET= for the offline game's honest wire), timed beat by beat: ticks re-run, the
 # client's and the host's time, packet sizes (R7). Rules live in tools/net_bench.gd.
@@ -300,7 +300,7 @@ serve-web-local: export-web export-server-mac
 serve-web-local-stop:
 	tools/serve_web_local.sh stop
 
-# `make sim-bench [SEED=] [SEATS=]`: one bots-only match recorded through the local
+# `make sim-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=]`: one bots-only match recorded through the local
 # host, its input log replayed through a bare MatchSim, no bots, timed step by step,
 # with snapshot() and restore() beside it and the load average (R7). Rules live in
 # tools/sim_bench.gd.

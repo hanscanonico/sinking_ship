@@ -187,8 +187,11 @@ func _mirrored() -> Object:
 ## doors as the ship's until the next pose, with the railings [param broken] by the
 ## match and its crates where [param props] has them: whoever asks about a tick hands
 ## its pose here first. Holds nothing it is not handed, so a match resumed from a
-## snapshot stands on the same ship.
-func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState] = []) -> void:
+## snapshot stands on the same ship. [param stood]: [param props] are only the crates
+## changed since it last stood them all, each stood alone; the rest stand as they stood.
+func honour(
+	pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState] = [], stood := false
+) -> void:
 	# A pose is a value, never changed once handed in: the same one with the same
 	# broken spans masks what it last masked. The cargo honours many times a tick. A
 	# copy, so a caller's list edited in place is not the one compared.
@@ -207,7 +210,11 @@ func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState
 		if masked:
 			shapes += 1
 		_obstacles.honoured(self, fell, masked)
-	stands.stand_all(props)
+	if not stood:
+		stands.stand_all(props)
+		return
+	for crate: PropState in props:
+		stands.stand(crate)
 
 
 ## Takes the platforms [param collapsed] and the railings [param failed] as gone, and

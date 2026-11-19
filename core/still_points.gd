@@ -213,14 +213,26 @@ func _locate() -> void:
 
 
 func _chain() -> void:
+	var chained: Array = _map.chains_under(water, _points) if water != null and _map != null else []
+	if not chained.is_empty():
+		_chain_from = chained[0]
+		_chain_cells = chained[1]
+		_chain_points = chained[2]
+		_chained = true
+		_floors_set = false
+		return
 	_chain_from.clear()
 	_chain_cells.clear()
 	_chain_points.clear()
+	# A point met again — a corner rooms share — has the cells found for it first.
+	var found := {}
 	for at: Vector3 in _points:
 		_chain_from.append(_chain_cells.size())
 		if _map == null:
 			continue
-		for cell: int in _map.cells_under(at):
+		if not found.has(at):
+			found[at] = _map.cells_under(at)
+		for cell: int in found[at]:
 			_chain_cells.append(cell)
 			_chain_points.append(Vector3(at.x, _map.floor_of(cell), at.z))
 	_chain_from.append(_chain_cells.size())
