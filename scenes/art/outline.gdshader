@@ -31,7 +31,7 @@ void vertex() {
 		if (ahead > eye_near) {
 			eye.xyz *= (eye_near + (ahead - eye_near) * eye_squash) / ahead;
 		}
-		POSITION = PROJECTION_MATRIX * eye;
+		VERTEX = (inverse(MODELVIEW_MATRIX) * eye).xyz;
 	}
 }
 

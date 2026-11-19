@@ -37,7 +37,8 @@ uniform float heat = 0.0;
 // A seat's own arms under its eye (Brawler.OWN_DEPTH): how much of their distance
 // past the camera's near plane, eye_near, they are drawn at, so a wall the fists
 // reach past never cuts them. Each point is pulled straight toward the eye, which
-// keeps it where it is on the screen and its light where it is; 1 for any other body.
+// keeps it where it is on the screen, and is lit there, on the eye's side of the
+// wall rather than in its shadow; 1 for any other body.
 uniform float eye_squash = 1.0;
 uniform float eye_near = 0.05;
 
@@ -86,7 +87,7 @@ void vertex() {
 		if (far > eye_near) {
 			eye.xyz *= (eye_near + (far - eye_near) * eye_squash) / far;
 		}
-		POSITION = PROJECTION_MATRIX * eye;
+		VERTEX = (inverse(MODELVIEW_MATRIX) * eye).xyz;
 	}
 }
 
