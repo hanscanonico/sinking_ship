@@ -34,6 +34,12 @@ uniform float flash = 0.0;
 uniform vec3 heat_colour : source_color = vec3(1.0, 0.42, 0.08);
 uniform vec3 heat_core : source_color = vec3(1.0, 0.94, 0.76);
 uniform float heat = 0.0;
+// A seat's own arms under its eye (Brawler.OWN_DEPTH): how much of their distance
+// past the camera's near plane, eye_near, they are drawn at, so a wall the fists
+// reach past never cuts them. Each point is pulled straight toward the eye, which
+// keeps it where it is on the screen and its light where it is; 1 for any other body.
+uniform float eye_squash = 1.0;
+uniform float eye_near = 0.05;
 
 // What a point is (gen_sailor.py numbers them the same): the body, the coat's
 // cloth, its lining, a darker facing — ribbing, cuffs, a breast pocket's welt, a
@@ -74,6 +80,14 @@ varying float piece;
 void vertex() {
 	rest = vec3(UV.x, UV.y, UV2.x);
 	piece = UV2.y;
+	if (eye_squash < 1.0) {
+		vec4 eye = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+		float far = -eye.z;
+		if (far > eye_near) {
+			eye.xyz *= (eye_near + (far - eye_near) * eye_squash) / far;
+		}
+		POSITION = PROJECTION_MATRIX * eye;
+	}
 }
 
 // 1 inside the ellipse at centre c with radii r, in the face's x/y.

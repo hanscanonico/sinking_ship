@@ -16,7 +16,8 @@ extends Node3D
 ## hands thrust out together under the crosshair, then pulled apart and down to the
 ## bottom edge — and one hand reaching high and the other gripping low as a climb
 ## hauls the body up. A hit-stop never squashes the arms nor holds them, so a
-## stagger's recoil comes the moment the shove lands.
+## stagger's recoil comes the moment the shove lands. It hangs from a Camera3D and
+## is drawn ahead of everything that camera sees, so a wall up close never cuts it.
 
 ## What the arms never cover, in pixels of the HUD's canvas (which scales with the
 ## window, as the arms do): a zone round the crosshair, its half size, and the
@@ -182,7 +183,7 @@ func show_seat(seat: int, then: Dictionary, now: Dictionary, alpha: float) -> vo
 		var clips := BrawlerAnimation.CLIPS.duplicate()
 		clips[BrawlerAnimation.Move.BRACE] = BRACE_CLIP
 		clips[BrawlerAnimation.Move.JUMP] = clips[BrawlerAnimation.Move.FALL]
-		_body.show_as_own_arms(clips, POSES, ELBOWS)
+		_body.show_as_own_arms(clips, POSES, ELBOWS, (get_parent() as Camera3D).near)
 		_body.rotation.y = TURN
 	_body.show_state(then, now, alpha)
 	_body.position += CHEST - to_local(_body.bone_position(CHEST_BONE))

@@ -13,6 +13,10 @@ uniform float width = 0.014;
 uniform float reach = 0.0;
 // How strongly the edge throbs brighter, 0…1: a full charge's.
 uniform float beat = 0.0;
+// Drawn toward the eye as the clothes it inks are (brawler.gdshader), so the edge
+// stays round them: 1 for any body but a seat's own arms.
+uniform float eye_squash = 1.0;
+uniform float eye_near = 0.05;
 
 // The throb's rate, in radians a second: about 2.7 Hz, under the 3 a flash keeps to.
 const float BEAT_RATE = 17.0;
@@ -21,6 +25,14 @@ const float BEAT_BRIGHT = 0.7;
 void vertex() {
 	float far = reach > 0.0 ? -(MODELVIEW_MATRIX * vec4(VERTEX, 1.0)).z : 0.0;
 	VERTEX += NORMAL * (width + reach * far) * COLOR.a;
+	if (eye_squash < 1.0) {
+		vec4 eye = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
+		float ahead = -eye.z;
+		if (ahead > eye_near) {
+			eye.xyz *= (eye_near + (ahead - eye_near) * eye_squash) / ahead;
+		}
+		POSITION = PROJECTION_MATRIX * eye;
+	}
 }
 
 void fragment() {
