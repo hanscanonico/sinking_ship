@@ -385,3 +385,25 @@ func test_a_pose_has_the_flow_through_each_opening_once_she_is_holed() -> void:
 		assert_eq(pose.flows[passage], timeline.flow(frame, next, passage), "as the timeline")
 		flowing += 1 if pose.flows[passage] > 0.0 else 0
 	assert_gt(flowing, 0, "water passing her openings two minutes on")
+
+
+func test_a_pose_takes_every_kept_states_flows_as_each_reads_alone() -> void:
+	# A pose takes its flows as one stretch of the timeline's (SinkTimeline.flows_between):
+	# at every state she keeps, and past the last, each is what flow reads of it alone.
+	var layout := SimFixtures.steamer()
+	var config := SimFixtures.config(2, load(SimFixtures.STEAMER_SINKING), SEED, layout)
+	var schedule := config.schedule()
+	var timeline := schedule.timeline()
+	var last := timeline.count() - 1
+	var ticks := PackedInt32Array([schedule.end_tick() + Ticks.RATE])
+	for frame in range(1, timeline.count()):
+		ticks.append(schedule.physics_tick(timeline.times[frame]))
+	for tick in ticks:
+		var pose := schedule.pose_at(tick)
+		var frame := timeline.frame_at(schedule.physics_at(tick))
+		var next := mini(frame + 1, last)
+		var read := PackedFloat64Array()
+		for passage in timeline.passages.size():
+			read.append(timeline.flow(frame, next, passage))
+		assert_eq(pose.flows, read, "tick %d: as flow reads each" % tick)
+	assert_eq(timeline.frame_at(schedule.physics_at(ticks[0])), last, "past her last state")

@@ -442,6 +442,14 @@ func flow(frame: int, next: int, passage: int) -> float:
 	return flows[maxi(frame, next) * count_of + passage]
 
 
+## Every passage's flow from kept state [param frame] to [param next], in their order —
+## each as flow reads it — as one stretch of [member flows]: what a pose takes each tick.
+func flows_between(frame: int, next: int) -> PackedFloat64Array:
+	var count_of := passages.size()
+	var first := maxi(frame, next) * count_of
+	return flows.slice(first, first + count_of)
+
+
 ## Leaf [param leaf]'s rotation [param weight] of the way from kept state [param frame]
 ## to [param next]: the two quaternions blended and made a unit again — what the
 ## compaction holds every dropped state to, so the one way of reading between states.
