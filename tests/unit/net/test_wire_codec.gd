@@ -7,6 +7,10 @@ const SEED := 11
 ## What a Vector3's single precision may add to a quantum's rounding, at 50 m.
 const VECTOR_ROUNDING := 4e-6
 
+## What test_snapshot_bytes_and_what_they_make_are_pinned's snapshots come to.
+const PINNED_PAYLOADS := "26861dfaffcfd8ffba1ef35522a411189c3c33aa143fed1802c8df565dbfda4d"
+const PINNED_MADE := "1d61376204686ddde5cf8fcc286f7395069dbc37dd42e64a2eab797289a95ef5"
+
 var _rng := RandomNumberGenerator.new()
 
 
@@ -141,6 +145,34 @@ func test_snapshot_round_trip_within_quantum() -> void:
 	var resumed := MatchSim.from_snapshot(carried.snapshot, config)
 	assert_eq(resumed.state.tick, sim.state.tick)
 	assert_eq(resumed.state.rng.state, sim.state.rng.state, "the match stream exactly")
+
+
+func test_snapshot_bytes_and_what_they_make_are_pinned() -> void:
+	# The bytes a codec puts for scrambled snapshots, one after another — props as they
+	# were among them — and the snapshots it makes of them, as the codec of #410 had them:
+	# a faster walk must put and make exactly these (#563).
+	var config := _config()
+	var sender := _codec(config)
+	var taker := _codec(config)
+	var payloads := HashingContext.new()
+	payloads.start(HashingContext.HASH_SHA256)
+	var made := HashingContext.new()
+	made.start(HashingContext.HASH_SHA256)
+	var sent := _scrambled(config)
+	for round_index in 3:
+		if round_index == 1:
+			sent = sent.duplicate()
+			var props: Array = sent["props"].duplicate()
+			props[0] = _scramble(props[0])
+			sent["props"] = props
+		var bytes := sender.encode_snapshot(sent, 41 + round_index, 44, 2)
+		var reader := sender.open(bytes, WireCodec.Kind.SNAPSHOT)
+		var size := reader.u32()
+		payloads.update(reader.bytes(reader.u32()).decompress(size, WireCodec.COMPRESSION))
+		var packet := taker.decode_snapshot(bytes)
+		made.update(var_to_bytes([packet.ack, packet.heard, packet.early, packet.snapshot]))
+	assert_eq(payloads.finish().hex_encode(), PINNED_PAYLOADS, "the numbers put")
+	assert_eq(made.finish().hex_encode(), PINNED_MADE, "the snapshots made of them")
 
 
 func test_a_prop_as_it_was_is_carried_as_the_entry_it_was() -> void:
