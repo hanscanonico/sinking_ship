@@ -18,6 +18,11 @@ extends RefCounted
 ## The most ticks one frame walks it: a hitch never runs it far on its own.
 const MOST_TICKS := 4
 
+## Every one whose ship is being made on a worker thread (build_ahead): kept until that is
+## waited for, so none is freed while its thread works on it, and the game, quitting,
+## waits for them all.
+static var _under_way: Array[GhostWalk] = []
+
 ## Whether the view is the ghost's.
 var active := false
 ## Its look and the frames it walks by, as the local seat's are (LocalInputSource): yaw
@@ -33,10 +38,12 @@ var _schedule: SinkSchedule
 var _settings: ViewSettings
 ## Its rules: a seat's with empty hands and no bonus (SeatRules).
 var _seat_rules: Array[SeatRules] = []
-## Its own ship, made the first time it walks: her faces and her pieces, and per piece of
-## her the Movement it walks by there (a ghost's).
+## Its own ship, made on a worker thread as soon as it may be walked (keep), else the
+## first time it walks: her faces and her pieces, and per piece of her the Movement it
+## walks by there (a ghost's). Never read while _task is the thread's still.
 var _faces: Faces
 var _pieces: Pieces
+var _task := -1
 var _movements: Dictionary[int, Movement] = {}
 ## Its match of one: its body, and the frame each piece of her stands in for it.
 var _state: MatchState
@@ -70,7 +77,7 @@ func _init(config: MatchConfig, schedule: SinkSchedule, settings: ViewSettings =
 func start(snapshot: Dictionary, at: Vector3, piece: int, ahead: Vector3) -> bool:
 	if snapshot.is_empty():
 		return false
-	_make_ship()
+	_ship()
 	var placed := PlayerState.new(0)
 	placed.pos = at
 	placed.piece = piece
@@ -113,9 +120,47 @@ func leave() -> void:
 	active = false
 
 
-## Off once the view may not be a ghost's, while [param spectating] says it is not.
+## Off once the view may not be a ghost's, while [param spectating] says it is not; while
+## it may be, its ship made ahead, on a worker thread where a ship is dressed on one
+## (ShipDressing.threaded): her Surfaces and faces take the Titanic most of a second, a
+## hitch on the frame of the first switch to it. A thread's work done is seen through.
 func keep(spectating: bool) -> void:
 	active = active and spectating
+	if _task >= 0 and WorkerThreadPool.is_task_completed(_task):
+		_finish()
+	elif spectating and ShipDressing.threaded():
+		build_ahead()
+
+
+## Starts making its ship on a worker thread, unless that is under way or done; any other
+## match's ghost whose ship is made by now is let go.
+func build_ahead() -> void:
+	if _task >= 0 or _faces != null:
+		return
+	for ghost: GhostWalk in _under_way.duplicate():
+		if WorkerThreadPool.is_task_completed(ghost._task):
+			ghost._finish()
+	_under_way.append(self)
+	_task = WorkerThreadPool.add_task(_make_ship, false, "Making the ghost's ship")
+
+
+## Waits for every ship being made ahead: what the game does as it quits.
+static func finish_all() -> void:
+	for ghost: GhostWalk in _under_way.duplicate():
+		ghost._finish()
+
+
+## How many are making their ship on a worker thread, not yet waited for.
+static func under_way() -> int:
+	return _under_way.size()
+
+
+func _finish() -> void:
+	if _task < 0:
+		return
+	WorkerThreadPool.wait_for_task_completion(_task)
+	_task = -1
+	_under_way.erase(self)
 
 
 ## Walks it [param delta] seconds on as [param snapshot] has her, one tick for every
@@ -194,14 +239,21 @@ func stature() -> float:
 	return _rules.height_at(_movement_of(body.piece).surfaces(), framed) / _rules.body_height
 
 
-## Its own Surfaces, faces and pieces of her, made once (Pieces), as MatchSim makes hers.
+## Its own Surfaces, faces and pieces of her, made once (Pieces), as MatchSim makes hers:
+## here, unless build_ahead's worker has, waited for first.
+func _ship() -> void:
+	_finish()
+	_make_ship()
+
+
 func _make_ship() -> void:
 	if _faces != null:
 		return
 	var capsized := SeaPhysics.load_default().capsized_movement
 	var deck := Surfaces.new(_config.ship)
-	_faces = Faces.new(_config.ship, deck, _rules.brace_holds_to, capsized)
-	_pieces = Pieces.new(_config.ship, _schedule, _faces, _rules.brace_holds_to, capsized)
+	var faces := Faces.new(_config.ship, deck, _rules.brace_holds_to, capsized)
+	_pieces = Pieces.new(_config.ship, _schedule, faces, _rules.brace_holds_to, capsized)
+	_faces = faces
 
 
 ## The Movement it walks by on piece [param piece] of her, made the first time: a ghost's,

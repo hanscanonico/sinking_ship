@@ -118,3 +118,24 @@ func test_a_match_is_the_same_with_a_ghost_walking() -> void:
 		if var_to_bytes(ours) != var_to_bytes(theirs):
 			fail_test("tick %d differs bit for bit with a ghost walking" % tick)
 			return
+
+
+## Its ship made ahead on a worker thread is the one it stands on: started meanwhile, it
+## waits for that ship, stands where it would have, and is no longer under way.
+func test_its_ship_made_ahead_is_waited_for() -> void:
+	var sim := SimFixtures.sim(2)
+	var ahead := GhostWalk.new(sim.config, sim.schedule)
+	ahead.build_ahead()
+	assert_eq(GhostWalk.under_way(), 1, "its ship under way")
+	ahead.build_ahead()
+	assert_eq(GhostWalk.under_way(), 1, "once")
+	var here := _ghost(sim, Vector3(1.0, 0.8, 0.5))
+	assert_true(ahead.start(sim.snapshot(), Vector3(1.0, 0.8, 0.5), 0, Vector3.RIGHT))
+	assert_eq(GhostWalk.under_way(), 0, "waited for")
+	assert_eq(ahead.body.pos, here.body.pos, "where it would have stood")
+	ahead.build_ahead()
+	assert_eq(GhostWalk.under_way(), 0, "made once")
+	var left := GhostWalk.new(sim.config, sim.schedule)
+	left.build_ahead()
+	GhostWalk.finish_all()
+	assert_eq(GhostWalk.under_way(), 0, "the game, quitting, waits for every one")

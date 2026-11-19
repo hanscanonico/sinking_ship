@@ -118,7 +118,7 @@ var _cells: Array[CellOverlay] = []
 ## watcher's and a replay's.
 var _free := FreeCamera.new()
 ## The ghost walked in place of a seat's eyes or the free camera by whoever may fly that
-## (GhostWalk): made for each match, its ship the first time it walks.
+## (GhostWalk): made for each match, its ship made ahead once it may be walked (keep).
 var _ghost: GhostWalk
 ## The faint light round the eye in a room whose lamps have failed.
 var _eye_fill := EyeFill.new()
