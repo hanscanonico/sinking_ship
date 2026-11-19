@@ -987,7 +987,6 @@ func _walk(snapshot: Dictionary, viewed: int, delta: float) -> bool:
 			_free.toggle(true)
 			_free.start(_eyes.global_position, -_eyes.global_basis.z)
 			return false
-	_view.look_out_of(-1)
 	_arms.visible = false
 	_eyes.ease_eye(GHOST_EYES, _ghost.stature(), delta)
 	_eyes.look_from(

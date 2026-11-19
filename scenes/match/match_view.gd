@@ -263,11 +263,12 @@ func look_out_of(seat: int) -> void:
 		_shadows[seat].visible = false
 
 
-## Draws no body the world [param eye] is inside or up against, nor the local seat's
-## marker, till the next look_out_of: the ghost's eyes, which start where the seat watched
-## stands and walk through anyone, and from that near would see the marker hang before
-## them as a blank shape.
+## Draws every seat, as look_out_of(-1), but for any body the world [param eye] is inside
+## or up against and the local seat's marker, till the next look_out_of: the ghost's eyes,
+## which start where the seat watched stands and walk through anyone, and from that near
+## would see the marker hang before them as a blank shape.
 func keep_clear_of(eye: Vector3) -> void:
+	look_out_of(-1)
 	_clearing = true
 	_clear_eye = eye
 	if _local_seat >= 0:
