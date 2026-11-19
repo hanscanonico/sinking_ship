@@ -94,16 +94,56 @@ func cell_at(ship_point: Vector3) -> int:
 ## The cells ShipPose.above_water looks down through from [param ship_point], in
 ## order: the one it lies in, the one under that one's floor, and so on down to the sea
 ## outside her. Geometry alone, whatever water they hold: a point that never moves in
-## her has them found once (ShipPose.above_water_through).
+## her has them found once (ShipPose.above_water_through). Each is the one cell_at
+## finds there: only the height changes on the way down, so the cells whose boxes the
+## point's column runs through are picked out once, in cell_at's order, and — in her own
+## frame, where the column's x is the ship's — its hull section looked up once.
 func cells_under(ship_point: Vector3) -> PackedInt32Array:
 	var chain := PackedInt32Array()
+	var from := _bounds.position
+	var to := _bounds.end
+	if ship_point.x < from.x or ship_point.x >= to.x:
+		return chain
+	if ship_point.z < from.z or ship_point.z >= to.z:
+		return chain
+	var column := PackedInt32Array()
+	var slot := mini(floori((ship_point.x - from.x) / SLOT), _slots.size() - 1)
+	for index: int in _slots[slot]:
+		var low := _low[index]
+		var high := _high[index]
+		if ship_point.x < low.x or ship_point.x >= high.x:
+			continue
+		if ship_point.z < low.z or ship_point.z >= high.z:
+			continue
+		column.append(index)
+	var section: HullSection = null
+	var sought := false
 	var under := ship_point
-	var cell := cell_at(under)
+	var cell := 0
 	while cell != NONE:
-		chain.append(cell)
-		under.y = floor_of(cell)
-		under.y -= DRY
-		cell = cell_at(under)
+		cell = NONE
+		for index: int in column:
+			if under.y < _low[index].y or under.y >= _high[index].y:
+				continue
+			if _poking[index] == 1:
+				var ship := _to_ship * under if _framed else under
+				var inside := _inside_starboard[index] if ship.z >= 0.0 else _inside_port[index]
+				if absf(ship.z) > inside:
+					if _framed:
+						if not _in_hull(ship):
+							continue
+					else:
+						if not sought:
+							section = _structure.section_at(ship.x)
+							sought = true
+						if not _in_section(section, ship):
+							continue
+			cell = index
+			break
+		if cell != NONE:
+			chain.append(cell)
+			under.y = floor_of(cell)
+			under.y -= DRY
 	return chain
 
 
@@ -161,7 +201,12 @@ func _surely_inside(cell: FloodCell, side: int) -> float:
 
 ## Whether [param ship_point] stands inside her shell's outline at its x and height.
 func _in_hull(ship_point: Vector3) -> bool:
-	var section := _structure.section_at(ship_point.x)
+	return _in_section(_structure.section_at(ship_point.x), ship_point)
+
+
+## Whether [param ship_point] stands inside [param section]'s outline at its height:
+## _in_hull, its section found.
+func _in_section(section: HullSection, ship_point: Vector3) -> bool:
 	if section == null:
 		return false
 	var side := 1 if ship_point.z >= 0.0 else -1
