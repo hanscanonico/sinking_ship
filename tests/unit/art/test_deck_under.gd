@@ -5,15 +5,15 @@ extends GutTest
 ## hair either side of its edges, at its height, a sliver under it, and above everything.
 
 const SHIPS: Array[String] = [
-	"barque",
-	"ferry",
-	"flat_deck",
-	"freighter",
-	"small_titanic",
-	"steamer",
-	"titanic",
-	"trawler",
-	"tug"
+	"res://data/ships/barque.tres",
+	"res://data/ships/ferry.tres",
+	"res://data/ships/flat_deck.tres",
+	"res://data/ships/freighter.tres",
+	"res://data/ships/small_titanic.tres",
+	"res://data/ships/steamer.tres",
+	"res://data/ships/titanic.tres",
+	"res://data/ships/trawler.tres",
+	"res://data/ships/tug.tres",
 ]
 ## How far apart the sweep's points lie, in metres.
 const STEP := 1.0
@@ -23,7 +23,7 @@ const NUDGE := 0.0001
 
 func test_deck_under_answers_as_the_scan_on_every_ship() -> void:
 	for ship: String in SHIPS:
-		var space := ShipSpace.new(load("res://data/ships/%s.tres" % ship))
+		var space := ShipSpace.new(load(ship))
 		var heights := PackedFloat64Array([INF, -INF])
 		var points := PackedVector2Array()
 		for platform: ShipPlatform in space.layout.platforms:
