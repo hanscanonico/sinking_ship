@@ -64,6 +64,10 @@ const BODY := &"Sailor"
 const HEAD_BONE := &"head"
 ## The outline's width on a seat's own arms, under the eye, in model units.
 const OWN_OUTLINE := 0.0035
+## How much of their depth past the eye's near plane a seat's own arms are drawn at
+## (brawler.gdshader): squashed this close, no wall the eye stands back from can come
+## between it and the fists, though they still hide each other as they should.
+const OWN_DEPTH := 0.05
 ## The disc sits just off the feet so it never fights the deck.
 const FEET_LIFT := 0.03
 const DISC_ALPHA := 0.4
@@ -362,8 +366,11 @@ func _band(index: int) -> MeshInstance3D:
 ## place of its body, no hat, no disc at its feet, no sparks, no shadow, no hit-stop
 ## squash or hold, a dimmer glow, a finer outline, and [param clips] and
 ## [param poses] (as BrawlerAnimation.POSES, the elbows bending as [param elbows]
-## has) for its moves.
-func show_as_own_arms(clips: Dictionary, poses: Dictionary, elbows: Array[Vector3]) -> void:
+## has) for its moves, drawn ahead of the world a camera whose near plane is
+## [param eye_near] sees round them (OWN_DEPTH).
+func show_as_own_arms(
+	clips: Dictionary, poses: Dictionary, elbows: Array[Vector3], eye_near: float
+) -> void:
 	_skeleton.get_node(NodePath(BODY)).free()
 	var arms := own_arms(COATS[seat % COATS.size()])
 	arms.name = BODY
@@ -379,6 +386,9 @@ func show_as_own_arms(clips: Dictionary, poses: Dictionary, elbows: Array[Vector
 	_charge.queue_free()
 	_charge = null
 	(_clothes.next_pass as ShaderMaterial).set_shader_parameter("width", OWN_OUTLINE)
+	for material: ShaderMaterial in [_clothes, _clothes.next_pass as ShaderMaterial]:
+		material.set_shader_parameter("eye_squash", OWN_DEPTH)
+		material.set_shader_parameter("eye_near", eye_near)
 	for node: Node in find_children("*", "GeometryInstance3D", true, false):
 		(node as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
