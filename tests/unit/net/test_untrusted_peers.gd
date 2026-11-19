@@ -465,6 +465,36 @@ func test_a_client_reads_impossible_server_packets_as_nothing() -> void:
 	assert_null(client.roster)
 
 
+## A BEGIN of more seats than this client's ship has is a match its data cannot play:
+## it hangs up with DATA at once, rather than leave the server waiting on its load.
+func test_a_begin_past_the_ships_seats_is_hung_up_on() -> void:
+	var rules: MatchRules = load(RoomFixtures.MATCH_DATA)
+	var codec := RoomCodec.new(RoomServer.data_hash(rules, NetRules.load_default()))
+	var server_end := LoopbackTransport.new(
+		RoomFixtures.SERVER_PEER, NetClock.new(), NetConditions.new(), SeedStreams.derive(1, 0)
+	)
+	var client_end := LoopbackTransport.new(
+		2, NetClock.new(), NetConditions.new(), SeedStreams.derive(1, 1)
+	)
+	LoopbackTransport.link(server_end, client_end)
+	var client := RoomClient.new(client_end, rules, NetRules.load_default(), "Ada")
+	var begun: Array[int] = []
+	client.began.connect(func(_config: MatchConfig, seat: int) -> void: begun.append(seat))
+	client.poll()
+	var roster := RoomRoster.new()
+	roster.code = "ABCD"
+	roster.you = 0
+	roster.players.append(RoomRoster.Player.new("Ada", true, false))
+	server_end.send(2, codec.encode_bare(WireCodec.Kind.WELCOME))
+	server_end.send(2, codec.encode_roster(roster))
+	server_end.send(2, codec.encode_begin(1701, rules.ship.max_seats + 1, 0))
+	client.poll()
+	assert_eq(client.state, RoomClient.State.CLOSED, "the client hangs up")
+	assert_eq(client.close_reason, RoomCodec.Refusal.DATA, "on a match its data cannot play")
+	assert_eq(begun, [] as Array[int], "and begins nothing")
+	assert_true(server_end.closed().has(2), "the server hears it go")
+
+
 ## Watching on the wire (#611): WATCH carries the sender's word, a roster marks who
 ## watches, and a BEGIN gives a watcher no seat; a WATCH saying neither is nothing.
 func test_watching_round_trips() -> void:
