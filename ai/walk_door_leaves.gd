@@ -10,6 +10,8 @@ extends RefCounted
 ## width before its entry to a body's width past its exit —, laid out flat: its start at
 ## index * 2, its end at index * 2 + 1.
 var lines := PackedVector3Array()
+## Per portal, 1 where it is no ramp: the portals WalkGraph._shut asks about.
+var _flat := PackedByteArray()
 var _leaves: DoorLeaves
 ## Per door, the portals its leaf may stand across.
 var _portals: Array[PackedInt32Array] = []
@@ -33,6 +35,7 @@ func _init(
 		var through := Vector3(portal.along.x, 0.0, portal.along.y) * radius
 		lines.append(portal.entry - through)
 		lines.append(portal.exit + through)
+		_flat.append(1 if portal.ramp == WalkGraph.NONE else 0)
 		if portal.ramp != WalkGraph.NONE:
 			continue
 		var start := Vector2(lines[index * 2].x, lines[index * 2].z)
@@ -65,3 +68,19 @@ func forget(pose: ShipPose, shut: PackedByteArray, every: bool) -> bool:
 		for portal in _portals[door]:
 			shut[portal] = 0
 	return not moved.is_empty()
+
+
+## Fills in every answer [param shut] (per portal, 0 not yet known, 1 open, 2 shut) does
+## not know yet as WalkGraph._shut would, every line asked of [param surfaces] at once
+## (Surfaces.blocked_all) for bodies step * 2 tall with their feet able to step
+## [param step].
+func shut_all(surfaces: Surfaces, shut: PackedByteArray, step: float) -> void:
+	var ask := PackedByteArray()
+	ask.resize(shut.size())
+	for index in shut.size():
+		if shut[index] == 0:
+			ask[index] = _flat[index]
+	var blocked := surfaces.blocked_all(lines, ask, step * 2.0, step)
+	for index in shut.size():
+		if shut[index] == 0:
+			shut[index] = 2 if blocked[index] == 1 else 1

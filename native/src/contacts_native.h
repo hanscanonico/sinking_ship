@@ -130,6 +130,11 @@ public:
 	// name, ShipPose.collapsed): her platforms' names first, by named().
 	void named(const Array &p_names);
 	bool line_of_sight(const Vector3 &p_from, const Vector3 &p_to, const Array &p_collapsed) const;
+	// Surfaces.blocked_all: Surfaces.blocked of each line p_ask has a 1 for, its blockers
+	// standing to the tops they were made with (standing_tops), never a fallen one's.
+	void standing_tops(const PackedFloat64Array &p_tops);
+	PackedByteArray blocked_all(const PackedVector3Array &p_lines, const PackedByteArray &p_ask,
+			double p_body_height, double p_step) const;
 
 	void obstacles(const Vector3 &p_ship_point, double p_radius, double p_body_height, double p_step,
 			int32_t p_except_prop, double p_crawl_height, double p_crawl_reach, std::vector<ContactHit> &r_found) const;
@@ -169,6 +174,8 @@ private:
 	std::vector<uint8_t> round_;
 	std::vector<Vector2> centres_;
 	std::vector<double> radii_;
+	// Per blocker: its top as made (ShipBlocker.top), whatever a fallen funnel's is now.
+	std::vector<double> standing_tops_;
 	// Per ramp: 1 along x, its start and end heights.
 	std::vector<uint8_t> ramp_x_;
 	std::vector<double> ramp_start_;

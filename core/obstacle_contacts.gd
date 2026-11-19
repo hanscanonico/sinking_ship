@@ -31,10 +31,12 @@ func native(surfaces: Surfaces) -> Object:
 	var round := PackedByteArray()
 	var centres := PackedVector2Array()
 	var radii := PackedFloat64Array()
+	var standing := PackedFloat64Array()
 	for blocker: ShipBlocker in s._blockers:
 		round.append(0 if blocker.shape == ShipBlocker.Shape.BOX else 1)
 		centres.append(blocker.centre)
 		radii.append(blocker.radius)
+		standing.append(blocker.top)
 	var ramp_x := PackedByteArray()
 	var ramp_heights := PackedFloat64Array()
 	for ramp: ShipRamp in s._ramps:
@@ -77,6 +79,8 @@ func native(surfaces: Surfaces) -> Object:
 	var down := s._fallen.native_down()
 	_native.felled(down[0], down[1], down[2])
 	_native.lidded(s.stands.lids)
+	# Her blockers' tops as made, for Surfaces.blocked_all: a fallen funnel's _tops differ.
+	_native.standing_tops(standing)
 	# Her floors and their clearances, for Surfaces.under's own (BotFloorWay's search).
 	var floors := SpatialIndex.flattened(s._floors)
 	var clearances := PackedFloat64Array()
