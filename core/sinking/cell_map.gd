@@ -147,6 +147,52 @@ func cells_under(ship_point: Vector3) -> PackedInt32Array:
 	return chain
 
 
+## cells_under of every one of [param points], worked out by [param water] (a
+## NativeWater) in one call: per point, from [0][point] to [0][point + 1], its cells in
+## [1] and the points of their floors under it in [2] (StillPoints._chain) — the same
+## answers bit for bit (test_cells_under). Empty for a map in another frame, which only
+## cells_under walks.
+func chains_under(water: Object, points: PackedVector3Array) -> Array:
+	if _framed:
+		return []
+	var slot_from := PackedInt32Array()
+	var slot_cells := PackedInt32Array()
+	for reaching: PackedInt32Array in _slots:
+		slot_from.append(slot_cells.size())
+		slot_cells.append_array(reaching)
+	slot_from.append(slot_cells.size())
+	var section_x := PackedFloat64Array()
+	var section_length := PackedFloat64Array()
+	var outline_from := PackedInt32Array()
+	var outlines := PackedVector2Array()
+	for section: HullSection in _structure.sections:
+		if section == null:
+			continue
+		section_x.append(section.x)
+		section_length.append(section.length)
+		outline_from.append(outlines.size())
+		outlines.append_array(section.outline)
+	outline_from.append(outlines.size())
+	return water.chains_under(
+		points,
+		_low,
+		_high,
+		_bounds.position,
+		_bounds.end,
+		SLOT,
+		slot_from,
+		slot_cells,
+		_poking,
+		_inside_port,
+		_inside_starboard,
+		section_x,
+		section_length,
+		outline_from,
+		outlines,
+		DRY
+	)
+
+
 ## The height of cell [param cell]'s floor, and of its ceiling.
 func floor_of(cell: int) -> float:
 	return _low[cell].y

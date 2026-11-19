@@ -2,6 +2,9 @@ extends GutTest
 ## CellMap.cells_under() walks a point's column down once (its cells picked out, its hull
 ## section found once): it answers exactly what asking cell_at() under each floor in turn
 ## answers, on every ship, in her frame and in one turned along another axis (Faces).
+## Natively (NativeWater.chains_under), every point at once, it answers the same bit for
+## bit; where the extension is not loaded there is nothing to hold it to, and CI sets
+## SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const SHIPS: Array[ShipLayout] = [
 	preload("res://data/ships/titanic.tres"),
@@ -28,6 +31,33 @@ func test_a_turned_frame_answers_as_cell_at_does() -> void:
 	for ship: ShipLayout in [SHIPS[1], SHIPS[2]]:
 		var cells := CellMap.new(ship.structure, to_ship)
 		assert_eq(_first_wrong(cells, _points(ship.structure, to_ship)), "", ship.resource_path)
+
+
+func test_every_ship_chains_natively_as_cells_under_does() -> void:
+	if not _loaded():
+		return
+	var water := StillPoints.native_water()
+	for ship: ShipLayout in SHIPS:
+		var cells := CellMap.new(ship.structure)
+		var points := _points(ship.structure, Basis.IDENTITY)
+		var chained := cells.chains_under(water, points)
+		assert_eq(chained.size(), 3, ship.resource_path)
+		var from := PackedInt32Array([0])
+		var found := PackedInt32Array()
+		var floors := PackedVector3Array()
+		for point: Vector3 in points:
+			for cell: int in cells.cells_under(point):
+				found.append(cell)
+				floors.append(Vector3(point.x, cells.floor_of(cell), point.z))
+			from.append(found.size())
+		assert_eq(chained[0], from, ship.resource_path)
+		assert_eq(chained[1], found, ship.resource_path)
+		assert_eq(chained[2], floors, ship.resource_path)
+
+
+func test_a_turned_frame_leaves_its_chains_to_cells_under() -> void:
+	var cells := CellMap.new(SHIPS[2].structure, Basis(Vector3.FORWARD, PI * 0.5))
+	assert_eq(cells.chains_under(null, PackedVector3Array([Vector3.ZERO])), [])
 
 
 ## Every cell's floor corners and middle, a point a hair over each corner and one just
@@ -75,3 +105,13 @@ func _first_wrong(cells: CellMap, points: PackedVector3Array) -> String:
 		if found != walked:
 			return "%s: %s, not %s" % [point, found, walked]
 	return ""
+
+
+func _loaded() -> bool:
+	if ClassDB.class_exists(&"NativeWater"):
+		return true
+	if OS.get_environment("SINKING_NATIVE_REQUIRED") == "1":
+		fail_test("the extension is not loaded: make native, then make import")
+	else:
+		pending("the extension is not built here (make native)")
+	return false

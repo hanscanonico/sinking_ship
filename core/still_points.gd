@@ -213,6 +213,14 @@ func _locate() -> void:
 
 
 func _chain() -> void:
+	var chained: Array = _map.chains_under(water, _points) if water != null and _map != null else []
+	if not chained.is_empty():
+		_chain_from = chained[0]
+		_chain_cells = chained[1]
+		_chain_points = chained[2]
+		_chained = true
+		_floors_set = false
+		return
 	_chain_from.clear()
 	_chain_cells.clear()
 	_chain_points.clear()
