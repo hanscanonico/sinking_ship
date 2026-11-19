@@ -51,3 +51,18 @@ func test_slots_and_the_shell_shortcut_find_the_cell_the_long_way_does() -> void
 					differing += 1
 	assert_gt(inside, tried / 10, "a fair share of the points are in her cells")
 	assert_eq(differing, 0, "the same cell as the long way, at all %d points" % tried)
+
+
+func test_her_cells_hold_an_eye_no_room_floor_does() -> void:
+	# The freighter's engine room ladder, and swimming in her flooded galley: no room's
+	# floor holds the feet there, but she is round them all the same (her cells), as
+	# the spray and dust drawn only outdoors ask (SinkingFx), feet and eye alike.
+	var layout: ShipLayout = load("res://data/ships/freighter.tres")
+	var rooms := RoomIndex.new(layout)
+	var cells := CellMap.new(layout.structure)
+	var step := SimFixtures.rules().step_height
+	for feet: Vector3 in [Vector3(-71.9, -3.2, 5.8), Vector3(-76.1, 0.7, -0.3)]:
+		assert_eq(rooms.room_at(feet, step), -1, "no room's floor at %s" % feet)
+		for up: float in [0.0, 1.6]:
+			var at := feet + Vector3.UP * up
+			assert_ne(cells.cell_at(at), CellMap.NONE, "inside her at %s" % at)
