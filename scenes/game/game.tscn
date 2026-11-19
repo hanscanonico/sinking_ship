@@ -202,7 +202,7 @@ text = "Play"
 [node name="Watch" type="Button" parent="MainMenu/Panel/Box/Buttons"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
-tooltip_text = "Bots play every seat; watch from any seat's eyes or the orbit camera"
+tooltip_text = "Bots play every seat; watch from any seat's eyes or the free camera"
 focus_neighbor_left = NodePath("../Play")
 focus_neighbor_right = NodePath("../Settings")
 text = "Watch"

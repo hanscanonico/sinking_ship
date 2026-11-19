@@ -15,9 +15,8 @@ const SPECTATING_CLEAR := 12.0
 ## Whose view the spectating line names from the free camera: nobody's.
 const FREE_VIEW := "free camera"
 
-## The views a watcher may look from (watching_text): a seat's eyes, the orbit camera or
-## the free camera.
-enum Camera { EYES, ORBIT, FREE }
+## The views a watcher may look from (watching_text): a seat's eyes or the free camera.
+enum Camera { EYES, FREE }
 
 var _countdown_ticks: int
 
@@ -85,7 +84,7 @@ static func out_word(cause: PlayerState.Cause) -> String:
 ## switches the view, [param previous] and [param next] — the prompts on a line of
 ## their own, as long as a pad's are — and, when [param free_key] names one, the key
 ## into the free camera, or back out of it to the eyes while [param free] says the view
-## is the free camera.
+## is the free camera; from it, on a line of its own, [param follow_key] (follow_text).
 static func spectating_text(
 	place: String,
 	seats: int,
@@ -94,7 +93,9 @@ static func spectating_text(
 	next: String,
 	free_key := "",
 	free := false,
-	cause := PlayerState.Cause.COLD
+	cause := PlayerState.Cause.COLD,
+	follow_key := "",
+	following := false
 ) -> String:
 	if free:
 		whose = FREE_VIEW
@@ -104,46 +105,41 @@ static func spectating_text(
 	)
 	if not free_key.is_empty():
 		text += "   ·   %s %s" % [free_key, "eyes" if free else "free camera"]
+	if free and not follow_key.is_empty():
+		text += "\n" + follow_text(follow_key, following)
 	return text
 
 
+## What [param follow_key] does from the free camera: has it follow the seat watched, or
+## lets go of it while [param following].
+static func follow_text(follow_key: String, following: bool) -> String:
+	return "%s %s" % [follow_key, "let go" if following else "follow"]
+
+
 ## The watcher's line (GLOSSARY: Watch), along the bottom all match long: whose view it
-## is from [param camera] — [param seat_name]'s eyes, the orbit camera on that seat while
-## [param locked] says it follows it, or the free camera —, then what switches the seat,
-## [param previous] and [param next], and what flies the free camera, [param free_key],
-## as the spectating line has them, and last the orbit camera's [param orbit_key] and,
-## from it, [param lock_key], which locks it on the seat or lets go of it.
+## is from [param camera] — [param seat_name]'s eyes, or the free camera, following that
+## seat while [param following] says so —, then what switches the seat, [param previous]
+## and [param next], and what flies the free camera, [param free_key], as the spectating
+## line has them, and last, from the free camera, [param follow_key] (follow_text).
 static func watching_text(
 	seat_name: String,
 	camera: Camera,
-	locked: bool,
+	following: bool,
 	previous: String,
 	next: String,
 	free_key: String,
-	orbit_key: String,
-	lock_key: String
+	follow_key: String
 ) -> String:
-	var whose := whose_view(seat_name, false, false)
-	if camera == Camera.FREE:
-		whose = FREE_VIEW
-	elif camera == Camera.ORBIT:
-		whose = "orbiting %s" % seat_name if locked else "orbit camera"
 	var free := camera == Camera.FREE
-	var orbit := camera == Camera.ORBIT
+	var whose := whose_view(seat_name, false, false)
+	if free:
+		whose = "following %s" % seat_name if following else FREE_VIEW
 	var text := (
-		"Watching   ·   %s\n%s / %s to switch   ·   %s %s\n%s %s"
-		% [
-			whose,
-			previous,
-			next,
-			free_key,
-			"eyes" if free else "free camera",
-			orbit_key,
-			"eyes" if orbit else "orbit camera",
-		]
+		"Watching   ·   %s\n%s / %s to switch   ·   %s %s"
+		% [whose, previous, next, free_key, "eyes" if free else "free camera"]
 	)
-	if orbit:
-		text += "   ·   %s %s" % [lock_key, "let go" if locked else "lock on"]
+	if free:
+		text += "\n" + follow_text(follow_key, following)
 	return text
 
 

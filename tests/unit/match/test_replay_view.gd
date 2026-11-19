@@ -2,7 +2,8 @@ extends GutTest
 ## A replay is watched under its own controls (ReplayHud, R4–R5), which name whose eyes
 ## it is seen through and the keys that switch them: once the recorded seat is out, the
 ## match's spectating line — its place, and a played match's keys to switch and fly —
-## is not drawn over them, as it is in the match itself.
+## is not drawn over them, as it is in the match itself. Its free camera opens framing
+## the whole ship and follows the seat watched.
 
 const MATCH := preload("res://scenes/match/match.tscn")
 const MATCH_DATA := "res://data/match/default.tres"
@@ -42,3 +43,61 @@ func test_a_replay_draws_no_spectating_line_over_its_controls() -> void:
 	scene._process(0.0)
 	_seat_out(scene)
 	assert_false(scene._hud._spectating.visible, "the replay's controls name whose eyes")
+
+
+## A replay is watched from the free camera too (R5): it opens framing the whole ship,
+## follows the seat watched on its key, and the plate names it.
+func test_a_replay_is_watched_from_the_free_camera() -> void:
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	var config := _config()
+	var played := RunMatch.bots_only(config)
+	played.run(Ticks.RATE)
+	scene.start_replay(ReplayFile.record(MatchChoices.new(), played.input_log, 0), config)
+	scene._process(0.0)
+	var plate: Label = scene._replay_hud._camera
+	assert_eq(plate.text, "First person")
+	_press(scene, &"spectate_free")
+	assert_true(scene._free.active, "into the free camera")
+	var framed := FreeCamera.new()
+	framed.frame_ship(scene._deck_bounds(config.ship))
+	assert_almost_eq(scene._free.position, framed.position, Vector3.ONE * 1e-3, "the ship framed")
+	assert_eq(plate.text, "Free camera")
+	_press(scene, &"spectate_follow")
+	assert_true(scene._free.following)
+	assert_eq(plate.text, "Free · following")
+	_press(scene, &"spectate_next")
+	assert_true(scene._free.active, "following, it trails the next seat")
+	_press(scene, &"spectate_free")
+	assert_false(scene._free.active, "and back to the eyes")
+	assert_eq(plate.text, "First person")
+
+
+## Its free camera climbs on the jump's keys and buttons, as an out seat's does: none of
+## them may also be the replay's pause, which would toggle under every climb.
+func test_climbing_the_free_camera_never_pauses_the_replay() -> void:
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	var config := _config()
+	var played := RunMatch.bots_only(config)
+	played.run(Ticks.RATE)
+	scene.start_replay(ReplayFile.record(MatchChoices.new(), played.input_log, 0), config)
+	scene._process(0.0)
+	_press(scene, &"spectate_free")
+	var climbs := InputMap.action_get_events(&"jump")
+	assert_false(climbs.is_empty())
+	for climb: InputEvent in climbs:
+		var pressed := climb.duplicate() as InputEvent
+		pressed.set(&"pressed", true)
+		scene._unhandled_input(pressed)
+		assert_false(scene._driver.clock().paused, "%s climbs, it never pauses" % climb.as_text())
+	_press(scene, &"replay_pause")
+	assert_true(scene._driver.clock().paused, "the replay's own pause still does")
+
+
+func _press(scene: MatchScene, action: StringName) -> void:
+	var event := InputEventAction.new()
+	event.action = action
+	event.pressed = true
+	scene._unhandled_input(event)
+	scene._process(0.0)

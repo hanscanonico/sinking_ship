@@ -184,7 +184,6 @@ tests/unit/core/test_motion_native.gd	67
 tests/unit/core/test_movement.gd	0
 tests/unit/core/test_must_sink.gd	84
 tests/unit/core/test_opened_place.gd	0
-tests/unit/core/test_orbit_math.gd	0
 tests/unit/core/test_outcome_classifier.gd	0
 tests/unit/core/test_prop_kinds.gd	0
 tests/unit/core/test_prop_stands.gd	0
