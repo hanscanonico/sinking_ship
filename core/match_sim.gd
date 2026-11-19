@@ -493,27 +493,15 @@ func _intent(live: Array[PlayerState], pose_now: ShipPose) -> void:
 ## across the face as it was walking.
 func _jump(player: PlayerState, pose_now: ShipPose) -> void:
 	if (
-		player.body != PlayerState.Body.GROUNDED
-		or player.action != PlayerState.Action.IDLE
+		player.action != PlayerState.Action.IDLE
 		or player.last_buttons & InputFrame.BRACE
 		or player.exhausted
 		or player.stamina < _rules.jump_cost
-		or pose_now.ship_gravity(_rules.gravity).y >= 0.0
-		or _movement.height_of(player) < _rules.body_height
+		or not _movement.can_leap(player, pose_now)
 	):
 		return
 	_spend(player, _rules.jump_cost)
-	# The take-off speed up the frame whose apex is the jump height (Movement.take_off); along
-	# the world's up, gravity's own way back, it carries the share across the face that goes
-	# with it.
-	var gravity := pose_now.ship_gravity(_rules.gravity)
-	var rise := Movement.take_off(-gravity.y, _seat_rules(player).jump_height)
-	player.vel += Vector3(gravity.x * rise / gravity.y, 0.0, gravity.z * rise / gravity.y)
-	player.vel.y = rise
-	player.body = PlayerState.Body.AIRBORNE
-	player.surface = Surfaces.NONE
-	player.fall_from = player.pos.y
-	player.jumped = true
+	_movement.leap(player, pose_now, _seat_rules(player).jump_height)
 
 
 ## Who holds what, from the props: each seat's prop, or -1, and its rules with it and its

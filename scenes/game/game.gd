@@ -725,7 +725,7 @@ func _notification(what: int) -> void:
 
 
 ## Every ship being dressed on a thread finished, her own let go first; then the match
-## being served, and the bots' beats under way (_exit_tree's note).
+## being served, the bots' beats and the ghosts' ships under way (_exit_tree's note).
 func _see_threads_through() -> void:
 	if _dressing != null:
 		_dressing.drop()
@@ -733,6 +733,7 @@ func _see_threads_through() -> void:
 	ShipDressing.finish_all()
 	_serving.finish()
 	BotsAhead.finish_all()
+	GhostWalk.finish_all()
 
 
 ## The pause's controls as the keys now stand, the settings having maybe rebound them.
