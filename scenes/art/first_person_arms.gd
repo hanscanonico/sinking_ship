@@ -31,6 +31,8 @@ const CHEST_BONE := &"chest"
 const CHEST := Vector3(0.0, -0.55, -0.2)
 ## The brawler is drawn facing +x; the camera looks down its own -z.
 const TURN := PI * 0.5
+## The near plane assumed when the arms hang from no camera: Camera3D's own default.
+const DEFAULT_NEAR := 0.05
 ## The fists of a shove's wind-up clip, for the guard a brace raises here. A
 ## stagger keeps its own clip's fists, as the crew's does: knocked aside, the guard
 ## stays closed.
@@ -183,7 +185,16 @@ func show_seat(seat: int, then: Dictionary, now: Dictionary, alpha: float) -> vo
 		var clips := BrawlerAnimation.CLIPS.duplicate()
 		clips[BrawlerAnimation.Move.BRACE] = BRACE_CLIP
 		clips[BrawlerAnimation.Move.JUMP] = clips[BrawlerAnimation.Move.FALL]
-		_body.show_as_own_arms(clips, POSES, ELBOWS, (get_parent() as Camera3D).near)
+		_body.show_as_own_arms(clips, POSES, ELBOWS, _eye_near())
 		_body.rotation.y = TURN
 	_body.show_state(then, now, alpha)
 	_body.position += CHEST - to_local(_body.bone_position(CHEST_BONE))
+
+
+## The near plane of the camera the arms hang from: their parent's, else the one the
+## viewport draws through.
+func _eye_near() -> float:
+	var eye := get_parent() as Camera3D
+	if eye == null:
+		eye = get_viewport().get_camera_3d()
+	return eye.near if eye != null else DEFAULT_NEAR
