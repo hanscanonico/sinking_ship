@@ -30,6 +30,10 @@ extends RefCounted
 ## falling through a hole in a floor knocks a body under it off its feet, and dunks a
 ## swimmer and throws it outward; air going free out of a pocket blows a swimmer by its
 ## way out clear (Falls, #631).
+##
+## A ghost's Movement (GhostWalk, #655) moves one body that is in no match by the same
+## steps: water neither slows nor grips it less, and it holds to a crate or a railing as
+## to a wall — it shoves, slams, vaults and damages nothing — so it needs no Hazards.
 
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
@@ -78,6 +82,8 @@ var _flowing := PackedVector2Array()
 var _falls: Falls
 var _tick := 0
 var _knocked := PackedByteArray()
+## Whether the bodies it moves are a ghost's (GhostWalk): set once, as it is made.
+var ghost := false
 
 
 func _init(
@@ -262,7 +268,7 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 			wish = Vector2.ZERO
 		var push := Vector2.ZERO
 		var depth := 0.0
-		if _surfaces.wet(player.pos, pose_now):
+		if not ghost and _surfaces.wet(player.pos, pose_now):
 			depth = sea_over(player.surface, player.pos, pose_now)
 			wish = wish.limit_length(_wade_speed(depth))
 			var flowing := _current(player)
@@ -321,6 +327,30 @@ func _slid(planar: Vector2, wish: Vector2, downhill: Vector2) -> Vector2:
 static func take_off(fall: float, height: float) -> float:
 	var drop := fall * Ticks.SECONDS_PER_TICK
 	return (drop + sqrt(drop * drop + 8.0 * fall * height)) * 0.5
+
+
+## Whether [param player] may leave the ground in a jump under [param pose_now]: on its
+## feet, gravity pulling down the frame, and standing — a crawler never jumps.
+func can_leap(player: PlayerState, pose_now: ShipPose) -> bool:
+	return (
+		player.body == PlayerState.Body.GROUNDED
+		and pose_now.ship_gravity(_rules.gravity).y < 0.0
+		and height_of(player) >= _rules.body_height
+	)
+
+
+## [param player] leaves the ground in a jump [param height] high under [param pose_now]:
+## the take-off speed up the frame whose apex is that height (take_off); along the world's
+## up, gravity's own way back, it carries the share across the face that goes with it.
+func leap(player: PlayerState, pose_now: ShipPose, height: float) -> void:
+	var gravity := pose_now.ship_gravity(_rules.gravity)
+	var rise := take_off(-gravity.y, height)
+	player.vel += Vector3(gravity.x * rise / gravity.y, 0.0, gravity.z * rise / gravity.y)
+	player.vel.y = rise
+	player.body = PlayerState.Body.AIRBORNE
+	player.surface = Surfaces.NONE
+	player.fall_from = player.pos.y
+	player.jumped = true
 
 
 ## A jumper steers toward its input at air_control of ground_accel, and keeps its
@@ -506,9 +536,9 @@ func _blockers(
 		if contacts.is_empty():
 			clear[player.seat] = player.pos
 		for contact: Surfaces.Contact in contacts:
-			if contact.prop != -1 and _hazards.slams(state, player, contact, tick):
+			if contact.prop != -1 and not ghost and _hazards.slams(state, player, contact, tick):
 				player.pos += Vector3(contact.normal.x, 0.0, contact.normal.y) * contact.depth
-			elif contact.prop == -1 or not _hazards.gives(state, player, contact):
+			elif contact.prop == -1 or ghost or not _hazards.gives(state, player, contact):
 				_hold(player, contact)
 			moved = true
 	return moved
@@ -559,7 +589,7 @@ func _railings(
 		for contact: Surfaces.Contact in contacts:
 			var planar := Vector2(player.vel.x, player.vel.z)
 			var into := -planar.dot(contact.normal)
-			if into >= _rules.vault_speed:
+			if into >= _rules.vault_speed and not ghost:
 				if airborne:
 					continue
 				player.body = PlayerState.Body.AIRBORNE

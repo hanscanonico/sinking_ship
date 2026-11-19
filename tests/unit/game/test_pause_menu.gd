@@ -57,6 +57,7 @@ func test_open_names_the_spectate_keys_once_out() -> void:
 	assert_string_contains(label.text, "Q / E — switch view")
 	assert_string_contains(label.text, "C — free camera")
 	assert_string_contains(label.text, "V — follow the seat")
+	assert_string_contains(label.text, "B — ghost: walk her decks")
 
 
 func test_the_keyboard_looks_with_the_mouse_and_the_pad_with_its_stick() -> void:
@@ -76,6 +77,7 @@ func test_a_watchers_pause_names_only_the_views() -> void:
 	assert_string_contains(label.text, "Q / E — switch seat")
 	assert_string_contains(label.text, "C — free camera")
 	assert_string_contains(label.text, "V — follow the seat")
+	assert_string_contains(label.text, "B — ghost: walk her decks")
 	assert_string_contains(label.text, "Space / Shift — up / down")
 	assert_string_contains(label.text, "Esc — pause")
 	assert_false(label.text.contains("shove"), "nothing of play")
