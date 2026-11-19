@@ -199,6 +199,13 @@ func world_all() -> PackedVector3Array:
 
 
 func _locate() -> void:
+	var located: Array = _map.cells_at(water, _points) if water != null and _map != null else []
+	if not located.is_empty():
+		_cells = located[0]
+		_own_floors = located[1]
+		_located = true
+		_world_own_floors.clear()
+		return
 	_cells.resize(_points.size())
 	_own_floors.resize(_points.size())
 	for index in _points.size():

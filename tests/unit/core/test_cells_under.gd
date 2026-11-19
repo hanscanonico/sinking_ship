@@ -2,8 +2,8 @@ extends GutTest
 ## CellMap.cells_under() walks a point's column down once (its cells picked out, its hull
 ## section found once): it answers exactly what asking cell_at() under each floor in turn
 ## answers, on every ship, in her frame and in one turned along another axis (Faces).
-## Natively (NativeWater.chains_under), every point at once, it answers the same bit for
-## bit; where the extension is not loaded there is nothing to hold it to, and CI sets
+## Natively (NativeWater.chains_under, and NativeWater.cells_at for cell_at itself),
+## every point at once, they answer the same bit for bit; where the extension is not loaded there is nothing to hold it to, and CI sets
 ## SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const SHIPS: Array[ShipLayout] = [
@@ -58,6 +58,32 @@ func test_every_ship_chains_natively_as_cells_under_does() -> void:
 func test_a_turned_frame_leaves_its_chains_to_cells_under() -> void:
 	var cells := CellMap.new(SHIPS[2].structure, Basis(Vector3.FORWARD, PI * 0.5))
 	assert_eq(cells.chains_under(null, PackedVector3Array([Vector3.ZERO])), [])
+
+
+func test_every_ship_locates_natively_as_cell_at_does() -> void:
+	if not _loaded():
+		return
+	var water := StillPoints.native_water()
+	for ship: ShipLayout in SHIPS:
+		var cells := CellMap.new(ship.structure)
+		var points := _points(ship.structure, Basis.IDENTITY)
+		var located := cells.cells_at(water, points)
+		assert_eq(located.size(), 2, ship.resource_path)
+		var found := PackedInt32Array()
+		var floors := PackedVector3Array()
+		for point: Vector3 in points:
+			var cell := cells.cell_at(point)
+			found.append(cell)
+			floors.append(
+				point if cell == CellMap.NONE else Vector3(point.x, cells.floor_of(cell), point.z)
+			)
+		assert_eq(located[0], found, ship.resource_path)
+		assert_eq(located[1], floors, ship.resource_path)
+
+
+func test_a_turned_frame_leaves_its_cells_to_cell_at() -> void:
+	var cells := CellMap.new(SHIPS[2].structure, Basis(Vector3.FORWARD, PI * 0.5))
+	assert_eq(cells.cells_at(null, PackedVector3Array([Vector3.ZERO])), [])
 
 
 ## Every cell's floor corners and middle, a point a hair over each corner and one just
