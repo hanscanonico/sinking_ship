@@ -164,7 +164,7 @@ func test_a_switch_of_view_never_takes_a_replay_s_key() -> void:
 	var keys := KeyBindings.new()
 	assert_false(keys.bind(&"spectate_previous", _key(KEY_LEFT)), "a step back")
 	assert_false(keys.bind(&"spectate_next", _key(KEY_RIGHT)), "a step forward")
-	assert_false(keys.bind(&"spectate_next", _key(KEY_SPACE)), "the replay's pause")
+	assert_false(keys.bind(&"spectate_next", _key(KEY_P)), "the replay's pause")
 	assert_false(keys.bind(&"spectate_free", _key(KEY_LEFT)), "the free camera's in replays")
 	assert_false(keys.bind(&"spectate_follow", _key(KEY_HOME)), "and its follow")
 	assert_false(keys.bind(&"spectate_previous", _key(KEY_ESCAPE)), "Esc closes the replay")
@@ -176,13 +176,10 @@ func test_a_switch_of_view_never_takes_a_replay_s_key() -> void:
 	assert_false(keys.clashes_in_replays(&"spectate_previous", _key(KEY_Z)))
 
 
-## Nor by the swap: jump on E would hand the next view jump's Space — the replay's
-## pause — and the pause on E would hand it Esc.
+## Nor by the swap: the pause on E would hand the next view Esc, and a key of play put on
+## a replay's would hand it on to a switch of view.
 func test_no_swap_leaves_a_switch_of_view_on_a_replay_s_key() -> void:
 	var keys := KeyBindings.new()
-	assert_false(keys.bind(&"jump", _key(KEY_E)))
-	assert_true(KeyBindings.same_input(keys.shown(&"spectate_next"), _key(KEY_E)))
-	assert_true(KeyBindings.same_input(keys.shown(&"jump"), _key(KEY_SPACE)))
 	assert_false(keys.bind(&"pause", _key(KEY_E)))
 	assert_false(keys.bind(&"pause", _key(KEY_Q)))
 	assert_true(keys.chosen.is_empty(), "nothing moved")
@@ -206,7 +203,7 @@ func test_a_switch_of_view_may_take_a_mouse_button() -> void:
 func test_a_file_never_puts_a_switch_of_view_on_a_replay_s_key() -> void:
 	_write(
 		(
-			'{"spectate_next": {"keycode": 4194305}, "spectate_previous": {"key": 32},'
+			'{"spectate_next": {"keycode": 4194305}, "spectate_previous": {"key": 80},'
 			+ ' "spectate_free": {"key": 4194319}}'
 		)
 	)
@@ -229,6 +226,7 @@ func test_no_bind_breaks_the_keys_of_play_or_of_replays() -> void:
 		KEY_LEFT,
 		KEY_RIGHT,
 		KEY_SPACE,
+		KEY_P,
 		KEY_ESCAPE,
 		KEY_E,
 		KEY_Q,

@@ -73,6 +73,28 @@ func test_a_replay_is_watched_from_the_free_camera() -> void:
 	assert_eq(plate.text, "First person")
 
 
+## Its free camera climbs on the jump's keys and buttons, as an out seat's does: none of
+## them may also be the replay's pause, which would toggle under every climb.
+func test_climbing_the_free_camera_never_pauses_the_replay() -> void:
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	var config := _config()
+	var played := RunMatch.bots_only(config)
+	played.run(Ticks.RATE)
+	scene.start_replay(ReplayFile.record(MatchChoices.new(), played.input_log, 0), config)
+	scene._process(0.0)
+	_press(scene, &"spectate_free")
+	var climbs := InputMap.action_get_events(&"jump")
+	assert_false(climbs.is_empty())
+	for climb: InputEvent in climbs:
+		var pressed := climb.duplicate() as InputEvent
+		pressed.set(&"pressed", true)
+		scene._unhandled_input(pressed)
+		assert_false(scene._driver.clock().paused, "%s climbs, it never pauses" % climb.as_text())
+	_press(scene, &"replay_pause")
+	assert_true(scene._driver.clock().paused, "the replay's own pause still does")
+
+
 func _press(scene: MatchScene, action: StringName) -> void:
 	var event := InputEventAction.new()
 	event.action = action
