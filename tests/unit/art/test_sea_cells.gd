@@ -27,6 +27,8 @@ const TITANICS: Array[StringName] = [
 const DOOR_IN := 0.05
 const DOOR_STEP := 0.1
 const PAST_DOOR := 0.8
+## How far under a room's floor the sea is looked for: within its deck's planks.
+const UNDER_FLOOR := 0.01
 const UNDER_E_DECK: Array[StringName] = [
 	&"F deck working corridor, boiler room 4",
 	&"F deck working corridor, boiler room 5",
@@ -368,12 +370,41 @@ func _room_on(layout: ShipLayout, point: Vector3, floor_height: float) -> ShipRo
 	return null
 
 
-## The boxes [param layout]'s sea leaves out (CellBoxes.boxes and stacked).
+## The boxes [param layout]'s sea leaves out (SeaAndSky.left_out).
 func _masked(layout: ShipLayout) -> Array[AABB]:
-	var masked := CellBoxes.boxes(layout.structure, layout.rooms)
-	for stack: Array in CellBoxes.stacked(layout.structure, layout.rooms, layout):
-		masked.append(stack[1])
-	return masked
+	return SeaAndSky.left_out(layout)
+
+
+## Her sea is left out a hair under every room's floor too, inside the deck's planks,
+## wherever that is still inside one of her cells: a box that stopped at the floor's top
+## let the sea's surface, where it crossed the floor, win the depth test against it
+## along a sliver — a dashed line of foam across the freighter's dark engine room as
+## she settled, the waterline sweeping over its floor.
+func test_the_sea_is_left_out_under_every_room_s_floor() -> void:
+	for ship: StringName in [&"freighter", &"steamer", &"trawler", &"ferry"]:
+		var layout := Fleet.layout(ship)
+		var masked := _masked(layout)
+		var open := []
+		for room: ShipRoom in layout.rooms:
+			var found := _first_open_under(layout.structure, room, masked)
+			if found != Vector3.INF:
+				open.append("%s at %s" % [room.name, found.snappedf(0.01)])
+		assert_eq(open, [], "%s: rooms whose floor the sea is drawn just under" % ship)
+
+
+## The first point UNDER_FLOOR under [param room]'s floor, INWARD in from its walls and
+## STEP apart, inside one of [param structure]'s cells but in none of [param masked];
+## Vector3.INF for none.
+func _first_open_under(structure: ShipStructure, room: ShipRoom, masked: Array[AABB]) -> Vector3:
+	var area := room.area.grow(-INWARD)
+	if not area.has_area():
+		return Vector3.INF
+	for x: float in _steps(area.position.x, area.end.x):
+		for z: float in _steps(area.position.y, area.end.y):
+			var point := Vector3(x, room.floor_height - UNDER_FLOOR, z)
+			if _in_a_cell(structure, point) and not _in_any(masked, point):
+				return point
+	return Vector3.INF
 
 
 func test_a_ship_with_no_drawn_cell_masks_nothing() -> void:
