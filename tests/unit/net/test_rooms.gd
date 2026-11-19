@@ -487,6 +487,25 @@ func test_a_watcher_takes_no_seat() -> void:
 	assert_true(fixture.logged("· Player 1 watching"), "the log says who watches")
 
 
+## A watcher who goes mid-match had no seat to hand a bot: it leaves the roster at
+## once, and each of the others still finds itself in it.
+func test_a_watcher_who_goes_leaves_the_roster() -> void:
+	var fixture := RoomFixtures.new()
+	var players := fixture.room_of(3)
+	players[1].watch(true)
+	fixture.beat()
+	players[0].start_match()
+	fixture.beat(Ticks.RATE)
+	fixture.cut(players[1])
+	fixture.beat(3)
+	for index: int in [0, 2]:
+		var roster := players[index].roster
+		assert_eq(roster.players.size(), 2, "player %d is told the watcher went" % index)
+		for player: RoomRoster.Player in roster.players:
+			assert_false(player.watching, "player %d sees nobody watching" % index)
+		assert_eq(roster.players[roster.you].name, "Player %d" % index, "player %d" % index)
+
+
 ## A match needs a player: with everyone in the room watching, START is refused, and
 ## once the match is on nobody changes whether they watch.
 func test_only_watchers_cannot_start() -> void:
