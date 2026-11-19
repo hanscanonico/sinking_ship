@@ -345,9 +345,9 @@ func _draw_inclinometer(pose: ShipPose) -> void:
 	_draw_dial(trim_at, profile, deg_to_rad(pose.trim_deg), colour)
 	var below := Vector2(0.0, r + 22.0)
 	var under := Vector2(0.0, r + 42.0)
-	_text(heel_at + below, "Heel %+.1f°" % pose.heel_deg, colour, DIAL_TEXT)
+	_text(heel_at + below, "Heel %s" % degrees_words(pose.heel_deg), colour, DIAL_TEXT)
 	_text(heel_at + under, _low(pose.heel_deg, "starboard", "port"), colour, DIAL_TEXT)
-	_text(trim_at + below, "Trim %+.1f°" % pose.trim_deg, colour, DIAL_TEXT)
+	_text(trim_at + below, "Trim %s" % degrees_words(pose.trim_deg), colour, DIAL_TEXT)
 	_text(trim_at + under, _low(pose.trim_deg, "bow", "stern"), colour, DIAL_TEXT)
 
 
@@ -1055,6 +1055,14 @@ func _seat_rules() -> SeatRules:
 	if _entry(_seat).is_empty():
 		return SeatRules.of(_rules, null)
 	return SeatRules.in_snapshot(_snapshot, _seat, _layout, _rules, _bonus_rules, _holdable)
+
+
+## [param signed_deg] signed to a tenth of a degree, a level reading always "+0.0°":
+## a hair under level rounds to nothing too, never to "-0.0°".
+static func degrees_words(signed_deg: float) -> String:
+	if absf(signed_deg) < 0.05:
+		return "+0.0°"
+	return "%+.1f°" % signed_deg
 
 
 static func _low(signed_deg: float, positive: String, negative: String) -> String:
