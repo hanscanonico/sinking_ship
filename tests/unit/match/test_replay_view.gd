@@ -71,6 +71,11 @@ func test_a_replay_is_watched_from_the_free_camera() -> void:
 	_press(scene, &"spectate_free")
 	assert_false(scene._free.active, "and back to the eyes")
 	assert_eq(plate.text, "First person")
+	_press(scene, &"spectate_ghost")
+	assert_true(scene._ghost.active, "into the ghost")
+	assert_eq(plate.text, "Ghost")
+	_press(scene, &"spectate_ghost")
+	assert_eq(plate.text, "First person")
 
 
 ## Its free camera climbs on the jump's keys and buttons, as an out seat's does: none of

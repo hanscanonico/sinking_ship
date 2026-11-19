@@ -336,6 +336,16 @@ func seat_to_world(seat: int) -> Transform3D:
 	return _worlds[seat]
 
 
+## Where piece [param piece] of her is drawn now: its space to the world, as a seat on it
+## is drawn (seat_to_world) — ship_to_world's for the whole ship.
+func piece_world(piece: int) -> Transform3D:
+	if piece == 0:
+		return _ship.transform
+	var then := _schedule.pose_at(_driver.previous["tick"]).of_piece(piece)
+	var now := _schedule.pose_at(_driver.current["tick"]).of_piece(piece)
+	return then.transform.interpolate_with(now.transform, _driver.alpha)
+
+
 ## The facing [param seat] is drawn with, in the plane of the faces it stands on.
 func seat_facing(seat: int) -> float:
 	return _facings[seat]

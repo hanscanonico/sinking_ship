@@ -115,7 +115,59 @@ func test_a_played_seat_flies_and_follows_only_once_out() -> void:
 	assert_true(scene._free.active, "out, into the free camera")
 	_press(scene, &"spectate_follow")
 	assert_true(scene._free.following, "and following the seat watched")
-	assert_string_ends_with(_line(scene), "let go")
+	assert_string_contains(_line(scene), "V let go")
+
+
+## A watcher walks the ghost from the seat watched, its eyes a seat's height over its
+## feet; the free camera and the next seat take the view from it, as its key does.
+func test_the_watcher_walks_the_ghost() -> void:
+	var scene := _started(_watched())
+	_press(scene, &"spectate_next")
+	assert_string_ends_with(_line(scene), "B ghost")
+	_press(scene, &"spectate_ghost")
+	assert_true(scene._ghost.active, "into the ghost")
+	assert_false(scene._free.active)
+	assert_string_starts_with(_line(scene), "Watching   ·   ghost")
+	assert_string_ends_with(_line(scene), "B eyes")
+	var seat: Dictionary = scene.current()["seats"][1]
+	assert_almost_eq(scene._ghost.body.pos, seat["pos"], Vector3.ONE * 1e-4, "at the seat watched")
+	var eye := scene._view.piece_world(0) * scene._ghost.feet() + Vector3.UP * 1.6
+	assert_almost_eq(scene._eyes.global_position, eye, Vector3.ONE * 1e-3, "a seat's eyes")
+	_press(scene, &"spectate_free")
+	assert_false(scene._ghost.active, "the free camera takes the view")
+	assert_true(scene._free.active)
+	_press(scene, &"spectate_ghost")
+	assert_true(scene._ghost.active, "and the ghost takes it back")
+	assert_false(scene._free.active)
+	_press(scene, &"spectate_next")
+	assert_false(scene._ghost.active, "the next seat's eyes")
+	_press(scene, &"spectate_ghost")
+	_press(scene, &"spectate_ghost")
+	assert_false(scene._ghost.active, "its key goes back to the eyes")
+	assert_string_starts_with(_line(scene), "Watching   ·   through Bot 3's eyes")
+
+
+## An out seat's ghost starts where it went out while that is on her; a dry seat has none.
+func test_an_out_seat_s_ghost_starts_where_it_went_out() -> void:
+	var played := _watched()
+	played.watch = false
+	var scene := _started(played)
+	_press(scene, &"spectate_ghost")
+	assert_false(scene._ghost.active, "no ghost while you are dry")
+	var seat: Dictionary = scene.current()["seats"][MatchScene.LOCAL_SEAT]
+	seat["out"] = true
+	seat["place"] = 3
+	_press(scene, &"spectate_ghost")
+	assert_true(scene._ghost.active, "out, into the ghost")
+	assert_almost_eq(scene._ghost.body.pos, seat["pos"], Vector3.ONE * 1e-4, "where it went out")
+	assert_string_contains(_line(scene), "·   ghost\n")
+	seat["pos"] = Vector3(0.0, 0.0, 500.0)
+	_press(scene, &"spectate_ghost")
+	_press(scene, &"spectate_ghost")
+	var watched: Dictionary = scene.current()["seats"][scene._viewed()]
+	assert_almost_eq(
+		scene._ghost.body.pos, watched["pos"], Vector3.ONE * 1e-4, "off her, at the seat watched"
+	)
 
 
 ## A watched match is kept as its results show — a person chose to watch it — and its

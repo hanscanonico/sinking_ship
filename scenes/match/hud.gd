@@ -14,9 +14,12 @@ const NAME_WIDTH := 130.0
 const SPECTATING_CLEAR := 12.0
 ## Whose view the spectating line names from the free camera: nobody's.
 const FREE_VIEW := "free camera"
+## Whose view it names from the ghost (GhostWalk): nobody's.
+const GHOST_VIEW := "ghost"
 
-## The views a watcher may look from (watching_text): a seat's eyes or the free camera.
-enum Camera { EYES, FREE }
+## The views a watcher may look from (watching_text): a seat's eyes, the free camera or
+## the ghost.
+enum Camera { EYES, FREE, GHOST }
 
 var _countdown_ticks: int
 
@@ -84,7 +87,9 @@ static func out_word(cause: PlayerState.Cause) -> String:
 ## switches the view, [param previous] and [param next] — the prompts on a line of
 ## their own, as long as a pad's are — and, when [param free_key] names one, the key
 ## into the free camera, or back out of it to the eyes while [param free] says the view
-## is the free camera; from it, on a line of its own, [param follow_key] (follow_text).
+## is the free camera; from it, on a line of its own, [param follow_key] (follow_text);
+## and last, when [param ghost_key] names one, the key into the ghost, or back out of it
+## while [param ghost] says the view is the ghost's (ghost_text).
 static func spectating_text(
 	place: String,
 	seats: int,
@@ -95,19 +100,40 @@ static func spectating_text(
 	free := false,
 	cause := PlayerState.Cause.COLD,
 	follow_key := "",
-	following := false
+	following := false,
+	ghost_key := "",
+	ghost := false
 ) -> String:
 	if free:
 		whose = FREE_VIEW
+	elif ghost:
+		whose = GHOST_VIEW
 	var text := (
 		"%s — %s of %d   ·   %s\n%s / %s to switch"
 		% [out_word(cause), place, seats, whose, previous, next]
 	)
 	if not free_key.is_empty():
 		text += "   ·   %s %s" % [free_key, "eyes" if free else "free camera"]
+	return text + _last_line(free, follow_key, following, ghost_key, ghost)
+
+
+## What [param ghost_key] does: into the ghost, or back to the eyes while [param ghost].
+static func ghost_text(ghost_key: String, ghost: bool) -> String:
+	return "%s %s" % [ghost_key, "eyes" if ghost else "ghost"]
+
+
+## The spectating and the watcher's lines' last: from the free camera ([param free]) its
+## [param follow_key] (follow_text), and [param ghost_key] when it names one (ghost_text);
+## empty for neither, else on a line of its own.
+static func _last_line(
+	free: bool, follow_key: String, following: bool, ghost_key: String, ghost: bool
+) -> String:
+	var keys := PackedStringArray()
 	if free and not follow_key.is_empty():
-		text += "\n" + follow_text(follow_key, following)
-	return text
+		keys.append(follow_text(follow_key, following))
+	if not ghost_key.is_empty():
+		keys.append(ghost_text(ghost_key, ghost))
+	return "" if keys.is_empty() else "\n" + "   ·   ".join(keys)
 
 
 ## What [param follow_key] does from the free camera: has it follow the seat watched, or
@@ -120,7 +146,8 @@ static func follow_text(follow_key: String, following: bool) -> String:
 ## is from [param camera] — [param seat_name]'s eyes, or the free camera, following that
 ## seat while [param following] says so —, then what switches the seat, [param previous]
 ## and [param next], and what flies the free camera, [param free_key], as the spectating
-## line has them, and last, from the free camera, [param follow_key] (follow_text).
+## line has them, and last, from the free camera, [param follow_key] (follow_text), and
+## what walks the ghost, [param ghost_key] (ghost_text).
 static func watching_text(
 	seat_name: String,
 	camera: Camera,
@@ -128,19 +155,21 @@ static func watching_text(
 	previous: String,
 	next: String,
 	free_key: String,
-	follow_key: String
+	follow_key: String,
+	ghost_key := ""
 ) -> String:
 	var free := camera == Camera.FREE
+	var ghost := camera == Camera.GHOST
 	var whose := whose_view(seat_name, false, false)
 	if free:
 		whose = "following %s" % seat_name if following else FREE_VIEW
+	elif ghost:
+		whose = GHOST_VIEW
 	var text := (
 		"Watching   ·   %s\n%s / %s to switch   ·   %s %s"
 		% [whose, previous, next, free_key, "eyes" if free else "free camera"]
 	)
-	if free:
-		text += "\n" + follow_text(follow_key, following)
-	return text
+	return text + _last_line(free, follow_key, following, ghost_key, ghost)
 
 
 ## [param text] along the bottom of the screen; empty hides it.

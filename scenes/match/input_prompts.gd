@@ -88,7 +88,8 @@ static func controls_for(on_pad: bool) -> String:
 ## Move, look, jump, shove, brace, grab and pause as the input map binds them, one to a
 ## line, on the pad when [param on_pad], else on the keyboard and mouse — the look
 ## being the mouse's, bound to no action — and, when [param spectating], what
-## switches whose eyes the view is in, flies the free camera and has it follow.
+## switches whose eyes the view is in, flies the free camera and has it follow, and walks
+## the ghost.
 static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 	var lines: Array[Array] = [
 		[_move_of(on_pad), "move"],
@@ -105,6 +106,7 @@ static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 		lines.append(["%s / %s" % [previous, next], "switch view"])
 		lines.append([_word_of(&"spectate_free", on_pad), "free camera"])
 		lines.append([_word_of(&"spectate_follow", on_pad), "follow the seat"])
+		lines.append([_word_of(&"spectate_ghost", on_pad), "ghost: walk her decks"])
 	var text := PackedStringArray()
 	for line: Array in lines:
 		text.append("%s — %s" % line)
@@ -113,8 +115,8 @@ static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 
 ## A watcher's controls (GLOSSARY: Watch), one to a line, on the pad when [param on_pad],
 ## else on the keyboard and mouse: what switches the seat watched, the free camera — in
-## and out, its follow, its look and its flight — and the pause; nothing of play, as
-## nobody plays.
+## and out, its follow, its look and its flight —, the ghost and the pause; nothing of
+## play, as nobody plays.
 static func watch_controls_for(on_pad: bool) -> String:
 	var previous := _word_of(&"spectate_previous", on_pad)
 	var next := _word_of(&"spectate_next", on_pad)
@@ -122,6 +124,7 @@ static func watch_controls_for(on_pad: bool) -> String:
 		["%s / %s" % [previous, next], "switch seat"],
 		[_word_of(&"spectate_free", on_pad), "free camera"],
 		[_word_of(&"spectate_follow", on_pad), "follow the seat"],
+		[_word_of(&"spectate_ghost", on_pad), "ghost: walk her decks"],
 		[_word_of(&"look_left", on_pad) if on_pad else "Mouse", "look"],
 		[_move_of(on_pad), "fly"],
 		["%s / %s" % [_word_of(&"jump", on_pad), _word_of(&"brace", on_pad)], "up / down"],
