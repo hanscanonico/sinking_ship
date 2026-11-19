@@ -1,6 +1,6 @@
 extends GutTest
-## Surfaces.blocked_all — every portal's line WalkGraph._shut asks about at once — answers
-## natively (NativeSurfaces.blocked_all) what Surfaces.blocked answers line by line in
+## NativeSurfaces.blocked_all — every portal's line WalkGraph._shut asks about at once
+## (WalkDoorLeaves.shut_all) — answers what Surfaces.blocked answers line by line in
 ## GDScript, on every ship, her doors open, and shut with a funnel down: so a walk graph
 ## shut by the batch shuts the portals asking one at a time shut. Where the extension is
 ## not loaded there is nothing to hold it to, and CI sets SINKING_NATIVE_REQUIRED, so a
@@ -47,7 +47,7 @@ func test_every_ship_blocks_natively_as_blocked_does() -> void:
 			var pose := _pose(layout, shut)
 			native.honour(pose)
 			reference.honour(pose)
-			var found := native.blocked_all(lines, ask, step * 2.0, step)
+			var found: PackedByteArray = native.native.blocked_all(lines, ask, step * 2.0, step)
 			var expected := PackedByteArray()
 			for index in ask.size():
 				var line_blocked := reference.blocked(
@@ -57,7 +57,6 @@ func test_every_ship_blocks_natively_as_blocked_does() -> void:
 			var name := "%s, doors %s" % [layout.resource_path, "shut" if shut else "open"]
 			assert_eq(found, expected, name)
 			assert_gt(expected.count(1), 0, name + ": some line blocked")
-			assert_eq(reference.blocked_all(lines, ask, step * 2.0, step), expected, name)
 
 
 func test_a_walk_graph_shuts_at_once_what_it_shuts_one_by_one() -> void:

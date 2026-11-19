@@ -130,7 +130,7 @@ public:
 	// name, ShipPose.collapsed): her platforms' names first, by named().
 	void named(const Array &p_names);
 	bool line_of_sight(const Vector3 &p_from, const Vector3 &p_to, const Array &p_collapsed) const;
-	// Surfaces.blocked_all: Surfaces.blocked of each line p_ask has a 1 for, its blockers
+	// WalkDoorLeaves.shut_all: Surfaces.blocked of each line p_ask has a 1 for, its blockers
 	// standing to the tops they were made with (standing_tops), never a fallen one's.
 	void standing_tops(const PackedFloat64Array &p_tops);
 	PackedByteArray blocked_all(const PackedVector3Array &p_lines, const PackedByteArray &p_ask,

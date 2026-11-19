@@ -71,16 +71,28 @@ func forget(pose: ShipPose, shut: PackedByteArray, every: bool) -> bool:
 
 
 ## Fills in every answer [param shut] (per portal, 0 not yet known, 1 open, 2 shut) does
-## not know yet as WalkGraph._shut would, every line asked of [param surfaces] at once
-## (Surfaces.blocked_all) for bodies step * 2 tall with their feet able to step
-## [param step].
+## not know yet as WalkGraph._shut would, asking [param surfaces] blocked of every line
+## for bodies step * 2 tall with their feet able to step [param step]: natively, every
+## line at once, where the extension is loaded.
 func shut_all(surfaces: Surfaces, shut: PackedByteArray, step: float) -> void:
 	var ask := PackedByteArray()
 	ask.resize(shut.size())
 	for index in shut.size():
 		if shut[index] == 0:
 			ask[index] = _flat[index]
-	var blocked := surfaces.blocked_all(lines, ask, step * 2.0, step)
+	# The extension's twin of Surfaces.blocked is held to it (test_blocked_native).
+	var mirror := surfaces.native
+	var blocked := PackedByteArray()
+	if mirror != null:
+		blocked = mirror.blocked_all(lines, ask, step * 2.0, step)
+	else:
+		blocked.resize(ask.size())
+		for index in ask.size():
+			if (
+				ask[index] == 1
+				and surfaces.blocked(lines[index * 2], lines[index * 2 + 1], step * 2.0, step)
+			):
+				blocked[index] = 1
 	for index in shut.size():
 		if shut[index] == 0:
 			shut[index] = 2 if blocked[index] == 1 else 1

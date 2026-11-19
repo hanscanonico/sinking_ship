@@ -586,23 +586,6 @@ func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: f
 	return false
 
 
-## Per line from [param lines] at index * 2 to index * 2 + 1 that [param ask] has a 1 for,
-## 1 where it is blocked (blocked): every one at once.
-func blocked_all(
-	lines: PackedVector3Array, ask: PackedByteArray, body_height: float, step: float
-) -> PackedByteArray:
-	# The extension's twin is held to this GDScript (test_blocked_native).
-	var mirror := native
-	if mirror != null:
-		return mirror.blocked_all(lines, ask, body_height, step)
-	var found := PackedByteArray()
-	found.resize(ask.size())
-	for index in ask.size():
-		if ask[index] == 1 and blocked(lines[index * 2], lines[index * 2 + 1], body_height, step):
-			found[index] = 1
-	return found
-
-
 ## The stretches of the straight line from [param from_point] to [param to_point]
 ## (x/z) that no blocker stands across at the height of a body [param body_height]
 ## tall with its feet at [param from_point]'s height — the gaps between walls: each a

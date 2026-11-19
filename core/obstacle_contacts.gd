@@ -79,7 +79,7 @@ func native(surfaces: Surfaces) -> Object:
 	var down := s._fallen.native_down()
 	_native.felled(down[0], down[1], down[2])
 	_native.lidded(s.stands.lids)
-	# Her blockers' tops as made, for Surfaces.blocked_all: a fallen funnel's _tops differ.
+	# Her blockers' tops as made, for blocked_all: a fallen funnel's _tops differ.
 	_native.standing_tops(standing)
 	# Her floors and their clearances, for Surfaces.under's own (BotFloorWay's search).
 	var floors := SpatialIndex.flattened(s._floors)
