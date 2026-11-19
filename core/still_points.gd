@@ -216,11 +216,15 @@ func _chain() -> void:
 	_chain_from.clear()
 	_chain_cells.clear()
 	_chain_points.clear()
+	# A point met again — a corner rooms share — has the cells found for it first.
+	var found := {}
 	for at: Vector3 in _points:
 		_chain_from.append(_chain_cells.size())
 		if _map == null:
 			continue
-		for cell: int in _map.cells_under(at):
+		if not found.has(at):
+			found[at] = _map.cells_under(at)
+		for cell: int in found[at]:
 			_chain_cells.append(cell)
 			_chain_points.append(Vector3(at.x, _map.floor_of(cell), at.z))
 	_chain_from.append(_chain_cells.size())
