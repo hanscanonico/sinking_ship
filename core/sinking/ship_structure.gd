@@ -20,7 +20,8 @@ const _SORTED := 3
 const _AFT := 4
 const _FORE := 5
 const _HELD := 6
-const _ENDS_SIZE := 7
+const _MIDDLES := 7
+const _ENDS_SIZE := 8
 
 ## Where the intact ship floats, level, and the bottom of her hull.
 @export var waterline_y: float
@@ -106,8 +107,9 @@ func section_at_by_scan(x: float) -> HullSection:
 
 
 ## section_at()'s index over her sections: their after and fore ends, and the sections
-## themselves, nulls left out; empty where it cannot bisect them (an end out of order or
-## not a number). Rebuilt when her sections or any section's x or length change; built
+## themselves, nulls left out, and half_breadth()'s, their middles (_first_not_aft_of()),
+## none where a section is missing or a middle is out of order; empty where it cannot
+## bisect them (an end out of order or not a number). Rebuilt when her sections or any section's x or length change; built
 ## and read under a lock, since bots think on a thread of their own.
 func _section_ends() -> Array:
 	var key := sections.hash()
@@ -133,10 +135,16 @@ func _index_ends(key: int) -> Array:
 	var aft := PackedFloat64Array()
 	var fore := PackedFloat64Array()
 	var held: Array[HullSection] = []
+	var middles := PackedFloat64Array()
 	var sorted := true
+	var bisected := true
 	for section: HullSection in sections:
 		if section == null:
+			bisected = false
 			continue
+		if is_nan(section.x) or not middles.is_empty() and section.x < middles[-1]:
+			bisected = false
+		middles.append(section.x)
 		var half := section.length * 0.5
 		var after_end := section.x - half
 		var fore_end := section.x + half
@@ -147,7 +155,9 @@ func _index_ends(key: int) -> Array:
 		aft.append(after_end)
 		fore.append(fore_end)
 		held.append(section)
-	return [key, edits, sections.size(), sorted, aft, fore, held]
+	if not bisected:
+		middles.clear()
+	return [key, edits, sections.size(), sorted, aft, fore, held, middles]
 
 
 ## Her length overall, in metres: from her first section's after end to her last's fore
@@ -173,19 +183,63 @@ func half_breadth(x: float, y: float, way: int) -> float:
 	var last := sections[count - 1]
 	if x < aft_end or x > last.x + last.length * 0.5:
 		return 0.0
+	var index := _first_not_aft_of(x)
+	if index == -1:
+		return half_breadth_by_scan(x, y, way)
+	return _breadth_at(index, x, y, way)
+
+
+## half_breadth() by walking her sections in order to the first whose middle is not aft
+## of x: its answer, for any x and any sections.
+func half_breadth_by_scan(x: float, y: float, way: int) -> float:
+	var count := sections.size()
+	if count == 0:
+		return 0.0
+	var last := sections[count - 1]
+	if x < sections[0].x - sections[0].length * 0.5 or x > last.x + last.length * 0.5:
+		return 0.0
 	for index in count:
-		var section := sections[index]
-		if x > section.x and index < count - 1:
+		if x > sections[index].x and index < count - 1:
 			continue
-		var here := _reach(section, y, way)
-		if index == 0 and x <= section.x:
-			return here
-		if x > section.x:
-			return here * (1.0 - (x - section.x) / (last.length * 0.5))
-		var before := sections[index - 1]
-		var t := (x - before.x) / (section.x - before.x)
-		return lerpf(_reach(before, y, way), here, t)
+		return _breadth_at(index, x, y, way)
 	return 0.0
+
+
+## half_breadth() between the sections at [param index] - 1 and [param index], the first
+## whose middle x is not aft of, or her last.
+func _breadth_at(index: int, x: float, y: float, way: int) -> float:
+	var count := sections.size()
+	var last := sections[count - 1]
+	var section := sections[index]
+	var here := _reach(section, y, way)
+	if index == 0 and x <= section.x:
+		return here
+	if x > section.x:
+		return here * (1.0 - (x - section.x) / (last.length * 0.5))
+	var before := sections[index - 1]
+	var t := (x - before.x) / (section.x - before.x)
+	return lerpf(_reach(before, y, way), here, t)
+
+
+## The first section whose middle does not stand aft of [param x], her last when every
+## one does, by bisecting their middles (_section_ends()); -1 where they cannot be
+## bisected, half_breadth() then walking them in order to the same answer.
+func _first_not_aft_of(x: float) -> int:
+	var ends := _section_ends()
+	if ends.is_empty():
+		return -1
+	var middles: PackedFloat64Array = ends[_MIDDLES]
+	if middles.is_empty():
+		return -1
+	var low := 0
+	var high := middles.size()
+	while low < high:
+		var middle := (low + high) >> 1
+		if x > middles[middle]:
+			low = middle + 1
+		else:
+			high = middle
+	return mini(low, middles.size() - 1)
 
 
 static func _reach(section: HullSection, y: float, way: int) -> float:
