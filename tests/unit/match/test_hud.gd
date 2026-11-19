@@ -96,6 +96,35 @@ func test_the_line_from_the_free_camera_says_how_to_follow() -> void:
 	)
 
 
+## The ghost's key ends the line, into it or back to the eyes from it, which the line
+## then names.
+func test_the_line_says_how_into_the_ghost_and_back() -> void:
+	assert_eq(
+		Hud.spectating_text(
+			"3rd", 8, "through Bot 3's eyes", "Q", "E", "C", false, COLD, "V", false, "B"
+		),
+		"Overboard — 3rd of 8   ·   through Bot 3's eyes\nQ / E to switch   ·   C free camera\nB ghost"
+	)
+	assert_eq(
+		Hud.spectating_text(
+			"3rd", 8, "through Bot 3's eyes", "Q", "E", "C", false, COLD, "V", false, "B", true
+		),
+		"Overboard — 3rd of 8   ·   ghost\nQ / E to switch   ·   C free camera\nB eyes"
+	)
+	assert_eq(
+		Hud.spectating_text("3rd", 8, "", "Q", "E", "C", true, COLD, "V", false, "B"),
+		"Overboard — 3rd of 8   ·   free camera\nQ / E to switch   ·   C eyes\nV follow   ·   B ghost"
+	)
+	assert_eq(
+		Hud.watching_text("Bot 3", Hud.Camera.GHOST, false, "Q", "E", "C", "V", "B"),
+		"Watching   ·   ghost\nQ / E to switch   ·   C free camera\nB eyes"
+	)
+	assert_eq(
+		Hud.watching_text("Bot 3", Hud.Camera.EYES, false, "Q", "E", "C", "V", "B"),
+		"Watching   ·   through Bot 3's eyes\nQ / E to switch   ·   C free camera\nB ghost"
+	)
+
+
 ## A watcher's line names the seat watched, from its eyes or the free camera following
 ## it, and the keys to switch seat and camera — the follow only from the free camera.
 func test_the_watchers_line_names_the_seat_and_the_cameras() -> void:
@@ -128,12 +157,13 @@ func test_the_watchers_line_fits_its_box() -> void:
 			&"spectate_next",
 			&"spectate_free",
 			&"spectate_follow",
+			&"spectate_ghost",
 		]:
 			keys.append(InputPrompts.word_for(InputMap.action_get_events(action), pad))
-		for camera: Hud.Camera in [Hud.Camera.EYES, Hud.Camera.FREE]:
+		for camera: Hud.Camera in [Hud.Camera.EYES, Hud.Camera.FREE, Hud.Camera.GHOST]:
 			for following: bool in [false, true]:
 				var text := Hud.watching_text(
-					widest, camera, following, keys[0], keys[1], keys[2], keys[3]
+					widest, camera, following, keys[0], keys[1], keys[2], keys[3], keys[4]
 				)
 				for line: String in text.split("\n"):
 					var width := (
@@ -166,11 +196,24 @@ func test_the_line_fits_clear_of_the_plate_and_the_wedges() -> void:
 				)
 				lines.append_array(text.split("\n"))
 		var follow := InputPrompts.word_for(InputMap.action_get_events(&"spectate_follow"), pad)
+		var ghost := InputPrompts.word_for(InputMap.action_get_events(&"spectate_ghost"), pad)
 		for following: bool in [false, true]:
-			var text := Hud.spectating_text(
-				"16th", 16, "", previous, next, free, true, WITH_HER, follow, following
-			)
-			lines.append_array(text.split("\n"))
+			for walking: bool in [false, true]:
+				var text := Hud.spectating_text(
+					"16th",
+					16,
+					widest,
+					previous,
+					next,
+					free,
+					not walking,
+					WITH_HER,
+					follow,
+					following,
+					ghost,
+					walking
+				)
+				lines.append_array(text.split("\n"))
 	var height := 0.0
 	for line: String in lines:
 		var width := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x

@@ -2,14 +2,15 @@ class_name KeyBindings
 extends RefCounted
 ## The keys of play the player chose over the project's: at most one key or mouse
 ## button for each of the move's four ways, jump, shove, brace, grab and pause, and for
-## the switch of view, the free camera and its follow once out — one set, so a key of
-## play never also answers to watching (#257). An action left unchosen keeps the
+## the switch of view, the free camera, its follow and the ghost once out — one set, so a
+## key of play never also answers to watching (#257). An action left unchosen keeps the
 ## project's keys. A chosen one heads the action's keys in place of the project's
 ## first of its kind — a key for a key, a mouse button for a mouse button — so the
 ## arrows still move and a click still shoves; an alternate another action is given
-## goes from this one. The pad's bindings are never touched. The switches of view and
-## the free camera's keys act in replays too, which hear their own keys and Esc first,
-## so a bind that would leave one of them on one of those is refused (IN_REPLAYS).
+## goes from this one. The pad's bindings are never touched. The switches of view, the
+## free camera's keys and the ghost's act in replays too, which hear their own keys and
+## Esc first, so a bind that would leave one of them on one of those is refused
+## (IN_REPLAYS).
 ## The settings screen saves them at PATH; Game applies them to the input map as it
 ## boots, and InputFrame reads actions, never keys, so the sim sees none of it (D3).
 ##
@@ -34,6 +35,7 @@ const ACTIONS: Array[StringName] = [
 	&"spectate_next",
 	&"spectate_free",
 	&"spectate_follow",
+	&"spectate_ghost",
 ]
 ## Each action's name on the settings screen.
 const TITLES := {
@@ -50,6 +52,7 @@ const TITLES := {
 	&"spectate_next": "Next view",
 	&"spectate_free": "Free camera",
 	&"spectate_follow": "Follow",
+	&"spectate_ghost": "Ghost",
 }
 
 ## The actions that also act in replays, where a replay's own keys and Esc are heard
@@ -59,6 +62,7 @@ const IN_REPLAYS: Array[StringName] = [
 	&"spectate_next",
 	&"spectate_free",
 	&"spectate_follow",
+	&"spectate_ghost",
 ]
 ## The project's actions whose keys a replay hears before the switches of view.
 const REPLAY_PREFIX := "input/replay_"

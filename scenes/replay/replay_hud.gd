@@ -27,6 +27,7 @@ const HINTS: Array[Array] = [
 	[&"spectate_next", "seat after"],
 	[&"spectate_free", "free camera"],
 	[&"spectate_follow", "follow"],
+	[&"spectate_ghost", "ghost"],
 	[&"ui_cancel", "back"],
 ]
 const PLATE_MARGIN := 12

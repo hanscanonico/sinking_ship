@@ -5,9 +5,10 @@ extends Node3D
 ## server, the local player on the seat it gives (SH12) — seen through the local
 ## seat's eyes and, once it is out, through a survivor's (D14), with the results at
 ## its end. A match only watched (MatchChoices.watch) has no local seat: bots play every
-## seat and the watcher looks through any dry seat's eyes or from the free camera, as
-## they switch. The observer camera stands in for the eyes only as a
-## tool: for --observer and captures, and it alone may cut the ship away to look inside.
+## seat and the watcher looks through any dry seat's eyes, from the free camera or as the
+## ghost, as they switch; an out seat and a replay have the same views. The observer
+## camera stands in for the eyes only as a tool: for --observer and captures, and it alone
+## may cut the ship away to look inside.
 ## Rematch and menu
 ## go back to whoever started it: Game, which builds every config through
 ## MatchChoices.config (D13), or OnlinePlay.
@@ -70,6 +71,9 @@ const COLLAPSE_SHAKE := 0.6
 ## cells stacked under the decks stand apart and the ship shows end to end.
 const CELLS_PITCH_DEG := 25.0
 const CELLS_DISTANCE := 33.0
+## The eyes' seat while the view is the ghost's (FirstPersonCamera.ease_eye): none of the
+## match's.
+const GHOST_EYES := -2
 
 var _config: MatchConfig
 var _stats: MatchStats
@@ -113,6 +117,9 @@ var _cells: Array[CellOverlay] = []
 ## The free camera flown in place of a seat's eyes: the local seat's once it is out, a
 ## watcher's and a replay's.
 var _free := FreeCamera.new()
+## The ghost walked in place of a seat's eyes or the free camera by whoever may fly that
+## (GhostWalk): made for each match, its ship made ahead once it may be walked (keep).
+var _ghost: GhostWalk
 ## The faint light round the eye in a room whose lamps have failed.
 var _eye_fill := EyeFill.new()
 ## The water running off the lens once the eye comes up out of it.
@@ -210,19 +217,23 @@ func _process(delta: float) -> void:
 		_end.show_prompts(_prompts)
 		save_replay()
 	_free.keep(_can_fly(snapshot))
-	_pointer.want(_looking() or _flying())
+	_ghost.keep(_can_fly(snapshot))
+	_pointer.want(_looking() or _flying() or _walking())
 	_hold()
 	var local_up := _up_of(snapshot, _local_seat)
 	if _local != null and local_up != _local_up:
 		_local.turn_face(_local_up, local_up, _view.seat_to_world(_local_seat).basis)
 		_local_up = local_up
-	if _looking() and not _free.active:
+	if _looking() and not _free.active and not _ghost.active:
 		_local.look_by_stick(delta)
-	_audio.hear_through(-1 if _observer or _free.active else viewed)
-	_first_person_hud.flying = _free.active
+	var detached := _free.active or _ghost.active
+	_audio.hear_through(-1 if _observer or detached else viewed)
+	_first_person_hud.flying = detached
 	if _observer:
 		_observer_camera.follow(_view.seat_world_position(viewed), delta)
 		_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+		return
+	if _ghost.active and _walk(snapshot, viewed, delta):
 		return
 	if _free.active:
 		_fly(snapshot, viewed, delta)
@@ -272,6 +283,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion:
 		if _flying():
 			_free.look_by_mouse((event as InputEventMouseMotion).screen_relative)
+		elif _walking():
+			_ghost.look.look_by_mouse((event as InputEventMouseMotion).screen_relative)
 		elif _looking():
 			_local.look_by_mouse((event as InputEventMouseMotion).screen_relative)
 		return
@@ -284,13 +297,15 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	elif event.is_action_pressed("spectate_free") and _can_fly(_driver.current):
 		_toggle_free()
+	elif event.is_action_pressed("spectate_ghost") and _can_fly(_driver.current):
+		_toggle_ghost()
 	elif event.is_action_pressed("spectate_follow") and _free.active:
 		_toggle_follow()
 	elif event.is_action_pressed("spectate_next"):
-		_free.leave()
+		_leave_views()
 		_order.cycle(_driver.current, 1)
 	elif event.is_action_pressed("spectate_previous"):
-		_free.leave()
+		_leave_views()
 		_order.cycle(_driver.current, -1)
 	# The observer's wheel after the switches, which the player may have put on it.
 	elif _observer and ObserverCamera.wheel_notches(event) != 0.0:
@@ -535,6 +550,7 @@ func _setup_view(
 	_kick = ViewKick.new(settings.view_kick)
 	_free = FreeCamera.new(settings)
 	_free.set_bounds(_deck_bounds(config.ship))
+	_ghost = GhostWalk.new(config, sim.schedule, settings)
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
 	_first_person_hud.setup(sim, _names, not observer and not _watcher, _prompts, _answers)
@@ -730,13 +746,15 @@ func _replay_input(event: InputEvent) -> bool:
 	elif event.is_action_pressed("replay_seek_end"):
 		replay_seek(_driver.timeline().last_tick())
 	elif event.is_action_pressed("spectate_next"):
-		_free.leave()
+		_leave_views()
 		_replay_seat = SpectateOrder.every(_replay_seat, 1, _config.seats)
 	elif event.is_action_pressed("spectate_previous"):
-		_free.leave()
+		_leave_views()
 		_replay_seat = SpectateOrder.every(_replay_seat, -1, _config.seats)
 	elif event.is_action_pressed("spectate_free"):
 		_toggle_free()
+	elif event.is_action_pressed("spectate_ghost"):
+		_toggle_ghost()
 	elif event.is_action_pressed("spectate_follow") and _free.active:
 		_toggle_follow()
 	elif event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
@@ -772,6 +790,8 @@ func _on_sought(_tick: int) -> void:
 
 ## The camera the replay's plate names.
 func _camera_name() -> String:
+	if _ghost.active:
+		return "Ghost"
 	if not _free.active:
 		return "First person"
 	return "Free · following" if _free.following else "Free camera"
@@ -844,6 +864,12 @@ func _shake_for_the_sinking(events: Array[SimEvent]) -> void:
 				_kick.shake(COLLAPSE_SHAKE)
 
 
+## Whether the ghost turns and walks now: walked, and neither paused, at the results nor
+## with the mouse let go.
+func _walking() -> bool:
+	return _ghost.active and not _paused and not _end.visible and not _mouse_freed
+
+
 ## Whether the local player's mouse and stick turn their look now: in play, and
 ## neither paused, at the results nor with the mouse let go.
 func _looking() -> bool:
@@ -864,7 +890,8 @@ static func _up_of(snapshot: Dictionary, seat: int) -> int:
 	return MatchState.up_of(snapshot, snapshot["seats"][seat])
 
 
-## Whether the free camera may be flown in [param snapshot]: in a replay, always; else
+## Whether the free camera may be flown — and the ghost walked — in [param snapshot]: in
+## a replay, always; else
 ## the eye seat out — or the match only watched — while the match goes on, the eyes
 ## being a seat's (not the observer's).
 func _can_fly(snapshot: Dictionary) -> bool:
@@ -880,9 +907,43 @@ func _can_fly(snapshot: Dictionary) -> bool:
 ## ship at first; an out seat's behind and over the seat whose eyes the view was in,
 ## looking where they did —; or back into those eyes.
 func _toggle_free() -> void:
+	_ghost.leave()
 	_free.toggle(true)
 	if _free.active and not (watching() or _driver.replaying()):
 		_free.start(_head_of(_viewed()), -_eyes.global_basis.z)
+
+
+## Into the ghost — where the local seat went out while that spot is still on her, else
+## at the seat watched, looking where the view did —; or back into a seat's eyes. With
+## nowhere of her to stand it on, the free camera.
+func _toggle_ghost() -> void:
+	if _ghost.active:
+		_ghost.leave()
+		return
+	var snapshot := _driver.current
+	var seats: Array[int] = [_viewed()]
+	if _local_seat >= 0 and not (watching() or _driver.replaying()):
+		seats.push_front(_local_seat)
+	var ahead := -_eyes.global_basis.z
+	for seat: int in seats:
+		var entry := MatchState.entry_of(snapshot["seats"], seat)
+		if entry.is_empty():
+			continue
+		var piece: int = entry["piece"]
+		var to_piece := _view.piece_world(piece).basis.inverse()
+		if _ghost.start(snapshot, entry["pos"], piece, to_piece * ahead):
+			_free.active = false
+			_free.following = false
+			return
+	if not _free.active:
+		_toggle_free()
+
+
+## Back to a seat's eyes from the ghost, and from the free camera unless it follows: the
+## view switched to another seat.
+func _leave_views() -> void:
+	_ghost.leave()
+	_free.leave()
 
 
 ## The free camera follows the seat watched, or lets go of it.
@@ -914,6 +975,35 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
 	_lens_drops.show_eye(_underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+
+
+## The view from the ghost: every seat drawn, nobody's arms, its eyes a seat's height over
+## its feet, the HUD as the observer's, of [param viewed]. Walked off her, it goes to the
+## free camera, standing behind and over where its eyes were: false then.
+func _walk(snapshot: Dictionary, viewed: int, delta: float) -> bool:
+	if _walking():
+		_ghost.look.look_by_stick(delta)
+		if not _ghost.advance(snapshot, delta):
+			_free.toggle(true)
+			_free.start(_eyes.global_position, -_eyes.global_basis.z)
+			return false
+	_view.look_out_of(-1)
+	_arms.visible = false
+	_eyes.ease_eye(GHOST_EYES, _ghost.stature(), delta)
+	_eyes.look_from(
+		_view.piece_world(_ghost.body.piece),
+		_ghost.feet(),
+		_ghost.look.yaw,
+		_ghost.look.pitch,
+		Vector3.ZERO,
+		_ghost.up()
+	)
+	var eye := _eyes.global_position
+	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
+	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
+	_lens_drops.show_eye(_underwater.is_under())
+	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+	return true
 
 
 ## The local seat stands still while a menu over the match — the pause menu, or the
@@ -982,7 +1072,9 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 		_free.active,
 		mine["out_cause"],
 		_prompts.word(&"spectate_follow"),
-		_free.following
+		_free.following,
+		"" if _observer else _prompts.word(&"spectate_ghost"),
+		_ghost.active
 	)
 
 
@@ -991,12 +1083,18 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 func _watching_line(snapshot: Dictionary, viewed: int) -> String:
 	if snapshot["phase"] == MatchState.Phase.ENDED:
 		return ""
+	var camera := Hud.Camera.EYES
+	if _free.active:
+		camera = Hud.Camera.FREE
+	elif _ghost.active:
+		camera = Hud.Camera.GHOST
 	return Hud.watching_text(
 		_hud.fit_name(_names[viewed]),
-		Hud.Camera.FREE if _free.active else Hud.Camera.EYES,
+		camera,
 		_free.following,
 		_prompts.word(&"spectate_previous"),
 		_prompts.word(&"spectate_next"),
 		_prompts.word(&"spectate_free"),
-		_prompts.word(&"spectate_follow")
+		_prompts.word(&"spectate_follow"),
+		_prompts.word(&"spectate_ghost")
 	)

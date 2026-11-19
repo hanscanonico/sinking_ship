@@ -140,6 +140,7 @@ func test_the_spectate_keys_rebind_and_swap_with_play() -> void:
 	assert_true(KeyBindings.same_input(keys.shown(&"grab"), _key(KEY_C)), "grab takes C")
 	assert_true(keys.bind(&"spectate_previous", _key(KEY_Z)))
 	assert_true(keys.bind(&"spectate_follow", _key(KEY_X)))
+	assert_true(keys.bind(&"spectate_ghost", _key(KEY_H)))
 	keys.apply()
 	var g := _key(KEY_G)
 	g.pressed = true
@@ -151,6 +152,13 @@ func test_the_spectate_keys_rebind_and_swap_with_play() -> void:
 	var v := _key(KEY_V)
 	v.pressed = true
 	assert_false(v.is_action_pressed(&"spectate_follow"), "V no longer follows")
+	var h := _key(KEY_H)
+	h.pressed = true
+	assert_true(h.is_action_pressed(&"spectate_ghost"), "the ghost rebinds like the others")
+	var b := _key(KEY_B)
+	b.pressed = true
+	assert_false(b.is_action_pressed(&"spectate_ghost"), "B no longer walks it")
+	assert_eq(_pad_events(&"spectate_ghost").size(), 1, "its pad button kept")
 	var z := _key(KEY_Z)
 	z.pressed = true
 	assert_true(z.is_action_pressed(&"spectate_previous"))
@@ -167,6 +175,7 @@ func test_a_switch_of_view_never_takes_a_replay_s_key() -> void:
 	assert_false(keys.bind(&"spectate_next", _key(KEY_P)), "the replay's pause")
 	assert_false(keys.bind(&"spectate_free", _key(KEY_LEFT)), "the free camera's in replays")
 	assert_false(keys.bind(&"spectate_follow", _key(KEY_HOME)), "and its follow")
+	assert_false(keys.bind(&"spectate_ghost", _key(KEY_P)), "nor the ghost's")
 	assert_false(keys.bind(&"spectate_previous", _key(KEY_ESCAPE)), "Esc closes the replay")
 	var typed := InputEventKey.new()
 	typed.keycode = KEY_ESCAPE

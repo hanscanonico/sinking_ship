@@ -138,6 +138,17 @@ watched at the offset it locked on at, until flown by hand or let go. The observ
 stays a tool.
 _Avoid_: orbit camera, spectator camera, overhead, drone
 
+**Ghost**:
+The view that walks her decks as a seat in the match does, for whoever may fly the free
+camera: an out seat, a watcher, the replay viewer. Its body moves by the living seat's own
+rules through Surfaces — it walks, jumps, takes the stairs, is held by walls, doors and
+railings and stands on the tilting deck, with a seat's eyes — but water neither slows nor
+drowns it. It starts where the out seat went out while that spot is still on her, else at
+the seat watched. Presentation only: never in the sim, a snapshot, a digest, a replay or on
+the wire; nobody sees it, no rule or bot reads it, and it shoves and is shoved by nothing.
+Off her, or once she is gone, the view falls back to the free camera.
+_Avoid_: noclip, phantom, spirit
+
 **Watch**:
 A local match nobody plays, chosen from the menu in place of Play: bots take every seat,
 and the watcher looks through any dry seat's eyes or from the free camera, switching at
