@@ -3,8 +3,9 @@ extends GutTest
 ## section found once): it answers exactly what asking cell_at() under each floor in turn
 ## answers, on every ship, in her frame and in one turned along another axis (Faces).
 ## Natively (NativeWater.chains_under, and NativeWater.cells_at for cell_at itself),
-## every point at once, they answer the same bit for bit; where the extension is not loaded there is nothing to hold it to, and CI sets
-## SINKING_NATIVE_REQUIRED, so a missing library there fails.
+## every point at once, they answer the same bit for bit; where the extension is not
+## loaded there is nothing to hold them to, and CI sets SINKING_NATIVE_REQUIRED, so a
+## missing library there fails.
 
 const SHIPS: Array[ShipLayout] = [
 	preload("res://data/ships/titanic.tres"),
