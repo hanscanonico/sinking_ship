@@ -263,7 +263,7 @@ func test_a_body_at_a_stair_s_head_within_its_width_walks_on_onto_it() -> void:
 	var layout := SimFixtures.steamer()
 	var surfaces := Surfaces.new(layout)
 	var graph := _graph(layout, surfaces)
-	var head := Vector3(3.0, 2.5, -2.65)
+	var head := Vector3(3.0, 2.5, -2.7)
 	var leg: WalkGraph.Portal = null
 	for portal: WalkGraph.Portal in graph.portals():
 		if portal.ramp != WalkGraph.NONE and portal.entry.is_equal_approx(head):
@@ -271,7 +271,7 @@ func test_a_body_at_a_stair_s_head_within_its_width_walks_on_onto_it() -> void:
 	assert_not_null(leg, "the stair down from the boat deck's head there")
 	if leg == null:
 		return
-	var at := head + Vector3(-0.05, 0.0, 0.36)
+	var at := head + Vector3(-0.05, 0.0, 0.31)
 	var lined_up := leg.half_width - SimFixtures.rules().body_radius
 	assert_gt(absf(at.z - head.z), lined_up, "outside the line a body walks it lined up")
 	assert_lt(absf(at.z - head.z), leg.half_width, "within its width")
@@ -861,3 +861,186 @@ func test_each_way_of_searching_keeps_its_own_closed_portals() -> void:
 				elif found.costs() != walked:
 					differ = true
 	assert_true(differ, "the ways part somewhere as she floods")
+
+
+## Test data, no ship's: a cabin on the upper deck (0 m) whose fore side, open, gives onto
+## the top of a box stood flush with that deck in a hole cut in it; under the hole a stair
+## runs from the lower deck (−2.5 m) up to the upper deck forward of the hole, under the
+## box's middle — the box's footing.
+func _box_over_a_stair_layout() -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	layout.min_seats = 1
+	layout.max_seats = 1
+	var platforms: Array[ShipPlatform] = []
+	for row: Array in [
+		[&"upper aft", Rect2(-10.0, -4.0, 10.0, 8.0), 0.0],
+		[&"upper fore", Rect2(6.0, -4.0, 4.0, 8.0), 0.0],
+		[&"lower", Rect2(-10.0, -4.0, 20.0, 8.0), -2.5],
+	]:
+		var platform := ShipPlatform.new()
+		platform.name = row[0]
+		platform.area = row[1]
+		platform.height = row[2]
+		platforms.append(platform)
+	layout.platforms = platforms
+	var stair := ShipRamp.new()
+	stair.area = Rect2(0.0, -1.0, 6.0, 2.0)
+	stair.axis = ShipRamp.Axis.X
+	stair.start_height = -2.5
+	stair.end_height = 0.0
+	var ramps: Array[ShipRamp] = [stair]
+	layout.ramps = ramps
+	var box := ShipBlocker.new()
+	box.area = Rect2(0.0, -2.0, 2.0, 4.0)
+	box.bottom = -1.0
+	box.top = 0.0
+	var blockers: Array[ShipBlocker] = [box]
+	layout.blockers = blockers
+	var cabin := ShipRoom.new()
+	cabin.name = &"cabin"
+	cabin.area = Rect2(-4.0, -2.0, 4.0, 4.0)
+	var rooms: Array[ShipRoom] = [cabin]
+	layout.rooms = rooms
+	return layout
+
+
+func test_a_doorway_onto_a_box_top_standing_on_a_stair_reads_the_stair_s_end() -> void:
+	# A door's depth is found before any stair's ends are (WalkDoors.find_depths): the box
+	# top through the cabin's fore doorway, whose footing is the stair, is no zone then,
+	# never a stair end not yet found (#579). Once they are, a body on it is at the stair's
+	# end nearer its height, the upper deck forward, and the doorway leads there.
+	var layout := _box_over_a_stair_layout()
+	var surfaces := Surfaces.new(layout)
+	var top := Vector3(0.8, 0.0, 0.0)
+	var on := surfaces.under(top, SimFixtures.rules().step_height)
+	assert_eq(on, layout.platforms.size() + layout.ramps.size(), "past the doorway, the box's top")
+	assert_eq(surfaces.footing(on), surfaces.ramp_surface(0), "which stands on the stair")
+	var graph := _graph(layout, surfaces)
+	var fore := graph.deck_of(SimFixtures.platform_named(layout, &"upper fore"))
+	assert_eq(graph.zone_at(top, on), fore, "on the box, at the stair's head")
+	var cabin := _room(layout, &"cabin")
+	var dry := _pose(layout, SimFixtures.calm())
+	var inside := Vector3(-2.0, 0.0, 0.0)
+	var route := graph.route(
+		inside, surfaces.under(inside, SimFixtures.rules().step_height), fore, dry
+	)
+	assert_eq(_zones_on(route), [fore] as Array[int], "out through its doorway, over the box")
+	if not route.is_empty():
+		assert_eq(route.front().from_zone, cabin, "from the cabin")
+
+
+## A body on a stair within a step of the floor at its foot is on that floor (#562): the
+## stair's sides are a step up off it there, so its route to that floor's zone sets out from
+## where it stands, never on along the stair past its foot, and its route back up takes the
+## stair. Further up, down the stair first; within a step of its head, still through the head,
+## where its sides drop away.
+func test_a_body_on_a_stair_s_foot_routes_from_the_floor_there() -> void:
+	var layout := _two_way_layout()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var calm := _pose(layout, SimFixtures.calm())
+	var ground := graph.deck_of(SimFixtures.platform_named(layout, &"ground"))
+	var bow_perch := graph.deck_of(SimFixtures.platform_named(layout, &"bow perch"))
+	var stair := surfaces.ramp_surface(0)
+	var step := SimFixtures.rules().step_height
+	var on_its_foot := Vector3(12.0, 0.0, 4.8)
+	on_its_foot.y = surfaces.height_at(stair, on_its_foot)
+	assert_between(on_its_foot.y, 0.0, step, "within a step of the ground")
+	assert_eq(graph.zone_at(on_its_foot, stair), ground, "in the ground's zone")
+	var route := graph.route(on_its_foot, stair, ground, calm)
+	assert_eq(_zones_on(route), [] as Array[int], "already there")
+	route = graph.route(on_its_foot, stair, bow_perch, calm)
+	assert_eq(_zones_on(route), [bow_perch] as Array[int], "up the stair")
+	if not route.is_empty():
+		assert_eq(route.front().ramp, 0, "up the stair, by it")
+	var up_it := Vector3(12.0, 0.0, 3.0)
+	up_it.y = surfaces.height_at(stair, up_it)
+	assert_gt(up_it.y, step, "more than a step up it")
+	route = graph.route(up_it, stair, ground, calm)
+	assert_eq(_zones_on(route), [ground] as Array[int], "down it first")
+	if not route.is_empty():
+		assert_eq(route.front().ramp, 0, "down it first, by it")
+	var at_its_head := Vector3(12.0, 0.0, 2.2)
+	at_its_head.y = surfaces.height_at(stair, at_its_head)
+	assert_gt(at_its_head.y, 1.0 - step, "within a step of the bow perch")
+	route = graph.route(at_its_head, stair, bow_perch, calm)
+	assert_eq(_zones_on(route), [bow_perch] as Array[int], "through the head")
+	if not route.is_empty():
+		assert_eq(route.front().ramp, 0, "through the head, by the stair")
+
+
+## A bot's last leg down a stair is behind it within a step of the stair's foot, where it is
+## on that floor (BotStair.through, #562): it goes straight for what it is taking. Its last
+## leg up one is not, within a step of its head: the stair's sides drop away there, and it
+## goes on through the head.
+func test_a_bot_s_last_leg_down_a_stair_is_through_within_a_step_of_its_foot() -> void:
+	var layout := _two_way_layout()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var stair := BotStair.new(graph, SimFixtures.rules(), BotProfile.for_tier(&"normal"))
+	var ground := graph.deck_of(SimFixtures.platform_named(layout, &"ground"))
+	var bow_perch := graph.deck_of(SimFixtures.platform_named(layout, &"bow perch"))
+	var down: Array[WalkGraph.Portal] = []
+	var up: Array[WalkGraph.Portal] = []
+	for portal: WalkGraph.Portal in graph.portals():
+		if portal.ramp == 0 and portal.to_zone == ground:
+			down.append(portal)
+		elif portal.ramp == 0 and portal.to_zone == bow_perch:
+			up.append(portal)
+	assert_eq([down.size(), up.size()], [1, 1], "one leg down the stair and one up it")
+	if down.is_empty() or up.is_empty():
+		return
+	var on := surfaces.ramp_surface(0)
+	var on_its_foot := Vector3(12.0, 0.0, 4.8)
+	on_its_foot.y = surfaces.height_at(on, on_its_foot)
+	var up_it := Vector3(12.0, 0.0, 3.0)
+	up_it.y = surfaces.height_at(on, up_it)
+	var at_its_head := Vector3(12.0, 0.0, 2.2)
+	at_its_head.y = surfaces.height_at(on, at_its_head)
+	assert_true(stair.through(down, on_its_foot), "down, within a step of its foot")
+	assert_false(stair.through(down, up_it), "down, more than a step up it")
+	assert_false(stair.through(up, at_its_head), "up, within a step of its head")
+	var on_beyond: Array[WalkGraph.Portal] = [down[0], up[0]]
+	assert_false(stair.through(on_beyond, on_its_foot), "with a leg on beyond its foot")
+
+
+func test_a_sliding_door_forgets_only_what_it_can_change() -> void:
+	# A door sliding forgets only the shut answers of the portals its leaf may stand
+	# across (WalkDoorLeaves, #636): over doors shutting at their own paces, one giving
+	# way and then not, every portal answers as Surfaces.blocked does asked afresh.
+	var layout := SimFixtures.steamer()
+	var surfaces := Surfaces.new(layout)
+	var graph := _graph(layout, surfaces)
+	var doors: Array[StringName] = []
+	for door: ShipOpening in layout.structure.openings:
+		if door.shuts_at_hit:
+			doors.append(door.name)
+	assert_gt(doors.size(), 1, "her watertight doors")
+	var step := SimFixtures.rules().step_height
+	var lines := graph._door_leaves.lines
+	var flips := 0
+	var wrong: Array[String] = []
+	var was := PackedByteArray()
+	was.resize(graph._portals.size())
+	for tick in 14:
+		var pose := HeldPose.flooded(layout, -layout.freeboard, {})
+		for index in doors.size():
+			var shut := clampf((tick - index * 2) / 5.0, 0.0, 1.0)
+			pose.doors_shut[doors[index]] = shut if tick < 12 else shut * 0.4
+		if tick >= 7 and tick < 10:
+			pose.opened[doors[0]] = 2
+		surfaces.honour(pose)
+		for index in graph._portals.size():
+			var fresh := (
+				graph._portals[index].ramp == WalkGraph.NONE
+				and surfaces.blocked(lines[index * 2], lines[index * 2 + 1], step * 2.0, step)
+			)
+			var kept := graph._shut(index, pose)
+			if kept != fresh:
+				wrong.append("tick %d portal %d" % [tick, index])
+			if tick > 0 and int(kept) != was[index]:
+				flips += 1
+			was[index] = int(kept)
+	assert_eq(wrong, [] as Array[String], "every portal as Surfaces.blocked has it")
+	assert_gt(flips, 0, "doors shut across portals and open again")

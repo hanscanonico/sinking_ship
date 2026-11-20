@@ -172,6 +172,31 @@ func test_a_side_of_a_partition_and_a_steel_wall_takes_the_partition_s_face() ->
 		assert_almost_eq(runs[0][2], 9.97, 0.001, "to the corner")
 
 
+func test_a_riser_on_a_step_up_at_a_room_s_side_is_none_of_its_full_walls() -> void:
+	# A room 10 by 4 m under a deck at 2.5 m; past its z = 4 side the deck steps up 0.25 m,
+	# a riser 0.2 m thick on the step's line from the room's floor to the deck past it. That
+	# deck roofs no part of the room: its edge is the room's side. Read there, it was the
+	# room's ceiling, and the riser the room's full wall: a cabin's fittings hung on it,
+	# across a doorway onto the step on the Titanic's D deck aft of O (#503).
+	var layout := ShipLayout.new()
+	var riser := ShipBlocker.new()
+	riser.area = Rect2(-0.1, 3.9, 10.2, 0.2)
+	riser.bottom = 0.0
+	riser.top = 0.25
+	layout.blockers.append(riser)
+	for deck: Array in [[Rect2(0.0, 0.0, 10.0, 4.0), 2.5], [Rect2(-1.0, 4.0, 12.0, 4.0), 0.25]]:
+		var platform := ShipPlatform.new()
+		platform.area = deck[0]
+		platform.height = deck[1]
+		layout.platforms.append(platform)
+	var room := ShipRoom.new()
+	room.area = Rect2(0.0, 0.0, 10.0, 4.0)
+	layout.rooms.append(room)
+	var space := ShipSpace.new(layout)
+	assert_almost_eq(space.ceiling(room, 5.0, 3.9), 2.5, 0.001, "its ceiling by the side")
+	assert_eq(space.wall_runs(room), [], "no full wall round it")
+
+
 func test_a_hull_side_wall_under_a_deck_stopping_short_of_it_reaches_the_deck_over() -> void:
 	# A room 10 by 4 m, its hull-side wall 2.5 m tall; the deck at 2.5 m stops a metre
 	# short of that wall, so the room's ceiling along it is the deck at 5 m (#147).

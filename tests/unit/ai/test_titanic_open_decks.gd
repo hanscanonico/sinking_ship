@@ -9,7 +9,11 @@ extends GutTest
 ## doorway opens onto any: on her and on her sisters. And on any deck no doorway opens onto
 ## nothing (#565): past it there is a floor, or under it a deck or a stair of hers to drop
 ## onto — a well's, a hold's — never the void past her floors' ends, as bulkhead A stood open
-## onto forward of the firemen's quarters on G deck and of No. 1 hold on the orlops.
+## onto forward of the firemen's quarters on G deck and of No. 1 hold on the orlops. Nor does
+## one open over a drop of more than a step onto a deck with nothing across it (#570): past it
+## there is a floor or a stair a body walks down, or a railing or a wall stands across it — as
+## none stood across the orlop's landing at the head of the CO2 evaporator room's ladder, its
+## forward side 4.5 m over the reciprocating engine room's floor.
 
 const SHIPS: Array[String] = [
 	"res://data/ships/titanic.tres",
@@ -53,6 +57,56 @@ func test_on_any_deck_no_doorway_opens_onto_nothing() -> void:
 	for path: String in SHIPS:
 		var graph: WalkGraph = _graphs[path]
 		assert_eq(_opened_onto_nothing(load(path), graph.surfaces()), PackedStringArray(), path)
+
+
+func test_on_any_deck_no_doorway_opens_over_an_unrailed_drop() -> void:
+	for path: String in SHIPS:
+		var graph: WalkGraph = _graphs[path]
+		assert_eq(_opened_over_drops(load(path), graph.surfaces()), PackedStringArray(), path)
+
+
+func test_a_doorway_over_an_unrailed_drop_is_found() -> void:
+	# A room on the flat deck to its starboard edge, the railing there taken away, and a deck
+	# 2.5 m under it there (test data): its doorway along that edge opens over a drop. Railed
+	# across, it does not; nor with a flight down from under it instead, which a body walks.
+	var built := func(railed: bool, flight: bool) -> ShipLayout:
+		var layout: ShipLayout = SimFixtures.deck().duplicate()
+		var deck := layout.platforms[0]
+		var room := ShipRoom.new()
+		room.name = &"cabin"
+		room.area = Rect2(0.0, deck.area.end.y - 3.0, 3.0, 3.0)
+		room.floor_height = deck.height
+		var rooms: Array[ShipRoom] = [room]
+		layout.rooms = rooms
+		var railing := ShipRailing.new()
+		railing.from = Vector2(0.0, deck.area.end.y)
+		railing.to = Vector2(3.0, deck.area.end.y)
+		var railings: Array[ShipRailing] = []
+		if railed:
+			railings.append(railing)
+		layout.railings = railings
+		var lower := ShipPlatform.new()
+		lower.area = Rect2(0.0, deck.area.end.y + (2.0 if flight else 0.0), 3.0, 2.0)
+		lower.height = LOWER
+		var platforms: Array[ShipPlatform] = [deck, lower]
+		layout.platforms = platforms
+		if flight:
+			var ramp := ShipRamp.new()
+			ramp.area = Rect2(0.0, deck.area.end.y, 3.0, 2.0)
+			ramp.axis = ShipRamp.Axis.Z
+			ramp.start_height = -1.0
+			ramp.end_height = LOWER
+			var ramps: Array[ShipRamp] = [ramp]
+			layout.ramps = ramps
+		return layout
+	var open: ShipLayout = built.call(false, false)
+	var found := _opened_over_drops(open, Surfaces.new(open))
+	assert_eq(found.size(), 1, "the doorway along her edge: %s" % [found])
+	if found.size() == 1:
+		assert_string_contains(found[0], "cabin's doorway")
+	for kept: Array in [[true, false], [false, true]]:
+		var layout: ShipLayout = built.call(kept[0], kept[1])
+		assert_eq(_opened_over_drops(layout, Surfaces.new(layout)), PackedStringArray(), str(kept))
 
 
 func test_a_doorway_onto_nothing_is_found() -> void:
@@ -218,6 +272,68 @@ func _opened_onto_nothing(layout: ShipLayout, surfaces: Surfaces) -> PackedStrin
 				)
 				break
 	return found
+
+
+## Every room's doorway on [param layout], on any deck, that opens over a drop of more than a
+## step onto a deck with nothing across it: a hair past its gap, at some share of its width,
+## no floor within a step of the room's, the highest of [param layout]'s floors under it there
+## a deck's (_deck_under), and a body snug in the gap there, on the room's floor, touching no
+## railing or blocker.
+func _opened_over_drops(layout: ShipLayout, surfaces: Surfaces) -> PackedStringArray:
+	var snug := _rules.body_radius * BotFloorWay.SNUG
+	var step := _rules.step_height
+	var found := PackedStringArray()
+	for room: ShipRoom in layout.rooms:
+		for door in room.doors(surfaces, _rules.crawl_height, step):
+			for share: float in ACROSS:
+				var gap := door.from.lerp(door.to, share)
+				var point := gap + door.outward * PAST
+				var probe := Vector3(point.x, room.floor_height, point.y)
+				if surfaces.under(probe, step) != Surfaces.NONE:
+					continue
+				var deck := _deck_under(layout, point, room.floor_height)
+				if is_nan(deck) or room.floor_height - deck <= step:
+					continue
+				var inside := gap - door.outward * PAST
+				var feet := Vector3(inside.x, room.floor_height, inside.y)
+				var on := surfaces.under(feet, step)
+				var blocked := surfaces.obstacle_contacts(
+					feet, snug, _rules.body_height, step, Surfaces.NONE, _rules.crawl_height
+				)
+				var railed := surfaces.rail_contacts(feet, snug, on, step, _rules.railing_height)
+				if not (blocked.is_empty() and railed.is_empty()):
+					continue
+				found.append(
+					(
+						"the %s's doorway at %s, %.2f m wide, opens over a %.2f m drop at %s"
+						% [
+							room.name,
+							door.middle(),
+							door.from.distance_to(door.to),
+							room.floor_height - deck,
+							probe
+						]
+					)
+				)
+				break
+	return found
+
+
+## The height of the highest of [param layout]'s decks under [param point] at or below
+## [param height]: NAN where nothing stands under it there, or where a stair of hers stands
+## over every deck there — a well's flight beside a doorway, a hold's under it — which a body
+## walks down.
+static func _deck_under(layout: ShipLayout, point: Vector2, height: float) -> float:
+	var deck := -INF
+	for platform: ShipPlatform in layout.platforms:
+		if platform.height <= height and platform.area.has_point(point):
+			deck = maxf(deck, platform.height)
+	for ramp: ShipRamp in layout.ramps:
+		if ramp.contains(point.x, point.y):
+			var at := ramp.height_at(point.x, point.y)
+			if at <= height and at >= deck:
+				return NAN
+	return deck if deck > -INF else NAN
 
 
 ## Whether a deck or a stair of [param layout] stands under [param point] at or below

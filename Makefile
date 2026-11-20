@@ -133,10 +133,13 @@ bake-cache-arg = $(if $(filter 0,$(BAKE_CACHE)),,--bake-cache)
 # coming aboard, in either goal (the menu's Bonuses, unticked); without it, or with
 # BONUSES=1, bonuses come as the match data's bonus rules bring them, for a player and a
 # tool alike. A SEED= that is not a
-# whole number of 0 or more is refused, as the menu refuses it.
+# whole number of 0 or more is refused, as the menu refuses it. run and replay name their
+# log: project.godot turns the shared user://logs/godot.log off for the editor binary, as
+# engines run side by side (gates, shards, captures) rotate it under each other and fill
+# it with NUL bytes (test_file_logging).
 run:
 	$(call require-godot)
-	$(GODOT) --path . -- $(match-args) $(bake-cache-arg) $(ARGS)
+	$(GODOT) --path . --log-file user://logs/godot.log -- $(match-args) $(bake-cache-arg) $(ARGS)
 
 # `make replay FILE=path/to/one.replay` watches a saved replay — one the game wrote
 # under user://replays, or any path — in the replay viewer (R4–R6); the game quits with
@@ -144,7 +147,7 @@ run:
 replay:
 	$(call require-godot)
 	@test -n "$(FILE)" || { echo "replay: FILE=<path to a .replay> is required" >&2; exit 1; }
-	$(GODOT) --path . -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
+	$(GODOT) --path . --log-file user://logs/godot.log -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
 
 # Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
 # the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
@@ -204,7 +207,7 @@ smoke:
 	@SEED="$(SEED)" SHIP="$(SHIP)" FAST="$(FAST)" MAX="$(MAX)" DRY="$(DRY)" OUT="$(OUT)" \
 		BAKE_CACHE="$(BAKE_CACHE)" GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
 
-# `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
+# `make net-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says
 # (NET= for the offline game's honest wire), timed beat by beat: ticks re-run, the
 # client's and the host's time, packet sizes (R7). Rules live in tools/net_bench.gd.
@@ -300,7 +303,7 @@ serve-web-local: export-web export-server-mac
 serve-web-local-stop:
 	tools/serve_web_local.sh stop
 
-# `make sim-bench [SEED=] [SEATS=]`: one bots-only match recorded through the local
+# `make sim-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=]`: one bots-only match recorded through the local
 # host, its input log replayed through a bare MatchSim, no bots, timed step by step,
 # with snapshot() and restore() beside it and the load average (R7). Rules live in
 # tools/sim_bench.gd.
@@ -369,6 +372,17 @@ hits:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/hits.gd \
 		-- $(if $(SHIP),--ship=$(SHIP)) --seeds=$(SEEDS) | grep -v '^\[godot_ai'
+
+# `make flood-invariants [SHIP=] [SCENARIO=open_sea|coast|all] [SEEDS=5] [HIT=sure|night|N]
+# [STEPS=1]`: the flooding's invariants (FloodWatch) checked at every step of each ship's
+# sure hit and seeds' hits, one line per invariant per bake; STEPS=1 bakes the sure hit
+# and seed 1 at step_max and a quarter of it. Headless; the Titanic takes minutes a bake.
+# Rules live in tools/flood_invariants.gd.
+flood-invariants:
+	$(call require-godot)
+	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/flood_invariants.gd \
+		-- $(if $(SHIP),--ship=$(SHIP)) $(if $(SCENARIO),--scenario=$(SCENARIO)) \
+		$(if $(filter command,$(firstword $(origin SEEDS))),--seeds=$(SEEDS)) $(if $(HIT),--hit=$(HIT)) $(if $(STEPS),--steps=$(STEPS)) | grep -v '^\[godot_ai'
 
 # `make bake SEED=1701 [SHIP=] [HIT=path.tres|NAME] [FAST=1]`: a seed's sinking alone, no match played (§5b.4):
 # the hit the must-sink rule chose (or HIT='s), how it came to it, every event of the
@@ -822,7 +836,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import native run replay match capture smoke net-bench sim-bench bench serve-local online-e2e export-server \
+.PHONY: import native run replay match capture smoke flood-invariants net-bench sim-bench bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene preview \

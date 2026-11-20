@@ -596,6 +596,66 @@ name = &"wheelhouse"
 area = Rect2(0, -1.8, 4, 3.6)
 floor_height = 2.4
 
+[sub_resource type="Resource" id="Blocker_side_forecastle_port_lo0_0"]
+script = ExtResource("3_block")
+area = Rect2(-7, -3.6, 1, 0.1)
+bottom = 1.71
+top = 2.5429
+
+[sub_resource type="Resource" id="Blocker_side_forecastle_port_lo0_1"]
+script = ExtResource("3_block")
+area = Rect2(-6, -3.6, 1, 0.1)
+bottom = 2.4
+top = 3.4
+
+[sub_resource type="Resource" id="Blocker_side_forecastle_port_hi0_0"]
+script = ExtResource("3_block")
+area = Rect2(-7, -2.4, 1, 0.1)
+bottom = 1.71
+top = 2.5429
+
+[sub_resource type="Resource" id="Blocker_side_forecastle_port_hi0_1"]
+script = ExtResource("3_block")
+area = Rect2(-6, -2.4, 1, 0.1)
+bottom = 2.4
+top = 3.4
+
+[sub_resource type="Resource" id="Blocker_side_forecastle_starboard_lo0_0"]
+script = ExtResource("3_block")
+area = Rect2(-7, 2.3, 1, 0.1)
+bottom = 1.71
+top = 2.5429
+
+[sub_resource type="Resource" id="Blocker_side_forecastle_starboard_lo0_1"]
+script = ExtResource("3_block")
+area = Rect2(-6, 2.3, 1, 0.1)
+bottom = 2.4
+top = 3.4
+
+[sub_resource type="Resource" id="Blocker_side_forecastle_starboard_hi0_0"]
+script = ExtResource("3_block")
+area = Rect2(-7, 3.5, 1, 0.1)
+bottom = 1.71
+top = 2.5429
+
+[sub_resource type="Resource" id="Blocker_side_forecastle_starboard_hi0_1"]
+script = ExtResource("3_block")
+area = Rect2(-6, 3.5, 1, 0.1)
+bottom = 2.4
+top = 3.4
+
+[sub_resource type="Resource" id="Blocker_side_engine_casing_hi0_0"]
+script = ExtResource("3_block")
+area = Rect2(-4.15, -1.5, 0.2385, 0.1)
+bottom = -0.89
+top = -0.7
+
+[sub_resource type="Resource" id="Blocker_side_engine_galley_lo0_0"]
+script = ExtResource("3_block")
+area = Rect2(1.4, 1.4, 0.2385, 0.1)
+bottom = -0.89
+top = -0.7
+
 [sub_resource type="Resource" id="Section_0"]
 script = ExtResource("10_section")
 x = -11.375
@@ -1316,7 +1376,7 @@ freeboard = 0.7
 deck_thickness = 0.2
 platforms = Array[ExtResource("1_plat")]([SubResource("Platform_towing_deck"), SubResource("Platform_casing_floor"), SubResource("Platform_galley_floor"), SubResource("Platform_engine_floor"), SubResource("Platform_mess_floor"), SubResource("Platform_forecastle_deck"), SubResource("Platform_forecastle_forward"), SubResource("Platform_forecastle_head"), SubResource("Platform_casing_floor_1"), SubResource("Platform_casing_floor_2"), SubResource("Platform_casing_floor_3"), SubResource("Platform_galley_floor_1"), SubResource("Platform_galley_floor_2"), SubResource("Platform_galley_floor_3"), SubResource("Platform_forecastle_deck_1"), SubResource("Platform_forecastle_deck_2"), SubResource("Platform_forecastle_deck_3")])
 ramps = Array[ExtResource("2_ramp")]([SubResource("Ramp_forecastle_port"), SubResource("Ramp_forecastle_starboard"), SubResource("Ramp_engine_casing"), SubResource("Ramp_engine_galley"), SubResource("Ramp_wheelhouse_stair")])
-blockers = Array[ExtResource("3_block")]([SubResource("Blocker_engine_aft"), SubResource("Blocker_bulkhead_engine_0"), SubResource("Blocker_bulkhead_engine_1"), SubResource("Blocker_bulkhead_engine_lintel_0"), SubResource("Blocker_mess_forward"), SubResource("Blocker_engine_port"), SubResource("Blocker_mess_port"), SubResource("Blocker_main_engine_port"), SubResource("Blocker_engine_starboard"), SubResource("Blocker_mess_starboard"), SubResource("Blocker_main_engine_starboard"), SubResource("Blocker_casing_aft_0"), SubResource("Blocker_casing_aft_1"), SubResource("Blocker_casing_aft_lintel_0"), SubResource("Blocker_casing_aft_sill_0"), SubResource("Blocker_casing_forward_0"), SubResource("Blocker_casing_forward_1"), SubResource("Blocker_casing_forward_lintel_0"), SubResource("Blocker_casing_forward_sill_0"), SubResource("Blocker_galley_forward"), SubResource("Blocker_casing_port"), SubResource("Blocker_galley_port"), SubResource("Blocker_casing_starboard"), SubResource("Blocker_galley_starboard"), SubResource("Blocker_wheelhouse_aft"), SubResource("Blocker_wheelhouse_forward"), SubResource("Blocker_wheelhouse_port_0"), SubResource("Blocker_wheelhouse_port_1"), SubResource("Blocker_wheelhouse_port_lintel_0"), SubResource("Blocker_wheelhouse_port_sill_0"), SubResource("Blocker_wheelhouse_starboard_0"), SubResource("Blocker_wheelhouse_starboard_1"), SubResource("Blocker_wheelhouse_starboard_lintel_0"), SubResource("Blocker_wheelhouse_starboard_sill_0"), SubResource("Blocker_wheelhouse_roof"), SubResource("Blocker_towing_hook"), SubResource("Blocker_stack"), SubResource("Blocker_skylight")])
+blockers = Array[ExtResource("3_block")]([SubResource("Blocker_engine_aft"), SubResource("Blocker_bulkhead_engine_0"), SubResource("Blocker_bulkhead_engine_1"), SubResource("Blocker_bulkhead_engine_lintel_0"), SubResource("Blocker_mess_forward"), SubResource("Blocker_engine_port"), SubResource("Blocker_mess_port"), SubResource("Blocker_main_engine_port"), SubResource("Blocker_engine_starboard"), SubResource("Blocker_mess_starboard"), SubResource("Blocker_main_engine_starboard"), SubResource("Blocker_casing_aft_0"), SubResource("Blocker_casing_aft_1"), SubResource("Blocker_casing_aft_lintel_0"), SubResource("Blocker_casing_aft_sill_0"), SubResource("Blocker_casing_forward_0"), SubResource("Blocker_casing_forward_1"), SubResource("Blocker_casing_forward_lintel_0"), SubResource("Blocker_casing_forward_sill_0"), SubResource("Blocker_galley_forward"), SubResource("Blocker_casing_port"), SubResource("Blocker_galley_port"), SubResource("Blocker_casing_starboard"), SubResource("Blocker_galley_starboard"), SubResource("Blocker_wheelhouse_aft"), SubResource("Blocker_wheelhouse_forward"), SubResource("Blocker_wheelhouse_port_0"), SubResource("Blocker_wheelhouse_port_1"), SubResource("Blocker_wheelhouse_port_lintel_0"), SubResource("Blocker_wheelhouse_port_sill_0"), SubResource("Blocker_wheelhouse_starboard_0"), SubResource("Blocker_wheelhouse_starboard_1"), SubResource("Blocker_wheelhouse_starboard_lintel_0"), SubResource("Blocker_wheelhouse_starboard_sill_0"), SubResource("Blocker_wheelhouse_roof"), SubResource("Blocker_towing_hook"), SubResource("Blocker_stack"), SubResource("Blocker_skylight"), SubResource("Blocker_side_forecastle_port_lo0_0"), SubResource("Blocker_side_forecastle_port_lo0_1"), SubResource("Blocker_side_forecastle_port_hi0_0"), SubResource("Blocker_side_forecastle_port_hi0_1"), SubResource("Blocker_side_forecastle_starboard_lo0_0"), SubResource("Blocker_side_forecastle_starboard_lo0_1"), SubResource("Blocker_side_forecastle_starboard_hi0_0"), SubResource("Blocker_side_forecastle_starboard_hi0_1"), SubResource("Blocker_side_engine_casing_hi0_0"), SubResource("Blocker_side_engine_galley_lo0_0")])
 railings = Array[ExtResource("4_rail")]([SubResource("Railing_towing_port_0"), SubResource("Railing_towing_port_1"), SubResource("Railing_towing_starboard_0"), SubResource("Railing_towing_starboard_1"), SubResource("Railing_transom_0"), SubResource("Railing_transom_1"), SubResource("Railing_transom_2"), SubResource("Railing_forecastle_port_0"), SubResource("Railing_forecastle_port_1"), SubResource("Railing_forecastle_port_2"), SubResource("Railing_forecastle_step_port"), SubResource("Railing_forecastle_forward_port"), SubResource("Railing_forecastle_head_step_port"), SubResource("Railing_forecastle_head_port"), SubResource("Railing_forecastle_starboard_0"), SubResource("Railing_forecastle_starboard_1"), SubResource("Railing_forecastle_starboard_2"), SubResource("Railing_forecastle_step_starboard"), SubResource("Railing_forecastle_forward_starboard"), SubResource("Railing_forecastle_head_step_starboard"), SubResource("Railing_forecastle_head_starboard"), SubResource("Railing_forecastle_head_fwd_0"), SubResource("Railing_forecastle_head_fwd_1"), SubResource("Railing_casing_stair_x0"), SubResource("Railing_casing_stair_z0"), SubResource("Railing_casing_stair_z1"), SubResource("Railing_galley_stair_x0"), SubResource("Railing_galley_stair_z0"), SubResource("Railing_galley_stair_z1"), SubResource("Railing_wheelhouse_stair_x1"), SubResource("Railing_wheelhouse_stair_z0"), SubResource("Railing_wheelhouse_stair_z1")])
 ladders = Array[ExtResource("7_ladder")]([SubResource("Ladder_port"), SubResource("Ladder_starboard")])
 spawns = Array[Vector3]([Vector3(-10.6, 0, -2), Vector3(-10.6, 0, 2), Vector3(-6.6, 0, 0), Vector3(-2, 2.4, -2.8), Vector3(-2, 2.4, 2.8), Vector3(5.5, 0, -1.5)])

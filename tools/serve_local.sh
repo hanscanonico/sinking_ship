@@ -129,9 +129,23 @@ bea=$last
 if ((KILL)); then
 	await_line bea "match begins" 60
 	sleep "$KILL_AFTER"
-	engine="$(pgrep -P "$bea")"
+	# Bea's engine is the child of her `timeout` wrapper; killing the wrapper alone
+	# would leave the engine playing on. Git Bash has no pgrep: its ps lists PID then
+	# PPID, behind a status letter on some rows.
+	if command -v pgrep >/dev/null; then
+		engine="$(pgrep -P "$bea")"
+	else
+		engine="$(ps | awk -v p="$bea" '{ i = ($1 ~ /^[0-9]+$/) ? 1 : 2; if ($(i + 1) == p) print $i }')"
+	fi
+	if [[ -z "$engine" ]]; then
+		echo "serve-local: found no engine under Bea's timeout (pid $bea) to kill" >&2
+		exit 1
+	fi
 	echo "serve-local: killing Bea (pid $engine) $KILL_AFTER s into the match"
-	kill -KILL "$engine"
+	if ! kill -KILL "$engine"; then
+		echo "serve-local: could not kill Bea (pid $engine)" >&2
+		exit 1
+	fi
 fi
 
 wait "$server"

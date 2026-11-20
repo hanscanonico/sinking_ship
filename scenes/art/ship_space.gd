@@ -58,6 +58,10 @@ var rooms_grid: IndoorGrid
 ## (_blockers_near, _platforms_near), built the first time they are asked.
 var _blocker_grid: SpatialIndex
 var _platform_grid: SpatialIndex
+## Her platforms by rank, highest first (_index_decks), and on a grid of ROOM_CELL
+## squares by rank, each over its area as it is: what deck_under() reads.
+var _highest_first := PackedInt32Array()
+var _deck_grid: SpatialIndex
 ## What _platform_grid covers (x/z): envelope() asks it of a line across all of it.
 var _plane := Rect2()
 ## Her room_lines(), gathered the first time they are asked.
@@ -318,14 +322,41 @@ func floor_beneath(platform: ShipPlatform) -> float:
 
 
 ## The highest deck at or below [param height] under [param point]; NAN when none.
+## Asked a hundred thousand times as she is dressed: it reads the one cell of _deck_grid
+## holding the point, its platforms highest first, and stops at the first under the
+## point: the highest of those a walk of every platform finds there, and of equal ones the
+## first.
 func deck_under(point: Vector2, height: float) -> float:
-	var deck := NAN
-	for index: int in _platforms_near(Rect2(point, Vector2.ZERO)):
-		var platform := layout.platforms[index]
-		if platform.height <= height + SLIVER and platform.contains(point.x, point.y):
-			if is_nan(deck) or platform.height > deck:
-				deck = platform.height
-	return deck
+	if _deck_grid == null:
+		_index_decks()
+	var reach := height + SLIVER
+	for rank: int in _deck_grid.near(Rect2(point, Vector2.ZERO)):
+		var platform := layout.platforms[_highest_first[rank]]
+		if platform.height <= reach and platform.contains(point.x, point.y):
+			return platform.height
+	return NAN
+
+
+## Puts her platforms on _deck_grid by their areas as they are, numbered by rank: highest
+## first, and of equal heights the lower index first, as a walk of them in order keeps them.
+## A point in a platform's area is in a cell its area reaches, the cell of a point
+## rising with it.
+func _index_decks() -> void:
+	var order: Array[int] = []
+	for index in layout.platforms.size():
+		order.append(index)
+	order.sort_custom(func(a: int, b: int) -> bool: return _higher_deck(a, b))
+	_highest_first = PackedInt32Array(order)
+	_deck_grid = SpatialIndex.new(SpatialIndex.bounds_of(layout), ROOM_CELL)
+	for rank in _highest_first.size():
+		_deck_grid.insert(rank, layout.platforms[_highest_first[rank]].area)
+
+
+## Whether platform [param a] stands higher than [param b], or as high and numbered first.
+func _higher_deck(a: int, b: int) -> bool:
+	var height_a := layout.platforms[a].height
+	var height_b := layout.platforms[b].height
+	return height_a > height_b or height_a == height_b and a < b
 
 
 ## Whether some lower platform lies under [param platform]: it roofs it, on beams.
@@ -363,6 +394,42 @@ static func over(blocker: ShipBlocker, point: Vector2) -> bool:
 	if blocker.shape == ShipBlocker.Shape.CYLINDER:
 		return point.distance_to(blocker.centre) <= blocker.radius
 	return blocker.area.has_point(point)
+
+
+## The faces, along [param across], of the walls a window at [param centre] is set in:
+## (the room's face, the outer face), the way [param out] points outdoors; NANs when no
+## wall holds it.
+func _wall_faces(centre: Vector3, across: int, out: float) -> Vector2:
+	var axis := 0 if across == 0 else 1
+	var point := Vector2(centre.x, centre.z)
+	var faces := Vector2(NAN, NAN)
+	for index: int in _blockers_near(Rect2(point, Vector2.ZERO).grow(WALL_MAX)):
+		var blocker := layout.blockers[index]
+		if not is_wall(blocker) or centre.y < blocker.bottom or centre.y > blocker.top:
+			continue
+		# Flat across the window, as it is: not a wall meeting it at a corner.
+		var flat := blocker.area.size[axis] <= WALL_MAX
+		if not (flat and blocker.area.grow(SLIVER).has_point(point)):
+			continue
+		var room_face := blocker.area.position[axis] if out > 0.0 else blocker.area.end[axis]
+		var outer_face := blocker.area.end[axis] if out > 0.0 else blocker.area.position[axis]
+		if is_nan(faces.x) or (room_face - faces.x) * out < 0.0:
+			faces.x = room_face
+		if is_nan(faces.y) or (outer_face - faces.y) * out > 0.0:
+			faces.y = outer_face
+	return faces
+
+
+## Which way along [param across] from a pane at [param centre] is outdoors: the way a
+## step out of the wall it is set in is, the way its middle stands from her centreline
+## when both are or neither is.
+func _outside_of(centre: Vector3, across: int) -> float:
+	var step := Vector3.ZERO
+	step[across] = WALL_MAX + ShipMesh.PROBE
+	var ahead := outdoors(centre + step)
+	if ahead != outdoors(centre - step):
+		return 1.0 if ahead else -1.0
+	return 1.0 if centre[across] >= 0.0 else -1.0
 
 
 ## Whether a blocker stands at [param height] within [param reach] of [param point],
@@ -669,7 +736,8 @@ func _on_floor(room: ShipRoom) -> Array[ShipBlocker]:
 
 ## Whether [param blocker] is one of [param room]'s full walls: a wall standing on its
 ## floor, over FULL_WALL tall or up to the deck over it — a stokehold's, under its
-## galleries (#74).
+## galleries (#74). The deck over it is read INSIDE the room: on its side, a deck that only
+## meets the room there — a step up past it, the riser on the step's line — was its ceiling.
 func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
 	if not is_wall(blocker) or absf(blocker.bottom - room.floor_height) >= 0.05:
 		return false
@@ -677,7 +745,8 @@ func _full_wall_of(blocker: ShipBlocker, room: ShipRoom) -> bool:
 		return false
 	if blocker.top - blocker.bottom > FULL_WALL:
 		return true
-	var at := blocker.area.get_center().clamp(room.area.position, room.area.end)
+	var inner := room.area.grow(-INSIDE)
+	var at := blocker.area.get_center().clamp(inner.position, inner.end)
 	return blocker.top >= ceiling(room, at.x, at.y) - SLIVER
 
 

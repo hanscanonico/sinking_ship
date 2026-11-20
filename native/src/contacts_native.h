@@ -16,6 +16,8 @@
 #include <godot_cpp/variant/packed_int32_array.hpp>
 #include <godot_cpp/variant/packed_vector2_array.hpp>
 #include <godot_cpp/variant/packed_vector3_array.hpp>
+#include <godot_cpp/variant/rect2.hpp>
+#include <godot_cpp/variant/variant.hpp>
 #include <godot_cpp/variant/vector2.hpp>
 #include <godot_cpp/variant/vector2i.hpp>
 #include <godot_cpp/variant/vector3.hpp>
@@ -52,6 +54,8 @@ struct ContactGrid {
 	Vector2i cell_of(const Vector2 &p_point) const;
 	int32_t band_of(double p_height) const;
 	void near(const Vector2 &p_position, const Vector2 &p_end, double p_bottom, double p_top,
+			std::vector<int32_t> &r_found) const;
+	void along(const Vector2 &p_start, const Vector2 &p_end, double p_bottom, double p_top,
 			std::vector<int32_t> &r_found) const;
 };
 
@@ -120,6 +124,12 @@ public:
 			double p_railing_height) const;
 	PackedFloat64Array airborne_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
 			double p_radius, double p_body_height, double p_railing_height) const;
+	PackedFloat64Array walked_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
+			double p_radius, int64_t p_surface, double p_step, double p_railing_height) const;
+	// Surfaces.line_of_sight, under a pose whose collapsed platforms are p_collapsed (by
+	// name, ShipPose.collapsed): her platforms' names first, by named().
+	void named(const Array &p_names);
+	bool line_of_sight(const Vector3 &p_from, const Vector3 &p_to, const Array &p_collapsed) const;
 
 	void obstacles(const Vector3 &p_ship_point, double p_radius, double p_body_height, double p_step,
 			int32_t p_except_prop, double p_crawl_height, double p_crawl_reach, std::vector<ContactHit> &r_found) const;
@@ -127,6 +137,8 @@ public:
 			double p_railing_height, std::vector<ContactHit> &r_found) const;
 	void airborne_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
 			double p_body_height, double p_railing_height, std::vector<ContactHit> &r_found) const;
+	void walked_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius, int32_t p_surface,
+			double p_step, double p_railing_height, std::vector<ContactHit> &r_found) const;
 	int64_t landing(const Vector3 &p_ship_point, int64_t p_except_prop) const;
 	double ceiling(const Vector3 &p_ship_point, double p_clearance) const;
 	NativeStands *stands() const { return stands_.ptr(); }
@@ -193,6 +205,8 @@ private:
 	std::vector<int32_t> floors_from_;
 	std::vector<int32_t> floors_;
 	std::vector<double> clearances_;
+	// Per platform its name, as ShipPose.collapsed names it.
+	std::vector<Variant> platform_names_;
 
 	int32_t under_at(const Vector3 &p_ship_point, double p_step, int32_t p_except_prop) const;
 	double height_on(int32_t p_surface, double p_x, double p_z) const;
@@ -211,6 +225,12 @@ private:
 			ContactHit &r_hit) const;
 	bool rail_contact(int32_t p_index, const Vector2 &p_point, double p_radius, bool p_off,
 			ContactHit &r_hit) const;
+	void standing_rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
+			double p_railing_height, std::vector<ContactHit> &r_found) const;
+	void crossed_rails(const Vector2 &p_came_from, const Vector3 &p_ship_point, double p_radius, double p_step,
+			double p_railing_height, std::vector<ContactHit> &r_found) const;
+	bool doors_cross(const Vector2 &p_start, const Vector2 &p_end, double p_low, double p_high) const;
+	bool falls_cross(const Vector2 &p_start, const Vector2 &p_end, double p_low, double p_high) const;
 };
 
 class NativeCrates : public RefCounted {

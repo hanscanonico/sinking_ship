@@ -2,6 +2,7 @@
 // level, before any script that asks ClassDB for them runs.
 
 #include "art_native.h"
+#include "cell_map_native.h"
 #include "contacts_native.h"
 #include "hull_native.h"
 #include "motion_native.h"
@@ -13,16 +14,37 @@
 #include "water_native.h"
 
 #include <gdextension_interface.h>
+#include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
 using namespace godot;
 
+namespace godot {
+
+// The version of this library's classes as the GDScript calls them, read by
+// core/native_version.gd, which treats a library of any other version as absent and runs
+// the GDScript instead. Bump it, and NativeVersion.VERSION with it, in every change that
+// adds, removes or changes a method or class the GDScript calls: a library built before
+// the change then falls back with a warning to run make native, never a script error.
+class NativeAbi : public RefCounted {
+	GDCLASS(NativeAbi, RefCounted)
+
+public:
+	enum : int64_t { VERSION = 2 };
+
+protected:
+	static void _bind_methods() { BIND_CONSTANT(VERSION); }
+};
+
+} // namespace godot
+
 static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
+	GDREGISTER_CLASS(NativeAbi);
 	GDREGISTER_CLASS(NativeWalkGraph);
 	GDREGISTER_CLASS(NativeWalkSearch);
 	GDREGISTER_CLASS(NativeWater);
@@ -39,6 +61,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeCrates);
 	GDREGISTER_CLASS(NativeWaterFx);
 	GDREGISTER_CLASS(NativeStill);
+	GDREGISTER_CLASS(NativeCellMap);
 }
 
 static void uninitialize_sinking_native(ModuleInitializationLevel p_level) {

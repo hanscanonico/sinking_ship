@@ -425,7 +425,7 @@ static func kind_sim(
 	var kinds: Array[BonusKind] = [kind]
 	var made := bonus_sim(bonus_rules(600.0, 45.0, 0.0, 2, kinds), seats, layout, sinking)
 	if taken:
-		made.state.seats[0].bonus = 0
+		made.state.seats[0].bonuses = PackedInt32Array([0])
 	return made
 
 
@@ -513,6 +513,7 @@ static func copy_of(pose: ShipPose) -> ShipPose:
 	made.levels = pose.levels
 	made.pockets = pose.pockets
 	made.cells = pose.cells
+	pose.share_fronts(made)
 	made.lit = pose.lit
 	made.doors_shut = pose.doors_shut.duplicate()
 	made.opened = pose.opened.duplicate()

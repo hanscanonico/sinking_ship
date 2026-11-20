@@ -3,9 +3,16 @@ extends Node3D
 ## The bonuses aboard, drawn in greybox (#307) from a snapshot (D5), in ship space: at each
 ## one's bonus spot a shape of its kind's size in its kind's colour, lit from within
 ## (lit_from_within), standing on the spot's floor — until a kind's model is made, inside
-## the same size. None for a bonus no longer aboard, nor in a match without bonuses. It
+## the same size — and over it, turned to face the eye, its kind's badge (BonusIcons), so
+## what it is reads from afar; walls hide it as they hide the shape. None for a bonus no
+## longer aboard, nor in a match without bonuses. It
 ## never moves on its piece: a bonus lies where it came — once she has broken (SH33), on the
 ## piece of her its spot lies on (ShipPieces.leaf_at), wherever that piece goes (#335).
+
+## How far over a bonus's top its badge's middle floats, and how wide the badge is, in
+## metres.
+const BADGE_LIFT := 0.3
+const BADGE_SIZE := 0.32
 
 ## The kinds a match's bonuses may be, and her bonus spots.
 var _kinds: Array[BonusKind] = []
@@ -45,6 +52,14 @@ func show_bonuses(snapshot: Dictionary, pieces: Array[Transform3D] = []) -> void
 	while _shapes.size() < aboard.size():
 		var shape := MeshInstance3D.new()
 		shape.name = "Bonus%d" % _shapes.size()
+		var badge := Sprite3D.new()
+		badge.name = "Badge"
+		badge.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		badge.shaded = false
+		badge.double_sided = false
+		badge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		badge.pixel_size = BADGE_SIZE / BonusIcons.TEXTURE_SIDE
+		shape.add_child(badge)
 		add_child(shape)
 		_shapes.append(shape)
 	for index in _shapes.size():
@@ -59,10 +74,13 @@ func show_bonuses(snapshot: Dictionary, pieces: Array[Transform3D] = []) -> void
 		var placed := pieces[_leaves[spot]] if not pieces.is_empty() else Transform3D.IDENTITY
 		var middle := _spots[spot].point + Vector3.UP * _kinds[kind].height * 0.5
 		shape.transform = placed * Transform3D(Basis.IDENTITY, middle)
+		var badge: Sprite3D = shape.get_node("Badge")
+		badge.texture = BonusIcons.texture(_kinds[kind])
+		badge.position = Vector3.UP * (_kinds[kind].height * 0.5 + BADGE_LIFT)
 
 
 ## What a bonus of [param kind] is drawn in, and the mark a seat that took one wears
-## (Brawler.wear_bonus, #313): its kind's colour, given off as well as lit — lit from
+## (Brawler.wear_bonuses, #313): its kind's colour, given off as well as lit — lit from
 ## within, so that it shows in a dark room — and depth-tested as any mesh is, with no
 ## lamp, whose light would reach through a wall: nothing of it shows through one (§13).
 static func lit_from_within(kind: BonusKind) -> StandardMaterial3D:

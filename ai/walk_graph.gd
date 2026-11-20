@@ -165,6 +165,8 @@ var _portals_closed: Array[PackedByteArray] = [
 var _shut_doors: Dictionary[StringName, float] = {}
 var _shut_opened: Dictionary[StringName, int] = {}
 var _shut_felled: Array[FunnelFall] = []
+## Which portals each door's leaf may stand across, so a door sliding forgets only theirs.
+var _door_leaves: WalkDoorLeaves
 ## Per zone under that pose: how high it stands, and its floor's lowest corner; NAN
 ## until asked.
 var _heights := PackedFloat64Array()
@@ -293,6 +295,7 @@ func _init(layout: ShipLayout, surfaces: Surfaces, rules: BrawlRules) -> void:
 	_native_graph = WalkSearch.native_graph(
 		_out, _portal_to, _portal_entry, _portal_exit, _portal_length, _pace
 	)
+	_door_leaves = WalkDoorLeaves.new(surfaces.doors, _portals, _body_radius, _step)
 
 
 ## The zone of her main deck, the first platform at her datum; the first open deck's on a
@@ -363,7 +366,8 @@ func portals() -> Array[Portal]:
 ## The zone a body with its feet at [param ship_point] on [param surface] is in: the
 ## room holding it, else the open deck it stands on — a blocker top's footing for
 ## the top — and on a ramp, the zone at the end its feet are nearer in height. NONE
-## when it stands on nothing.
+## when it stands on nothing, and on a ramp whose ends' zones are not yet found: a door's
+## depth is found before them (WalkDoors.find_depths), as they are read off it (#579).
 func zone_at(ship_point: Vector3, surface: int) -> int:
 	if surface == Surfaces.NONE:
 		return NONE
@@ -371,10 +375,13 @@ func zone_at(ship_point: Vector3, surface: int) -> int:
 	if footing == Surfaces.NONE:
 		return NONE
 	if _surfaces.is_ramp(footing):
-		var ramp := _ramps[footing - _surfaces.platform_count()]
+		var index := footing - _surfaces.platform_count()
+		if index >= _ramp_zones.size():
+			return NONE
+		var ramp := _ramps[index]
 		var to_start := absf(ship_point.y - ramp.start_height)
 		var nearer := 0 if to_start <= absf(ship_point.y - ramp.end_height) else 1
-		return _ramp_zones[footing - _surfaces.platform_count()][nearer]
+		return _ramp_zones[index][nearer]
 	return _zone_on(footing, Vector2(ship_point.x, ship_point.z))
 
 
@@ -837,10 +844,11 @@ func _room_middle(room: int) -> Vector3:
 
 
 ## Dijkstra over the zones from where a body on [param from_surface] at
-## [param from_pos] stands — a zone, or both ends of the ramp it is on — never entering
-## a doomed zone, nor, unless it may [param swim], a flooded one or going through a
-## portal with an end under water — nor, if it may [param wade], a flooded one or a
-## shut door, but through a portal with an end under water; ties go to the lower zone
+## [param from_pos] stands — a zone, or both ends of the ramp it is on, its foot's from
+## where it stands within a step of that floor, which its sides are a step up off (#562) —
+## never entering a doomed zone, nor, unless it may [param swim], a flooded one or going
+## through a portal with an end under water — nor, if it may [param wade], a flooded one or
+## a shut door, but through a portal with an end under water; ties go to the lower zone
 ## number. Its costs are metres walked, a crawl space's at crawl_speed (_pace). Empty
 ## when it stands on nothing. Lazy: it settles only as far as it is asked (WalkSearch).
 func search(
@@ -853,10 +861,14 @@ func search(
 	var found := WalkSearch.new(_zone_count, _native_graph)
 	if _surfaces.is_ramp(footing):
 		var ramp := footing - _surfaces.platform_count()
+		var foot := 0 if _ramps[ramp].start_height < _ramps[ramp].end_height else 1
 		for end in 2:
 			var zone := _ramp_zones[ramp][end]
 			var portal := _ramp_portals[ramp][end]
 			var exit := _ramps[ramp].end_point(end)
+			if end == foot and zone != NONE and absf(from_pos.y - exit.y) <= _step:
+				found.reach(zone, 0.0, from_pos)
+				continue
 			if portal == NONE or doomed(zone, pose):
 				continue
 			if not swim and (flooded(zone, pose) or not wade and _surfaces.wet(exit, pose)):
@@ -967,10 +979,8 @@ func _shut(index: int, pose: ShipPose) -> bool:
 		var portal := _portals[index]
 		var shut := false
 		if portal.ramp == NONE:
-			var through := Vector3(portal.along.x, 0.0, portal.along.y) * _body_radius
-			shut = _surfaces.blocked(
-				portal.entry - through, portal.exit + through, _step * 2.0, _step
-			)
+			var line := _door_leaves.lines
+			shut = _surfaces.blocked(line[index * 2], line[index * 2 + 1], _step * 2.0, _step)
 		_portal_shut[index] = 2 if shut else 1
 	return _portal_shut[index] == 2
 
@@ -995,13 +1005,15 @@ func _know(pose: ShipPose) -> void:
 	_middles.read(pose)
 	_centres.read(pose)
 	_corners.read(pose)
-	# What stands across a doorway moves only with a door's leaf or a funnel coming down.
+	# What stands across a doorway moves only with a door's leaf or a funnel coming down:
+	# a leaf forgets only the portals it may stand across, a funnel every one.
 	if pose.doors_shut != _shut_doors or pose.opened != _shut_opened or pose.felled != _shut_felled:
+		var every := pose.felled != _shut_felled
 		_shut_doors = pose.doors_shut
 		_shut_opened = pose.opened
 		_shut_felled = pose.felled
-		_portal_shut.fill(0)
-		_shut_known = false
+		if _door_leaves.forget(pose, _portal_shut, every):
+			_shut_known = false
 
 
 ## Whether the water stands over the middle of [param platform] under [param pose]

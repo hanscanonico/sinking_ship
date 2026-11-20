@@ -195,12 +195,12 @@ func test_a_double_life_spent_sounds_at_the_swimmer_it_kept_in() -> void:
 		SimFixtures.place(sim, 1, Vector3(10.0, 0.0, 0.0))
 		SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 6.0))
 		sim.state.seats[0].cold = Ticks.SECONDS_PER_TICK
-		sim.state.seats[0].bonus = 0
+		sim.state.seats[0].bonuses = PackedInt32Array([0])
 		var planner := _planner(sim, listener)
 		var spent := _of(_step(planner, sim), SPENT)
 		assert_eq(spent.size(), 1, "once, as the meter fills again, heard by seat %d" % listener)
 		if spent.size() == 1:
 			assert_eq(spent[0].seat, 0, "the swimmer's")
 			assert_eq(spent[0].positional, listener != 0, "in the head only to the swimmer")
-		assert_eq(sim.state.seats[0].bonus, -1, "spent")
+		assert_eq(sim.state.seats[0].bonuses, PackedInt32Array(), "spent")
 		assert_eq(_of(_step(planner, sim), SPENT), [], "and none after")

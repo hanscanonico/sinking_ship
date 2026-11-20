@@ -1,5 +1,5 @@
 extends SceneTree
-## `make net-bench`: what the client costs (R7). One match of the default data,
+## `make net-bench`: what the client costs (R7). One match the command line chooses,
 ## headless, served by a MatchHost and played through a MatchClient over a loopback
 ## lying as --net-sim says — seat 0's bot sampled on the client, as a player's input
 ## would be, every other seat the host's bot — timed beat by beat:
@@ -16,13 +16,18 @@ const RunMatch := preload("res://tools/run_match.gd")
 const SETTLE_BEATS := 2 * Ticks.RATE
 
 
+## The match the command line chooses — its ship, scenario, hit, clock, goal and
+## bonuses as `make match` plays them (#343): null, every problem printed, when it has any.
+static func config_of(args: MatchArgs) -> MatchConfig:
+	return RunMatch.chosen_config(args)
+
+
 func _initialize() -> void:
 	var args := MatchArgs.parse(OS.get_cmdline_user_args())
-	var seed_number := RunMatch.seed_of(args)
-	if seed_number < 0:
+	var config := config_of(args)
+	if config == null:
 		quit(1)
 		return
-	var config := RunMatch.default_config(seed_number, args.choices.seats)
 	var profile := BotProfile.for_tier(config.bot_tier)
 	var bots := BotInputSource.fill(config, profile)
 	var player := bots[0]

@@ -3,7 +3,8 @@ extends GutTest
 ## takes a prop — on its feet on her decks, idle, neither staggered nor frozen, within grab
 ## reach beyond the body's edge and the bonus's, in front, at a height it reaches, no
 ## blocker between — but with the hands full too. It is used up at once: gone from the
-## snapshot and the seat's bonus, replacing any it had, until the seat is out.
+## snapshot and one more among the seat's bonuses, beside any it had, until the seat is out
+## — but none of a kind the seat has the most of already, which stays aboard.
 
 const GRAB := InputFrame.GRAB
 ## Where below_decks' hold has its spot, and a body standing aft of it, facing it, its
@@ -35,13 +36,13 @@ func test_a_grab_press_takes_a_bonus_in_reach() -> void:
 	var sim := _with_a_bonus()
 	var events := SimFixtures.step(sim, {0: _grab(0)})
 	assert_true(sim.state.bonuses.is_empty(), "used up at once: no longer aboard")
-	assert_eq(sim.state.seats[0].bonus, 0, "the seat's bonus: a Double life")
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0]), "the seat's bonus: a Double life")
 	var taken := _of(events, SimEvent.Kind.BONUS_TAKEN)
 	assert_eq(taken.size(), 1, "and says so")
 	if taken.size() == 1:
 		assert_eq([taken[0].seat, taken[0].bonus, taken[0].spot], [0, 0, 0])
 	var entry: Dictionary = sim.snapshot()["seats"][0]
-	assert_eq(entry["bonus"], 0, "the snapshot holds it")
+	assert_eq(entry["bonuses"], [0], "the snapshot holds it")
 	assert_eq(sim.snapshot()["bonuses"], [], "and the bonus gone")
 
 
@@ -60,7 +61,8 @@ func test_a_grab_needs_the_bonus_in_reach_in_front_and_at_hand_height() -> void:
 		var sim := _with_a_bonus()
 		SimFixtures.place(sim, 0, case[0], case[1])
 		SimFixtures.step(sim, {0: _grab(0)})
-		assert_eq(sim.state.seats[0].bonus, case[2], case[3])
+		var took := PackedInt32Array([case[2]]) if case[2] != -1 else PackedInt32Array()
+		assert_eq(sim.state.seats[0].bonuses, took, case[3])
 		assert_eq(sim.state.bonuses.size(), 1 if case[2] == -1 else 0, case[3])
 
 
@@ -70,7 +72,7 @@ func test_full_hands_take_a_bonus_and_keep_the_prop() -> void:
 	var sim := _with_a_bonus(1, SimFixtures.crated([ring], SimFixtures.below_decks()))
 	SimFixtures.hand(sim, 0, 0)
 	var events := SimFixtures.step(sim, {0: _grab(0)})
-	assert_eq(sim.state.seats[0].bonus, 0, "the bonus taken")
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0]), "the bonus taken")
 	assert_eq(sim.state.props[0].holder, 0, "the ring still in its hands")
 	assert_true(_of(events, SimEvent.Kind.PROP_LET_GO).is_empty(), "never let go of")
 	SimFixtures.step(sim, {0: SimFixtures.frame(0)})
@@ -85,7 +87,7 @@ func test_a_bonus_comes_before_a_prop() -> void:
 	var ring := SimFixtures.lifebuoy(BESIDE + Vector3(0.75, 0.0, -0.2))
 	var sim := _with_a_bonus(1, SimFixtures.crated([ring], SimFixtures.below_decks()))
 	var events := SimFixtures.step(sim, {0: _grab(0)})
-	assert_eq(sim.state.seats[0].bonus, 0, "the bonus first")
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0]), "the bonus first")
 	assert_eq(sim.state.props[0].holder, -1, "the ring left lying")
 	assert_true(_of(events, SimEvent.Kind.PROP_GRABBED).is_empty())
 	SimFixtures.step(sim, {0: SimFixtures.frame(0)})
@@ -100,14 +102,16 @@ func test_the_nearer_brawler_wins_a_tied_bonus_then_the_lower_seat() -> void:
 	SimFixtures.place(sim, 0, SPOT - Vector3(1.0, 0.0, 0.0), 0.0)
 	SimFixtures.place(sim, 1, SPOT + Vector3(0.9, 0.0, 0.0), 180.0)
 	var events := SimFixtures.step(sim, {0: _grab(0), 1: _grab(1)})
-	assert_eq([sim.state.seats[0].bonus, sim.state.seats[1].bonus], [-1, 0], "the nearer one")
+	var held := [sim.state.seats[0].bonuses, sim.state.seats[1].bonuses]
+	assert_eq(held, [PackedInt32Array(), PackedInt32Array([0])], "the nearer one")
 	assert_eq(_of(events, SimEvent.Kind.BONUS_TAKEN).size(), 1, "and only it")
 
 	var even := _with_a_bonus(2)
 	SimFixtures.place(even, 0, SPOT - Vector3(1.0, 0.0, 0.0), 0.0)
 	SimFixtures.place(even, 1, SPOT + Vector3(1.0, 0.0, 0.0), 180.0)
 	SimFixtures.step(even, {1: _grab(1), 0: _grab(0)})
-	assert_eq([even.state.seats[0].bonus, even.state.seats[1].bonus], [0, -1], "the lower seat")
+	held = [even.state.seats[0].bonuses, even.state.seats[1].bonuses]
+	assert_eq(held, [PackedInt32Array([0]), PackedInt32Array()], "the lower seat")
 
 
 ## Taking a bonus is never a way out of a hit, a swim or a shove.
@@ -134,27 +138,49 @@ func test_no_bonus_while_staggered_frozen_in_the_air_swimming_climbing_or_shovin
 			"recovering":
 				player.action = PlayerState.Action.RECOVERY
 		SimFixtures.step(sim, {0: _grab(0)})
-		assert_eq(sim.state.seats[0].bonus, -1, what)
+		assert_eq(sim.state.seats[0].bonuses, PackedInt32Array(), what)
 		assert_eq(sim.state.bonuses.size(), 1, "%s: still aboard" % what)
 
 
-## A seat has one bonus at a time: one it takes replaces the one it had, whatever kinds
-## the two are.
-func test_a_bonus_taken_replaces_the_one_the_seat_had() -> void:
+## A bonus taken adds to those the seat has, replacing none: one of another kind beside
+## them, and a second of a kind beside the first, kept in their kinds' order whatever order
+## they were taken in — in the snapshot too.
+func test_a_bonus_taken_adds_to_those_the_seat_has() -> void:
 	var kinds: Array[BonusKind] = [SimFixtures.double_life(), SimFixtures.plain_kind()]
 	var rules := SimFixtures.bonus_rules(600.0, 45.0, 0.0, 2, kinds)
 	var sim := SimFixtures.bonus_sim(rules, 1, SimFixtures.below_decks(2))
 	SimFixtures.bring_aboard(sim, 0, 1)
 	SimFixtures.bring_aboard(sim, 1, 0)
 	SimFixtures.place(sim, 0, BESIDE, 0.0)
-	sim.state.seats[0].bonus = 0
+	sim.state.seats[0].bonuses = PackedInt32Array([0])
 	SimFixtures.step(sim, {0: _grab(0)})
-	assert_eq(sim.state.seats[0].bonus, 1, "the other kind, its Double life gone")
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0, 1]), "the other kind beside it")
 	SimFixtures.place(sim, 0, SimFixtures.by_hold_spot(1), 0.0)
 	SimFixtures.step(sim, {0: SimFixtures.frame(0)})
 	SimFixtures.step(sim, {0: _grab(0)})
-	assert_eq(sim.state.seats[0].bonus, 0, "and a Double life again")
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0, 0, 1]), "and a second Double life")
+	assert_eq(sim.snapshot()["seats"][0]["bonuses"], [0, 0, 1], "as the snapshot has them")
 	assert_true(sim.state.bonuses.is_empty())
+
+
+## A seat holds at most the bonus rules' most_held of a kind: a press reaches none of a kind
+## it has as many of — that bonus stays aboard for another — and with three the most, it
+## takes a third.
+func test_a_seat_takes_no_more_of_a_kind_than_the_most_it_holds() -> void:
+	var sim := _with_a_bonus()
+	sim.state.seats[0].bonuses = PackedInt32Array([0, 0])
+	var events := SimFixtures.step(sim, {0: _grab(0)})
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0, 0]), "two Double lives: no third")
+	assert_eq(sim.state.bonuses.size(), 1, "it stays aboard")
+	assert_true(_of(events, SimEvent.Kind.BONUS_TAKEN).is_empty())
+	var rules := SimFixtures.bonus_rules(600.0)
+	rules.most_held = 3
+	var more := SimFixtures.bonus_sim(rules, 1)
+	SimFixtures.bring_aboard(more, 0)
+	SimFixtures.place(more, 0, BESIDE, 0.0)
+	more.state.seats[0].bonuses = PackedInt32Array([0, 0])
+	SimFixtures.step(more, {0: _grab(0)})
+	assert_eq(more.state.seats[0].bonuses, PackedInt32Array([0, 0, 0]), "with three the most")
 
 
 ## Nothing of an out seat's plays on after it: its bonus goes with it.
@@ -165,12 +191,12 @@ func test_an_out_seat_loses_its_bonus() -> void:
 	var swimmer := sim.state.seats[0]
 	sim.config.bonus_rules.kinds.append(SimFixtures.plain_kind())
 	sim.config.bonus_rules.odds.append(0.0)
-	swimmer.bonus = 1
+	swimmer.bonuses = PackedInt32Array([1])
 	swimmer.cold = 0.1
 	SimFixtures.step(sim, {}, Ticks.RATE)
 	assert_true(swimmer.is_out(), "the cold takes it")
-	assert_eq(swimmer.bonus, -1, "and its bonus with it")
-	assert_eq(sim.snapshot()["seats"][0]["bonus"], -1)
+	assert_eq(swimmer.bonuses, PackedInt32Array(), "and its bonus with it")
+	assert_eq(sim.snapshot()["seats"][0]["bonuses"], [])
 
 
 ## A bonus comes aboard as its tick ends, every press of that tick done: a press on the tick
@@ -186,7 +212,7 @@ func test_a_bonus_comes_as_its_tick_ends() -> void:
 	assert_eq(sim.snapshot()["bonuses"].size(), 1, "the snapshot it leaves shows it")
 	SimFixtures.step(sim, {0: SimFixtures.frame(0)})
 	SimFixtures.step(sim, {0: _grab(0)})
-	assert_eq(sim.state.seats[0].bonus, 0, "and the next press takes it")
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0]), "and the next press takes it")
 
 
 ## The spot a bonus was taken from is open again: a later planned bonus may come there.
@@ -196,7 +222,7 @@ func test_a_taken_bonus_s_spot_opens_again() -> void:
 	SimFixtures.step(sim, {}, Ticks.from_seconds(1.5))
 	assert_eq(sim.state.bonuses.size(), 1, "the first came")
 	SimFixtures.step(sim, {0: _grab(0)})
-	assert_eq(sim.state.seats[0].bonus, 0, "and was taken")
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0]), "and was taken")
 	var events := SimFixtures.step(sim, {0: SimFixtures.frame(0)}, Ticks.from_seconds(2.0))
 	assert_eq(_of(events, SimEvent.Kind.BONUS_CAME).size(), 1, "the next comes to its spot")
 	assert_eq(sim.state.bonuses.size(), 1)

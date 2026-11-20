@@ -9,6 +9,13 @@ extends Resource
 @export var ground_accel: float
 @export var ground_friction: float
 @export var body_radius: float
+## How much less room than its width a body takes where walls and railings press it from
+## both sides, in metres all told: through a gap that much narrower than itself it still
+## squeezes, pressed into both; one narrower still it does not get into, and stands at its
+## mouth (Movement, #591). The narrowest flights on the Titanic's plates, 0.75 m between
+## their walls, take a body 0.8 m wide, as her crew took them; the 0.72 m strip beside C
+## deck's stair head and E deck's 0.595 m pocket beside ramp 38 do not.
+@export var body_give: float
 @export var body_height: float
 @export var gravity: float
 ## How much of the speed two bodies meet at they part with, along the line between
@@ -71,6 +78,10 @@ extends Resource
 ## In that band a brace holds its body where it is up to this tilt; anyone else slides
 ## into the corner (D8, est.).
 @export var brace_holds_to: float
+## The share of its dry friction a sole keeps on a wet deck, 0…1: the grip angle and the
+## stand limit hold in water as wet_angle has them (#620; est. 0.6, wet over dry floors in
+## slip-resistance testing, 0.5–0.7).
+@export var wet_grip: float
 
 @export_group("Levels and falls")
 ## The most a body steps up or down without a ramp; a drop deeper than this is a fall.
@@ -144,6 +155,32 @@ extends Resource
 ## The fastest a body wades in water wade_depth deep, in m/s: the cap eases from
 ## wade_speed to this as the water over the floor deepens. At most wade_speed.
 @export var wade_speed_deep: float
+## Moving water (Currents, #616): an opening passing less than this, in m³ a second,
+## moves nothing a body feels (est. 0.05).
+@export var current_least_flow: float
+## How far from an opening its current is felt, in metres (est. 8).
+@export var current_reach: float
+## A current slower than this, in m/s, is none (est. 0.1).
+@export var current_least: float
+## The share of the current a wader's walk is pushed by in water wade_depth deep, less in
+## shallower; 0…1 (est. a half).
+@export var current_wade_share: float
+## The depth times the current's speed, in m²/s, that sweeps a wader off its feet into
+## the water: the flood-safety limit for an adult (est. 0.6; Jonkman & Penning-Rowsell
+## 2008, RESCDAM 2000 0.64–1.26, Abt et al. 1989).
+@export var topple_hv: float
+## Falling water (Falls, #631): the push, in newtons, of a pour landing on a body that
+## knocks it off its feet — about what makes a standing adult step (est. 350, from
+## crowd-force and hose-reaction figures).
+@export var pour_topple: float
+## Air going free (Falls, #631): how long, in seconds, a pocket's air blows out of the
+## opening it leaves by (est. 0.6); how far from it, in metres, a swimmer is blown clear
+## (est. 3); how fast at its mouth, in m/s (est. 4); and the air, in m³ at the
+## atmosphere's pressure, that blows that hard — less blows less (est. 50).
+@export var blast_time: float
+@export var blast_reach: float
+@export var blast_speed: float
+@export var blast_full_air: float
 ## Seconds of swimming a full cold meter holds.
 @export var cold_meter: float
 ## Seconds of the cold meter regained per second out of the sea.
@@ -224,7 +261,24 @@ func fastest_speed() -> float:
 ## slide_friction holds it back. A grip angle must be one where it does, or a body past it
 ## would hold all the same — theirs (problems), and any a bonus gives (BonusKind.problems).
 func pulls_at(slope_deg: float) -> bool:
-	return gravity * sin(deg_to_rad(slope_deg)) > slide_friction
+	return idle_slide(slope_deg) > 0.0
+
+
+## How fast a deck tilted [param slope_deg] speeds up a body sliding idle on it, in m/s²:
+## its pull less slide_friction (Movement), none where slide_friction holds it.
+func idle_slide(slope_deg: float) -> float:
+	return maxf(gravity * sin(deg_to_rad(slope_deg)) - slide_friction, 0.0)
+
+
+## The slope a body holding to [param angle_deg] on a dry deck — a grip angle or a stand
+## limit, its seat's — holds to with water [param depth] deep over its floor (#620): its
+## friction, the angle's tangent, times wet_grip for its wet soles, less the share of its
+## weight the water carries, depth over body_height. Dry, the angle itself.
+func wet_angle(angle_deg: float, depth: float) -> float:
+	if depth <= 0.0:
+		return angle_deg
+	var buoyed := clampf(depth / body_height, 0.0, 1.0)
+	return rad_to_deg(atan(tan(deg_to_rad(angle_deg)) * wet_grip * (1.0 - buoyed)))
 
 
 ## How far over its feet a swimmer's head is reckoned, for whether it is in trapped air
@@ -290,6 +344,7 @@ func problems() -> PackedStringArray:
 		"ground_accel",
 		"ground_friction",
 		"body_radius",
+		"body_give",
 		"body_height",
 		"gravity",
 		"body_impact_speed",
@@ -321,6 +376,13 @@ func problems() -> PackedStringArray:
 		"stand_depth",
 		"wade_speed",
 		"wade_speed_deep",
+		"current_reach",
+		"topple_hv",
+		"pour_topple",
+		"blast_time",
+		"blast_reach",
+		"blast_speed",
+		"blast_full_air",
 		"cold_meter",
 		"cold_regen",
 		"pocket_cold_rate",
@@ -355,6 +417,8 @@ func problems() -> PackedStringArray:
 		"credit_window",
 		"vault_damage",
 		"crate_damage",
+		"current_least_flow",
+		"current_least",
 	]:
 		if float(get(field)) < 0.0:
 			found.append("brawl rules: %s must not be negative" % field)
@@ -378,7 +442,12 @@ func problems() -> PackedStringArray:
 	if brace_reduction < 0.0 or brace_reduction > 1.0:
 		found.append("brawl rules: brace_reduction must be within 0…1")
 	for field: String in [
-		"air_control", "body_restitution", "crate_restitution", "crate_brace_reduction"
+		"air_control",
+		"body_restitution",
+		"crate_restitution",
+		"crate_brace_reduction",
+		"current_wade_share",
+		"wet_grip",
 	]:
 		if float(get(field)) < 0.0 or float(get(field)) > 1.0:
 			found.append("brawl rules: %s must be within 0…1" % field)

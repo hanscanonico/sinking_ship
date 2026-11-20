@@ -243,3 +243,37 @@ func test_a_bot_beside_a_stair_s_head_never_walks_across_its_railing() -> void:
 		)
 		assert_false(across, "from %s: across a railing to %s" % [from, aim])
 		assert_true(way.holds(leg, from), "from %s: on a way round" % from)
+
+
+## On the steamer's main deck aft, starboard, a bot's route goes on up the bridge's starboard
+## stair, whose foot lies forward. Along her starboard side forward of the saloon a body is
+## held between that stair's side and the railings of the stair heads down to the side
+## passage: its way round is back through the saloon, whose starboard door's lane no 0.25 m
+## square's middle falls in. From aft, further than NARROW off the stair's foot, no way round
+## is found over those squares, and the bot walks straight on; nearing the foot it looks
+## again, over finer squares too, and walks back aft round by the saloon. On main the far
+## look's search ended every one along the leg: the bot walked on into the strip and down
+## the head of the stair to the side passage (#567).
+func test_a_bot_looks_again_for_a_way_round_once_near_its_leg_s_end() -> void:
+	var layout := SimFixtures.steamer()
+	var graph := WalkGraph.new(layout, Surfaces.new(layout), SimFixtures.rules())
+	var surfaces := graph.surfaces()
+	var step := SimFixtures.rules().step_height
+	var aft := Vector3(-0.93, 0.0, 3.77)
+	var forward := Vector3(3.2, 0.0, 4.1)
+	var leg: WalkGraph.Portal = null
+	for portal: WalkGraph.Portal in graph.portals():
+		var from_zone := graph.zone_at(aft, surfaces.under(aft, step))
+		if portal.from_zone == from_zone and portal.ramp == 3:
+			leg = portal
+	assert_not_null(leg, "the bridge's starboard stair")
+	assert_gt(Vector2(aft.x - leg.entry.x, aft.z - leg.entry.z).length(), BotFloorWay.NARROW)
+	var way := BotFloorWay.new(graph, SimFixtures.rules(), 1)
+	var on := surfaces.under(aft, step)
+	var to := graph.toward(leg, aft, on)
+	assert_eq(way.toward(aft, on, leg, to), to, "walks straight on from aft")
+	on = surfaces.under(forward, step)
+	to = graph.toward(leg, forward, on)
+	var aim := way.toward(forward, on, leg, to)
+	assert_lt(aim.x, forward.x, "back aft, round by the saloon: at %s" % aim)
+	assert_true(way.holds(leg, forward), "on its way round")

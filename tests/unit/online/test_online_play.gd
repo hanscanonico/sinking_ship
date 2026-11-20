@@ -39,8 +39,10 @@ class FakeMatch:
 
 
 var _online: OnlinePlay
-## Every scene _online has built, in order.
+## Every scene _online has built, in order, and what each was built of: its local
+## source and its seats' names.
 var _built: Array[FakeMatch] = []
+var _built_of: Array[Array] = []
 var _now := 0
 ## What _online said as it ended: [to_menu, note, rejoin] each time.
 var _endings: Array[Array] = []
@@ -49,6 +51,7 @@ var _endings: Array[Array] = []
 func before_each() -> void:
 	_online = null
 	_built.clear()
+	_built_of.clear()
 	_now = 0
 	_endings.clear()
 
@@ -78,10 +81,11 @@ func _play(client: RoomClient, code: String = "", real: bool = false) -> OnlineP
 	return _online
 
 
-func _build_fake(_played: PlayedMatch, _local: LocalInputSource, _names: PackedStringArray) -> Node:
+func _build_fake(_played: PlayedMatch, local: LocalInputSource, names: PackedStringArray) -> Node:
 	var fake := FakeMatch.new()
 	_online.add_child(fake)
 	_built.append(fake)
+	_built_of.append([local, names])
 	return fake
 
 
@@ -587,3 +591,24 @@ func test_the_seat_stands_still_under_the_online_pause() -> void:
 	Input.action_press(&"shove")
 	assert_eq(local.next_frame(7).buttons, InputFrame.SHOVE, "a click after it does")
 	Input.action_release(&"shove")
+
+
+## A player who chose Watch in the room (#611) is built a match with no keys on any
+## seat, its seats named for those who play — the watcher none of them.
+func test_a_watcher_is_built_a_match_without_a_seat() -> void:
+	var fixture := _quick_server()
+	var host := fixture.room_of(1)[0]
+	var bea := fixture.connect_client("Bea")
+	var online := _play(bea, host.roster.code)
+	fixture.beat(2)
+	online._room_screen.get_node("%Watch").button_pressed = true
+	fixture.beat()
+	assert_true(host.roster.players[1].watching, "the room is told")
+	host.start_match()
+	fixture.beat()
+	assert_eq(_built.size(), 1, "the match is built")
+	assert_null(_built_of[0][0], "no keys play a seat")
+	var names: PackedStringArray = _built_of[0][1]
+	assert_eq(names[0], host.roster.players[0].name, "the host's seat is theirs")
+	assert_false(names.has("You"), "no seat is the watcher's")
+	assert_eq(names[1], "Bot 1")

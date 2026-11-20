@@ -22,6 +22,9 @@ const LANE_FROM := -8.8
 const HANDED_IN_THE_LANE: Array[float] = [-9.6, -9.9, -10.2]
 const BOILER_ROOM_6 := Vector3(62.2812, -18.1875, 0.2)
 const DOWN_FROM_F_DECK := -10.0
+## Her tank top, at the stair's foot: the bonus in boiler room 6 lies on it in the alley
+## between two boilers, whose mouth is beside the foot.
+const TANK_TOP := -18.1875
 ## E deck aft of C, where a bot sets out at rest for the first- and second-class baggage
 ## room on the orlop: down the stair to F deck, off its foot and round onto the head of the
 ## next, in the passage beside it, on down. Its feet below F deck's are down that one.
@@ -142,6 +145,31 @@ func _down(sim: MatchSim, source: InputSource, below: float, seconds: float) -> 
 	return INF
 
 
+## Seconds [param source], seat 0 of [param sim], takes from the first tick its feet stand
+## within a step of [param floor_height] to taking a bonus; INF if not within [param seconds]
+## of its hand-over. How far its feet climbed over that floor from then, in _climbed.
+func _taken(sim: MatchSim, source: Walked, floor_height: float, seconds: float) -> float:
+	var sources: Array[InputSource] = [source, InputSource.new(), InputSource.new()]
+	var runner := MatchRunner.new(sim, sources)
+	var body := sim.state.seats[0]
+	while not source.handed and sim.state.tick < Ticks.from_seconds(3.0):
+		runner.step()
+	assert_true(source.handed, "walked there")
+	var from := sim.state.tick
+	var step := SimFixtures.rules().step_height
+	var down := -1
+	_climbed = 0.0
+	while sim.state.tick - from < Ticks.from_seconds(seconds):
+		runner.step()
+		if down == -1 and body.pos.y <= floor_height + step:
+			down = sim.state.tick
+		if down != -1:
+			_climbed = maxf(_climbed, body.pos.y - floor_height)
+		if down != -1 and not body.bonuses.is_empty():
+			return (sim.state.tick - down) * Ticks.SECONDS_PER_TICK
+	return INF
+
+
 ## A walk from [param from] the way [param walk] points, handed to the bot going for the
 ## bonus at [param spot_at] once it stands at [param handed] along it.
 func _walked(spot_at: Vector3, from: Vector3, walk: Vector2, handed: float) -> Array:
@@ -210,3 +238,21 @@ func test_a_bot_beside_a_stair_s_head_goes_round_onto_it() -> void:
 		var sim := _sim(TWO_BERTH_ROOM, from)
 		var down := _down(sim, _bot(sim), DOWN_FROM_B_DECK, 3.5)
 		assert_lt(down, 3.5, "from %s: %.1f s" % [from, down])
+
+
+## Down that stair from the lane, a bot takes the bonus in boiler room 6 within 2 s of its feet
+## first standing within a step of her tank top, its feet never back over 0.55 m above it: off
+## the stair's foot it steps across the foot into the alley. On main its route from the stair
+## ran on along it past its foot, and re-planned from the foot's last step, again: it walked on
+## past the foot, back, and up the stair, and four of these walks took 2.27–2.53 s, their feet
+## 0.64–0.89 m back up it (#562).
+func test_a_bot_down_a_stair_takes_the_bonus_beside_its_foot() -> void:
+	for x: float in LANE:
+		for handed: float in HANDED_IN_THE_LANE:
+			var walk: Array = _walked(
+				BOILER_ROOM_6, Vector3(x, F_DECK, LANE_FROM), Vector2(0.0, -1.0), -handed
+			)
+			var took := _taken(walk[0], walk[1], TANK_TOP, 10.0)
+			var at := "from x %.2f, handed at z %.1f" % [x, handed]
+			assert_lt(took, 2.0, "%s: %.2f s" % [at, took])
+			assert_lt(_climbed, 0.55, "%s: back up %.2f m" % [at, _climbed])

@@ -25,6 +25,7 @@ import struct
 import sys
 
 from floor_spots import spots_below_decks
+from flight_rails import rail_flight_sides
 
 out = sys.argv[1]
 
@@ -537,6 +538,10 @@ spawns = [
     (-2.0, 0, -1.5), (-2.0, 0, 1.5), (0.0, 0, 0.0), (2.0, 0, -1.8), (2.0, 0, 1.8), (5.0, 0, 0.0),
     (9.0, UPPER, -1.0), (-11.5, 0, 0.0),
 ]
+# --- Every flight's open sides railed (#587), as the Small Titanic's are: once her decks,
+# her flights, her railings and what stands by them are all laid.
+rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box)
+
 # The seats a match on her takes (est.): the steamer's 1–8 — SH21's bounds start here.
 SEATS = (1, 8)
 

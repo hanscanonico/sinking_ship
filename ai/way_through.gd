@@ -9,20 +9,24 @@ extends RefCounted
 ## came. It stands on the side it comes from, not first past the line: a stair run on under
 ## a doorway, down in its well under the floor, is no way out of the room whose floor its
 ## railings fence off (#551). WalkDoors asks too that it stands in the zone the way leads out
-## of: on a stair a body is in the zone of the end it is nearer.
+## of, and comes to stand in the one it leads into: on a stair a body is in the zone of the
+## end it is nearer, so a stair run on through a doorway is no way into the room past it
+## either (#575). Standing on the line it stands a hair on the room's side: a stair's head or
+## another room's floor that begins there is not the room's (#561). The sim holds a body on a
+## stair by the railings along its sides by its head (#552), and so is it held here.
 ##
 ## Where neither is true, a route through walks a bot into it for good: there is no way round
 ## to find, so the graph leaves it out. Two flights stacked in one well, the lower one under
 ## the upper's wedge: a body walking down the upper one walks on along the lower one's head.
 ## A flight under a deck too low to crawl under, or with a solid standing in its run (the
 ## layout lint holds every ship to none of either, test_every_flight_is_walked_end_to_end,
-## #541). A railing holds a body only from its own
-## deck's side, so a doorway onto a railed hole's edge lets a body out onto her open deck,
-## pushed on its way, and never back in. A stair's high end in a doorway, machinery or
-## furniture against it, a railing in a doorway between two rooms. The layout lint holds
-## every ship's rooms to a way out and back in that a body takes (#514), so none is sealed
-## off the graph by what it leaves out (test_no_sealed_room). Asked of Surfaces once, as the
-## graph is built, before any crate or broken railing is honoured.
+## #541). A railing holds a body on the side it came from, whatever floor it stepped from
+## (#592), so a doorway across a railed hole's edge lets no body across it either way. A
+## stair's high end in a doorway, machinery or furniture against it, a railing in a doorway
+## between two rooms. The layout lint holds every ship's rooms to a way out and back in that
+## a body takes (#514), so none is sealed off the graph by what it leaves out
+## (test_no_sealed_room). Asked of Surfaces once, as the graph is built, before any crate or
+## broken railing is honoured.
 
 ## How far apart along a flight's middle, and across a doorway, a body is tried, in metres.
 const STRIDE := 0.125
@@ -39,6 +43,9 @@ const BACK := 0.5
 ## standing in its run (solid_in), as BotFooting.walled looks: the sides of a ladder's well a
 ## body's width wide stand clear of it.
 const INSIDE := 0.1
+## How far on the room's side of a doorway's line a body standing on it is read: the floor
+## there is the room's, not one that begins at the line.
+const HAIR := 0.001
 
 
 ## Whether a body could walk [param layout]'s ramp [param index] from end to end along its
@@ -181,13 +188,16 @@ static func across(door: ShipRoom.Door, off: float, floor_height: float) -> Vect
 
 ## Whether a body could walk straight through [param at] on a doorway's line the way
 ## [param out]: from where it first stands clear on the room's side — a body's radius before
-## the line at most, every STRIDE nearer, on the line at the last, never first past it — on
-## until it stands clear past it, its feet on a floor or a stair all the way and nothing
-## pushing it back (BACK); a floor's railings among what holds it unless [param rails] is
-## false. On a stair none: the railings along its sides by its head hold a body on it (#552),
-## but the graph's ways through are read as before (#561). Where [param begins] is a
-## callable, it stands there only where begins(feet, surface, out) is true: in the zone the
-## way leads out of (WalkDoors._begins).
+## the line at most, every STRIDE nearer, on the line at the last, a HAIR on the room's side
+## of it, never first past it — on until it stands clear past it, its feet on a floor or a
+## stair all the way and nothing pushing it back (BACK); the railings the sim holds it by
+## among what holds it unless [param rails] is false: a floor's own, on a stair those along
+## its sides by its head (Surfaces.rail_contacts, #552, #561), and, walking on from the
+## stride before, the floor's it stepped from and any it crossed, on the side it came from
+## (#592). Where [param begins] is
+## a callable, it stands there only where begins(feet, surface, out) is true — in the zone
+## the way leads out of (WalkDoors._begins) — and clear past the line only where
+## begins(feet, surface, -out) is: where the way back would begin, in the zone it leads into.
 static func _crosses(
 	surfaces: Surfaces,
 	rules: BrawlRules,
@@ -201,8 +211,14 @@ static func _crosses(
 	var depth := ceili(rules.body_radius / STRIDE)
 	var feet := floor_height
 	var stood := false
+	# Where it stood the stride before, and on what, once it stands: the railings hold it as
+	# the sim holds a body walking there from that point (#592).
+	var came := Vector2.INF
+	var stood_on := Surfaces.NONE
 	for step in range(-depth, depth + 1):
 		var flat := at + out * (STRIDE * step)
+		if step == 0 and not stood:
+			flat -= out * HAIR
 		var point := Vector3(flat.x, feet, flat.y)
 		var surface := surfaces.under(point, rules.step_height)
 		if surface == Surfaces.NONE:
@@ -213,21 +229,35 @@ static func _crosses(
 		var held := surfaces.obstacle_contacts(
 			point, radius, rules.body_height, rules.step_height, Surfaces.NONE, rules.crawl_height
 		)
-		if rails and not surfaces.is_ramp(surface):
+		if rails:
 			held.append_array(
 				surfaces.rail_contacts(
-					point, radius, surface, rules.step_height, rules.railing_height
+					point,
+					radius,
+					stood_on if stood else surface,
+					rules.step_height,
+					rules.railing_height,
+					came
 				)
 			)
-		if stood and step > 0 and held.is_empty():
+		if (
+			stood
+			and step > 0
+			and held.is_empty()
+			and (not begins.is_valid() or begins.call(point, surface, -out))
+		):
 			return true
 		if not stood:
 			stood = held.is_empty() and (not begins.is_valid() or begins.call(point, surface, out))
 			if not stood and step == 0:
 				return false
 			feet = point.y if stood else feet
+			came = flat if stood else came
+			stood_on = surface
 			continue
 		feet = point.y
+		came = flat
+		stood_on = surface
 		for contact: Surfaces.Contact in held:
 			if contact.normal.dot(out) < -BACK:
 				return false

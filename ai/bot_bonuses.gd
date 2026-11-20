@@ -2,15 +2,16 @@ class_name BotBonuses
 extends RefCounted
 ## A bot and the bonuses aboard (#307) as its delayed view shows them (D10) — every one,
 ## walls or not, as the props are: the feed has told every player each one's kind and room.
-## The bonus it goes for, chosen at a think: of a kind worth more to it than its own bonus, a
+## The bonus it goes for, chosen at a think: of a kind worth something to it that it holds
+## fewer than the most of (BonusRules.most_held) — each it takes adds to those it has — a
 ## walk of its range or less away — bonus_range_m, grown on a hull longer than the steamer's
 ## (BotProfile.bonus_range) — while the floor it lies on and the lowest point of its
 ## way there stand bonus_margin_m or more above the water as its view has the water now —
-## never as the timeline has it next; the best for how much more it is worth, less the
-## farther it lies. Unlike a lifebuoy, it goes down toward the water for one by design. Then
-## the Grab press that takes it once a press would (GrabReach), never a second before its
-## view shows the first. And the spare cold meter its own bonus gives it, unspent (Double
-## life): more time in the sea, which its swim counts on. Nothing here rolls the bot's
+## never as the timeline has it next; the best for its worth, less the farther it lies.
+## Unlike a lifebuoy, it goes down toward the water for one by design. Then the Grab press
+## that takes it once a press would (GrabReach), never a second before its view shows the
+## first. And the spare cold meters its own bonuses give it, unspent (Double life): more
+## time in the sea, which its swim counts on. Nothing here rolls the bot's
 ## stream.
 
 ## The bonus spot of the bonus it goes for, by its index in the layout's, as the last think
@@ -27,6 +28,8 @@ var _layout: ShipLayout
 var _reach: GrabReach
 ## The kinds of the match's bonuses (BonusRules.kinds): none in a match without bonuses.
 var _kinds: Array[BonusKind] = []
+## The most bonuses of one kind it holds (BonusRules.most_held).
+var _most_held := 0
 ## The props a hand may hold (GrabReach.holdable_of).
 var _holdable: PackedInt32Array
 ## The tick of its last Grab press, or -1.
@@ -47,14 +50,15 @@ func _init(
 	if bonus_rules != null:
 		_reach = GrabReach.new(layout, rules, bonus_rules)
 		_kinds.assign(bonus_rules.kinds)
+		_most_held = bonus_rules.most_held
 	_holdable = GrabReach.holdable_of(layout)
 
 
 ## Picks the bonus to go for at a think, from [param me] in [param seen], among those
 ## [param found] — a search of [param graph] from where it stands — reaches under
-## [param pose]: of a kind worth more to it than its own bonus (worth), a walk of
-## its range or less away, its floor and its way there its margin above the water
-## (_clear) — the best by how much more it is worth, less by up to bonus_walk_share of that
+## [param pose]: of a kind worth something to it (worth) that it holds fewer than the most
+## of, a walk of its range or less away, its floor and its way there its margin above the
+## water (_clear) — the best by its worth, less by up to bonus_walk_share of that
 ## the farther away it lies. Returns its score, that by bonus_weight, or 0 with none to go
 ## for: none, too, off her decks, where a body takes nothing (GrabReach) and her spots are
 ## no points of the frame it finds its way in.
@@ -67,10 +71,11 @@ func choose(
 	if seen["up"][me["piece"]] != Faces.Up.DECK:
 		return 0.0
 	var my_pos: Vector3 = me["pos"]
-	var mine := worth(me["bonus"])
+	var held: Array = me["bonuses"]
 	var best := 0.0
 	for entry: Dictionary in seen["bonuses"]:
-		var gain := worth(entry["kind"]) - mine
+		var kind: int = entry["kind"]
+		var gain := worth(kind) if held.count(kind) < _most_held else 0.0
 		var at := _layout.bonus_spots[entry["spot"]].point
 		var zone := graph.zone_at(at, graph.surfaces().under(at, _rules.step_height))
 		if gain <= 0.0 or zone == WalkGraph.NONE:
@@ -146,14 +151,15 @@ func grab(
 	return InputFrame.GRAB
 
 
-## The seconds of cold the spare meter [param me]'s bonus gives it add while unspent (Double
-## life): a whole cold meter more, as the sim counts it (MatchVerdict.cold_left); none
-## without one.
+## The seconds of cold the spare meters [param me]'s bonuses give it add while unspent
+## (Double life): a whole cold meter more each, as the sim counts them
+## (MatchVerdict.cold_left); none without one.
 func spare(me: Dictionary) -> float:
-	var kind: int = me["bonus"]
-	if kind == -1 or not _kinds[kind].spare_meter:
-		return 0.0
-	return _rules.cold_meter
+	var spares := 0
+	for kind: int in me["bonuses"]:
+		if _kinds[kind].spare_meter:
+			spares += 1
+	return _rules.cold_meter * spares
 
 
 ## How high above the water there is in her now under [param pose] the floor under a body

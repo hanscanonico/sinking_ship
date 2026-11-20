@@ -10,7 +10,9 @@ extends RefCounted
 ## packet too big, unreadable or of a kind a client never sends ends the connection,
 ## as do too many packets a second, too many CREATEs and JOINs, a silence too long
 ## and a backlog a client has stopped reading. A client's input only ever reaches its
-## own seat: the seat is the connection's, never the packet's. Rooms and connections
+## own seat: the seat is the connection's, never the packet's, and one who watches has
+## none. A room holds players_per_room members, watchers among them, so its players
+## never outnumber the match's seats. Rooms and connections
 ## are capped — a client past the cap is told so — an idle room is closed, a finished
 ## match let go, a player silent too long given up for gone, and the matches built in
 ## a second, and by one connection, are capped.
@@ -53,6 +55,9 @@ class Connection:
 	## Whether its match has begun and no input of it has come yet: its client is
 	## building the match, held to load_timeout rather than silence_timeout.
 	var loading := false
+	## The beat a watcher's loading ends at, load_timeout after its match began: it
+	## sends no input to end it. -1 for a player's, ended by its first input.
+	var load_ends := -1
 	## The CREATEs and JOINs it has used of room_attempts, and the beat the next one
 	## given back is counted from: one each attempt_refill.
 	var attempts := 0
@@ -268,6 +273,8 @@ func _take(packet: Transport.Packet) -> void:
 			_join(connection, message.text)
 		WireCodec.Kind.START:
 			_start(connection)
+		WireCodec.Kind.WATCH:
+			_watch(connection, message.value == 1)
 		WireCodec.Kind.LEAVE:
 			_leave(connection)
 		_:
@@ -375,6 +382,9 @@ func _start(connection: Connection) -> void:
 	if at.phase != Room.Phase.WAITING:
 		_refuse(connection, RoomCodec.Refusal.PLAYING)
 		return
+	if not at.has_players():
+		_refuse(connection, RoomCodec.Refusal.NO_PLAYERS)
+		return
 	if not _may_build(connection):
 		_refuse(connection, RoomCodec.Refusal.BUSY)
 		return
@@ -394,14 +404,22 @@ func _start(connection: Connection) -> void:
 		at.stream = TimelineStream.new(schedule, _rules)
 		digest = schedule.timeline().digest()
 	var players := PackedStringArray()
+	var watchers := PackedStringArray()
 	for player: Room.Member in at.members:
-		# Its silence counts from here, held to load_timeout until its first input: its
-		# client builds the match in one frame that may outlast silence_timeout.
+		# Its silence counts from here, held to load_timeout until its first input — a
+		# watcher's, sending none, for load_timeout: its client builds the match in one
+		# frame that may outlast silence_timeout.
 		var member: Connection = _connections.get(player.peer)
 		if member != null:
 			member.heard = _beat
 			member.loading = true
-		players.append("%s seat %d" % [player.name, player.seat])
+			member.load_ends = -1
+			if player.watching:
+				member.load_ends = _beat + ServerRules.beats(_rules.load_timeout)
+		if player.watching:
+			watchers.append(player.name)
+		else:
+			players.append("%s seat %d" % [player.name, player.seat])
 		var begin := _codec.encode_begin(
 			config.match_seed, config.seats, player.seat, _rules.fast, _rules.bonuses, digest
 		)
@@ -415,8 +433,28 @@ func _start(connection: Connection) -> void:
 				% [at.code, config.match_seed, config.seats, pace, bonuses, ", ".join(players)]
 			)
 			+ " · bots on the rest"
+			+ (" · %s watching" % ", ".join(watchers) if not watchers.is_empty() else "")
 		)
 	)
+	_send_rosters(at)
+
+
+## Has [param connection] watch its room's matches when [param on], else play them: its
+## own say, while the room waits.
+func _watch(connection: Connection, on: bool) -> void:
+	var at := connection.room
+	if at == null:
+		_refuse(connection, RoomCodec.Refusal.NO_ROOM)
+		return
+	if at.phase != Room.Phase.WAITING:
+		_refuse(connection, RoomCodec.Refusal.PLAYING)
+		return
+	var member := at.member(connection.peer)
+	if member.watching == on:
+		return
+	member.watching = on
+	at.since = _beat
+	_say("room %s: %s %s" % [at.code, _who(connection), "watches" if on else "plays"])
 	_send_rosters(at)
 
 
@@ -456,7 +494,9 @@ func _leave_room(connection: Connection) -> void:
 	connection.room = null
 	var seat := left.member(connection.peer).seat
 	left.remove(connection.peer, _beat)
-	if left.phase == Room.Phase.PLAYING:
+	if left.phase == Room.Phase.PLAYING and seat < 0:
+		_say("room %s: %s left, watching no more" % [left.code, connection.name])
+	elif left.phase == Room.Phase.PLAYING:
 		_say("room %s: %s left · seat %d to a bot" % [left.code, connection.name, seat])
 	else:
 		_say("room %s: %s left" % [left.code, connection.name])
@@ -511,6 +551,8 @@ func _keep_time() -> void:
 	var pinging := _beat % ping_beats == 0
 	for connection: Connection in _connections.values():
 		var waited := _beat - connection.since
+		if connection.loading and connection.load_ends >= 0 and _beat >= connection.load_ends:
+			connection.loading = false
 		if connection.stage == Stage.LEAVING:
 			if waited >= linger:
 				_connections.erase(connection.peer)
@@ -620,11 +662,11 @@ func _report(reported: Room, about: String) -> void:
 			rtt = _spread(connection.rtt_ms)
 		_say(
 			(
-				"%s: %s seat %d%s · rtt ms %s · %d snapshots of %.0f B · %.2f kB/s"
+				"%s: %s %s%s · rtt ms %s · %d snapshots of %.0f B · %.2f kB/s"
 				% [
 					head,
 					player.name,
-					player.seat,
+					"watching" if player.seat < 0 else "seat %d" % player.seat,
 					" (gone, a bot's)" if player.gone else "",
 					rtt,
 					packets,
@@ -659,6 +701,7 @@ func _enter(connection: Connection, stage: Stage) -> void:
 	connection.since = _beat
 	connection.heard = _beat
 	connection.loading = false
+	connection.load_ends = -1
 
 
 func _refuse(connection: Connection, reason: RoomCodec.Refusal) -> void:

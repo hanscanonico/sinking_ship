@@ -269,7 +269,7 @@ func test_continuation_with_bonuses_in_play() -> void:
 	var sim := MatchSim.create(config)
 	SimFixtures.place(sim, 0, SimFixtures.hold_spot(0) - Vector3(0.9, 0.0, 0.0), 0.0)
 	SimFixtures.swim(sim, 1, Vector3(0.0, 0.0, 6.0))
-	sim.state.seats[1].bonus = 0
+	sim.state.seats[1].bonuses = PackedInt32Array([0])
 	sim.state.seats[1].cold = 1.0
 	var scene := func(tick: int) -> Array[InputFrame]:
 		var grab := InputFrame.GRAB if tick % 20 == 0 else 0
@@ -292,10 +292,10 @@ func test_continuation_with_bonuses_in_play() -> void:
 		var seats: Array = played[start]["seats"]
 		var in_flight := {
 			"aboard": not (played[start]["bonuses"] as Array).is_empty(),
-			"taken": seats[0]["bonus"] != -1,
+			"taken": seats[0]["bonuses"].size() > 0,
 			"lost ahead": _lost_within(played, start),
-			"spare unspent": seats[1]["bonus"] != -1,
-			"spare spent": seats[1]["bonus"] == -1 and not seats[1]["out"],
+			"spare unspent": seats[1]["bonuses"].size() > 0,
+			"spare spent": seats[1]["bonuses"].is_empty() and not seats[1]["out"],
 		}
 		var seen := false
 		for field: String in in_flight:
@@ -326,7 +326,7 @@ func test_continuation_with_each_kind_s_edge_in_play() -> void:
 	SimFixtures.place(sim, 2, Vector3(0.9, 0.0, 0.0), 0.0)
 	SimFixtures.swim(sim, 3, Vector3(8.0, 0.0, 4.6))
 	for seat: int in [0, 1, 3]:
-		sim.state.seats[seat].bonus = [0, 1, -1, 2][seat]
+		sim.state.seats[seat].bonuses = PackedInt32Array([[0, 1, -1, 2][seat]])
 	var scene := func(tick: int) -> Array[InputFrame]:
 		var again := tick % Ticks.RATE
 		return [
@@ -370,7 +370,7 @@ func test_continuation_with_sure_footing_in_play() -> void:
 	var sim := MatchSim.create(config)
 	SimFixtures.place(sim, 0, Vector3(-8.0, 0.0, 2.0))
 	SimFixtures.place(sim, 1, Vector3(8.0, 0.0, 2.0))
-	sim.state.seats[0].bonus = 0
+	sim.state.seats[0].bonuses = PackedInt32Array([0])
 	var scene := func(tick: int) -> Array[InputFrame]:
 		var up := Vector2(0.0, -0.3) if tick >= 4 else Vector2.ZERO
 		return [SimFixtures.frame(0, up, 0, -90.0), SimFixtures.frame(1, up, 0, -90.0)]

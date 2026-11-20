@@ -37,6 +37,7 @@ scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(file)	core/*.gd data/*
 scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(path)	-
 scenes/game/bake_cache.gd	FileAccess.open(aside)	-
 scenes/game/key_bindings.gd	FileAccess.open(path)	-
+scenes/match/bonus_icons.gd	load(DIR + String(kind.icon) + ".svg")	assets/ui/bonus/*.svg
 scenes/match/iceberg_planner.gd	load(path)	assets/models/*.glb
 scenes/match/view_settings.gd	ResourceLoader.exists(path)	-
 scenes/match/view_settings.gd	ResourceLoader.load(path)	-
@@ -47,14 +48,18 @@ scenes/replay/replay_store.gd	FileAccess.get_file_as_bytes(path)	-
 scenes/replay/replay_store.gd	FileAccess.open(path)	-
 tests/unit/ai/test_bot_floors.gd	load("res://data/bots/%s.tres" % tiers[seat])	data/bots/*.tres
 tests/unit/ai/test_bot_profile.gd	load("res://data/bonuses/%s" % file)	data/bonuses/*.tres
+tests/unit/ai/test_fleet_flight_sides.gd	load(path)	data/ships/*.tres
 tests/unit/ai/test_floor_way_native.gd	load(path)	data/ships/steamer.tres data/ships/titanic.tres
 tests/unit/ai/test_titanic_open_decks.gd	load(path)	data/ships/titanic.tres tests/fixtures/ships/titanic_britannic.tres tests/fixtures/ships/titanic_olympic_1913.tres
+tests/unit/ai/test_titanic_shell_line.gd	load(path)	data/ships/titanic.tres tests/fixtures/ships/titanic_britannic.tres tests/fixtures/ships/titanic_olympic_1913.tres
 tests/unit/ai/test_water_native.gd	load(path)	data/ships/steamer.tres data/ships/small_titanic.tres
 tests/unit/ai/test_walk_search_native.gd	load(path)	data/ships/steamer.tres data/ships/small_titanic.tres
 tests/unit/ai/test_way_through.gd	load("res://data/ships/%s.tres" % ship)	data/ships/steamer.tres data/ships/trawler.tres data/ships/tug.tres data/ships/barque.tres data/ships/ferry.tres data/ships/freighter.tres
 tests/unit/art/test_committed_models.gd	ResourceLoader.exists(MODELS.path_join(model).path_join(model + ".glb"))	assets/models/*.glb
 tests/unit/art/test_committed_models.gd	load("res://data/ships".path_join(file))	data/ships/*
+tests/unit/art/test_deck_under.gd	load(ship)	data/ships/*.tres
 tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	@ship
+tests/unit/art/test_funnel_rest.gd	load(SHIPS + file)	data/ships/*.tres
 tests/unit/art/test_liner_boiler.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_room_dressing.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_sea_haze.gd	load("res://data/ships/%s.tres" % ship)	@ship
@@ -83,6 +88,7 @@ tests/unit/core/test_ship_structure_lint.gd	load("%s/%s" % [SHIPS, file])	data/s
 tests/unit/core/test_sink_schedule.gd	load(hit)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_sink_timeline.gd	load(path)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_survival_transcript.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
+tests/unit/core/test_titanic_shell_top.gd	load(path)	data/ships/titanic.tres tests/fixtures/ships/titanic_britannic.tres tests/fixtures/ships/titanic_olympic_1913.tres
 tests/unit/core/test_wrecks.gd	load(path)	tests/fixtures/wrecks/*.tres
 tests/unit/core/titanic_sisters.gd	load(HITS % hit_name)	tests/fixtures/sinking/hits/*.tres
 tests/unit/game/test_bake_cache.gd	FileAccess.file_exists(path)	-

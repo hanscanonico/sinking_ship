@@ -1,7 +1,8 @@
 class_name MatchChoices
 extends RefCounted
 ## What a player picks before a match (GLOSSARY): ship, seats, bot tier, seed, pace, goal
-## and bonuses, and, from the command line only, scenario and hit. A choice left unmade
+## and bonuses, whether they play it or only watch it, and, from the command line only,
+## scenario and hit. A choice left unmade
 ## means the match data's, and this is the only place that fills the data's value in. The
 ## menu and the command line both start here; it answers for itself against the match rules
 ## — its problems(), and the config() it makes — and resolves the same choices to the
@@ -46,6 +47,10 @@ var scenario: StringName = &""
 ## name among HITS — hers before any ship's; empty for the must-sink rule's. The command
 ## line's only.
 var hit: String = ""
+## Whether the match is only watched (GLOSSARY: Watch): nobody plays it, bots take every
+## seat, the local seat's with them — the menu's Watch rather than its Play. Never her
+## sinking's: two matches that differ only in it sink alike.
+var watch: bool = false
 
 
 ## A copy of these choices with [param text] for their seed — blank to draw a new one.
@@ -148,9 +153,10 @@ func seed_number() -> int:
 
 ## The match these choices make under [param match_rules]: every unmade choice the
 ## data's, and its bonus rules too, unless bonuses are off — then it has none, and no
-## bonus ever comes. [param baked], when given, is the sinking they make, made already
-## for another match drawn on choices that sink alike (sinks_alike): played as it is, so
-## the two share its bake (NextMatch). Asking for one while they have problems, or
+## bonus ever comes —, and no seat played locally when they only watch. [param baked],
+## when given, is the sinking they make, made already for another match drawn on choices
+## that sink alike (sinks_alike): played as it is, so the two share its bake (NextMatch).
+## Asking for one while they have problems, or
 ## before their seed is filled in, is an error, and null.
 func config(match_rules: MatchRules, baked: SinkScenario = null) -> MatchConfig:
 	var found := problems(match_rules)
@@ -181,7 +187,7 @@ func config(match_rules: MatchRules, baked: SinkScenario = null) -> MatchConfig:
 		sinking,
 		Ticks.from_seconds(match_rules.countdown)
 	)
-	made.humans = match_rules.humans
+	made.humans = 0 if watch else match_rules.humans
 	made.bot_tier = full.bot_tier
 	made.goal = GOALS[full.goal]
 	made.bonus_rules = match_rules.bonus_rules if bonuses else null

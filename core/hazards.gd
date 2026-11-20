@@ -19,10 +19,11 @@ extends RefCounted
 ## no grip angle to hold it and none on an even keel, into her walls, blockers and the
 ## other crates as a sliding crate meets them — and off an open edge or through a broken
 ## span into the sea, lost. Its planar speed keeps crate_float_drag of itself a tick,
-## against a standing crate's friction. The water falling back under wade_depth over
-## its floor sets it down there again. Running into a brawler at crate_impact_speed or
-## more, it staggers it and knocks it back through a hit-stop, as a shove does (D12),
-## and keeps going, slowed; slower, it pushes it. Either way the two part with the
+## against a standing crate's friction — of itself over the water's, where the water
+## moves (Currents, #616): afloat, it drifts with the current. The water falling back
+## under wade_depth over its floor sets it down there again. Running into a brawler at
+## crate_impact_speed or more, it staggers it and knocks it back through a hit-stop, as a
+## shove does (D12), and keeps going, slowed; slower, it pushes it. Either way the two part with the
 ## closing speed by their masses. A shove sends a crate at its knockback weighed by
 ## the two masses, never faster than the shove's own. Two crates meeting part the same
 ## way, by their masses — with crate_restitution of the speed they met at from
@@ -93,6 +94,8 @@ var _surfaces: Surfaces
 ## The piece of her these are, and her pieces; null for a ship that never breaks.
 var _piece := 0
 var _pieces: Pieces
+## The currents of the piece that drift its props afloat (Currents), or null for none.
+var _currents: Currents
 ## Per crate, 1 while it is over this piece's stretch, as of this tick's step.
 var _aboard := PackedByteArray()
 var _stagger_ticks: int
@@ -133,9 +136,17 @@ enum Turn { NONE, RESTS, STEPS }
 
 
 ## The hazards of [param config]'s ship asked of [param surfaces] — or of piece
-## [param piece] of [param pieces], its decks' own.
-func _init(config: MatchConfig, surfaces: Surfaces, piece := 0, pieces: Pieces = null) -> void:
+## [param piece] of [param pieces], its decks' own — its props afloat drifting with
+## [param currents], the piece's (none without).
+func _init(
+	config: MatchConfig,
+	surfaces: Surfaces,
+	piece := 0,
+	pieces: Pieces = null,
+	currents: Currents = null
+) -> void:
 	_rules = config.rules
+	_currents = currents
 	_layout = config.ship
 	_props = config.ship.props
 	_surfaces = surfaces
@@ -207,7 +218,7 @@ func step(state: MatchState, pose: ShipPose, tick: int, events: Array[SimEvent])
 			_stir_near(state, crates, crate)
 	_forces(crates, here)
 	_move(state, crates, pose, tick, events)
-	_run_into_bodies(state, crates, loose, pose, tick, events)
+	_run_into_bodies(state, crates, pose, tick, events)
 	_ground(crates)
 	_sea(crates, here, tick, events)
 	for crate: PropState in crates:
@@ -501,8 +512,8 @@ func damage(
 
 
 ## Gravity in the air; afloat, crate_float_pull of the downhill pull at any slope, and
-## the water's drag; on the deck, the downhill pull past its grip angle, and its
-## friction.
+## the water's drag toward the current there (Currents); on the deck, the downhill pull
+## past its grip angle, and its friction.
 func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 	var dt := Ticks.SECONDS_PER_TICK
 	var gravity := pose.ship_gravity(_rules.gravity)
@@ -514,7 +525,11 @@ func _forces(crates: Array[PropState], pose: ShipPose) -> void:
 			continue
 		if crate.body == PropState.Body.FLOATING:
 			var afloat := Vector2(crate.vel.x, crate.vel.z) + downhill * _rules.crate_float_pull
-			afloat *= _rules.crate_float_drag
+			var flowing := Vector2.ZERO if _currents == null else _currents.at(pose, crate.pos)
+			if flowing == Vector2.ZERO:
+				afloat *= _rules.crate_float_drag
+			else:
+				afloat = flowing + (afloat - flowing) * _rules.crate_float_drag
 			crate.vel = Vector3(afloat.x, 0.0, afloat.y)
 			continue
 		var prop := _props[crate.prop]
@@ -809,16 +824,11 @@ func _hold(crate: PropState, contact: Surfaces.Contact) -> void:
 ## Every crate against every body on board its circle and height overlap, crate by
 ## crate and seat by seat — a body standing on a crate's lid is not in its way, and a
 ## crate never comes down on a swimmer: it is lost or afloat as it reaches the water.
-## The crates are [param crates], this tick's, and those of [param loose] at rest a body
-## stands within reach of — none other could meet one — and a crate at rest a body meets
-## joins [param crates] (_wake).
+## The crates are [param crates], this tick's, and those at rest a body stands within
+## reach of — none other could meet one — and a crate at rest a body meets joins
+## [param crates] (_wake).
 func _run_into_bodies(
-	state: MatchState,
-	crates: Array[PropState],
-	loose: Array[PropState],
-	pose: ShipPose,
-	tick: int,
-	events: Array[SimEvent]
+	state: MatchState, crates: Array[PropState], pose: ShipPose, tick: int, events: Array[SimEvent]
 ) -> void:
 	var bodies: Array[PlayerState] = []
 	for player: PlayerState in state.seats:
@@ -830,14 +840,15 @@ func _run_into_bodies(
 	if bodies.is_empty():
 		return
 	var visit := PackedInt32Array()
-	var broken := _pieces != null and _pieces.count() > 1
 	# Once she is in pieces a crate may stand over one piece and be stood on another's
-	# Surfaces: every crate is asked, as all were before any rested.
-	for crate: PropState in loose if broken else crates:
+	# Surfaces: the crates at rest are asked of this piece's own, where every loose crate
+	# over it not stepped this tick rests (_stirring), as it stood all along.
+	var broken := _pieces != null and _pieces.count() > 1
+	var grid := _at_rest if broken else _surfaces.stands
+	for crate: PropState in crates:
 		visit.append(crate.prop)
-	if not broken:
-		for player: PlayerState in bodies:
-			_within_reach(visit, player, -1)
+	for player: PlayerState in bodies:
+		_within_reach(visit, grid, player, -1)
 	visit.sort()
 	var box := _box_of(bodies)
 	var at := 0
@@ -878,8 +889,7 @@ func _run_into_bodies(
 			_collide(crate, player, normal, reach - distance, tick, events)
 			box = _box_of(bodies)
 			# The body moved: a later crate at rest it now reaches is asked in its turn.
-			if not broken:
-				_within_reach(visit, player, crate.prop)
+			_within_reach(visit, grid, player, crate.prop)
 	for crate: PropState in crates:
 		_stand_one(crate, pose)
 
@@ -895,11 +905,13 @@ static func _box_of(bodies: Array[PlayerState]) -> PackedFloat64Array:
 	return box
 
 
-## Adds to [param visit] every crate standing within reach of [param player]'s circle
-## whose index is above [param after], unless it is there already, keeping its order
-## from [param after] on.
-func _within_reach(visit: PackedInt32Array, player: PlayerState, after: int) -> void:
-	for index: int in _surfaces.stands.near(player.pos.x, player.pos.z, _rules.body_radius):
+## Adds to [param visit] every crate standing on [param grid] within reach of
+## [param player]'s circle whose index is above [param after], unless it is there
+## already, keeping its order from [param after] on.
+func _within_reach(
+	visit: PackedInt32Array, grid: PropStands, player: PlayerState, after: int
+) -> void:
+	for index: int in grid.near(player.pos.x, player.pos.z, _rules.body_radius):
 		if index <= after:
 			continue
 		var at := visit.bsearch(index)

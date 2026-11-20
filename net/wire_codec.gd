@@ -28,7 +28,10 @@ extends RefCounted
 ## 10: BEGIN carries whether the match has bonuses beside its pace (#314), so a client of 9
 ## — which would build its match with bonuses whatever the server says, and read a BEGIN a
 ## byte longer as none — is refused VERSION at its HELLO.
-const PROTOCOL_VERSION := 10
+## 11: a room member may watch (#611): WATCH says so, the roster marks who does and BEGIN
+## gives a watcher no seat, so a client of 10 — which would read a seatless BEGIN as none
+## at all — is refused VERSION at its HELLO.
+const PROTOCOL_VERSION := 11
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
@@ -64,14 +67,15 @@ enum Kind {
 	PING,
 	PONG,
 	TIMELINE,
+	WATCH,
 }
 ## Why a packet is not one of this protocol and match: too short to tell or of no kind
 ## there is, of another protocol version, or of another match's data.
 enum Mismatch { NONE, MALFORMED, VERSION, DATA }
 
 ## Each section — &"snapshot" and the key of every list of records in it — as the codec
-## walks it: per field its key, its kind and, for a list of records, their walk. Built
-## once from the records' tables.
+## walks it: per field its key, its kind, for a list of records their walk, and its
+## kind's quantum (SnapshotField.quantum). Built once from the records' tables.
 static var _walks := {}
 
 
@@ -343,7 +347,7 @@ static func _compiled(fields: Array) -> Array:
 		if row["kind"] == SnapshotField.Kind.RECORDS:
 			nested = _compiled(row["fields"])
 			_walks[StringName(key)] = nested
-		walk.append([key, row["kind"], nested])
+		walk.append([key, row["kind"], nested, SnapshotField.quantum(row["kind"])])
 	return walk
 
 
@@ -388,8 +392,22 @@ static func _put_record(values: Values, record: Dictionary, walk: Array, kept: K
 	if record.size() != walk.size():
 		push_error("wire: a record of %s has keys the codec does not carry" % [record.keys()])
 	for field: Array in walk:
-		if field[1] == SnapshotField.Kind.INT:
+		# A seat's numbers and flags are put here, as SnapshotField.quanta puts them,
+		# without a call or a list per field.
+		var kind: int = field[1]
+		if kind == SnapshotField.Kind.INT:
 			values.ints.append(record.get(field[0]))
+		elif kind == SnapshotField.Kind.BOOL:
+			values.ints.append(1 if record.get(field[0]) else 0)
+		elif kind == SnapshotField.Kind.LENGTHS or kind == SnapshotField.Kind.SPEEDS:
+			var unit: float = field[3]
+			var vector: Vector3 = record.get(field[0])
+			values.ints.append(roundi(vector.x / unit))
+			values.ints.append(roundi(vector.y / unit))
+			values.ints.append(roundi(vector.z / unit))
+		elif _scalar(kind):
+			var scalar_unit: float = field[3]
+			values.ints.append(roundi(float(record.get(field[0])) / scalar_unit))
 		elif kept != null and field[0] == "props":
 			_put_kept(values, record.get(field[0]), field[2], kept)
 		elif kept != null and field[1] == SnapshotField.Kind.AMOUNTS:
@@ -471,9 +489,21 @@ static func _put_field(values: Values, value: Variant, field: Array) -> void:
 static func _record(values: Values, walk: Array, kept: Kept = null) -> Dictionary:
 	var record := {}
 	for field: Array in walk:
-		# Most fields are counts and enums: read here, without a call per field.
-		if field[1] == SnapshotField.Kind.INT:
+		# Most fields are counts, enums, flags and a seat's numbers: read here, as
+		# SnapshotField.from_quanta makes them, without a call or a list per field.
+		var kind: int = field[1]
+		if kind == SnapshotField.Kind.INT:
 			record[field[0]] = values.take()
+		elif kind == SnapshotField.Kind.BOOL:
+			record[field[0]] = values.take() != 0
+		elif kind == SnapshotField.Kind.LENGTHS or kind == SnapshotField.Kind.SPEEDS:
+			var unit: float = field[3]
+			record[field[0]] = Vector3(
+				values.take() * unit, values.take() * unit, values.take() * unit
+			)
+		elif _scalar(kind):
+			var scalar_unit: float = field[3]
+			record[field[0]] = values.take() * scalar_unit
 		elif kept != null and field[0] == "props":
 			record[field[0]] = _take_kept(values, field[2], kept)
 		elif kept != null and field[1] == SnapshotField.Kind.AMOUNTS:
@@ -527,6 +557,16 @@ static func _take_kept(values: Values, walk: Array, kept: Kept) -> Array[Diction
 			kept.entries[index] = _record(walked, walk)
 	kept.numbers = numbers
 	return kept.entries.duplicate()
+
+
+## Whether a field of [param kind] is one number kept at a quantum.
+static func _scalar(kind: int) -> bool:
+	return (
+		kind == SnapshotField.Kind.LENGTH
+		or kind == SnapshotField.Kind.ANGLE
+		or kind == SnapshotField.Kind.DEGREES
+		or kind == SnapshotField.Kind.AMOUNT
+	)
 
 
 ## How many numbers a record walked as [param walk] comes to: every field of a prop is of

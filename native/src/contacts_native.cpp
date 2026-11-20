@@ -1,6 +1,7 @@
-// core/prop_stands.gd, Surfaces.obstacle_contacts, rail_contacts and
-// airborne_rail_contacts (with SpatialIndex.near, PlaneShapes, DoorLeaves.contacts and
-// FallenFunnels.contacts) and Hazards._move's contact passes, operation for operation:
+// core/prop_stands.gd, Surfaces.obstacle_contacts, rail_contacts,
+// airborne_rail_contacts and line_of_sight (with SpatialIndex.near and along,
+// PlaneShapes, DoorLeaves.contacts and crossed and FallenFunnels.contacts and crossed)
+// and Hazards._move's contact passes, operation for operation:
 // a GDScript float is a double and a Vector2 or Vector3 floats, so a component read out
 // of a vector is widened before it is summed, and a vector's own sums, products,
 // lengths and dots are worked in float32 by godot-cpp's vectors, which are the engine's
@@ -24,6 +25,9 @@ constexpr int32_t UNASKED = -2;
 constexpr double INF = std::numeric_limits<double>::infinity();
 // SpatialIndex.ROUNDING; PropStands.CELL and SLACK; PlaneShapes.CLIMB_MARGIN and SEAM.
 constexpr double ROUNDING = 0.000001;
+// SpatialIndex.STRETCH_CELLS and STRETCH_SLACK.
+constexpr double STRETCH_CELLS = 2.0;
+constexpr double STRETCH_SLACK = 0.001;
 constexpr double STANDS_CELL = 2.0;
 constexpr double STANDS_SLACK = 0.001;
 constexpr double CLIMB_MARGIN = 0.001;
@@ -214,6 +218,94 @@ thread_local std::vector<Vector2> flats_found;
 thread_local std::vector<Cornered> cornered_found;
 thread_local std::vector<ContactHit> rails_found;
 thread_local std::vector<int32_t> landing_found;
+thread_local std::vector<int32_t> along_found;
+thread_local std::vector<int32_t> along_stretch;
+thread_local std::vector<int32_t> crossed_met;
+thread_local std::vector<int32_t> walked_held;
+thread_local std::vector<ContactHit> walked_met;
+thread_local std::vector<int32_t> sight_found;
+
+// Geometry2D.segment_intersects_segment, the engine's (core/math/geometry_2d.h), as a
+// yes or no.
+bool segments_cross(const Vector2 &p_from_a, const Vector2 &p_to_a, const Vector2 &p_from_b, const Vector2 &p_to_b) {
+	const Vector2 b = p_to_a - p_from_a;
+	Vector2 c = p_from_b - p_from_a;
+	Vector2 d = p_to_b - p_from_a;
+	const real_t length = b.dot(b);
+	if (length <= 0) {
+		return false;
+	}
+	const Vector2 bn = b / length;
+	c = Vector2(c.x * bn.x + c.y * bn.y, c.y * bn.x - c.x * bn.y);
+	d = Vector2(d.x * bn.x + d.y * bn.y, d.y * bn.x - d.x * bn.y);
+	if ((c.y < real_t(-CMP_EPSILON) && d.y < real_t(-CMP_EPSILON)) ||
+			(c.y > real_t(CMP_EPSILON) && d.y > real_t(CMP_EPSILON))) {
+		return false;
+	}
+	if (Math::is_equal_approx(c.y, d.y)) {
+		return false;
+	}
+	const real_t position = d.x + (c.x - d.x) * d.y / (d.y - c.y);
+	return !(position < 0 || position > 1);
+}
+
+// PlaneShapes.segment_meets_rect.
+bool segment_meets_rect(const Vector2 &p_start, const Vector2 &p_end, const Rect2 &p_rect) {
+	if (p_rect.has_point(p_start) || p_rect.has_point(p_end)) {
+		return true;
+	}
+	const Vector2 end = p_rect.get_end();
+	const Vector2 corners[4] = { p_rect.position, Vector2(end.x, p_rect.position.y), end,
+		Vector2(p_rect.position.x, end.y) };
+	for (int index = 0; index < 4; index++) {
+		if (segments_cross(p_start, p_end, corners[index], corners[(index + 1) % 4])) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// PlaneShapes.segment_in_rect: the fractions along the segment inside the rectangle, as
+// a Vector2 of floats; empty (x > y) when it misses.
+Vector2 segment_in_rect(const Vector2 &p_start, const Vector2 &p_end, const Rect2 &p_rect) {
+	double low = 0.0;
+	double high = 1.0;
+	const Vector2 delta = p_end - p_start;
+	const Vector2 rect_end = p_rect.get_end();
+	for (int axis = 0; axis < 2; axis++) {
+		const double lower = double(p_rect.position[axis]);
+		const double upper = double(rect_end[axis]);
+		const double way = double(delta[axis]);
+		const double from = double(p_start[axis]);
+		if (Math::is_zero_approx(way)) {
+			if (from < lower || from > upper) {
+				return Vector2(INF, -INF);
+			}
+			continue;
+		}
+		const double first = (lower - from) / way;
+		const double second = (upper - from) / way;
+		low = max_f(low, min_f(first, second));
+		high = min_f(high, max_f(first, second));
+	}
+	return low <= high ? Vector2(real_t(low), real_t(high)) : Vector2(INF, -INF);
+}
+
+// PlaneShapes.segment_in_circle, the same way.
+Vector2 segment_in_circle(const Vector2 &p_start, const Vector2 &p_end, const Vector2 &p_centre, double p_radius) {
+	const Vector2 delta = p_end - p_start;
+	const double a = double(delta.length_squared());
+	const Vector2 offset = p_start - p_centre;
+	const double b = double(offset.dot(delta));
+	const double discriminant = b * b - a * (double(offset.length_squared()) - p_radius * p_radius);
+	if (a == 0.0 || discriminant < 0.0) {
+		return Vector2(INF, -INF);
+	}
+	const double root = std::sqrt(discriminant);
+	const double low = max_f(0.0, (-b - root) / a);
+	const double high = min_f(1.0, (-b + root) / a);
+	return low <= high ? Vector2(real_t(low), real_t(high)) : Vector2(INF, -INF);
+}
 } // namespace
 
 // --- SpatialIndex ---
@@ -288,6 +380,27 @@ void ContactGrid::near(const Vector2 &p_position, const Vector2 &p_end, double p
 	if (filled > 1) {
 		std::sort(r_found.begin(), r_found.end());
 		r_found.erase(std::unique(r_found.begin(), r_found.end()), r_found.end());
+	}
+}
+
+// SpatialIndex.along: near() of the line's box for a line no longer than STRETCH_CELLS
+// cells, else of the box of each stretch of it that long, a hair over, one after the other.
+void ContactGrid::along(const Vector2 &p_start, const Vector2 &p_end, double p_bottom, double p_top,
+		std::vector<int32_t> &r_found) const {
+	const int64_t stretches = int64_t(std::ceil(double(p_start.distance_to(p_end)) / (side * STRETCH_CELLS)));
+	if (stretches <= 1) {
+		const Rect2 box = Rect2(p_start, Vector2()).expand(p_end);
+		near(box.position, box.get_end(), p_bottom, p_top, r_found);
+		return;
+	}
+	r_found.clear();
+	std::vector<int32_t> &stretch_found = along_stretch;
+	for (int64_t stretch = 0; stretch < stretches; stretch++) {
+		const Vector2 from = p_start.lerp(p_end, real_t(double(stretch) / double(stretches)));
+		const Vector2 to = p_start.lerp(p_end, real_t(double(stretch + 1) / double(stretches)));
+		const Rect2 box = Rect2(from, Vector2()).expand(to).grow(real_t(STRETCH_SLACK));
+		near(box.position, box.get_end(), p_bottom, p_top, stretch_found);
+		r_found.insert(r_found.end(), stretch_found.begin(), stretch_found.end());
 	}
 }
 
@@ -941,6 +1054,13 @@ bool NativeSurfaces::rail_contact(int32_t p_index, const Vector2 &p_point, doubl
 void NativeSurfaces::rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
 		double p_railing_height, std::vector<ContactHit> &r_found) const {
 	r_found.clear();
+	standing_rails(p_ship_point, p_radius, p_surface, p_step, p_railing_height, r_found);
+	deepest_per_direction(r_found);
+}
+
+// RailContacts.standing: into r_found, after what it holds, as found.
+void NativeSurfaces::standing_rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
+		double p_railing_height, std::vector<ContactHit> &r_found) const {
 	const Vector2 point(p_ship_point.x, p_ship_point.z);
 	ContactHit hit;
 	if (p_surface >= first_ramp_ && p_surface < first_top_) {
@@ -966,7 +1086,6 @@ void NativeSurfaces::rails(const Vector3 &p_ship_point, double p_radius, int32_t
 				r_found.push_back(hit);
 			}
 		}
-		deepest_per_direction(r_found);
 		return;
 	}
 	if (p_surface < 0 || p_surface >= first_ramp_) {
@@ -981,7 +1100,73 @@ void NativeSurfaces::rails(const Vector3 &p_ship_point, double p_radius, int32_t
 			r_found.push_back(hit);
 		}
 	}
+}
+
+// RailContacts.walked: every railing whose span its centre crossed (crossed_rails), then
+// those it meets standing on the surface it stands over now and on p_surface, each railing
+// only the first time met; one per direction.
+void NativeSurfaces::walked_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
+		int32_t p_surface, double p_step, double p_railing_height, std::vector<ContactHit> &r_found) const {
+	r_found.clear();
+	crossed_rails(p_came_from, p_ship_point, p_radius, p_step, p_railing_height, r_found);
+	std::vector<int32_t> &held = walked_held;
+	held.clear();
+	for (const ContactHit &contact : r_found) {
+		held.push_back(contact.railing);
+	}
+	const int32_t now = under_at(p_ship_point, p_step, NONE);
+	const int32_t ons[2] = { now, p_surface };
+	std::vector<ContactHit> &met = walked_met;
+	for (int32_t on_at = now != p_surface ? 0 : 1; on_at < 2; on_at++) {
+		met.clear();
+		standing_rails(p_ship_point, p_radius, ons[on_at], p_step, p_railing_height, met);
+		const std::vector<int32_t>::iterator held_end = held.end();
+		for (const ContactHit &contact : met) {
+			if (std::find(held.begin(), held_end, contact.railing) == held_end) {
+				r_found.push_back(contact);
+			}
+		}
+		for (const ContactHit &contact : met) {
+			held.push_back(contact.railing);
+		}
+	}
 	deepest_per_direction(r_found);
+}
+
+// RailContacts._crossed, into r_found after what it holds.
+void NativeSurfaces::crossed_rails(const Vector2 &p_came_from, const Vector3 &p_ship_point, double p_radius,
+		double p_step, double p_railing_height, std::vector<ContactHit> &r_found) const {
+	const Vector2 point(p_ship_point.x, p_ship_point.z);
+	if (point == p_came_from) {
+		return;
+	}
+	const double feet = double(p_ship_point.y);
+	std::vector<int32_t> &near = along_found;
+	rail_grid_.along(p_came_from, point, feet - p_railing_height, feet + p_step, near);
+	std::vector<int32_t> &met = crossed_met;
+	met.clear();
+	for (int32_t index : near) {
+		if (rail_gone_[index] == 1 || std::find(met.begin(), met.end(), index) != met.end()) {
+			continue;
+		}
+		met.push_back(index);
+		const double deck = tops_[rail_platforms_[index]];
+		if (deck > feet + p_step || feet >= deck + p_railing_height) {
+			continue;
+		}
+		const double was = double((p_came_from - rail_from_[index]).dot(rail_normals_[index]));
+		if (was == 0.0) {
+			continue;
+		}
+		if (!segments_cross(p_came_from, point, rail_from_[index], rail_to_[index])) {
+			continue;
+		}
+		ContactHit hit;
+		hit.normal = was > 0.0 ? rail_normals_[index] : -rail_normals_[index];
+		hit.depth = p_radius - double((point - rail_from_[index]).dot(hit.normal));
+		hit.railing = index;
+		r_found.push_back(hit);
+	}
 }
 
 void NativeSurfaces::airborne_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
@@ -1021,11 +1206,132 @@ PackedFloat64Array NativeSurfaces::rail_contacts(const Vector3 &p_ship_point, do
 	return packed(found);
 }
 
+PackedFloat64Array NativeSurfaces::walked_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
+		double p_radius, int64_t p_surface, double p_step, double p_railing_height) const {
+	std::vector<ContactHit> &found = rails_found;
+	walked_rails(p_ship_point, p_came_from, p_radius, int32_t(p_surface), p_step, p_railing_height, found);
+	return packed(found);
+}
+
 PackedFloat64Array NativeSurfaces::airborne_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
 		double p_radius, double p_body_height, double p_railing_height) const {
 	std::vector<ContactHit> &found = rails_found;
 	airborne_rails(p_ship_point, p_came_from, p_radius, p_body_height, p_railing_height, found);
 	return packed(found);
+}
+
+// --- Surfaces.line_of_sight ---
+
+void NativeSurfaces::named(const Array &p_names) {
+	platform_names_.assign(p_names.size(), Variant());
+	for (int64_t platform = 0; platform < p_names.size(); platform++) {
+		platform_names_[platform] = p_names[platform];
+	}
+}
+
+// DoorLeaves.crossed.
+bool NativeSurfaces::doors_cross(const Vector2 &p_start, const Vector2 &p_end, double p_low, double p_high) const {
+	for (size_t door = 0; door < door_axes_.size(); door++) {
+		if (door_shut_[door] <= 0.0 || p_high <= door_sills_[door] || p_low >= door_heads_[door]) {
+			continue;
+		}
+		const int axis = door_axes_[door] == 0 ? 0 : 1;
+		const double a = double(p_start[axis]) - door_planes_[door];
+		const double b = double(p_end[axis]) - door_planes_[door];
+		if (a * b > 0.0 || a == b) {
+			continue;
+		}
+		const double along_at = double(p_start.lerp(p_end, real_t(a / (a - b)))[1 - axis]);
+		const double from = door_jambs_[door];
+		if (along_at >= from && along_at <= from + door_widths_[door] * door_shut_[door]) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// FallenFunnels.crossed: the line in each fall's strip's own axes (_into).
+bool NativeSurfaces::falls_cross(const Vector2 &p_start, const Vector2 &p_end, double p_low, double p_high) const {
+	for (size_t fall = 0; fall < fall_bases_.size(); fall++) {
+		const Vector3 &base = fall_bases_[fall];
+		const double radius = fall_radii_[fall];
+		if (p_high <= double(base.y) || p_low >= double(base.y) + radius * 2.0) {
+			continue;
+		}
+		const Rect2 strip(Vector2(0.0, real_t(-radius)), Vector2(real_t(fall_heights_[fall]), real_t(radius * 2.0)));
+		const Vector2 &along_way = fall_along_[fall];
+		const Vector2 foot(base.x, base.z);
+		const Vector2 off_start = p_start - foot;
+		const Vector2 off_end = p_end - foot;
+		const Vector2 into_start(off_start.dot(along_way),
+				real_t(double(off_start.x) * double(along_way.y) - double(off_start.y) * double(along_way.x)));
+		const Vector2 into_end(off_end.dot(along_way),
+				real_t(double(off_end.x) * double(along_way.y) - double(off_end.y) * double(along_way.x)));
+		if (segment_meets_rect(into_start, into_end, strip)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// Surfaces.line_of_sight: no shut leaf or fallen funnel across the line, and no surface
+// along it — a deck over another a slab, a stair a wedge, the rest solid from bottom to top.
+bool NativeSurfaces::line_of_sight(const Vector3 &p_from, const Vector3 &p_to, const Array &p_collapsed) const {
+	const Vector2 start(p_from.x, p_from.z);
+	const Vector2 end(p_to.x, p_to.z);
+	const double from_y = double(p_from.y);
+	const double to_y = double(p_to.y);
+	const double low = min_f(from_y, to_y);
+	const double high = max_f(from_y, to_y);
+	if (doors_cross(start, end, low, high) || falls_cross(start, end, low, high)) {
+		return false;
+	}
+	const Rect2 reach = Rect2(start, Vector2()).expand(end);
+	const bool any_collapsed = !p_collapsed.is_empty();
+	std::vector<int32_t> &near = sight_found;
+	grid_.along(start, end, low, high, near);
+	for (int32_t surface : near) {
+		if (tops_[surface] <= low || bottoms_[surface] >= high) {
+			continue;
+		}
+		const Rect2 area(area_position_[surface], area_size_[surface]);
+		if (!area.intersects(reach, true)) {
+			continue;
+		}
+		if (surface < first_ramp_) {
+			if (any_collapsed && p_collapsed.has(platform_names_[surface])) {
+				continue;
+			}
+			if (bottoms_[surface] == tops_[surface]) {
+				const double share = (tops_[surface] - from_y) / (to_y - from_y);
+				if (area.has_point(start.lerp(end, real_t(share)))) {
+					return false;
+				}
+				continue;
+			}
+		}
+		const int32_t blocker = surface - first_top_;
+		const Vector2 span = surface >= first_top_ && round_[blocker] == 1
+				? segment_in_circle(start, end, centres_[blocker], radii_[blocker])
+				: segment_in_rect(start, end, area);
+		if (span.x > span.y) {
+			continue;
+		}
+		const Vector3 first = p_from.lerp(p_to, span.x);
+		const Vector3 last = p_from.lerp(p_to, span.y);
+		if (surface >= first_ramp_ && surface < first_top_) {
+			for (const Vector3 &at : { first, last }) {
+				const double at_y = double(at.y);
+				if (at_y < ramp_height(surface, double(at.x), double(at.z)) && at_y > bottoms_[surface]) {
+					return false;
+				}
+			}
+		} else if (min_f(double(first.y), double(last.y)) < tops_[surface] &&
+				max_f(double(first.y), double(last.y)) > bottoms_[surface]) {
+			return false;
+		}
+	}
+	return true;
 }
 
 void NativeSurfaces::_bind_methods() {
@@ -1052,6 +1358,11 @@ void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("airborne_rail_contacts", "ship_point", "came_from", "radius", "body_height",
 								 "railing_height"),
 			&NativeSurfaces::airborne_rail_contacts);
+	ClassDB::bind_method(D_METHOD("walked_rail_contacts", "ship_point", "came_from", "radius", "surface", "step",
+								 "railing_height"),
+			&NativeSurfaces::walked_rail_contacts);
+	ClassDB::bind_method(D_METHOD("named", "names"), &NativeSurfaces::named);
+	ClassDB::bind_method(D_METHOD("line_of_sight", "from", "to", "collapsed"), &NativeSurfaces::line_of_sight);
 	ClassDB::bind_method(D_METHOD("floors", "from", "floors", "clearances"), &NativeSurfaces::floors);
 	ClassDB::bind_method(D_METHOD("under", "ship_point", "step", "except_prop"), &NativeSurfaces::under);
 	ClassDB::bind_method(D_METHOD("floor_way", "from", "end", "keep", "rules"), &NativeSurfaces::floor_way);

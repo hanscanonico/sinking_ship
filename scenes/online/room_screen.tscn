@@ -76,6 +76,10 @@ unique_name_in_owner = true
 custom_minimum_size = Vector2(120, 0)
 text = "Leave room"
 
+[node name="Watch" type="CheckButton" parent="Panel/Box/Room"]
+unique_name_in_owner = true
+text = "Watch without a seat"
+
 [node name="Seats" type="VBoxContainer" parent="Panel/Box"]
 custom_minimum_size = Vector2(260, 0)
 theme_override_constants/separation = 6

@@ -463,3 +463,81 @@ func test_a_client_reads_impossible_server_packets_as_nothing() -> void:
 	client.poll()
 	assert_eq(client.state, RoomClient.State.LOBBY, "welcomed, and nothing more")
 	assert_null(client.roster)
+
+
+## A BEGIN of more seats than this client's ship has is a match its data cannot play:
+## it hangs up with DATA at once, rather than leave the server waiting on its load.
+func test_a_begin_past_the_ships_seats_is_hung_up_on() -> void:
+	var rules: MatchRules = load(RoomFixtures.MATCH_DATA)
+	var codec := RoomCodec.new(RoomServer.data_hash(rules, NetRules.load_default()))
+	var server_end := LoopbackTransport.new(
+		RoomFixtures.SERVER_PEER, NetClock.new(), NetConditions.new(), SeedStreams.derive(1, 0)
+	)
+	var client_end := LoopbackTransport.new(
+		2, NetClock.new(), NetConditions.new(), SeedStreams.derive(1, 1)
+	)
+	LoopbackTransport.link(server_end, client_end)
+	var client := RoomClient.new(client_end, rules, NetRules.load_default(), "Ada")
+	var begun: Array[int] = []
+	client.began.connect(func(_config: MatchConfig, seat: int) -> void: begun.append(seat))
+	client.poll()
+	var roster := RoomRoster.new()
+	roster.code = "ABCD"
+	roster.you = 0
+	roster.players.append(RoomRoster.Player.new("Ada", true, false))
+	server_end.send(2, codec.encode_bare(WireCodec.Kind.WELCOME))
+	server_end.send(2, codec.encode_roster(roster))
+	server_end.send(2, codec.encode_begin(1701, rules.ship.max_seats + 1, 0))
+	client.poll()
+	assert_eq(client.state, RoomClient.State.CLOSED, "the client hangs up")
+	assert_eq(client.close_reason, RoomCodec.Refusal.DATA, "on a match its data cannot play")
+	assert_eq(begun, [] as Array[int], "and begins nothing")
+	assert_true(server_end.closed().has(2), "the server hears it go")
+
+
+## Watching on the wire (#611): WATCH carries the sender's word, a roster marks who
+## watches, and a BEGIN gives a watcher no seat; a WATCH saying neither is nothing.
+func test_watching_round_trips() -> void:
+	var codec := RoomCodec.new(
+		RoomServer.data_hash(load(RoomFixtures.MATCH_DATA), NetRules.load_default())
+	)
+	for on: bool in [true, false]:
+		var watch := codec.decode(codec.encode_watch(on))
+		assert_eq([watch.kind, watch.value], [WireCodec.Kind.WATCH, 1 if on else 0])
+	var neither := codec.encode_watch(true)
+	neither[-1] = 2
+	assert_null(codec.decode(neither), "a WATCH neither on nor off")
+	var roster := RoomRoster.new()
+	roster.code = "ABCD"
+	roster.you = 1
+	roster.players.append(RoomRoster.Player.new("Ada", true, false))
+	roster.players.append(RoomRoster.Player.new("Bea", false, false, true))
+	var read := codec.decode(codec.encode_roster(roster)).roster
+	assert_eq([read.players[0].watching, read.players[1].watching], [false, true])
+	assert_true(read.you_watch())
+	assert_eq(read.seated().size(), 1, "the watcher is no seat")
+	var begin := codec.decode(codec.encode_begin(1701, 8, -1))
+	assert_eq([begin.value, begin.seats, begin.seat], [1701, 8, -1], "a BEGIN with no seat")
+
+
+## A watcher sends no input to end its loading: held to load_timeout from its match's
+## start, it is held to silence_timeout after, answering pings all the while — and
+## silent past it, it is let go.
+func test_a_watcher_is_held_to_the_silence_once_loaded() -> void:
+	var fixture := RoomFixtures.new(
+		RoomFixtures.rules_with({"silence_timeout": 3.0, "load_timeout": 9.0}),
+		RoomFixtures.flat_rules()
+	)
+	var players := fixture.room_of(2)
+	players[1].watch(true)
+	fixture.beat()
+	players[0].start_match()
+	fixture.beat()
+	players[0].play(InputSource.new()).step()
+	fixture.beat(ServerRules.beats(fixture.rules.load_timeout) * 2)
+	assert_false(fixture.logged("went silent"), "a watcher answering pings stays")
+	assert_eq(fixture.server.connection_count(), 2)
+	fixture.hush(players[1])
+	fixture.beat(ServerRules.beats(fixture.rules.silence_timeout))
+	assert_true(fixture.logged("went silent"), "silent past silence_timeout, it is let go")
+	assert_false(fixture.logged("loading its match"))

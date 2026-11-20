@@ -113,8 +113,7 @@ var _dodge: CargoDodge
 ## Its props, and the lifebuoy it goes for as the last think scored it (#273).
 var _props: BotProps
 var _buoy_score := 0.0
-## The bonuses aboard and its own, and the score of the one it goes for as the last think
-## chose it (#307).
+## The bonuses aboard and its own, and its score as the last think chose it (#307).
 var _bonuses: BotBonuses
 var _bonus_score := 0.0
 ## The floors of the frame it stands in (BotFloors, SH32), and that frame's.
@@ -134,8 +133,7 @@ var _plays_for := MatchRules.Goal.LAST_STANDING
 var _goal := WalkGraph.NONE
 ## The portals to it, as the last think found them; steered along until the next.
 var _legs: Array[WalkGraph.Portal] = []
-## Whether it is climbing because its floor was about to flood: it climbs on until it
-## stands in the zone it was making for.
+## Whether it climbs because its floor was about to flood: on until it stands in its goal.
 var _climbing := false
 ## Whether its way to where it climbs is a wade (BotRefuge.wade_out), heedless of water.
 var _wading := false
@@ -189,8 +187,7 @@ var _edge_also := Vector3.ZERO
 ## The tick of its view, from which it steps its walks since nearing a stair (_follow_route);
 ## -1 while it is seen held at its start, where no walk has moved it.
 var _seen_tick := 0
-## How hard it fights, as the last think found the match: how much it presses and its
-## spar margin.
+## How hard it fights, as the last think found the match: how much it presses, its spar margin.
 var _pacing: BotPacing
 ## How far ahead of its target it aims, as the last think found it: the share of where
 ## the target's seen velocity carries it over the bot's reaction time.
@@ -253,6 +250,7 @@ func decide(view: BotView, tick: int) -> InputFrame:
 	# which a turn toward one since cannot hide — and, past the grip angle, where it
 	# slides wherever it walks, from both.
 	var now_pos := _reckoning.reckon(me)
+	_footing.stand(now_pos, me["surface"], pose)
 	var slides := _footing.slides(pose)
 	_edge_from = _reckoning.by_walks(me, seen["tick"], now_pos)
 	_edge_also = now_pos if slides else _edge_from
@@ -323,7 +321,8 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_up = up
 	_walk_graph = _floors.graph(up, pose)
 	_surfaces = _walk_graph.surfaces()
-	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m)
+	var lag := (_profile.reaction_ticks + _profile.think_period) * Ticks.SECONDS_PER_TICK
+	_footing = BotFooting.new(_surfaces, _walk_graph, _rules, _profile.edge_margin_m, lag)
 	_stair = BotStair.new(_walk_graph, _rules, _profile)
 	_floor_way = BotFloorWay.new(_walk_graph, _rules, _profile.think_period)
 	_reckoning.stand_on(_footing, _surfaces)
@@ -411,8 +410,11 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	var wade := _refuges.wade_out(my_zone, my_pos, my_surface, pose, refuge, _goal, _wading)
 	refuge = refuge if wade.is_empty() else wade.back().to_zone
 	target = _targeting.choose(seen, me, found, pose, highest, target, refuge, under)
-	_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
-	_bonus_score = _bonuses.choose(seen, me, found, _walk_graph, pose)
+	# Seen in the air, it keeps the ring or bonus it goes for, still there: a drop is no news.
+	var takes := intent == Intent.TAKE_BUOY or intent == Intent.TAKE_BONUS
+	if me["state"] != PlayerState.Body.AIRBORNE or not takes or _aim(seen).is_empty():
+		_buoy_score = _props.choose(seen, me, found, _walk_graph, under, pose)
+		_bonus_score = _bonuses.choose(seen, me, found, _walk_graph, pose)
 	# Going for a bonus, it reads its floor as it read its way: by the water in her now.
 	var low := (
 		floor_height
@@ -455,7 +457,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	_footing.margin = _profile.edge_margin_m * (1.0 - _profile.late_margin_share * under)
 	_pacing.pace(seen, under, seats_left)
 	var walk := _rules.walk_speed * _profile.think_period * Ticks.SECONDS_PER_TICK
-	var reach := _profile.edge_margin_m + walk
+	var reach := _profile.edge_margin_m + walk + _footing.slide_reach(pose, me["vel"])
 	_edges_near = (
 		_footing.danger_within(_edge_from, pose, reach)
 		or _edge_also != _edge_from and _footing.danger_within(_edge_also, pose, reach)
@@ -636,7 +638,8 @@ func _aim(seen: Dictionary) -> PackedVector3Array:
 	return _props.aim(seen) if intent == Intent.TAKE_BUOY else _bonuses.aim(seen)
 
 
-## Along the route to what it goes to take, [param aim] (_aim); there, to where it stands
+## Along the route to what it goes to take, [param aim] (_aim); there — down its last leg's
+## stair within a step of its foot, too (BotStair.through) — to where it stands
 ## to take it, by the floor (BotFloorWay: a manhole's ladder opens in the floor it crosses),
 ## at a pace that would bring it there in two of its view's lags — reckoned on by its seen
 ## velocity it stands a lag's walk off however it turns, so at a walk it would carry on round
@@ -652,7 +655,7 @@ func _take(
 	if aim.is_empty():
 		_hunt(steer, me, mark, now_pos, pose)
 		return
-	if _follow_route(steer, me, now_pos, pose):
+	if not _stair.through(_legs, now_pos) and _follow_route(steer, me, now_pos, pose):
 		return
 	var stand := aim[0]
 	var at := aim[1]
@@ -791,7 +794,7 @@ func _follow_route(steer: Steer, me: Dictionary, now_pos: Vector3, pose: ShipPos
 	if waypoint.is_empty():
 		return false
 	var leg := _legs[0]
-	var aim := _floor_way.toward(now_pos, my_surface, leg, waypoint[0], me["surface"])
+	var aim := _floor_way.toward(now_pos, my_surface, leg, waypoint[0])
 	var wish := Vector2(aim.x - now_pos.x, aim.z - now_pos.z).normalized()
 	# Down a stair the route does not take is into another zone, whose route is back up
 	# it: on one — as it sees itself or reckons — with the way on back across it, off it
@@ -891,10 +894,12 @@ func _keep_off_edges(
 		away -= move.normalized() * away.dot(move.normalized())
 	move = (away + move).normalized()
 	var cleared := _footing.clear_heading(now_pos, move, PackedInt32Array(), PackedInt32Array())
+	# Round a wall, if not toward more; edged into one, its own clear walk (by a side rail, #587).
+	if not headed and not cleared.is_equal_approx(move):
+		cleared = steer.move.normalized()
 	if not _footing.danger_toward(
 		now_pos, my_surface, pose, mark, stair_ahead, cleared, heed_drops
 	):
-		# Backing off the water must not walk it into a wall: round it, if not toward more.
 		move = cleared
 	var reaction_s := _profile.reaction_ticks * Ticks.SECONDS_PER_TICK
 	var stop_s := _rules.walk_speed / _rules.ground_friction
@@ -1025,13 +1030,9 @@ func _near_low_side(me: Dictionary, now_pos: Vector3, pose: ShipPose, lurch: flo
 
 
 ## Whether the deck, tilted past the grip angle, would carry the bot toward water or
-## an open edge within its edge margin.
+## an open edge within its edge margin and its slide's reach (BotFooting.slipping).
 func _slipping(me: Dictionary, mark: Dictionary, now_pos: Vector3, pose: ShipPose) -> bool:
-	if not _edges_near or not _footing.slides(pose):
-		return false
-	var away := BotFooting.away(_footing.dangers(now_pos, me["surface"], pose, mark, Vector2.ZERO))
-	var gravity := pose.ship_gravity(_rules.gravity)
-	return away != Vector2.ZERO and away.dot(Vector2(gravity.x, gravity.z)) < 0.0
+	return _edges_near and _footing.slipping(now_pos, me["vel"], me["surface"], pose, mark)
 
 
 ## The next point on the way to the goal: past the portals already gone through, or

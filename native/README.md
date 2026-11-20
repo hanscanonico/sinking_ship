@@ -10,15 +10,17 @@ cells a step holds stiff and her failures' heads across what can give way
 (`core/sinking/ship_motion.gd`, #411), her level hull's build and her girder's bending
 (`core/sinking/level_hull.gd`, `core/sinking/hull_girder.gd`, #492), the floating furniture's contacts: where her
 props stand (`core/prop_stands.gd`), what holds a circle back
-(`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`) and the
+(`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`), who sees
+whom (`Surfaces.line_of_sight`, the bots' view and the HUD's marks), and the
 cargo's contact passes (`Hazards._move`, `core/hazards.gd`), a bot's search for a way
 round by the floor and the surface under each square it asks of (`ai/bot_floor_way.gd`,
 `Surfaces.under`), the dressed ship's face
 emission — her faces cut at the chunk and room lines, judged indoors or out and gathered
 into batches (`scenes/art/ship_mesh.gd`, `scenes/art/indoor_grid.gd`, #411) — the
 water's effects' walks of her cells, openings and decks (`scenes/art/inner_water.gd`,
-`scenes/match/fx_planner.gd`, `scenes/audio/cue_planner.gd`), and the choice of which
-rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410).
+`scenes/match/fx_planner.gd`, `scenes/audio/cue_planner.gd`), the choice of which
+rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410), and which of her
+cells a point lies in (`CellMap.cell_at`, `core/sinking/cell_map.gd`).
 
 ## Layout
 
@@ -28,7 +30,8 @@ rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410).
   `NativeGirder`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
   `NativeCrates`) with `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `sight_native.{h,cpp}`
-  (`NativeSight`), `register_types.cpp` (the entry, `sinking_native_init`).
+  (`NativeSight`), `cell_map_native.{h,cpp}` (`NativeCellMap`), `register_types.cpp` (the
+  entry, `sinking_native_init`).
 - `SConstruct` — the build, over godot-cpp's; `build_profile.json` — the engine
   classes godot-cpp binds (few, so it compiles quickly).
 - `build/` — not tracked: godot-cpp at its pinned commit (`tools/native_build.sh`) and
@@ -57,7 +60,7 @@ an artifact of the run:
 - `native (linux)` — `native-linux`, the `.so` the ten test shards load
   (`SINKING_NATIVE_REQUIRED=1`).
 - `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
-  runner, where the ten cross-check scripts run against it: arm64 is where a compiler
+  runner, where the eleven cross-check scripts run against it: arm64 is where a compiler
   contracts `a * b + c` by default, so a difference from the engine's own GDScript
   arithmetic would show there first.
 - `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with
@@ -103,6 +106,15 @@ and its `IndoorGrid` hands its grid to a `NativeIndoorGrid`; the extension calls
 what stays GDScript's (a room's ceiling worked out, what fades, roofed space). A checkout
 that never ran `make native`, or the web export, runs the GDScript and the same match,
 the same sinking and the same art.
+
+Every one of those checks goes through `NativeVersion.has()` (`core/native_version.gd`),
+which also asks the library's version: `NativeAbi.VERSION` in `src/register_types.cpp`
+against `NativeVersion.VERSION`. `lib/` is built per machine, so a checkout that pulled a
+change to the extension's classes without running `make native` again holds a library
+older than the GDScript calling it; a library of any other version counts as absent, the
+GDScript runs, and the game warns once to run `make native`. **Bump both numbers together
+in every change that adds, removes or changes a native class or a method the GDScript
+calls.** CI requires the library, and `test_native_version` fails there on a mismatch.
 
 ## Determinism
 

@@ -34,13 +34,16 @@ func _cylinder(layout: ShipLayout, at: Vector2) -> ShipBlocker:
 
 
 ## [param layout]'s blockers whose box, grown by a body's radius, reaches the ship
-## plane between [param from] and [param to].
+## plane between [param from] and [param to]; never a flight's side rail, whose cap, as a
+## railing's, nobody stands on (ShipArt.FLIGHT_SIDE_RAIL).
 func _blockers_near(layout: ShipLayout, from: Vector3, to: Vector3) -> Array[ShipBlocker]:
 	var low := Vector2(minf(from.x, to.x), minf(from.z, to.z))
 	var high := Vector2(maxf(from.x, to.x), maxf(from.z, to.z))
 	var under := Rect2(low, high - low).grow(_rules.body_radius)
 	var near: Array[ShipBlocker] = []
 	for blocker: ShipBlocker in layout.blockers:
+		if blocker.resource_scene_unique_id.begins_with(ShipArt.FLIGHT_SIDE_RAIL):
+			continue
 		var area := blocker.area
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:
 			var round := Vector2.ONE * blocker.radius
@@ -192,3 +195,43 @@ func test_the_steamer_s_mast_works_her_hatch_with_a_derrick() -> void:
 	assert_between(rise, 25.0 - 0.01, 35.0, "topped up")
 	for kind: StringName in [&"lift", &"runner", &"hook", &"gooseneck"]:
 		assert_eq(_of_kind(lines, kind).size(), 1, "its %s" % kind)
+
+
+## DeckWorks._tops_along answers at every point of a line what _top_at does of it alone,
+## on every ship of the fleet: along each of her rig lines, and along her length on each
+## edge of her first forty platforms' areas grown by a body's radius, where every point
+## stands on the line a top's area starts or ends.
+func test_the_tops_along_a_line_are_each_point_s_highest() -> void:
+	for ship: String in Fleet.names():
+		var layout := Fleet.layout(StringName(ship))
+		var bounds := SpatialIndex.bounds_of(layout)
+		var lines: Array[PackedVector3Array] = []
+		for line in DeckWorks.rigging(layout, _rules):
+			lines.append(PackedVector3Array([line.from, line.to]))
+		lines.append(
+			PackedVector3Array(
+				[
+					Vector3(bounds.position.x, 0.0, bounds.position.y),
+					Vector3(bounds.end.x, 0.0, bounds.end.y)
+				]
+			)
+		)
+		for platform: ShipPlatform in layout.platforms.slice(0, 40):
+			var reach := _rules.body_radius
+			for edge: float in [platform.area.position.y - reach, platform.area.end.y + reach]:
+				lines.append(
+					PackedVector3Array(
+						[Vector3(bounds.position.x, 0.0, edge), Vector3(bounds.end.x, 0.0, edge)]
+					)
+				)
+		var wrong := 0
+		for line: PackedVector3Array in lines:
+			var none: Array[ShipBlocker] = []
+			var tops := DeckWorks._tops_under(layout, _rules, line[0], line[1], none)
+			var steps := maxi(1, ceili(line[0].distance_to(line[1]) / DeckWorks.RIG_STEP))
+			var along := DeckWorks._tops_along(tops, line[0], line[1], steps)
+			for step in steps + 1:
+				var point := line[0].lerp(line[1], float(step) / steps)
+				if along[step] != DeckWorks._top_at(tops, Vector2(point.x, point.z)):
+					wrong += 1
+		assert_eq(wrong, 0, "%s: %d lines, every point's highest top" % [ship, lines.size()])

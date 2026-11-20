@@ -67,6 +67,10 @@ var _aim := Vector3.INF
 var _way := PackedVector3Array()
 var _way_leg: WalkGraph.Portal = null
 var _finds := FINDS
+## Whether a search over CELL's squares found no way round along this leg from further than
+## NARROW off its end, where it does not look over FINER's: it looks again only once within
+## NARROW of it (#567).
+var _beyond := false
 ## What the extension's search is handed of these and the rules (NativeSurfaces.floor_way):
 ## over CELL's squares, and over FINER's.
 var _native_rules: PackedFloat64Array
@@ -104,26 +108,25 @@ func _init(walk_graph: WalkGraph, rules: BrawlRules, think_period: int) -> void:
 ## straight at it holds, or the bot is off its feet; else the furthest point along the way
 ## round to the leg's entry, or to [param to], that it could walk straight to — [param to]
 ## once that is the way's end, or with no way round found. Between its looks, the same.
-## Seen on the leg's own stair, [param seen], and on it still, [param to]: the way round
-## ends at the stair's near end, and it is through it (#550).
-func toward(
-	from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3, seen := Surfaces.NONE
-) -> Vector3:
+## On the leg's own stair, as it reckons, [param to]: the way round ends at the stair's near
+## end, and it is through it (#550). A railing beside the stair holds its reckoned body off
+## the stair as it holds its body (BotReckoning.by_steps, #557).
+func toward(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> Vector3:
 	if surface == Surfaces.NONE:
 		return to
 	if _way_leg != leg:
 		_way.clear()
 		_way_leg = leg
 		_finds = FINDS
+		_beyond = false
 		_wait = 0
 	elif leg == null and not _way.is_empty() and _flat(_way[_way.size() - 1], to) > NEAR:
 		# Its target has moved on from where the way round to it ends.
 		_way.clear()
 		_wait = 0
-	if leg != null and leg.ramp != WalkGraph.NONE and surface == seen:
-		if seen == _surfaces.ramp_surface(leg.ramp):
-			_wait = 0
-			return to
+	if leg != null and leg.ramp != WalkGraph.NONE and surface == _surfaces.ramp_surface(leg.ramp):
+		_wait = 0
+		return to
 	if _wait > 0:
 		_wait -= 1
 		return to if _aim == Vector3.INF else _aim
@@ -141,7 +144,8 @@ func holds(leg: WalkGraph.Portal, from: Vector3) -> bool:
 ## One look (toward): Vector3.INF to walk at [param to], else the point of the way round to
 ## walk to. None found, it looks for none again along the leg — unless it looked from where no
 ## body could stand, where its reckoning, carried on by a walk that a blocker stopped, puts
-## it: none from there says nothing of the leg, and it looks again next think.
+## it: none from there says nothing of the leg, and it looks again next think; or from
+## further than NARROW off its end, where it looks again once within NARROW (#567).
 func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> Vector3:
 	var keep := PackedInt32Array([surface])
 	if leg != null and leg.ramp != WalkGraph.NONE:
@@ -153,11 +157,19 @@ func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> V
 		if _finds == 0 or _holds(from, to, heads, keep):
 			return Vector3.INF
 		var end := to if leg == null else leg.entry
+		var narrow := _flat(from, end) <= NARROW
+		if _beyond and not narrow:
+			return Vector3.INF
 		_way = _find(from, end, keep)
-		if _way.is_empty() and _flat(from, end) <= NARROW:
+		if _way.is_empty() and narrow:
 			_way = _find(from, end, keep, true)
 		var ends := _way.is_empty() and _stands(from, surface, keep, _snug)
-		_finds = 0 if ends else _finds - 1
+		if ends and not narrow:
+			# A doorway's lane may fall between CELL's squares: none found over them says
+			# nothing of the leg till FINER's are looked over too, within NARROW.
+			_beyond = true
+		else:
+			_finds = 0 if ends else _finds - 1
 		if _way.is_empty():
 			return Vector3.INF
 		near = 0

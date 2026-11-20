@@ -12,7 +12,8 @@ extends CanvasLayer
 ## stood down. From a session's second match on, the session's standings stand beside
 ## the table (SessionTally): each name's points and rank over its matches. Under the
 ## table one line tells the ship's fate (setup_fate, MatchTranscript.fate_line): her
-## name, how her sinking ends and how much of it the match played.
+## name, how her sinking ends and how much of it the match played. A watcher has no seat
+## (-1): the title names who won (watched_title) and no row is picked out.
 
 signal rematch_requested
 signal menu_requested
@@ -89,21 +90,7 @@ func show_results(
 ) -> void:
 	if visible or not stats.ended:
 		return
-	var mine := stats.seats[local_seat]
-	var gone := Hud.out_word(mine.out_cause)
-	if survival:
-		_title.text = survived(mine.dry_ticks, mine.place, mine.out_cause)
-	elif stats.winner == local_seat:
-		_title.text = "Last one dry!"
-	elif stats.seats.size() == 1:
-		_title.text = "%s — you stayed dry %s" % [gone, MatchTranscript.clock(mine.dry_ticks)]
-	elif stats.winner == -1 and mine.place == 1:
-		_title.text = "The sea wins — nobody stays dry"
-	else:
-		_title.text = "%s — %s of %d" % [gone, ordinal(mine.place), stats.seats.size()]
-		# A shove long before she went is no shove over the side.
-		if mine.out_by >= 0 and mine.out_cause != PlayerState.Cause.WITH_HER:
-			_title.text += " — shoved by %s" % names[mine.out_by]
+	_title.text = _title_of(stats, local_seat, names, survival)
 	for child in _table.get_children():
 		_table.remove_child(child)
 		child.queue_free()
@@ -123,7 +110,7 @@ func show_results(
 		_cell(MatchTranscript.clock(line.dry_ticks), colour)
 		_cell(str(line.shoves_landed), colour)
 		_cell(str(line.knockouts), colour)
-	show_session(session, names[local_seat])
+	show_session(session, names[local_seat] if local_seat >= 0 else "")
 	_show_fate(stats.ended_tick)
 	_seed.text = "Seed %d" % match_seed
 	_rematch.disabled = true
@@ -131,6 +118,47 @@ func show_results(
 	_menu.disabled = true
 	show()
 	_guard.start()
+
+
+## The results' title: how [param stats]' match ended for [param local_seat] — under
+## survival, [param survival], how long it lasted —, or for a watcher (-1) who won it.
+static func _title_of(
+	stats: MatchStats, local_seat: int, names: PackedStringArray, survival: bool
+) -> String:
+	if local_seat < 0:
+		return watched_title(stats, names, survival)
+	var mine := stats.seats[local_seat]
+	var gone := Hud.out_word(mine.out_cause)
+	if survival:
+		return survived(mine.dry_ticks, mine.place, mine.out_cause)
+	if stats.winner == local_seat:
+		return "Last one dry!"
+	if stats.seats.size() == 1:
+		return "%s — you stayed dry %s" % [gone, MatchTranscript.clock(mine.dry_ticks)]
+	if stats.winner == -1 and mine.place == 1:
+		return "The sea wins — nobody stays dry"
+	var title := "%s — %s of %d" % [gone, ordinal(mine.place), stats.seats.size()]
+	# A shove long before she went is no shove over the side.
+	if mine.out_by >= 0 and mine.out_cause != PlayerState.Cause.WITH_HER:
+		title += " — shoved by %s" % names[mine.out_by]
+	return title
+
+
+## The results' title for a watcher, named by [param names]: the last one dry, or that
+## nobody stayed dry; under survival, [param survival], who lasted longest and how long —
+## every seat placed first, when several lasted as long.
+static func watched_title(stats: MatchStats, names: PackedStringArray, survival: bool) -> String:
+	if not survival:
+		if stats.winner == -1:
+			return "The sea wins — nobody stays dry"
+		return "Last one dry: %s" % names[stats.winner]
+	var first := PackedStringArray()
+	var lasted := 0
+	for line: MatchStats.SeatStats in stats.standings():
+		if line.place == 1:
+			first.append(names[line.seat])
+			lasted = line.dry_ticks
+	return "Lasted longest: %s · %s" % [", ".join(first), MatchTranscript.clock(lasted)]
 
 
 ## The ship the match is played on, by [param ship_name], and [param schedule], the

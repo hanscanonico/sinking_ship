@@ -215,7 +215,8 @@ func test_wading_slows_and_deep_water_swims() -> void:
 	var shallow: Array = speeds.values()[0]
 	var deep: Array = speeds.values()[1]
 	assert_eq(shallow[0], PlayerState.Body.GROUNDED, "wading under wade_depth")
-	assert_almost_eq(shallow[1], rules.wade_speed, 0.0001, "slowed to wade_speed")
+	var wade := lerpf(rules.wade_speed, rules.wade_speed_deep, rules.stand_depth / rules.wade_depth)
+	assert_almost_eq(shallow[1], wade, 0.0001, "slowed to the wade speed of its depth")
 	assert_eq(shallow[2], rules.cold_meter, "wading is not swimming")
 	assert_eq(deep[0], PlayerState.Body.SWIMMING, "swimming past wade_depth")
 	assert_almost_eq(deep[1], rules.swim_speed, 0.0001)

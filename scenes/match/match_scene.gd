@@ -4,8 +4,12 @@ extends Node3D
 ## bot when autoplaying), bots of the config's tier on the rest — or one played on a
 ## server, the local player on the seat it gives (SH12) — seen through the local
 ## seat's eyes and, once it is out, through a survivor's (D14), with the results at
-## its end. The observer camera stands in for the eyes only as a tool: for --observer
-## and captures, and it alone may cut the ship away to look inside. Rematch and menu
+## its end. A match only watched (MatchChoices.watch) has no local seat: bots play every
+## seat and the watcher looks through any dry seat's eyes, from the free camera or as the
+## ghost, as they switch; an out seat and a replay have the same views. The observer
+## camera stands in for the eyes only as a tool: for --observer and captures, and it alone
+## may cut the ship away to look inside.
+## Rematch and menu
 ## go back to whoever started it: Game, which builds every config through
 ## MatchChoices.config (D13), or OnlinePlay.
 
@@ -26,6 +30,9 @@ class Served:
 	var local: LocalInputSource
 	## What plans the sinking's effects for its client's sim (SinkingFx).
 	var planner: FxPlanner
+	## What the first-person HUD asks of its client's sim (FirstPersonHud): a liner's
+	## Surfaces of its own, made here rather than in her first frame (#640).
+	var answers: HudAnswers
 
 
 ## The choices a local match was built from (Game), for its replay; null online.
@@ -48,6 +55,9 @@ var session: SessionTally
 ## What plans the sinking's effects for the match starting (Served.planner); null while
 ## none is, and for a match served elsewhere.
 var _planner: FxPlanner
+## What the first-person HUD asks of the match starting (Served.answers); null while none
+## is, and for a match served elsewhere.
+var _answers: HudAnswers
 
 const LOCAL_SEAT := 0
 ## The gaze through another seat's eyes, in degrees above the horizon: at a level
@@ -61,6 +71,9 @@ const COLLAPSE_SHAKE := 0.6
 ## cells stacked under the decks stand apart and the ship shows end to end.
 const CELLS_PITCH_DEG := 25.0
 const CELLS_DISTANCE := 33.0
+## The eyes' seat while the view is the ghost's (FirstPersonCamera.ease_eye): none of the
+## match's.
+const GHOST_EYES := -2
 
 var _config: MatchConfig
 var _stats: MatchStats
@@ -101,8 +114,12 @@ var _kick: ViewKick
 ## The ship's cells over the observer's view, once show_cells() asks for them: one per
 ## piece she ends in once she breaks (SH33), each drawn on its piece.
 var _cells: Array[CellOverlay] = []
-## The free camera the local seat may fly once it is out, in place of a seat's eyes.
+## The free camera flown in place of a seat's eyes: the local seat's once it is out, a
+## watcher's and a replay's.
 var _free := FreeCamera.new()
+## The ghost walked in place of a seat's eyes or the free camera by whoever may fly that
+## (GhostWalk): made for each match, its ship made ahead once it may be walked (keep).
+var _ghost: GhostWalk
 ## The faint light round the eye in a room whose lamps have failed.
 var _eye_fill := EyeFill.new()
 ## The water running off the lens once the eye comes up out of it.
@@ -112,12 +129,14 @@ var _lens_drops := LensDrops.new()
 var _feed := KnockoutFeed.new()
 ## The replay's controls, made the first time a replay is watched (start_replay).
 var _replay_hud: ReplayHud
-## The replay's orbit camera (R5), made as a replay starts; null until one is.
-var _orbit: OrbitCamera
 ## Whose eyes the replay is seen through, cycled round every seat (SpectateOrder.every).
 var _replay_seat := LOCAL_SEAT
 ## Whether the match stands aside for the next one's held countdown (stand_aside).
 var _aside := false
+## Whether nobody plays the match started last, live or its replay (MatchChoices.watch):
+## no seat is the local one, bots play every seat, and a live one is a watcher's to look
+## at from any dry seat's eyes or the free camera (watching).
+var _watcher := false
 
 @onready var _sea_and_sky: SeaAndSky = $SeaAndSky
 @onready var _driver: SimDriver = $SimDriver
@@ -167,7 +186,7 @@ func _process(delta: float) -> void:
 	if not _driver.started() or _aside:
 		return
 	var snapshot := _driver.current
-	var viewed := _replay_seat if _driver.replaying() else _order.target(snapshot)
+	var viewed := _viewed()
 	_hud.show_snapshot(snapshot)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
 	_sea_and_sky.show_waders(_view.waders_drawn())
@@ -198,25 +217,26 @@ func _process(delta: float) -> void:
 		_end.show_prompts(_prompts)
 		save_replay()
 	_free.keep(_can_fly(snapshot))
-	_pointer.want(_looking() or _flying())
+	_ghost.keep(_can_fly(snapshot))
+	_pointer.want(_looking() or _flying() or _walking())
 	_hold()
 	var local_up := _up_of(snapshot, _local_seat)
 	if _local != null and local_up != _local_up:
 		_local.turn_face(_local_up, local_up, _view.seat_to_world(_local_seat).basis)
 		_local_up = local_up
-	if _looking() and not _free.active:
+	if _looking() and not _free.active and not _ghost.active:
 		_local.look_by_stick(delta)
-	_audio.hear_through(-1 if _observer or _free.active or _orbiting() else viewed)
-	_first_person_hud.flying = _free.active or _orbiting()
+	var detached := _free.active or _ghost.active
+	_audio.hear_through(-1 if _observer or detached else viewed)
+	_first_person_hud.flying = detached
 	if _observer:
 		_observer_camera.follow(_view.seat_world_position(viewed), delta)
 		_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 		return
+	if _ghost.active and _walk(snapshot, viewed, delta):
+		return
 	if _free.active:
 		_fly(snapshot, viewed, delta)
-		return
-	if _orbiting():
-		_orbit_view(snapshot, viewed, delta)
 		return
 	# Another seat's pitch never leaves its client, so its gaze is fixed (D14): a
 	# little below level, so the deck and its edges show under the horizon.
@@ -253,7 +273,7 @@ func _process(delta: float) -> void:
 	var eye := _eyes.global_position
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
-	_lens_drops.show_eye(_underwater.is_under())
+	_lens_drops.show_eye(viewed, _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -261,10 +281,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not _driver.started() or _mouse_freed or _aside:
 		return
 	if event is InputEventMouseMotion:
-		if _orbiting():
-			_orbit.drag(event as InputEventMouseMotion)
-		elif _flying():
+		if _flying():
 			_free.look_by_mouse((event as InputEventMouseMotion).screen_relative)
+		elif _walking():
+			_ghost.look.look_by_mouse((event as InputEventMouseMotion).screen_relative)
 		elif _looking():
 			_local.look_by_mouse((event as InputEventMouseMotion).screen_relative)
 		return
@@ -277,12 +297,19 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	elif event.is_action_pressed("spectate_free") and _can_fly(_driver.current):
 		_toggle_free()
+	elif event.is_action_pressed("spectate_ghost") and _can_fly(_driver.current):
+		_toggle_ghost()
+	elif event.is_action_pressed("spectate_follow") and _free.active:
+		_toggle_follow()
 	elif event.is_action_pressed("spectate_next"):
-		_free.leave()
+		_leave_views()
 		_order.cycle(_driver.current, 1)
 	elif event.is_action_pressed("spectate_previous"):
-		_free.leave()
+		_leave_views()
 		_order.cycle(_driver.current, -1)
+	# The observer's wheel after the switches, which the player may have put on it.
+	elif _observer and ObserverCamera.wheel_notches(event) != 0.0:
+		_observer_camera.zoom(ObserverCamera.wheel_notches(event))
 	else:
 		return
 	get_viewport().set_input_as_handled()
@@ -316,9 +343,11 @@ func start(
 	if serving == null or serving.loopback.client.config != config:
 		var from := MatchJump.snapshot(config, jump_to) if jump_to >= 0 else {}
 		serving = serve(config, local_for(config, autoplay), net_sim, from, split)
-	var names := _seat_names(config.seats)
+	_watcher = choices != null and choices.watch
+	var names := _seat_names(config.seats, _watcher)
 	_loopback = serving.loopback
 	_planner = serving.planner
+	_answers = serving.answers
 	last_replay = null
 	_counted = false
 	_begin(
@@ -378,17 +407,23 @@ static func serve(
 			config, net_rules, conditions, played, local, sources, from, split
 		)
 	var sim := serving.loopback.client.sim
+	ShipPieces.warm_water(sim)
 	serving.planner = FxPlanner.new(config, sim.surfaces, sim.schedule)
+	serving.answers = HudAnswers.new(sim)
 	return serving
 
 
 ## Starts [param played] — a match on a server, RemoteMatch (SH12) — from its first
 ## tick: the local player on its client's seat through [param local]'s keys, mouse
 ## and pad, every seat named by [param names]. Seen through that seat's eyes; nothing
-## of it pauses.
+## of it pauses. A client with no seat only watches (GLOSSARY: Watch), [param local]
+## null: the first seat's eyes, then any dry seat's, or the free camera.
 func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStringArray) -> void:
 	var seat := played.client.seat
 	_online = true
+	_watcher = seat < 0
+	if _watcher:
+		seat = LOCAL_SEAT
 	_loopback = null
 	last_replay = null
 	session = null
@@ -481,7 +516,7 @@ func _setup_view(
 	_observer = observer
 	_eye_seat = eye_seat
 	_local = local
-	_local_seat = local_seat
+	_local_seat = -1 if _watcher else local_seat
 	_mouse_freed = false
 	var settings := ViewSettings.local()
 	var net_rules := NetRules.load_default()
@@ -493,9 +528,9 @@ func _setup_view(
 	# sinking are.
 	var sim := _driver.sim()
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
-	_order = SpectateOrder.new(_eye_seat, _stats)
+	_order = SpectateOrder.new(-1 if _watcher else _eye_seat, _stats)
 	_names = names
-	_feed.setup(names, local_seat, config.ship, config.bonus_rules)
+	_feed.setup(names, _local_seat, config.ship, config.bonus_rules)
 	_greybox.cut_above = cut_of(observer, observer_cut)
 	_ship_art.cut_above = _greybox.cut_above
 	_greybox.visible = greybox
@@ -515,9 +550,14 @@ func _setup_view(
 	_kick = ViewKick.new(settings.view_kick)
 	_free = FreeCamera.new(settings)
 	_free.set_bounds(_deck_bounds(config.ship))
+	_ghost = GhostWalk.new(config, sim.schedule, settings)
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
-	_first_person_hud.setup(sim, _names, not observer, _prompts)
+	_first_person_hud.setup(sim, _names, not observer and not _watcher, _prompts, _answers)
+	_answers = null
+	# A watcher's and a replay's free camera opens framing the whole ship.
+	if watching() or _driver.replaying():
+		_free.frame_ship(_deck_bounds(config.ship))
 	_sea_and_sky.setup(sim.schedule.end_tick(), config.ship, config.scenario.sea_depth)
 	_underwater.setup(_sea_and_sky)
 	_iceberg.setup(sim.schedule, config.ship, config.match_seed, _sea_and_sky)
@@ -548,7 +588,7 @@ func _setup_view(
 ## no replay could rebuild its start (ReplayFile.playable). Nor is one nobody played —
 ## a tool's autoplay, bots on every seat, as make capture and make fps run it: the list
 ## keeps only the newest so many, and a session of captures would prune the player's
-## own matches out of it.
+## own matches out of it —, but for one a person chose to watch.
 func save_replay() -> void:
 	if last_replay != null or _loopback == null or choices == null:
 		return
@@ -560,7 +600,7 @@ func save_replay() -> void:
 	_last_stats = _stats
 	var playable := last_replay.playable()
 	_end.offer_replay(playable)
-	if playable and _local != null:
+	if playable and (_local != null or _watcher):
 		replays.save(last_replay)
 
 
@@ -584,6 +624,7 @@ func start_replay(file: ReplayFile, config: MatchConfig) -> void:
 	_loopback = null
 	choices = file.choices
 	last_replay = file
+	_watcher = file.choices != null and file.choices.watch
 	_driver.start_replay(timeline, rules)
 	if not _driver.sought.is_connected(_on_sought):
 		_driver.sought.connect(_on_sought)
@@ -597,13 +638,11 @@ func start_replay(file: ReplayFile, config: MatchConfig) -> void:
 		_replay_hud.seek_requested.connect(replay_seek)
 		_replay_hud.close_requested.connect(replay_closed.emit)
 	_replay_hud.setup(timeline.first_tick(), timeline.last_tick())
-	_setup_view(config, null, LOCAL_SEAT, _seat_names(config.seats), false, LOCAL_SEAT, INF, false)
+	var names := _seat_names(config.seats, _watcher)
+	_setup_view(config, null, LOCAL_SEAT, names, false, LOCAL_SEAT, INF, false)
 	# Nobody plays: no crosshair, readouts or wedges over the eyes, as from the observer.
 	_first_person_hud.setup(timeline.sim(), _names, false, _prompts)
 	_replay_seat = LOCAL_SEAT
-	_orbit = OrbitCamera.new(ViewSettings.local())
-	_orbit.set_ship(config.ship)
-	_orbit.open()
 
 
 ## Whether a replay is being watched rather than a match played.
@@ -707,21 +746,17 @@ func _replay_input(event: InputEvent) -> bool:
 	elif event.is_action_pressed("replay_seek_end"):
 		replay_seek(_driver.timeline().last_tick())
 	elif event.is_action_pressed("spectate_next"):
+		_leave_views()
 		_replay_seat = SpectateOrder.every(_replay_seat, 1, _config.seats)
 	elif event.is_action_pressed("spectate_previous"):
+		_leave_views()
 		_replay_seat = SpectateOrder.every(_replay_seat, -1, _config.seats)
-	elif event.is_action_pressed("replay_camera_toggle"):
-		_orbit.active = not _orbit.active
-	elif event.is_action_pressed("replay_orbit_lock"):
-		_orbit.locked = not _orbit.locked
-	elif event is InputEventMouseButton and event.is_pressed() and _orbiting():
-		var button := (event as InputEventMouseButton).button_index
-		if button == MOUSE_BUTTON_WHEEL_UP:
-			_orbit.zoom(1.0)
-		elif button == MOUSE_BUTTON_WHEEL_DOWN:
-			_orbit.zoom(-1.0)
-		else:
-			return false
+	elif event.is_action_pressed("spectate_free"):
+		_toggle_free()
+	elif event.is_action_pressed("spectate_ghost"):
+		_toggle_ghost()
+	elif event.is_action_pressed("spectate_follow") and _free.active:
+		_toggle_follow()
 	elif event.is_action_pressed("ui_cancel") or event.is_action_pressed("pause"):
 		replay_closed.emit()
 	else:
@@ -753,31 +788,13 @@ func _on_sought(_tick: int) -> void:
 	_audio.rewind()
 
 
-## Whether the replay is seen from the orbit camera now.
-func _orbiting() -> bool:
-	return _driver.replaying() and _orbit != null and _orbit.active
-
-
-## The view from the orbit camera (R5): every seat drawn, nobody's arms, the pivot on
-## [param viewed]'s head while locked, and the HUD as from the observer.
-func _orbit_view(snapshot: Dictionary, viewed: int, delta: float) -> void:
-	var head := _view.seat_world_position(viewed) + Vector3.UP * _eyes.eye_height()
-	_orbit.advance(delta, head, _view.ship_to_world())
-	_view.look_out_of(-1)
-	_arms.visible = false
-	_eyes.global_transform = _orbit.transform()
-	var eye := _eyes.global_position
-	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
-	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
-	_lens_drops.show_eye(_underwater.is_under())
-	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
-
-
 ## The camera the replay's plate names.
 func _camera_name() -> String:
-	if not _orbiting():
+	if _ghost.active:
+		return "Ghost"
+	if not _free.active:
 		return "First person"
-	return "Orbit · on the seat" if _orbit.locked else "Orbit · free"
+	return "Free · following" if _free.following else "Free camera"
 
 
 ## Takes up the settings screen's field of view, deck roll, view kick and graphics
@@ -799,12 +816,19 @@ func prompts() -> InputPrompts:
 	return _prompts
 
 
-## Whether the eye seat is out while the match goes on: the view switchable.
+## Whether the eye seat is out while the match goes on, or the match is only watched:
+## the view switchable.
 func spectating() -> bool:
 	var snapshot := _driver.current
 	if snapshot.is_empty() or snapshot["phase"] == MatchState.Phase.ENDED:
 		return false
-	return snapshot["seats"][_eye_seat]["out"]
+	return watching() or snapshot["seats"][_eye_seat]["out"]
+
+
+## Whether the match is only watched, live (GLOSSARY: Watch): nobody plays it, and the
+## view is the watcher's to switch all match long.
+func watching() -> bool:
+	return _watcher and not replaying()
 
 
 ## Whether the latest snapshot says the match has ended.
@@ -840,6 +864,12 @@ func _shake_for_the_sinking(events: Array[SimEvent]) -> void:
 				_kick.shake(COLLAPSE_SHAKE)
 
 
+## Whether the ghost turns and walks now: walked, and neither paused, at the results nor
+## with the mouse let go.
+func _walking() -> bool:
+	return _ghost.active and not _paused and not _end.visible and not _mouse_freed
+
+
 ## Whether the local player's mouse and stick turn their look now: in play, and
 ## neither paused, at the results nor with the mouse let go.
 func _looking() -> bool:
@@ -860,41 +890,120 @@ static func _up_of(snapshot: Dictionary, seat: int) -> int:
 	return MatchState.up_of(snapshot, snapshot["seats"][seat])
 
 
-## Whether the free camera may be flown in [param snapshot]: the eye seat out while the
-## match goes on, the eyes being a seat's (not the observer's).
+## Whether the free camera may be flown — and the ghost walked — in [param snapshot]: in
+## a replay, always; else
+## the eye seat out — or the match only watched — while the match goes on, the eyes
+## being a seat's (not the observer's).
 func _can_fly(snapshot: Dictionary) -> bool:
+	if _driver.replaying():
+		return true
+	if watching():
+		return snapshot["phase"] != MatchState.Phase.ENDED
 	var mine: Dictionary = snapshot["seats"][_eye_seat]
-	return (
-		not _observer
-		and not _driver.replaying()
-		and mine["out"]
-		and snapshot["phase"] != MatchState.Phase.ENDED
-	)
+	return not _observer and mine["out"] and snapshot["phase"] != MatchState.Phase.ENDED
 
 
-## Into the free camera, behind and over the seat whose eyes the view was in and
-## looking where they did; or back into those eyes.
+## Into the free camera — a watcher's and a replay's where it was left, framing the whole
+## ship at first; an out seat's behind and over the seat whose eyes the view was in,
+## looking where they did —; or back into those eyes.
 func _toggle_free() -> void:
+	_ghost.leave()
 	_free.toggle(true)
-	if _free.active:
-		var viewed := _order.target(_driver.current)
-		var head := _view.seat_world_position(viewed) + Vector3.UP * _eyes.eye_height()
-		_free.start(head, -_eyes.global_basis.z)
+	if _free.active and not (watching() or _driver.replaying()):
+		_free.start(_head_of(_viewed()), -_eyes.global_basis.z)
+
+
+## Into the ghost — where the local seat went out while that spot is still on her, else
+## at the seat watched, looking where the view did —; or back into a seat's eyes. With
+## nowhere of her to stand it on, the free camera.
+func _toggle_ghost() -> void:
+	if _ghost.active:
+		_ghost.leave()
+		return
+	var snapshot := _driver.current
+	var seats: Array[int] = [_viewed()]
+	if _local_seat >= 0 and not (watching() or _driver.replaying()):
+		seats.push_front(_local_seat)
+	var ahead := -_eyes.global_basis.z
+	for seat: int in seats:
+		var entry := MatchState.entry_of(snapshot["seats"], seat)
+		if entry.is_empty():
+			continue
+		var piece: int = entry["piece"]
+		var to_piece := _view.piece_world(piece).basis.inverse()
+		if _ghost.start(snapshot, entry["pos"], piece, to_piece * ahead):
+			_free.active = false
+			_free.following = false
+			return
+	if not _free.active:
+		_toggle_free()
+
+
+## Back to a seat's eyes from the ghost, and from the free camera unless it follows: the
+## view switched to another seat.
+func _leave_views() -> void:
+	_ghost.leave()
+	_free.leave()
+
+
+## The free camera follows the seat watched, or lets go of it.
+func _toggle_follow() -> void:
+	_free.toggle_follow(_head_of(_viewed()))
+
+
+## The seat watched: in a replay the one cycled to, else the spectate order's.
+func _viewed() -> int:
+	return _replay_seat if _driver.replaying() else _order.target(_driver.current)
+
+
+## Where [param seat]'s eyes are, in the world.
+func _head_of(seat: int) -> Vector3:
+	return _view.seat_world_position(seat) + Vector3.UP * _eyes.eye_height()
 
 
 ## The view from the free camera: every seat drawn, nobody's arms, and the HUD as the
-## observer's, of [param viewed] — the seat last watched.
+## observer's, of [param viewed] — the seat last watched, which it trails while it follows.
 func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	if _flying():
 		_free.fly_by_input(delta)
+	_free.trail(_head_of(viewed), delta)
 	_view.look_out_of(-1)
 	_arms.visible = false
 	_eyes.global_transform = _free.transform()
 	var eye := _eyes.global_position
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
-	_lens_drops.show_eye(_underwater.is_under())
+	_lens_drops.show_eye(-1, _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+
+
+## The view from the ghost: every seat drawn, nobody's arms, its eyes a seat's height over
+## its feet, the HUD as the observer's, of [param viewed]. Walked off her, it goes to the
+## free camera, standing behind and over where its eyes were: false then.
+func _walk(snapshot: Dictionary, viewed: int, delta: float) -> bool:
+	if _walking():
+		_ghost.look.look_by_stick(delta)
+		if not _ghost.advance(snapshot, delta):
+			_free.toggle(true)
+			_free.start(_eyes.global_position, -_eyes.global_basis.z)
+			return false
+	_arms.visible = false
+	_eyes.ease_eye(GHOST_EYES, _ghost.stature(), delta)
+	_eyes.look_from(
+		_view.piece_world(_ghost.body.piece),
+		_ghost.feet(),
+		_ghost.look.yaw,
+		_ghost.look.pitch,
+		Vector3.ZERO,
+		_ghost.up()
+	)
+	var eye := _eyes.global_position
+	_view.keep_clear_of(eye, viewed)
+	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
+	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
+	_lens_drops.show_eye(GHOST_EYES, _underwater.is_under())
+	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
+	return true
 
 
 ## The local seat stands still while a menu over the match — the pause menu, or the
@@ -928,10 +1037,16 @@ static func cut_of(observer: bool, observer_cut: float) -> float:
 	return observer_cut if observer else INF
 
 
-static func _seat_names(seats: int) -> PackedStringArray:
-	var names := PackedStringArray(["You"])
-	for seat in range(LOCAL_SEAT + 1, seats):
-		names.append("Bot %d" % seat)
+## Each of [param seats] seats' name: You on the local seat and Bot 1 on, by seat, for
+## the bots after it — or, when [param watched], Bot 1 on from the first seat: none is
+## the watcher's.
+static func _seat_names(seats: int, watched := false) -> PackedStringArray:
+	var names := PackedStringArray()
+	for seat in seats:
+		if watched:
+			names.append("Bot %d" % (seat + 1))
+		else:
+			names.append("You" if seat == LOCAL_SEAT else "Bot %d" % seat)
 	return names
 
 
@@ -939,6 +1054,8 @@ static func _seat_names(seats: int) -> PackedStringArray:
 ## the view is in; empty otherwise, and in a replay, whose own controls name them
 ## where the banner would stand (ReplayHud).
 func _spectating(snapshot: Dictionary, viewed: int) -> String:
+	if watching():
+		return _watching_line(snapshot, viewed)
 	var seats: Array = snapshot["seats"]
 	var mine: Dictionary = seats[_eye_seat]
 	if not mine["out"] or snapshot["phase"] == MatchState.Phase.ENDED or _driver.replaying():
@@ -953,5 +1070,31 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 		_prompts.word(&"spectate_next"),
 		"" if _observer else _prompts.word(&"spectate_free"),
 		_free.active,
-		mine["out_cause"]
+		mine["out_cause"],
+		_prompts.word(&"spectate_follow"),
+		_free.following,
+		"" if _observer else _prompts.word(&"spectate_ghost"),
+		_ghost.active
+	)
+
+
+## The watcher's line while the match goes on (Hud.watching_text): [param viewed]
+## watched, from its eyes or the free camera; empty once it has ended.
+func _watching_line(snapshot: Dictionary, viewed: int) -> String:
+	if snapshot["phase"] == MatchState.Phase.ENDED:
+		return ""
+	var camera := Hud.Camera.EYES
+	if _free.active:
+		camera = Hud.Camera.FREE
+	elif _ghost.active:
+		camera = Hud.Camera.GHOST
+	return Hud.watching_text(
+		_hud.fit_name(_names[viewed]),
+		camera,
+		_free.following,
+		_prompts.word(&"spectate_previous"),
+		_prompts.word(&"spectate_next"),
+		_prompts.word(&"spectate_free"),
+		_prompts.word(&"spectate_follow"),
+		_prompts.word(&"spectate_ghost")
 	)

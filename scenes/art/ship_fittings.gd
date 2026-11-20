@@ -75,6 +75,9 @@ const CAP_DEPTH := 0.12
 const STAIR_GAP := 0.05
 const BREAK_DOOR := Vector2(0.72, 1.5)
 const VENT := Vector2(0.24, 0.17)
+## How far in from a deck's edge the wall under it may stand and still be the break's
+## face its door and vents stand on (_on_face): a wall's paint, no more.
+const BREAK_FACE := 0.05
 ## The modelled break door (assets/models/break_door): its origin on the face at the
 ## foot of its sill's middle, x along the face, z out of it; BREAK_DOOR standing on a
 ## sill BREAK_DOOR_SILL tall, in its frame; and its box over all there.
@@ -315,15 +318,40 @@ func _fit_break(mesh: ShipMesh, found: Array) -> void:
 		mesh.box(rail, head - CAP_DEPTH, head + 0.02, ShipPaints.teak)
 		var middle := (from + to) * 0.5
 		if head - foot >= BREAK_DOOR.y + 0.2:
-			if to - from >= BREAK_DOOR.x + 0.6:
-				_break_door(mesh, Vector3(x, foot, middle), normal)
+			var door := Vector3(x, foot, middle)
+			var tall := BREAK_DOOR_BOX.size.y
+			if to - from >= BREAK_DOOR.x + 0.6 and _on_face(door, out, BREAK_DOOR_BOX.size.x, tall):
+				_break_door(mesh, door, normal)
 			continue
+		# Each fitting's foot, a lifebelt's round under its middle.
+		var low := Vector3(x, foot + 0.6 - RoomDressing.LIFEBELT_RADIUS, middle)
+		var ring := RoomDressing.LIFEBELT_RADIUS * 2.0
 		if to - from >= 3.0:
-			RoomDressing.lifebelt(mesh, Vector3(x, foot + 0.6, middle), normal)
+			if _on_face(low, out, ring, ring):
+				RoomDressing.lifebelt(mesh, Vector3(x, foot + 0.6, middle), normal)
 			for side: float in [-1.0, 1.0]:
-				_vent(mesh, Vector3(x, foot + 0.6, middle + side * (to - from) * 0.27), normal)
-		elif to - from >= 1.0:
+				var z := middle + side * (to - from) * 0.27
+				if _on_face(Vector3(low.x, low.y, z), out, VENT.x * 2.0, ring):
+					_vent(mesh, Vector3(x, foot + 0.6, z), normal)
+		elif to - from >= 1.0 and _on_face(low, out, VENT.x * 2.0, ring):
 			_vent(mesh, Vector3(x, foot + 0.6, middle), normal)
+
+
+## Whether a fitting [param wide] across and [param tall] from [param foot] (the middle
+## of its foot, on the deck's edge facing [param out]) has a face to stand on. The
+## loft draws a break's face on the edge itself (ShipHull._step); her sections' shell
+## leaves it to the wall under the edge (SectionHull._close_steps), which may stand
+## further in, or stand nowhere: there it needs that wall, within BREAK_FACE of the
+## edge, behind all of it.
+func _on_face(foot: Vector3, out: float, wide: float, tall: float) -> bool:
+	if not _hull is SectionHull:
+		return true
+	for across: float in [-0.5, 0.0, 0.5]:
+		var at := Vector2(foot.x, foot.z + across * wide)
+		var behind := at - Vector2(out * BREAK_FACE, 0.0)
+		if not _space.walled_between(at, behind, foot.y, foot.y + tall):
+			return false
+	return true
 
 
 ## A teak weather door, shut, in a break's face standing on [param sill] (its foot's
@@ -596,7 +624,7 @@ static func glass_of(opening: ShipOpening) -> PackedVector2Array:
 
 
 ## The glass of her structure (glass_of()): a porthole set in her shell, a window in the
-## wall it is flat across, each outside facing outdoors (_outside_of()).
+## wall it is flat across, each outside facing outdoors (ShipSpace._outside_of()).
 func _structure_glass(mesh: ShipMesh) -> void:
 	for opening: ShipOpening in _layout.structure.openings:
 		var porthole := opening.kind == ShipOpening.Kind.PORTHOLE
@@ -604,7 +632,7 @@ func _structure_glass(mesh: ShipMesh) -> void:
 		if not (porthole or opening.kind == ShipOpening.Kind.WINDOW) or across in [-1, 1]:
 			continue
 		var along := 2 - across
-		var out := _outside_of(opening.centre, across)
+		var out := _space._outside_of(opening.centre, across)
 		var size := WINDOW_SIZE if porthole else Vector2(opening.size[along], opening.size.y)
 		for spot: Vector2 in glass_of(opening):
 			var at := opening.centre
@@ -619,6 +647,13 @@ func _structure_glass(mesh: ShipMesh) -> void:
 				at.z = out * _hull.breadth(at.x, at.y, side)
 				normal = _hull.normal(at.x, at.y, side)
 			var inside := at - Vector3(normal.x, 0.0, normal.z).normalized() * SHELL_DEPTH
+			var outer := at + normal * (HULL_GLASS_PROUD if porthole else GLASS_PROUD)
+			# A window stands in a wall: its glass on the wall's faces, inside and out,
+			# wherever in the wall's thickness its opening's centre stands.
+			var faces := Vector2(NAN, NAN) if porthole else _space._wall_faces(at, across, out)
+			if not is_nan(faces.x):
+				inside[across] = faces.x - out * GLASS_PROUD
+				outer[across] = faces.y + out * GLASS_PROUD
 			var room := _room_holding(inside)
 			# A row the hit left open is open all along it.
 			var open := porthole and opening.centre in _open_ports
@@ -629,22 +664,9 @@ func _structure_glass(mesh: ShipMesh) -> void:
 			else:
 				_pane(mesh, inside, -normal, porthole, ShipPaints.glass_in, size)
 			panes.append([room, inside, -normal, porthole, size * 0.5])
-			var outer := at + normal * (HULL_GLASS_PROUD if porthole else GLASS_PROUD)
 			_pane(mesh, outer, normal, porthole, ShipPaints.glass_out, size, not open)
 			if open:
 				_disc(mesh, outer + normal * FRAME_PROUD, normal, ShipPaints.dark)
-
-
-## Which way along [param across] from a pane at [param centre] is outdoors: the way a
-## step out of the wall it is set in is, the way its middle stands from her centreline
-## when both are or neither is.
-func _outside_of(centre: Vector3, across: int) -> float:
-	var step := Vector3.ZERO
-	step[across] = ShipSpace.WALL_MAX + ShipMesh.PROBE
-	var ahead := _space.outdoors(centre + step)
-	if ahead != _space.outdoors(centre - step):
-		return 1.0 if ahead else -1.0
-	return 1.0 if centre[across] >= 0.0 else -1.0
 
 
 ## The room whose floor and walls hold [param point], or null.

@@ -725,7 +725,7 @@ func _notification(what: int) -> void:
 
 
 ## Every ship being dressed on a thread finished, her own let go first; then the match
-## being served, and the bots' beats under way (_exit_tree's note).
+## being served, the bots' beats and the ghosts' ships under way (_exit_tree's note).
 func _see_threads_through() -> void:
 	if _dressing != null:
 		_dressing.drop()
@@ -733,12 +733,13 @@ func _see_threads_through() -> void:
 	ShipDressing.finish_all()
 	_serving.finish()
 	BotsAhead.finish_all()
+	GhostWalk.finish_all()
 
 
 ## The pause's controls as the keys now stand, the settings having maybe rebound them.
 func _on_settings_closed() -> void:
 	if _match != null and _pause.visible:
-		_pause.show_controls(_match.prompts(), _match.spectating())
+		_pause.show_controls(_match.prompts(), _match.spectating(), _match.watching())
 
 
 func _on_view_changed(settings: ViewSettings) -> void:
@@ -839,7 +840,7 @@ func _stage_online_pause(settings: bool) -> void:
 func _set_paused(paused: bool) -> void:
 	_match.set_paused(paused)
 	if paused:
-		_pause.open(_match.prompts(), _match.spectating())
+		_pause.open(_match.prompts(), _match.spectating(), _match.watching())
 	else:
 		_pause.hide()
 
@@ -879,7 +880,7 @@ func _capture_match(snapshot: Dictionary) -> void:
 		return
 	match _args.capture_screen:
 		"pause":
-			_pause.open(_match.prompts(), _match.spectating())
+			_pause.open(_match.prompts(), _match.spectating(), _match.watching())
 		"online-pause", "online-settings":
 			_stage_online_pause(_args.capture_screen == "online-settings")
 	_capture(MatchTranscript.clock(snapshot["tick"]))

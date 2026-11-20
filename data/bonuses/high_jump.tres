@@ -8,4 +8,5 @@ title = "High jump"
 radius = 0.15
 height = 0.3
 mark = Color(0.35, 0.72, 0.95, 1)
+icon = &"jump"
 jump_height = 1.5

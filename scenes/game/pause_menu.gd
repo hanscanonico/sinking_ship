@@ -1,7 +1,8 @@
 class_name PauseMenu
 extends CanvasLayer
-## The offline pause: every control of play, then resume, the settings, leave for the
-## menu, or quit. Only what it shows — Game is what stops the match's SimDriver.
+## The offline pause: every control of play — or a watcher's, who plays nothing —, then
+## resume, the settings, leave for the menu, or quit. Only what it shows — Game is what
+## stops the match's SimDriver.
 
 signal resume_requested
 signal settings_requested
@@ -22,16 +23,17 @@ func _ready() -> void:
 
 
 ## Shows the pause with [param prompts]' controls on the device last used — what
-## switches the view too when [param spectating] — or none without prompts.
-func open(prompts: InputPrompts = null, spectating := false) -> void:
-	show_controls(prompts, spectating)
+## switches the view too when [param spectating], or only a watcher's when
+## [param watching] — or none without prompts.
+func open(prompts: InputPrompts = null, spectating := false, watching := false) -> void:
+	show_controls(prompts, spectating, watching)
 	show()
 	_resume.grab_focus()
 
 
 ## Writes [param prompts]' controls out again — after the keys were rebound — or
 ## hides them without prompts.
-func show_controls(prompts: InputPrompts = null, spectating := false) -> void:
+func show_controls(prompts: InputPrompts = null, spectating := false, watching := false) -> void:
 	_controls.visible = prompts != null
 	if prompts != null:
-		_controls.text = prompts.pause_controls(spectating)
+		_controls.text = prompts.pause_controls(spectating, watching)

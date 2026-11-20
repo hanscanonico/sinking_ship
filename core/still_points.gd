@@ -42,7 +42,7 @@ func _init(points: PackedVector3Array, native: Object = null) -> void:
 
 ## A NativeWater where the game's extension is loaded (native/, make native), else null.
 static func native_water() -> Object:
-	return ClassDB.instantiate(&"NativeWater") if ClassDB.class_exists(&"NativeWater") else null
+	return ClassDB.instantiate(&"NativeWater") if NativeVersion.has(&"NativeWater") else null
 
 
 func size() -> int:
@@ -124,7 +124,9 @@ func wet_all() -> PackedByteArray:
 	if keeps and _world_own_floors.is_empty():
 		_world_own_floors = _pose.transform * _own_floors
 	if water != null:
-		return water.wet_all(_world, _cells, keeps, levels, _world_own_floors, highest, CellMap.DRY)
+		return _unreached(
+			water.wet_all(_world, _cells, keeps, levels, _world_own_floors, highest, CellMap.DRY)
+		)
 	var found := PackedByteArray()
 	found.resize(_points.size())
 	for index in _points.size():
@@ -138,6 +140,18 @@ func wet_all() -> PackedByteArray:
 		var level := levels[cell]
 		if height < level and level > _world_own_floors[index].y + CellMap.DRY:
 			found[index] = 1
+	return _unreached(found)
+
+
+## [param found] (wet_all) with every point its cell's water has not yet run to dry
+## (ShipPose.reached): as found, while no cell is spreading.
+func _unreached(found: PackedByteArray) -> PackedByteArray:
+	if _pose.spreading.is_empty():
+		return found
+	for index in found.size():
+		if found[index] == 1 and _cells[index] != CellMap.NONE:
+			if not _pose.reached(_cells[index], _points[index]):
+				found[index] = 0
 	return found
 
 
@@ -185,6 +199,13 @@ func world_all() -> PackedVector3Array:
 
 
 func _locate() -> void:
+	var located: Array = _map.cells_at(water, _points) if water != null and _map != null else []
+	if not located.is_empty():
+		_cells = located[0]
+		_own_floors = located[1]
+		_located = true
+		_world_own_floors.clear()
+		return
 	_cells.resize(_points.size())
 	_own_floors.resize(_points.size())
 	for index in _points.size():
@@ -199,14 +220,26 @@ func _locate() -> void:
 
 
 func _chain() -> void:
+	var chained: Array = _map.chains_under(water, _points) if water != null and _map != null else []
+	if not chained.is_empty():
+		_chain_from = chained[0]
+		_chain_cells = chained[1]
+		_chain_points = chained[2]
+		_chained = true
+		_floors_set = false
+		return
 	_chain_from.clear()
 	_chain_cells.clear()
 	_chain_points.clear()
+	# A point met again — a corner rooms share — has the cells found for it first.
+	var found := {}
 	for at: Vector3 in _points:
 		_chain_from.append(_chain_cells.size())
 		if _map == null:
 			continue
-		for cell: int in _map.cells_under(at):
+		if not found.has(at):
+			found[at] = _map.cells_under(at)
+		for cell: int in found[at]:
 			_chain_cells.append(cell)
 			_chain_points.append(Vector3(at.x, _map.floor_of(cell), at.z))
 	_chain_from.append(_chain_cells.size())

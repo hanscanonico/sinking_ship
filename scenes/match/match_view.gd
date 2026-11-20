@@ -9,7 +9,7 @@ extends Node3D
 ## (PropPlacing): a crate where it stands, a ring hung on its span or carried before its
 ## holder, whose hands reach for it, hidden once lost (SH10, #273); every bonus aboard at
 ## its spot, in greybox (BonusGreybox, #307), and every seat with a bonus wearing its kind's
-## mark (Brawler.wear_bonus). Once she has broken
+## marks (Brawler.wear_bonuses). Once she has broken
 ## (SH33) a seat stands in the space of its piece, where that piece's pose has it in the
 ## world, and a bonus lies in the space of the piece its spot is on (lying_to_world). It
 ## never moves a body itself, and never reads a live PlayerState.
@@ -27,6 +27,13 @@ const BLINK_TICKS := 6
 const FALL_SECONDS := 0.5
 ## The most bodies in water the water's rings are drawn round (water.gdshader).
 const MAX_WADERS := 8
+## How far past a body's radius a free eye still hides it (keep_clear_of): near enough
+## that the body would fill the view with its inside or its coat.
+const EYE_CLEARANCE := 0.35
+## How near a body's upright a free eye that started in that seat still hides it
+## (keep_clear_of): the eyes stand along the world's up, the body along its deck's, and
+## on a steep deck the seat's own head would fill the view from its own eyes.
+const HOLD_CLEARANCE := 1.5
 ## How many props in a row a frame asks at once whether they are as last drawn.
 const STILL_RUN := 16
 
@@ -47,6 +54,8 @@ var _bodies: Array[Brawler] = []
 ## Per seat, the facing it is drawn with, in its face's plane.
 var _facings := PackedFloat64Array()
 var _shadows: Array[MeshInstance3D] = []
+## Per seat, the bonuses it was last drawn wearing (Brawler.wear_bonuses).
+var _wearing: Array = []
 ## Her props as the ship drawn draws them: the dressed art's (PropArt), or per prop the
 ## greybox's node; per prop the snapshot entry it was last drawn still at, so a prop
 ## that has not moved since is passed over; the props a hand may hold (GrabReach); and
@@ -65,6 +74,11 @@ var _bonus_kinds: Array[BonusKind] = []
 var _bonus_pieces: Array[Transform3D] = []
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
+## Whether no body is drawn round _clear_eye, the world eye of a camera seat-free.
+var _clearing := false
+var _clear_eye := Vector3.ZERO
+## The seat _clear_eye started in, hidden till the eye has walked clear of it; -1 after.
+var _held := -1
 ## The seat this player plays: drawn where its prediction has it, but for a
 ## correction being drawn away.
 var _local_seat := -1
@@ -98,9 +112,10 @@ var _waders_tick := -1
 @onready var _art: ShipArt = $Ship/ShipArt
 
 
-## Draws [param sim]'s match as [param driver] steps it; [param local_seat] gets a
-## marker overhead (look_out_of), and each correction to its predicted body is drawn
-## away over [param correction_time] seconds (D12). The ship is drawn as [param dressing]
+## Draws [param sim]'s match as [param driver] steps it; [param local_seat] — none, -1,
+## in a match only watched — gets a marker overhead (look_out_of), and each correction to
+## its predicted body is drawn away over [param correction_time] seconds (D12). The ship
+## is drawn as [param dressing]
 ## dressed her, its art taking the place of the ship's own; with none she is dressed here
 ## and now, which takes seconds (ShipDressing).
 func setup(
@@ -172,6 +187,8 @@ func setup(
 	_facings.resize(sim.config.seats)
 	_feet.resize(sim.config.seats)
 	_heights.resize(sim.config.seats)
+	_wearing.resize(sim.config.seats)
+	_wearing.fill(null)
 	_rules = rules
 	_worlds.resize(sim.config.seats)
 	for seat in sim.config.seats:
@@ -247,10 +264,48 @@ func _notification(what: int) -> void:
 ## seat, and the marker would hang before them as a blank shape.
 func look_out_of(seat: int) -> void:
 	_eye_seat = seat
-	_bodies[_local_seat].show_marker(seat == -1)
+	_clearing = false
+	# A watched match has no local seat, and no marker.
+	if _local_seat >= 0:
+		_bodies[_local_seat].show_marker(seat == -1)
 	if seat != -1:
 		_bodies[seat].visible = false
 		_shadows[seat].visible = false
+
+
+## Draws every seat, as look_out_of(-1), but for any body the world [param eye] is inside
+## or up against and the local seat's marker, till the next look_out_of: the ghost's eyes,
+## which start where the seat watched stands and walk through anyone, and from that near
+## would see the marker hang before them as a blank shape. [param seat], the seat the eye
+## starts in, stays hidden till the eye has walked clear of it (HOLD_CLEARANCE).
+func keep_clear_of(eye: Vector3, seat := -1) -> void:
+	if not _clearing:
+		_held = seat
+	look_out_of(-1)
+	_clearing = true
+	_clear_eye = eye
+	if _local_seat >= 0:
+		_bodies[_local_seat].show_marker(false)
+
+
+## Whether [param eye] is within [param radius] of a body standing [param height] tall up
+## [param up] from [param feet]: nearer its upright than that, its body is not drawn.
+static func eye_within(
+	eye: Vector3, feet: Vector3, up: Vector3, height: float, radius: float
+) -> bool:
+	var along := clampf((eye - feet).dot(up), 0.0, height)
+	return eye.distance_to(feet + up * along) < radius
+
+
+## Whether a free [param eye] hides a body of [param radius] standing [param height] tall
+## up [param up] from [param feet]: inside or against it, or, [param held] — the seat the
+## eye started in —, still near its upright.
+static func hides(
+	eye: Vector3, feet: Vector3, up: Vector3, height: float, radius: float, held: bool
+) -> bool:
+	if eye_within(eye, feet, up, height, radius + EYE_CLEARANCE):
+		return true
+	return held and eye_within(eye, feet, up, height, HOLD_CLEARANCE)
 
 
 ## The seat whose eyes the view is in, or -1 for none.
@@ -331,6 +386,16 @@ func height_at(feet: Vector3) -> float:
 ## she is whole).
 func seat_to_world(seat: int) -> Transform3D:
 	return _worlds[seat]
+
+
+## Where piece [param piece] of her is drawn now: its space to the world, as a seat on it
+## is drawn (seat_to_world) — ship_to_world's for the whole ship.
+func piece_world(piece: int) -> Transform3D:
+	if piece == 0:
+		return _ship.transform
+	var then := _schedule.pose_at(_driver.previous["tick"]).of_piece(piece)
+	var now := _schedule.pose_at(_driver.current["tick"]).of_piece(piece)
+	return then.transform.interpolate_with(now.transform, _driver.alpha)
 
 
 ## The facing [param seat] is drawn with, in the plane of the faces it stands on.
@@ -441,11 +506,10 @@ func _process(delta: float) -> void:
 	_ship.transform = pose_then.of_piece(_aft).transform.interpolate_with(
 		pose_now.of_piece(_aft).transform, alpha
 	)
+	var tick := lerpf(previous["tick"], current["tick"], alpha)
 	if _inner != null and not _broken:
-		_inner.show_water(pose_then, pose_now, alpha)
-	_show_sinking(
-		lerpf(previous["tick"], current["tick"], alpha), current["railing_hp"], pose_then, alpha
-	)
+		_inner.show_water(pose_then, pose_now, alpha, tick * Ticks.SECONDS_PER_TICK)
+	_show_sinking(tick, current["railing_hp"], pose_then, alpha)
 	_show_props(previous, current, alpha)
 	if _broken:
 		var root := _ship.global_transform.affine_inverse()
@@ -485,8 +549,8 @@ func _process(delta: float) -> void:
 		_worlds[seat] = world
 		var body := _bodies[seat]
 		body.visible = not now["out"] and seat != _eye_seat
-		_shadows[seat].visible = false
 		if now["out"]:
+			_shadows[seat].visible = false
 			continue
 		var pos: Vector3 = now["pos"] if moved else (then["pos"] as Vector3).lerp(now["pos"], alpha)
 		if seat == _local_seat:
@@ -510,26 +574,43 @@ func _process(delta: float) -> void:
 			_ship.transform.affine_inverse() * world if piece != 0 else Transform3D.IDENTITY
 		)
 		body.transform = placed * Transform3D(to_ship * Basis(Vector3.UP, -_facings[seat]), pos)
+		if _clearing and body.visible:
+			var stands := body.global_transform
+			body.visible = not hides(
+				_clear_eye,
+				stands.origin,
+				stands.basis.y.normalized(),
+				_rules.body_height,
+				_rules.body_radius,
+				seat == _held
+			)
+			if seat == _held and body.visible:
+				_held = -1
 		var feet := to_ship.transposed() * pos
 		var below := here.landing(feet)
 		_heights[seat] = _rules.height_on(here, feet, below)
 		# Posed even unseen, through its eyes: the hands of a body drawn reaching for it
 		# stop at its guard (Brawler.keep_apart).
 		body.show_state(then, now, alpha, _heights[seat] < _rules.body_height)
-		var bonus: int = now["bonus"]
-		body.wear_bonus(_bonus_kinds[bonus] if bonus != -1 else null)
+		if now["bonuses"] != _wearing[seat]:
+			_wearing[seat] = (now["bonuses"] as Array).duplicate()
+			var worn: Array[BonusKind] = []
+			for kind: int in now["bonuses"]:
+				worn.append(_bonus_kinds[kind])
+			body.wear_bonuses(worn)
 		if carried.has(seat):
 			body.carry(_drawn(carried[seat]), _layout.props[carried[seat]].radius)
 		if not body.visible:
+			_shadows[seat].visible = false
 			continue
 		# A swimmer stands on nothing: no ring tilted to a deck under the sea, no shadow.
 		if now["state"] == PlayerState.Body.SWIMMING:
 			below = Surfaces.NONE
 		var normal := Vector3.UP if below == Surfaces.NONE else _ground_normal(here, below, feet)
 		body.show_ground(placed.basis * (to_ship * normal))
+		_shadows[seat].visible = below != Surfaces.NONE
 		if below != Surfaces.NONE:
 			var ground := here.height_at(below, feet)
-			_shadows[seat].visible = true
 			_shadows[seat].transform = (
 				placed
 				* Transform3D(to_ship, to_ship * Vector3(feet.x, ground + SHADOW_LIFT, feet.z))

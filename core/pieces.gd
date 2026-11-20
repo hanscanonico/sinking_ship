@@ -87,12 +87,16 @@ func rail(piece: int, railing: int) -> int:
 ## Stands piece [param piece]'s decks' Surfaces as [param pose] — the whole ship's, or
 ## the piece's own — has it at its tick (Surfaces.honour): the piece's pose, its railings
 ## failed and those of hers [param broken] by the match among its own numbers, and of the
-## crates of [param props] those over its stretch.
-func honour(piece: int, pose: ShipPose, broken: PackedInt32Array, props: Array[PropState]) -> void:
+## crates of [param props] those over its stretch. The whole ship, piece 0, may be handed
+## only the crates changed since it last stood them, [param stood] (Surfaces.honour).
+func honour(
+	piece: int, pose: ShipPose, broken: PackedInt32Array, props: Array[PropState], stood := false
+) -> void:
 	var surfaces := faces(piece).surfaces(Faces.Up.DECK)
 	if piece == 0:
-		surfaces.honour(pose, broken, props)
+		surfaces.honour(pose, broken, props, stood)
 		return
+	assert(not stood, "a piece stands all its crates")
 	var own := pose.of_piece(piece)
 	if own != _posed_from[piece]:
 		_posed_from[piece] = own
@@ -148,6 +152,7 @@ func _renumbered(piece: int, pose: ShipPose) -> ShipPose:
 	made.levels = pose.levels
 	made.pockets = pose.pockets
 	made.cells = pose.cells
+	pose.share_fronts(made)
 	made.lit = pose.lit
 	made.doors_shut = pose.doors_shut
 	made.opened = pose.opened

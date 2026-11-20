@@ -88,3 +88,16 @@ static func _under(structure: ShipStructure, side: int, height: float) -> bool:
 		return false
 	var cell := structure.cells[side]
 	return (cell.low.y + cell.high.y) * 0.5 < height
+
+
+## How open, 0…1, an opening is [param seconds] after the hit: one the ship shuts in
+## [param shut_time] slides shut evenly, one that jammed or that is not shut — 0 —
+## stays as it is, one shut from the start — under 0 — stays shut; and none is less
+## open than a failure has made it, [param opened] (FloodState.opened). The schedule's
+## doors and the physics' read this one answer.
+static func open_share(shut_time: float, seconds: float, opened := 0.0) -> float:
+	if shut_time < 0.0:
+		return opened
+	if shut_time == 0.0:
+		return 1.0
+	return maxf(clampf(1.0 - seconds / shut_time, 0.0, 1.0), opened)

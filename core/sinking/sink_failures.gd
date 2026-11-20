@@ -23,7 +23,7 @@ const REACHED := 1e-3
 const GAVE_WAY := 1.0
 
 ## Per opening that can fail, in the stepper's order: its index there, the seconds the
-## ship takes to shut it (SinkStepper.open_share: under 0 for one shut from the start) —
+## ship takes to shut it (SinkOpenings.open_share: under 0 for one shut from the start) —
 ## none fails before it is shut — the heads at which it leaks and gives way — 0 for
 ## never — its leak's share of its area, and for a hinged door the side it opens toward,
 ## 1 its second, -1 its first, 0 for none.
@@ -200,7 +200,7 @@ func _fail(next: FloodState, heads: PackedFloat64Array) -> void:
 		# What has given way stays so, shut or not: asked first, as the cheaper.
 		if opened[index] >= GAVE_WAY:
 			continue
-		var shut := SinkStepper.open_share(_shut_time[watched], next.seconds) <= 0.0
+		var shut := SinkOpenings.open_share(_shut_time[watched], next.seconds) <= 0.0
 		if not shut:
 			continue
 		var across := heads[watched]

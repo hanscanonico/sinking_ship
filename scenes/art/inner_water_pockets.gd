@@ -112,28 +112,15 @@ static func _held_in(water: InnerWater, pose: ShipPose) -> PackedInt32Array:
 
 
 ## Bursts the air of [param cell]'s pocket out as it goes free, its cells' water at world
-## heights [param levels] under [param pose]: on the water at the top of the opening of
-## its not shut that stands highest, over whichever side's water stands higher there.
+## heights [param levels] under [param pose]: on the water at the top of the opening it
+## goes out by (AirVents.way_out, the match's blast's too), over whichever side's water
+## stands higher there.
 static func _vent(water: InnerWater, cell: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
-	var best := -1
-	var highest := -INF
-	for index in water._passages.size():
-		if water._sides[index * 2] != cell and water._sides[index * 2 + 1] != cell:
-			continue
-		var passage := water._passages[index].name
-		var shut: bool = water._shut[index] == 1 or pose.doors_shut.get(passage, 0.0) >= 1.0
-		if shut and pose.opened.get(passage, 0) < 2:
-			continue
-		var top := CellSurface.reach(water._ship, water._spans[index]).y
-		if top > highest:
-			best = index
-			highest = top
+	var best := water._vents.way_out(cell, pose)
 	if best == -1:
 		return
 	var opening := water._passages[best]
-	var beyond := (
-		water._sides[best * 2 + 1] if water._sides[best * 2] == cell else water._sides[best * 2]
-	)
+	var beyond := water._vents.beyond(best, cell)
 	var beyond_level := 0.0 if beyond == -1 else levels[beyond]
 	var under := cell if levels[cell] >= beyond_level else beyond
 	var level := maxf(levels[cell], beyond_level)

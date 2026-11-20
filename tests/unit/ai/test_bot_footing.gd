@@ -136,3 +136,59 @@ func test_a_railing_on_the_next_piece_of_deck_stops_the_walk_to_the_edge() -> vo
 	var inner := Vector3(0.0, 0.0, -1.0)
 	assert_eq(footing.edge_toward(inner, 0, Vector2.DOWN, 4.0, pose, false), INF, "railed")
 	assert_lt(footing.edge_toward(inner, 0, Vector2.DOWN, 4.0, pose, true), INF, "over it")
+
+
+## A bot with Sure footing still gets uphill of its target before it shoves, on a deck
+## listing past the brawl rules' grip angle and under its own (#341): its shove carries the
+## target downhill by the target's grip — the brawl rules', short of a bonus — not by its own.
+func test_a_sure_footed_bot_gets_uphill_of_its_target_past_the_brawl_rules_grip() -> void:
+	var layout := SimFixtures.deck()
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var heel := (rules.grip_angle_deg + SimFixtures.sure_footing().grip_angle_deg) * 0.5
+	var schedule := SinkSchedule.new(
+		SimFixtures.tilted(0.0, heel), layout.freeboard, SeedStreams.derive(1, "sink")
+	)
+	var pose := schedule.pose_at(0)
+	assert_almost_eq(pose.slope_deg(), heel, 0.5, "listing between the two grip angles")
+	var below := Vector3(0.0, 0.0, 2.0)
+	var target := Vector3(0.0, 0.0, 0.0)
+	for sure: bool in [false, true]:
+		var footing := _footing(layout, surfaces)
+		var bonuses: Array[BonusKind] = []
+		if sure:
+			bonuses.append(SimFixtures.sure_footing())
+		footing.seat_rules = SeatRules.of(rules, null, bonuses)
+		assert_eq(footing.slides(pose), not sure, "Sure footing %s: the deck pulls it" % sure)
+		var at := footing.approach(below, target, pose)
+		assert_lt(at.z, target.z, "Sure footing %s: round to its uphill side first" % sure)
+
+
+## A bot standing in water grips the deck less, as a body does (#620): on a deck listing
+## under the grip angle it finds the deck pulling it where the sea stands 0.1 m deep over
+## its floor, and holding it where the floor is dry.
+func test_a_bot_standing_in_water_finds_the_deck_pulling_it() -> void:
+	var layout := SimFixtures.low_deck(0.4)
+	var surfaces := Surfaces.new(layout)
+	var rules := SimFixtures.rules()
+	var heel := rules.grip_angle_deg - 2.0
+	var sinking := SimFixtures.scenario([[0.0, layout.freeboard, 0.0, heel]])
+	var schedule := SinkSchedule.new(sinking, layout.freeboard, SeedStreams.derive(1, "sink"))
+	var pose := schedule.pose_at(0)
+	var footing := _footing(layout, surfaces)
+	var wet := Vector3.INF
+	var dry := Vector3.INF
+	for step in range(-25, 26):
+		var feet := Vector3(0.0, 0.0, step * 0.1)
+		var depth := pose.water_height(feet)
+		if absf(depth - 0.1) < 0.05 and surfaces.wet(feet, pose):
+			wet = feet
+		elif not surfaces.wet(feet, pose):
+			dry = feet
+	assert_ne(wet, Vector3.INF, "the sea stands about 0.1 m deep somewhere on her deck")
+	assert_ne(dry, Vector3.INF, "and somewhere it is dry")
+	assert_false(footing.slides(pose), "before it stands anywhere, by the dry grip")
+	footing.stand(wet, surfaces.under(wet, rules.step_height), pose)
+	assert_true(footing.slides(pose), "0.1 m deep, the deck pulls it")
+	footing.stand(dry, surfaces.under(dry, rules.step_height), pose)
+	assert_false(footing.slides(pose), "dry, it holds")

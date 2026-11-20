@@ -148,9 +148,9 @@ func test_a_bot_goes_below_decks_for_a_bonus_and_takes_it() -> void:
 	SimFixtures.place(sim, 0, MAIN_DECK, 0.0)
 	var bot := sim.state.seats[0]
 	var runner := _runner(sim, BotInputSource.new(0, _tier(&"normal"), sim.config))
-	var took := _until(runner, 20.0, func() -> bool: return bot.bonus != -1)
+	var took := _until(runner, 20.0, func() -> bool: return bot.bonuses.size() > 0)
 	assert_true(took, "it went down and took it: at %s" % bot.pos)
-	assert_eq(bot.bonus, 0, "its bonus is Double life")
+	assert_eq(bot.bonuses, PackedInt32Array([0]), "its bonus is Double life")
 	assert_true(sim.state.bonuses.is_empty(), "gone from aboard")
 
 
@@ -175,7 +175,7 @@ func test_a_bot_gives_a_bonus_up_once_the_water_comes_within_its_margin() -> voi
 	var runner := _runner(sim, source)
 	var going := func() -> bool: return source.brain.intent == BotBrain.Intent.TAKE_BONUS
 	assert_true(_until(runner, 1.0, going), "it set out, the water clear of its margin")
-	var took := _until(runner, 15.0, func() -> bool: return sim.state.seats[0].bonus != -1)
+	var took := _until(runner, 15.0, func() -> bool: return sim.state.seats[0].bonuses.size() > 0)
 	assert_false(took, "it gave the bonus up once the water came within its margin")
 	assert_false(going.call(), "and goes for it no more")
 	assert_eq(sim.state.bonuses.size(), 1, "the bonus still aboard, its room dry")
@@ -247,7 +247,7 @@ func test_a_bot_goes_for_a_bonus_in_a_dry_room_below_the_sea() -> void:
 	SimFixtures.place(sim, 0, engine_room, 0.0)
 	var bot := sim.state.seats[0]
 	var runner := _runner(sim, BotInputSource.new(0, _tier(&"normal"), sim.config))
-	var took := _until(runner, 20.0, func() -> bool: return bot.bonus != -1)
+	var took := _until(runner, 20.0, func() -> bool: return bot.bonuses.size() > 0)
 	assert_true(took, "it went down and took it: at %s" % bot.pos)
 
 
@@ -273,7 +273,7 @@ func test_a_bot_on_the_titanic_goes_for_a_bonus_far_below_decks() -> void:
 	var runner := _runner(sim, source)
 	var going := func() -> bool: return source.brain.intent == BotBrain.Intent.TAKE_BONUS
 	assert_true(_until(runner, 1.0, going), "it sets out")
-	var took := _until(runner, 40.0, func() -> bool: return bot.bonus != -1)
+	var took := _until(runner, 40.0, func() -> bool: return bot.bonuses.size() > 0)
 	assert_true(took, "it went down and took it: at %s" % bot.pos)
 
 
@@ -298,7 +298,7 @@ func test_a_bot_on_the_titanic_goes_round_the_stairs_in_a_passage_for_a_bonus() 
 	var runner := _runner(sim, source)
 	var going := func() -> bool: return source.brain.intent == BotBrain.Intent.TAKE_BONUS
 	assert_true(_until(runner, 1.0, going), "it sets out")
-	var took := _until(runner, 40.0, func() -> bool: return bot.bonus != -1)
+	var took := _until(runner, 40.0, func() -> bool: return bot.bonuses.size() > 0)
 	assert_true(took, "it went round the stairs and took it: at %s" % bot.pos)
 
 
@@ -325,9 +325,9 @@ func test_a_bot_walks_round_a_manhole_in_its_floor_to_a_bonus() -> void:
 	for _tick in Ticks.from_seconds(20.0):
 		runner.step()
 		lowest = minf(lowest, bot.pos.y)
-		if bot.bonus != -1:
+		if bot.bonuses.size() > 0:
 			break
-	assert_ne(bot.bonus, -1, "it took it: at %s" % bot.pos)
+	assert_ne(bot.bonuses, PackedInt32Array(), "it took it: at %s" % bot.pos)
 	assert_almost_eq(lowest, FIREMENS_PASSAGE.y, 0.05, "never down the manhole")
 
 
@@ -371,7 +371,7 @@ func test_a_bot_walking_past_a_bonus_turns_in_and_takes_it() -> void:
 		var sources: Array[InputSource] = [walked, InputSource.new(), InputSource.new()]
 		var runner := MatchRunner.new(sim, sources)
 		assert_true(_until(runner, 3.0, func() -> bool: return walked.handed), "walked there")
-		var took := _until(runner, 1.0, func() -> bool: return walked.body.bonus != -1)
+		var took := _until(runner, 1.0, func() -> bool: return walked.body.bonuses.size() > 0)
 		var where := "%.1f m off, from %.1f m" % [passing.x, passing.y]
 		assert_true(took, "%s: took it, at %s" % [where, walked.body.pos])
 
@@ -434,7 +434,7 @@ func test_a_bot_sees_a_bonus_only_as_old_as_its_view() -> void:
 	var source := BotInputSource.new(0, profile, sim.config)
 	source.observe(sim.snapshot(), sim.pose())
 	SimFixtures.step(sim, {1: SimFixtures.frame(1, Vector2.ZERO, InputFrame.GRAB)})
-	assert_eq(sim.state.seats[1].bonus, 0, "seat 1 took it")
+	assert_eq(sim.state.seats[1].bonuses, PackedInt32Array([0]), "seat 1 took it")
 	for _tick in profile.reaction_ticks - 1:
 		source.observe(sim.snapshot(), sim.pose())
 		SimFixtures.step(sim)
@@ -488,6 +488,28 @@ func test_a_bot_drops_a_bonus_gone_though_nothing_else_scores() -> void:
 	assert_eq(source.brain.intent, BotBrain.Intent.SEEK_HIGH, "gone, it is dropped")
 
 
+## A bot going for a bonus keeps going for it through the thinks its view shows it in the
+## air — a short drop on its way, off a stair's side or a deck's edge — and walks on: the
+## bonus is still there (#596).
+func test_a_bot_keeps_its_bonus_through_a_think_that_sees_it_in_the_air() -> void:
+	var profile := _tier(&"normal")
+	var sim := _in_the_hold(-1.0)
+	SimFixtures.place(sim, 0, Vector3(9.0, SimFixtures.HOLD_FLOOR, 0.0), 0.0)
+	var source := BotInputSource.new(0, profile, sim.config)
+	for _tick in profile.reaction_ticks + 2 * profile.think_period:
+		var seen := sim.snapshot()
+		if _tick > 0:
+			# From its first think on, its view shows it in the air.
+			var me: Dictionary = seen["seats"][0]
+			me["state"] = PlayerState.Body.AIRBORNE
+			me["surface"] = Surfaces.NONE
+		source.observe(seen, sim.pose())
+		var frame := source.next_frame(sim.state.tick)
+		assert_eq(source.brain.intent, BotBrain.Intent.TAKE_BONUS, "at tick %d" % _tick)
+		assert_gt(Vector2(frame.move).x, 0.0, "it walks on for the bonus at tick %d" % _tick)
+		SimFixtures.step(sim, {0: frame})
+
+
 ## Each tier goes for a bonus only while the floor it lies on stands the tier's own margin
 ## over the water: a little more, it goes; a little less, it does not.
 func test_each_tier_goes_only_while_its_margin_holds() -> void:
@@ -514,21 +536,29 @@ func test_each_tier_goes_only_within_its_range() -> void:
 			assert_eq(goes, case[1], "%s, %.1f m off" % [tier, case[0]])
 
 
-## A bot weighs a bonus's kind against its own bonus: it goes for one worth more to it than
-## the one it has, or than none, and leaves one worth no more. Its tier here values Plain at
+## A bot's bonuses add up, so it goes for one of any kind worth something to it — beside
+## those it has, a second of a kind it has one of — and leaves one of a kind it has the most
+## of (BonusRules.most_held), which a press would not take. Its tier here values Plain at
 ## half what it values Double life; the shipped tier, leaving Plain out, never goes for one.
-func test_a_bot_weighs_a_bonus_against_its_own() -> void:
+func test_a_bot_goes_for_a_bonus_it_can_still_hold() -> void:
 	var rules := _two_kinds()
 	var profile := _tier(&"normal")
 	profile.bonus_worth = {rules.kinds[0]: 1.0, rules.kinds[1]: 0.5}
 	var near := Vector3(11.0, SimFixtures.HOLD_FLOOR, 0.0)
-	# Its own bonus, the kind aboard — 0 Double life, 1 Plain, -1 none — and whether it goes.
-	for case: Array in [[-1, 1, true], [1, 0, true], [0, 1, false], [0, 0, false]]:
+	# Its own bonuses, the kind aboard — 0 Double life, 1 Plain — and whether it goes.
+	for case: Array in [
+		[[], 1, true],
+		[[1], 0, true],
+		[[0], 1, true],
+		[[0], 0, true],
+		[[0, 0], 0, false],
+		[[0, 0], 1, true],
+	]:
 		var sim := _in_the_hold(-1.0, rules)
 		sim.state.bonuses[0].kind = case[1]
-		sim.state.seats[0].bonus = case[0]
+		sim.state.seats[0].bonuses = PackedInt32Array(case[0])
 		var goes := _goes(sim, profile, near)
-		assert_eq(goes, case[2], "its own %d, aboard %d" % case.slice(0, 2))
+		assert_eq(goes, case[2], "its own %s, aboard %d" % case.slice(0, 2))
 	var plain := _in_the_hold(-1.0, rules)
 	plain.state.bonuses[0].kind = 1
 	assert_false(_goes(plain, _tier(&"normal"), near), "a kind its tier leaves out, never")
@@ -561,6 +591,16 @@ func test_a_bot_weighs_a_bonus_against_the_walk_to_it() -> void:
 		assert_eq(signf(move.x), case[1], "the Double life %.0f m off" % case[0])
 
 
+## Each Double life a bot has adds a whole meter of cold its swim counts on.
+func test_each_spare_meter_counts() -> void:
+	var rules := SimFixtures.bonus_rules(600.0)
+	var layout := SimFixtures.below_decks()
+	var bonuses := BotBonuses.new(0, _tier(&"normal"), SimFixtures.rules(), layout, rules)
+	var meter := SimFixtures.rules().cold_meter
+	for held: Array in [[], [0], [0, 0]]:
+		assert_eq(bonuses.spare({"bonuses": held}), meter * held.size(), "%s" % [held])
+
+
 ## A swimmer with Double life swims for a way out it could not reach on its one meter: its
 ## spare is a whole meter more of cold (MatchVerdict.cold_left), which its swim counts on;
 ## without one, nothing it could reach in time.
@@ -573,7 +613,7 @@ func test_a_swimmer_with_a_spare_meter_swims_for_a_way_out_only_it_can_reach() -
 		SimFixtures.place(sim, 1, Vector3(10.0, 0.0, 0.0))
 		SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, off), 0.0)
 		if spare:
-			sim.state.seats[0].bonus = 0
+			sim.state.seats[0].bonuses = PackedInt32Array([0])
 		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
 		source.observe(sim.snapshot(), sim.pose())
 		var move := Vector2(source.next_frame(sim.state.tick).move)
@@ -617,7 +657,8 @@ func _listing_alone(heel_deg: float, sure: bool) -> MatchSim:
 ## grip angle (BotFooting.slides, by its seat's rules), so on a deck listing past the brawl
 ## rules' grip angle and under its kind's — 20° as shipped — a metre from her open low edge,
 ## it holds its ground, stepping only out of its edge margin, where a bot without it, the
-## deck pulling it toward the edge, flees up the slope (RECOVER).
+## deck pulling it toward the edge, flees up the slope (RECOVER) — and, idle there, the
+## deck sliding it back, catches itself before its margin (#341).
 func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void:
 	var heel := SimFixtures.sure_footing().grip_angle_deg - 2.0
 	var edge := SimFixtures.deck().platforms[0].area.end.y
@@ -627,9 +668,16 @@ func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void
 		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
 		var runner := _runner(sim, source)
 		var recovered := false
+		# How far up the slope it got, and how far down it came once out of its margin.
+		var highest := INF
+		var slid_to := -INF
 		for _tick in 2 * Ticks.RATE:
 			runner.step()
 			recovered = recovered or source.brain.intent == BotBrain.Intent.RECOVER
+			var z := sim.state.seats[0].pos.z
+			highest = minf(highest, z)
+			if highest < edge - margin:
+				slid_to = maxf(slid_to, z)
 		var bot := sim.state.seats[0]
 		var what := "Sure footing %s" % sure
 		assert_eq(bot.body, PlayerState.Body.GROUNDED, "%s: on her deck" % what)
@@ -638,4 +686,27 @@ func test_a_sure_footed_bot_holds_its_ground_on_a_deck_it_can_stand_on() -> void
 			assert_eq(bot.vel, Vector3.ZERO, "%s: standing" % what)
 			assert_lt(edge - bot.pos.z, margin + 0.5, "%s: a stride out of its margin" % what)
 		else:
-			assert_lt(bot.pos.z, EDGE_BY.z - 1.0, "%s: well up the slope" % what)
+			assert_lt(highest, EDGE_BY.z - 1.0, "%s: well up the slope" % what)
+			assert_lt(slid_to, edge - margin, "%s: never back in its margin once out" % what)
+
+
+## A bot with Sure footing stays aboard a deck it can walk but not grip (#341): listing
+## past its own grip angle and under its stand limit, the deck pulls it whenever it stands
+## idle — at 40° faster than its view's lag lets it catch from its edge margin's rim — so it
+## keeps walking up out of reach of the slide rather than stand where the deck takes it
+## back over the edge. A metre from her open low edge, alone, for four seconds.
+func test_a_sure_footed_bot_stays_aboard_a_deck_it_can_walk_but_not_grip() -> void:
+	var sure_footing := SimFixtures.sure_footing()
+	var edge := SimFixtures.deck().platforms[0].area.end.y
+	var heel := sure_footing.grip_angle_deg + 4.0
+	while heel < sure_footing.stand_limit_deg:
+		var sim := _listing_alone(heel, true)
+		var source := BotInputSource.new(0, _tier(&"normal"), sim.config)
+		var runner := _runner(sim, source)
+		for _tick in 4 * Ticks.RATE:
+			runner.step()
+		var bot := sim.state.seats[0]
+		var what := "at %.0f°" % heel
+		assert_eq(bot.body, PlayerState.Body.GROUNDED, "%s: on her deck" % what)
+		assert_lt(bot.pos.z, edge, "%s: inside her low edge" % what)
+		heel += 2.0

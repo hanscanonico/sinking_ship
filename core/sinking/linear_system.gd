@@ -64,3 +64,12 @@ static func solved(
 		var lead := m[row * count + row]
 		x[row] = sum / lead if lead != 0.0 else 0.0
 	return x
+
+
+## The largest of [param values] whatever its sign, 0 for none: how far a system's
+## surpluses stand from solved.
+static func largest(values: PackedFloat64Array) -> float:
+	var most := 0.0
+	for value: float in values:
+		most = maxf(most, absf(value))
+	return most

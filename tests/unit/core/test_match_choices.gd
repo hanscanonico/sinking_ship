@@ -400,6 +400,22 @@ func test_with_bonuses_off_no_bonus_ever_comes_in_either_goal() -> void:
 			assert_eq(sim.state.bonuses.size(), 3 if bonuses else 0, what + ": aboard")
 
 
+## Only watching is a choice like any other (GLOSSARY: Watch): its match has nobody
+## playing it, bots on every seat, and is otherwise the match playing it would be — the
+## same sinking, so the one baked ahead for the menu serves either.
+func test_watching_plays_nobody_on_the_same_match() -> void:
+	var default: MatchRules = load(DEFAULT_MATCH)
+	var played := _cli(["--seed=12"])
+	var watched := played.with_seed("12")
+	watched.watch = true
+	assert_false(played.watch, "a player plays unless they only watch")
+	assert_true(watched.with_seed("").watch, "a rematch watches again")
+	assert_eq(watched.config(default).humans, 0, "nobody plays it")
+	assert_eq(played.config(default).humans, default.humans)
+	assert_true(watched.sinks_alike(played, default), "she sinks alike")
+	assert_eq(watched.config(default).data_hash(), played.config(default).data_hash())
+
+
 func test_the_menu_starts_from_the_data() -> void:
 	var survival: MatchRules = load(SURVIVAL_MATCH)
 	var full := MatchArgs.parse(PackedStringArray()).choices.filled(survival)

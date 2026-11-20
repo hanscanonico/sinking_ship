@@ -106,7 +106,7 @@ func _answer(snapshot: Dictionary, seat: int) -> void:
 	var broken := MatchState.broken_in(snapshot["railing_hp"])
 	var entries: Array = snapshot["props"]
 	if not is_same(_crates_of, entries):
-		_crates = _kept(entries)
+		_crates = kept_crates(entries, _crates_of, _crates)
 		_crates_of = entries
 	deck = _surfaces
 	if piece == 0:
@@ -130,20 +130,22 @@ func _answer(snapshot: Dictionary, seat: int) -> void:
 		framed_pose = faces.framed(pose, up)
 
 
-## The crates [param entries] hold — a snapshot's props — each the last snapshot's crate
-## where its entry is the very one that crate was made from, every other made anew: the
-## crates PropState.from_snapshot keeps, as none of these is ever changed once made, but
-## without asking each crate its entry. The wire hands an unchanged prop's entry on from
-## snapshot to snapshot, and the Titanic carries 594.
-func _kept(entries: Array) -> Array[PropState]:
+## The crates [param entries] hold — a snapshot's props — each of [param last_crates]
+## where its entry is the very one of [param last] — the entries those were made from —
+## that crate was made from, every other made anew: the crates PropState.from_snapshot
+## keeps, as none of these is ever changed once made, but without asking each crate its
+## entry. The wire hands an unchanged prop's entry on from snapshot to snapshot, and the
+## Titanic carries 594.
+static func kept_crates(
+	entries: Array, last: Array, last_crates: Array[PropState]
+) -> Array[PropState]:
 	var crates: Array[PropState] = []
 	crates.resize(entries.size())
-	var last := _crates_of
 	var kept := mini(last.size(), entries.size())
 	for index in entries.size():
 		var entry: Dictionary = entries[index]
 		if index < kept and is_same(last[index], entry):
-			crates[index] = _crates[index]
+			crates[index] = last_crates[index]
 		else:
 			crates[index] = PropState.from_dict(entry)
 	return crates

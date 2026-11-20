@@ -4,9 +4,19 @@ extends Resource
 ## the hull from its keel to its sheer and the deckhouses on it — standing for the
 ## stretch of hull [member length] long about it. Ship-local metres (D6).
 
+## How many times any section's x or length has been set: a ShipStructure keeps its
+## sections' ends for section_at() only while this stands still.
+static var edits := 0
+
 ## Where along the ship it is cut, and the length of hull it stands for, centred on it.
-@export var x: float
-@export var length: float
+@export var x: float:
+	set(value):
+		x = value
+		edits += 1
+@export var length: float:
+	set(value):
+		length = value
+		edits += 1
 ## Closed and counter-clockwise in (z, y) — z to starboard, y up — its last point
 ## joining its first.
 @export var outline: PackedVector2Array

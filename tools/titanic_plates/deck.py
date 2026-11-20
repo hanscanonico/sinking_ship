@@ -73,6 +73,9 @@ JOIN = 0.3
 SIDE_REACH = 0.3
 BODY_WIDTH = 0.8
 DOOR_CLEAR = 1.0 + 2 * 0.03  # the lint's least door, between two partitions' faces
+# A step's least length (Deck's steps): a body's width clear between the steel walls at
+# its ends, 0.1 m either side of their middles, and a hand to spare (the lint's clear width).
+STEP_LEAST = BODY_WIDTH + 2 * 0.1 + 0.05
 # A piece's end this near a deck's end over it, in metres, is that end's (Deck's ends),
 # unless the load gives a reach of its own.
 END_REACH = 0.2
@@ -176,9 +179,17 @@ class Deck:
     where it does; or where it parts her water into cells, so a room ends where its cell
     does. Given lead too, a room's end past one of them by less than lead is pushed out
     to lead from it: the generator splits a room the line runs through (its cells part
-    there), and each part keeps a body's step into it."""
+    there), and each part keeps a body's step into it.
 
-    def __init__(self, name, side=None, ends=(), reach=END_REACH, lead=0.0):
+    steps, when given with side, is (words, lines): a room whose name holds words and that
+    reaches her side is laid out to it in steps — split along each of lines (ship x, where
+    the generator's floor under it changes breadth) at least lead, and STEP_LEAST, from its
+    ends and from each other, each part held to her side over its own stretch, open to the
+    next across the breadth both share. A space the plate draws out to her side lines in a
+    few steps, held whole to its narrowest floor, left the floor her side widens to beside it
+    outside it, behind its wall and open to the void past that floor's edge (#573)."""
+
+    def __init__(self, name, side=None, ends=(), reach=END_REACH, lead=0.0, steps=None):
         module = _module(name)
         self.name = name
         if hasattr(module, "PARTS"):
@@ -203,9 +214,14 @@ class Deck:
         self._nudged(module)
         if ends:
             self._ended(ends, reach, lead)
+        self.stepped = []  # (name, x0, x1, z0, z1) of each room _stepped laid out in steps
+        stepped = []
+        if side is not None and steps is not None:
+            stepped = self._stepped(side, steps[0], steps[1], lead)
         if side is not None:
             self._held(side)
-        self.open = [self._shared(o) for p in parts for o in p.open] + list(getattr(module, "OPENED", ()))
+        self.open = ([self._shared(o) for p in parts for o in p.open] + list(getattr(module, "OPENED", ()))
+                     + self._step_joins(stepped))
         if lead:
             self._alcoves()
         self.walls = self._walls()
@@ -405,6 +421,47 @@ class Deck:
                     shift = held((x0 + x1) * 0.5) - (x0 + x1) * 0.5
                     part.open[k] = (x0 + shift, x1 + shift, z0, z1)
 
+    def _stepped(self, side, words, lines, lead):
+        """Every room named with words that reaches her side split along lines (Deck's steps),
+        each part at least lead long, and STEP_LEAST; parts her side gives the same breadth stay
+        one. The (room, x) of every split, for _step_joins once each part is held."""
+        least = max(lead, STEP_LEAST)
+        rooms, splits = [], []
+        for room in self.rooms:
+            name, x0, x1, z0, z1 = room
+            half = side(x0, x1)
+            if words not in name or not (z0 < -(half - SIDE_REACH) or z1 > half - SIDE_REACH):
+                rooms.append(room)
+                continue
+            cuts = [x0]
+            for v in sorted(lines):
+                if cuts[-1] + least <= v <= x1 - least:
+                    cuts.append(v)
+            cuts.append(x1)
+            # (A line past which her side gives the part the same breadth parts nothing.)
+            kept = [x0]
+            for k in range(1, len(cuts) - 1):
+                if abs(side(kept[-1], cuts[k]) - side(cuts[k], cuts[k + 1])) > 1e-9:
+                    kept.append(cuts[k])
+            kept.append(x1)
+            rooms += [(name, a, b, z0, z1) for a, b in zip(kept, kept[1:])]
+            splits += [(room, v) for v in kept[1:-1]]
+            if len(kept) > 2:
+                self.stepped.append(room)
+        self.rooms = rooms
+        return splits
+
+    def _step_joins(self, splits):
+        """An OPEN across each split (room, x) _stepped made: across the breadth both its parts,
+        each held to her side, share — her side's step past that walled. (A plate names a hold's
+        port and starboard rooms alike: a part is its room's by its breadth too.)"""
+        joins = []
+        for room, x in splits:
+            aft, fore = (next(r for r in self.rooms if r[0] == room[0] and abs(r[end] - x) < 1e-9
+                              and r[3] < room[4] and r[4] > room[3]) for end in (2, 1))
+            joins.append((x - 0.01, x + 0.01, max(aft[3], fore[3]), min(aft[4], fore[4])))
+        return joins
+
     def _held(self, side):
         """Every piece reaching her side, or within SIDE_REACH of it, held to it."""
         for list_name in ("rooms", "solids", "raised", "houses"):
@@ -552,13 +609,23 @@ class Deck:
 
         ways = [r for r in self.rooms if _passage(r[0])]
         solid_boxes = [tuple(s[1:5]) + (set(),) for s in self.solids]
+        # A room laid out to her side in steps (_stepped) is one room for its door: its
+        # parts together keep the one door, or are given one, the room whole was.
+        def step_of(room):
+            return next((k for k, (name, x0, x1, z0, z1) in enumerate(self.stepped)
+                         if room[0] == name and x0 - 1e-9 <= room[1] and room[2] <= x1 + 1e-9
+                         and room[3] < z1 and room[4] > z0), None)
+
+        units = [[r] for r in self.rooms if step_of(r) is None]
+        units += [[r for r in self.rooms if step_of(r) == k] for k in range(len(self.stepped))]
         out = []
-        for room in self.rooms:
-            if _passage(room[0]) or any(on_edge(x, z, room) for x, z in self.doors):
+        for unit in units:
+            room = unit[0]
+            if _passage(room[0]) or any(on_edge(x, z, r) for r in unit for x, z in self.doors):
                 continue
             best = None
             joined = False
-            for axis, at, a, b in edges_of(room):
+            for axis, at, a, b in _merged(e for r in unit for e in edges_of(r)):
                 for way in ways:
                     for w_axis, w_at, w_a, w_b in edges_of(way):
                         if w_axis != axis or abs(w_at - at) > 1e-6:
@@ -577,7 +644,7 @@ class Deck:
             # in, and a door in another of its walls would open onto a flight's side (#514: F
             # deck's engineers' stair box, open at its forward end); nor does a body stand in
             # one with no such join, behind a flight's run on (#514: D deck's crew stairs).
-            well = any(room[1] < x < room[2] and room[3] < z < room[4] for x, z in self.not_rooms)
+            well = any(r[1] < x < r[2] and r[3] < z < r[4] for r in unit for x, z in self.not_rooms)
             if best is not None and not well:
                 out.append(best[1])
         return out
@@ -744,6 +811,19 @@ def _minus(a, b, gaps):
     return [(s0, s1) for s0, s1 in spans if s1 - s0 > 0.02]
 
 
+def _merged(edges):
+    """Edges (axis, at, from, to) on one line that meet or overlap as one: the edges of a
+    room's steps (Deck._stepped) as the room whole's."""
+    out = []
+    for edge in sorted(edges):
+        last = out[-1] if out else None
+        if last and last[0] == edge[0] and abs(last[1] - edge[1]) < 1e-9 and edge[2] <= last[3] + 1e-9:
+            out[-1] = (last[0], last[1], last[2], max(last[3], edge[3]))
+        else:
+            out.append(edge)
+    return out
+
+
 def _joined(walls):
     """Touching stretches of one line and one kind joined."""
     walls.sort(key=lambda w: (w[0], w[1], w[2]))
@@ -756,5 +836,5 @@ def _joined(walls):
     return out
 
 
-def load(name, side=None, ends=(), reach=END_REACH, lead=0.0):
-    return Deck(name, side, ends, reach, lead)
+def load(name, side=None, ends=(), reach=END_REACH, lead=0.0, steps=None):
+    return Deck(name, side, ends, reach, lead, steps)

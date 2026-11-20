@@ -94,8 +94,8 @@ func _assert_lit(lights: Array[RoomDressing.Light], pinned: Array[Array], what: 
 
 func test_the_steamer_s_stokehold_is_lit_where_it_was() -> void:
 	var pinned: Array[Array] = [
-		[ShipLamp.Kind.PENDANT, Vector3(1.875, -0.06, -2.15)],
-		[ShipLamp.Kind.PENDANT, Vector3(1.875, -0.06, 2.15)],
+		[ShipLamp.Kind.PENDANT, Vector3(1.875, -0.06, -2.1)],
+		[ShipLamp.Kind.PENDANT, Vector3(1.875, -0.06, 2.1)],
 		[ShipLamp.Kind.FIRE, Vector3(3.9, -3.78, -1.85)],
 		[ShipLamp.Kind.FIRE, Vector3(3.9, -3.78, 1.85)],
 	]

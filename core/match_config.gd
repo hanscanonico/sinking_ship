@@ -204,6 +204,31 @@ func data_hash() -> String:
 	return _describe(described).sha256_text()
 
 
+## What data_hash is a function of, kept as they are now: the rules, ship, scenario and
+## bonus rules as the instances themselves, the countdown and the goal (her prop kinds
+## follow from her ship). Held with a hash, it lets holds() skip the walk (#645).
+func data_fields() -> Array:
+	return [rules, ship, scenario, countdown_ticks, bonus_rules, goal]
+
+
+## Whether this config holds the very data [param fields] (data_fields) kept, told
+## without walking her ship: the same rules, ship and bonus rules — the instances —, the
+## same countdown and goal, and a scenario that is the same or describes the same (fast
+## and a chosen hit make a fresh copy each time). Where it answers true, data_hash answers
+## as it did for the config [param fields] came from — unless one of those resources was
+## changed in place since, which nothing does to a match's loaded data.
+func holds(fields: Array) -> bool:
+	return (
+		fields.size() == 6
+		and is_same(rules, fields[0])
+		and is_same(ship, fields[1])
+		and countdown_ticks == fields[3]
+		and is_same(bonus_rules, fields[4])
+		and goal == fields[5]
+		and (is_same(scenario, fields[2]) or _describe(scenario) == _describe(fields[2]))
+	)
+
+
 ## Every kind of prop her layout carries, once each, in the order of their names — as
 ## Strings: StringNames sort by where they were interned, which two engines differ on.
 func _prop_kinds() -> Array[PropKind]:
@@ -218,18 +243,32 @@ func _prop_kinds() -> Array[PropKind]:
 	return kinds
 
 
-static func _describe(value: Variant) -> String:
+## A resource's saved fields only: what a script keeps for itself, unsaved (a cache, a
+## lock), is no number the match loaded. [param saved_of] holds each script's saved field
+## names as the walk first lists them: no script here lists its fields per instance, so
+## one listing serves every instance — a liner's walk lists ~3.5x faster for it (#640).
+## Kept per walk, never shared, so walks on two threads touch nothing in common.
+static func _describe(value: Variant, saved_of: Dictionary = {}) -> String:
 	if value is Resource:
 		var resource: Resource = value
+		var script: Variant = resource.get_script()
+		var names: PackedStringArray
+		if saved_of.has(script):
+			names = saved_of[script]
+		else:
+			var saved := PROPERTY_USAGE_SCRIPT_VARIABLE | PROPERTY_USAGE_STORAGE
+			for property: Dictionary in resource.get_property_list():
+				if (property["usage"] & saved) == saved:
+					names.append(property["name"])
+			saved_of[script] = names
 		var fields := PackedStringArray()
-		for property: Dictionary in resource.get_property_list():
-			if property["usage"] & PROPERTY_USAGE_SCRIPT_VARIABLE:
-				var field: String = property["name"]
-				fields.append("%s=%s" % [field, _describe(resource.get(field))])
-		return "{%s}" % ",".join(fields)
+		fields.resize(names.size())
+		for at in names.size():
+			fields[at] = names[at] + "=" + _describe(resource.get(names[at]), saved_of)
+		return "{" + ",".join(fields) + "}"
 	if value is Array:
 		var items := PackedStringArray()
 		for item: Variant in value:
-			items.append(_describe(item))
-		return "[%s]" % ",".join(items)
+			items.append(_describe(item, saved_of))
+		return "[" + ",".join(items) + "]"
 	return var_to_str(value)

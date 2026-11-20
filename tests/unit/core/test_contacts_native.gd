@@ -5,14 +5,17 @@ extends GutTest
 ## touching, a slab over a crawlway, ramps up and down either way, a spent railing and
 ## crates touching, stacked on lids and astride the grids' cells — and on her real ships,
 ## their doors half shut and a funnel down, every obstacle, railing and airborne-railing
-## contact — a body's on its feet and in the air, stepping onto nothing — and every crate
-## near a point, asked at corners, edges and a hair either side of them, at ±0 and from
-## heights a step either side of every surface and a hair and half a step under it — and
-## where a falling body lands there and its ceiling; then matches stepped tick by tick, one
-## natively and one in GDScript, their snapshots byte for byte — a saloon's tables and
-## chairs afloat as she settles and heels, and the steamer's crates sliding hard into
-## railings that break. Where the extension is not loaded there is nothing to hold it
-## to; CI sets SINKING_NATIVE_REQUIRED, so a missing library there fails.
+## contact — a body's on its feet, walked there across railings, and in the air, stepping
+## onto nothing — and every crate near a point, asked at corners, edges and a hair either
+## side of them, at ±0 and from heights a step either side of every surface and a hair and
+## half a step under it — and where a falling body lands there and its ceiling; then
+## matches stepped tick by tick, one natively and one in GDScript, their snapshots byte
+## for byte — a saloon's tables and chairs afloat as she settles and heels, and the
+## steamer's crates sliding hard into railings that break; and who sees whom on each of
+## them, through doorways open, half shut and shut, over and under decks and stairs, past
+## round tops, across a funnel down, under a pose whose decks are gone or not. Where the
+## extension is not loaded there is nothing to hold it to; CI sets
+## SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const STEAMER := "res://data/ships/steamer.tres"
 const SMALL_TITANIC := "res://data/ships/small_titanic.tres"
@@ -22,6 +25,8 @@ const HAIRS: Array[float] = [0.0, 1e-6, -1e-6, 1e-4, -1e-4, 0.05, -0.05]
 ## How many of a real ship's surfaces and crates are asked about.
 const SURFACES_ASKED := 160
 const CRATES_ASKED := 80
+## How many lines of sight are asked from points on a ship's surfaces.
+const SIGHTS_ASKED := 240
 ## Ticks the afloat saloons and the sliding crates are stepped.
 const SALOON_TICKS := 150
 const SLIDE_TICKS := 240
@@ -31,12 +36,15 @@ const SPENT_BY_A_STAIR := 7
 var _rng := RandomNumberGenerator.new()
 var _differences: Array[String] = []
 var _asked := 0
+## How many bodies walked onto her stairs were held by a railing.
+var _walked_held := 0
 
 
 func before_each() -> void:
 	_rng.seed = 410
 	_differences.clear()
 	_asked = 0
+	_walked_held = 0
 	ContactsNative.off = false
 
 
@@ -123,6 +131,7 @@ func test_the_railings_along_her_stairs_answer_alike() -> void:
 			held += _ask_along(native, reference, layout, native.ramp_surface(ramp), rules)
 	_assert_none("her stairs' railings")
 	assert_gt(held, 100, "bodies on her stairs held by railings")
+	assert_gt(_walked_held, 100, "bodies walked onto her stairs held by railings")
 
 
 func test_pieces_meeting_answer_alike_round_their_corners() -> void:
@@ -189,7 +198,9 @@ func test_crates_sliding_into_railings_step_alike_as_they_break_them() -> void:
 	if not _loaded():
 		return
 	var layout: ShipLayout = load(STEAMER)
-	var scenario := SimFixtures.scenario([[0.0, -10.0, 0.0, 0.0], [1.0, -10.0, 6.0, 32.0]])
+	# Heeled to port: her forward cargo goes into the port rail. To starboard her hatch's
+	# crates now fetch up on the boat deck's stair's side rail by its foot (#587).
+	var scenario := SimFixtures.scenario([[0.0, -10.0, 0.0, 0.0], [1.0, -10.0, 6.0, -32.0]])
 	_step_alike(layout, scenario, SLIDE_TICKS, "the steamer's sliding crates", true)
 
 
@@ -197,6 +208,108 @@ func test_crates_sliding_into_railings_step_alike_as_they_break_them() -> void:
 ## [param ticks], natively and in GDScript, and notes any tick whose snapshots differ by a
 ## byte; the most crates it stepped in a tick. With [param breaks], a crate breaking a
 ## railing must happen.
+func test_lines_of_sight_answer_alike() -> void:
+	if not _loaded():
+		return
+	var ships: Array[ShipLayout] = [_made_up(), _seamed(), load(STEAMER), load(SMALL_TITANIC)]
+	var hidden := 0
+	for layout: ShipLayout in ships:
+		for shut: float in [0.0, 0.5, 1.0]:
+			hidden += _sights(layout, shut)
+	_assert_none("her lines of sight")
+	assert_gt(hidden, 1000, "lines hidden")
+	assert_gt(_asked - hidden, 1000, "lines seen")
+
+
+## Asks natively and in GDScript whether lines across [param layout] are seen along, its
+## watertight doors [param shut] that far and, unless open, a funnel down and a deck gone;
+## each line under the pose honoured and under one with another deck gone. How many were
+## hidden.
+func _sights(layout: ShipLayout, shut: float) -> int:
+	var pose := _pose(0)
+	var other := _pose(0)
+	var names: Array[StringName] = []
+	for platform: ShipPlatform in layout.platforms:
+		names.append(platform.name)
+	other.collapsed = [names[_rng.randi_range(0, names.size() - 1)]] as Array[StringName]
+	if shut > 0.0:
+		pose.collapsed = [names[_rng.randi_range(0, names.size() - 1)]] as Array[StringName]
+	if layout.structure != null:
+		for opening: ShipOpening in layout.structure.openings:
+			if opening.shuts_at_hit:
+				pose.doors_shut[opening.name] = shut
+		for fitting: ShipFitting in layout.structure.fittings:
+			if shut > 0.0 and fitting.kind == ShipFitting.Kind.FUNNEL:
+				var way := Vector2.from_angle(_rng.randf_range(0.0, TAU))
+				pose.felled.append(FunnelFall.new(fitting, way, 0, 0, 0))
+				break
+	var native := Surfaces.new(layout)
+	ContactsNative.off = true
+	var reference := Surfaces.new(layout)
+	ContactsNative.off = false
+	assert_not_null(native.native, "the native Surfaces asks the extension")
+	native.honour(pose)
+	reference.honour(pose)
+	var lines: Array[Vector3] = []
+	var count := _surface_count(layout)
+	var last := Vector3.ZERO
+	for _pick in SIGHTS_ASKED:
+		var surface := _rng.randi_range(0, count - 1)
+		var area := reference._areas[surface]
+		var at := area.position + area.size * Vector2(_rng.randf(), _rng.randf())
+		var point := Vector3(at.x, 0.0, at.y)
+		point.y = reference.height_at(surface, point) + _rng.randf_range(-1.0, 2.0)
+		var reach := Vector2.from_angle(_rng.randf_range(0.0, TAU)) * _rng.randf_range(0.5, 14.0)
+		var near := point + Vector3(reach.x, _rng.randf_range(-2.0, 2.0), reach.y)
+		lines.append_array([point, last, point, near])
+		last = point
+		if surface >= reference._first_top:
+			# Across a blocker, through its middle, at its heights and over its top.
+			var blocker := reference._blocker_of(surface)
+			var middle := area.get_center()
+			var high := _rng.randf_range(blocker.bottom, blocker.top + 0.5)
+			var past := Vector3(reach.x, 0.0, reach.y).normalized() * (area.size.x + 2.0)
+			lines.append_array([Vector3(middle.x, high, middle.y) - past, point + past * 2.0])
+	var doors := reference.doors
+	for door in doors._names.size():
+		# Across the doorway, at a share of its width, from below its sill to over its head.
+		var way := doors.doorway(door)
+		var across := Vector2(2.0, 0.0) if way.size.x == 0.0 else Vector2(0.0, 2.0)
+		for share: float in [0.1, 0.4, 0.6, 0.9]:
+			var spot := way.position + way.size * share
+			var high := lerpf(doors._sills[door] - 0.5, doors._heads[door] + 0.5, _rng.randf())
+			lines.append(Vector3(spot.x - across.x, high, spot.y - across.y))
+			lines.append(
+				Vector3(spot.x + across.x, high + _rng.randf_range(-0.3, 0.3), spot.y + across.y)
+			)
+	for fall: FunnelFall in pose.felled:
+		# Across the funnel lying down, at its foot's height and over it.
+		var base := fall.fitting.base
+		var middle := Vector2(base.x, base.z) + fall.along * fall.fitting.height * 0.5
+		var side := fall.along.orthogonal() * 4.0
+		for high: float in [base.y + fall.fitting.radius, base.y + fall.fitting.radius * 2.5]:
+			lines.append(Vector3(middle.x - side.x, high, middle.y - side.y))
+			lines.append(Vector3(middle.x + side.x, high, middle.y + side.y))
+	var hidden := 0
+	for index in range(0, lines.size(), 2):
+		for asked: ShipPose in [pose, other]:
+			hidden += _sight(native, reference, lines[index], lines[index + 1], asked)
+	return hidden
+
+
+## line_of_sight() from [param from] to [param to] under [param pose], natively and in
+## GDScript: 1 where it is hidden.
+func _sight(
+	native: Surfaces, reference: Surfaces, from: Vector3, to: Vector3, pose: ShipPose
+) -> int:
+	_asked += 1
+	var theirs := reference.line_of_sight(from, to, pose)
+	var mine := native.line_of_sight(from, to, pose)
+	if mine != theirs:
+		_note("sight from %s to %s under %s: %s" % [from, to, pose.collapsed, mine])
+	return 0 if theirs else 1
+
+
 func _step_alike(
 	layout: ShipLayout, scenario: SinkScenario, ticks: int, what: String, breaks := false
 ) -> int:
@@ -326,6 +439,35 @@ func _rails(
 		reference.airborne_rail_contacts(point, came, shape.x, shape.y, rules.railing_height),
 		"airborne railings at %s from %s" % [point, came]
 	)
+	# Walked there this tick (RailContacts.walked's twin): from where it stood, from a step
+	# away, and from far enough off that the line runs over several stretches of the grid.
+	for reach: float in [0.0, 0.4, 3.0, 11.0]:
+		var walked_from := (
+			Vector2(point.x, point.z) + Vector2.from_angle(_rng.randf_range(0.0, TAU)) * reach
+		)
+		_walked(native, reference, point, walked_from, surface, rules)
+
+
+## rail_contacts() of a body at [param point] on [param surface] that walked there from
+## [param came] this tick, natively and in GDScript.
+func _walked(
+	native: Surfaces,
+	reference: Surfaces,
+	point: Vector3,
+	came: Vector2,
+	surface: int,
+	rules: BrawlRules
+) -> int:
+	_asked += 1
+	var radius := rules.body_radius
+	var theirs := reference.rail_contacts(
+		point, radius, surface, rules.step_height, rules.railing_height, came
+	)
+	var mine := native.rail_contacts(
+		point, radius, surface, rules.step_height, rules.railing_height, came
+	)
+	_same_contacts(mine, theirs, "railings walked to %s on %d from %s" % [point, surface, came])
+	return theirs.size()
 
 
 ## landing(), under() and ceiling() at [param point], natively and in GDScript: the lid of
@@ -442,6 +584,9 @@ func _ask_along(
 					)
 					_same_contacts(mine, theirs, "stair %d's railings at %s" % [surface, at])
 					held += 0 if theirs.is_empty() else 1
+					# Walked across the railing's line onto the stair, and along it.
+					for came: Vector2 in [on - across * 0.3, spot + railing.to - railing.from]:
+						_walked_held += _walked(native, reference, at, came, surface, rules)
 	return held
 
 

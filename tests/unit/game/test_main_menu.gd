@@ -156,7 +156,24 @@ func test_credits_stands_between_replays_and_quit() -> void:
 	var names := PackedStringArray()
 	for button: Node in credits.get_parent().get_children():
 		names.append(button.name)
-	assert_eq(names, PackedStringArray(["Play", "Settings", "Replays", "Credits", "QuitGame"]))
+	assert_eq(
+		names, PackedStringArray(["Play", "Watch", "Settings", "Replays", "Credits", "QuitGame"])
+	)
 	watch_signals(menu)
 	credits.pressed.emit()
 	assert_signal_emitted(menu, "credits_requested")
+
+
+## Watch hands on the same choices as Play, the match only watched (MatchChoices.watch):
+## Play's are played.
+func test_watch_plays_the_choices_watched() -> void:
+	var menu := _menu(PackedStringArray(["--ship=trawler", "--seats=3"]))
+	var heard: Array[MatchChoices] = []
+	menu.play_requested.connect(func(chosen: MatchChoices) -> void: heard.append(chosen))
+	(menu.get_node("%Watch") as Button).pressed.emit()
+	(menu.get_node("%Play") as Button).pressed.emit()
+	assert_eq(heard.size(), 2)
+	assert_true(heard[0].watch, "Watch: only watched")
+	assert_eq(heard[0].ship, &"trawler", "on the choices as they stand")
+	assert_eq(heard[0].seats, 3)
+	assert_false(heard[1].watch, "Play: played")

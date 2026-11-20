@@ -758,8 +758,12 @@ STAIRS = [
     # The main third-class stairway down to E deck, as the plate draws it: 125 px of
     # treads (3.3 m) for 2.75 m, rising aft (est.) to where C deck's flight down lands.
     # The plate draws the 16 ft (BOT) in three lanes; C deck's flight down comes down the
-    # middle and starboard ones (c.py), so this one takes the port lane, 1.35 m wide.
-    ("third-class stairway", 1313, 3441.5, 1438, 3493, "aft", "e", "d"),
+    # middle and starboard ones (c.py), so this one takes the port lane, 1.35 m wide. Its
+    # head stands on D deck at P's top, aft of her sheer's step forward of P (gen_titanic.py's
+    # D_STEP_P, #503), 3.75 m over E deck: run on 32.5 px aft over the landing, as the
+    # generator runs its foot on, to a slope a body climbs, so its hole in D deck stops at
+    # the step (HOLE_ENDS) with 2.4 m over its treads, the deck forward of the step whole.
+    ("third-class stairway", 1280.5, 3441.5, 1438, 3493, "aft", "e", "d"),
     # The after second-class stairway's flight down to E deck: the port flight, as the
     # stairways above alternate (B deck's port, b_aft.py), rising aft as B deck's does. The
     # plate draws 66.5 px of treads (1.7 m) for 2.75 m: it runs on 58.5 px aft over the
@@ -875,3 +879,7 @@ DOOR_MOVES = [
 # run on through them (c.py): behind each stair's head a closet no body reaches (#514).
 NOT_ROOMS = [(99.5, -3.5), (99.3, 3.5)]
 SHUT = [(99.47, -5.0625), (99.31, 5.4375)]
+# The main third-class stairway's flight up from E deck, its hole cut from its head back to
+# her sheer's step forward of P (gen_titanic.py's D_STEP_P, the W.C.s' forward face): the
+# deck forward of the step, 0.5 m under the one aft of it, stands whole over its foot (#503).
+HOLE_ENDS = [((-115.0, -2.0), -113.3125)]

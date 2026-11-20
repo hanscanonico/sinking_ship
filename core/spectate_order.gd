@@ -3,7 +3,9 @@ extends RefCounted
 ## Whose eyes the view is in (D13, the single picker): the local seat's while it is
 ## dry; once it is out, the best-placed dry seat's by MatchStats, until Q / E or the
 ## d-pad cycles to another, which it keeps until that one is out too. Who is dry is
-## the snapshot's to say (D5).
+## the snapshot's to say (D5). A watcher's (no local seat, -1) has no eyes of its own:
+## it starts in the best-placed dry seat's and keeps to whichever seat it is in — never
+## jumping to another as the standings change — until that one is out, or Q / E moves it.
 
 var _local: int
 var _stats: MatchStats
@@ -30,6 +32,9 @@ func target(snapshot: Dictionary) -> int:
 		_picked = -1
 		if not dry.is_empty():
 			_following = _stats.best_of(dry)
+			# A watcher keeps to the seat it was put in, as if it had picked it.
+			if _local < 0:
+				_picked = _following
 	return _following
 
 

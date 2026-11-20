@@ -165,7 +165,7 @@ func test_a_press_on_the_tick_the_sea_reaches_a_bonus_takes_it() -> void:
 	SimFixtures.step(sim, {0: SimFixtures.frame(0)}, Ticks.from_seconds(FLOODS) + 1)
 	assert_eq(sim.snapshot()["bonuses"].size(), 1, "aboard as the last dry tick leaves it")
 	var events := SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, InputFrame.GRAB)})
-	assert_eq(sim.state.seats[0].bonus, 0, "the press takes it")
+	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0]), "the press takes it")
 	assert_true(_of(events, SimEvent.Kind.BONUS_LOST).is_empty(), "before the sea can")
 
 

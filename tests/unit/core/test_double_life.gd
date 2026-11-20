@@ -21,7 +21,7 @@ func _swimming_with_a_spare(cold: float, seats := 2) -> MatchSim:
 		SimFixtures.place(sim, seat, Vector3(10.0, 0.0, seat - 1.0))
 	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 6.0))
 	sim.state.seats[0].cold = cold
-	sim.state.seats[0].bonus = 0
+	sim.state.seats[0].bonuses = PackedInt32Array([0])
 	return sim
 
 
@@ -32,7 +32,7 @@ func test_double_life_fills_the_meter_again_once_and_is_spent() -> void:
 	var events := SimFixtures.step(sim)
 	assert_false(swimmer.is_out(), "its meter ran out, and it is still in")
 	assert_eq(swimmer.cold, rules.cold_meter, "full again")
-	assert_eq(swimmer.bonus, -1, "the Double life spent")
+	assert_eq(swimmer.bonuses, PackedInt32Array(), "the Double life spent")
 	var spent := _of(events, SimEvent.Kind.DOUBLE_LIFE_SPENT)
 	assert_eq(spent.size(), 1, "and says so")
 	if spent.size() == 1:
@@ -59,7 +59,7 @@ func test_the_spare_drains_at_whatever_rate_the_meter_does() -> void:
 	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 6.0))
 	SimFixtures.hand(sim, 0, 0)
 	var floating := sim.state.seats[0]
-	floating.bonus = 0
+	floating.bonuses = PackedInt32Array([0])
 	floating.cold = Ticks.SECONDS_PER_TICK * ring_rate
 	SimFixtures.step(sim)
 	assert_eq(floating.cold, rules.cold_meter, "with a ring: full again")
@@ -84,7 +84,7 @@ func test_the_spare_drains_at_whatever_rate_the_meter_does() -> void:
 	SimFixtures.place(trapped, 1, Vector3(-2.5, 4.7, 0.0))
 	SimFixtures.swim(trapped, 0, Vector3(13.5, 0.0, 0.0))
 	var in_air := trapped.state.seats[0]
-	in_air.bonus = 0
+	in_air.bonuses = PackedInt32Array([0])
 	in_air.cold = Ticks.SECONDS_PER_TICK * rules.pocket_cold_rate
 	SimFixtures.step(trapped)
 	assert_eq(in_air.cold, rules.cold_meter, "in trapped air: full again")
@@ -109,7 +109,7 @@ func test_an_unspent_spare_counts_as_a_full_meter_more_in_the_last_swim() -> voi
 	SimFixtures.swim(sim, 1, Vector3(6.0, 0.0, 0.0))
 	sim.state.seats[0].cold = 3.0
 	sim.state.seats[1].cold = 1.0
-	sim.state.seats[1].bonus = 0
+	sim.state.seats[1].bonuses = PackedInt32Array([0])
 	var events := SimFixtures.step(sim)
 	assert_eq(sim.state.phase, MatchState.Phase.ENDED, "the last swim is over at once")
 	assert_eq(sim.state.winner(), 1, "1 s and a spare meter outlast 3 s")
@@ -124,7 +124,7 @@ func test_an_unspent_spare_counts_as_a_full_meter_more_in_the_last_swim() -> voi
 	tied.state.seats[0].cold = 3.0
 	for seat: int in [1, 2]:
 		tied.state.seats[seat].cold = 1.0
-		tied.state.seats[seat].bonus = 0
+		tied.state.seats[seat].bonuses = PackedInt32Array([0])
 	SimFixtures.step(tied)
 	assert_eq(tied.state.winner(), -1, "two spares tie for the most: the sea's draw")
 	var places := [tied.state.seats[0].place, tied.state.seats[1].place, tied.state.seats[2].place]
@@ -150,7 +150,7 @@ func test_double_life_does_not_help_a_seat_going_down_with_her() -> void:
 	for seat: int in [0, 1]:
 		var at := sim.state.seats[seat].pos
 		assert_ne(sim.pose().cell_at(at), CellMap.NONE, "seat %d is inside her" % seat)
-	sim.state.seats[0].bonus = 0
+	sim.state.seats[0].bonuses = PackedInt32Array([0])
 	var events := SimFixtures.step(sim, {}, 2)
 	var spared := sim.state.seats[0]
 	var bare := sim.state.seats[1]
@@ -160,7 +160,7 @@ func test_double_life_does_not_help_a_seat_going_down_with_her() -> void:
 		assert_eq(inside.out_tick, gone)
 	assert_eq(spared.cold, bare.cold, "both on full meters, dry inside her")
 	assert_eq(spared.place, bare.place, "they share a place: the spare counts for nothing")
-	assert_eq(spared.bonus, -1, "its bonus gone with it")
+	assert_eq(spared.bonuses, PackedInt32Array(), "its bonus gone with it")
 	assert_true(_of(events, SimEvent.Kind.DOUBLE_LIFE_SPENT).is_empty(), "never spent")
 
 
@@ -186,7 +186,7 @@ func test_the_transcript_tells_a_bonus_coming_taken_and_spent() -> void:
 ## Without one, the same swimmer goes out as its meter runs out, as it always has.
 func test_a_seat_without_double_life_goes_out_as_its_meter_runs_out() -> void:
 	var sim := _swimming_with_a_spare(Ticks.SECONDS_PER_TICK)
-	sim.state.seats[0].bonus = -1
+	sim.state.seats[0].bonuses = PackedInt32Array()
 	var events := SimFixtures.step(sim)
 	assert_true(sim.state.seats[0].is_out())
 	assert_true(_of(events, SimEvent.Kind.DOUBLE_LIFE_SPENT).is_empty())

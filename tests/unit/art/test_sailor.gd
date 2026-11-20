@@ -157,7 +157,7 @@ func test_a_seats_own_arms_are_its_coats_in_its_colour() -> void:
 		add_child_autofree(brawler)
 		brawler.setup(seat, SimFixtures.rules(), false)
 		brawler.show_as_own_arms(
-			BrawlerAnimation.CLIPS, FirstPersonArms.POSES, FirstPersonArms.ELBOWS
+			BrawlerAnimation.CLIPS, FirstPersonArms.POSES, FirstPersonArms.ELBOWS, 0.05
 		)
 		var coat := Brawler.COATS[seat % Brawler.COATS.size()]
 		var arms := Brawler.own_arms(coat)

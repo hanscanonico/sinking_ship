@@ -2,14 +2,15 @@ class_name KeyBindings
 extends RefCounted
 ## The keys of play the player chose over the project's: at most one key or mouse
 ## button for each of the move's four ways, jump, shove, brace, grab and pause, and for
-## the switch of view and the free camera once out — one set, so a key of play
-## never also answers to watching (#257). An action left unchosen keeps the
+## the switch of view, the free camera, its follow and the ghost once out — one set, so a
+## key of play never also answers to watching (#257). An action left unchosen keeps the
 ## project's keys. A chosen one heads the action's keys in place of the project's
 ## first of its kind — a key for a key, a mouse button for a mouse button — so the
 ## arrows still move and a click still shoves; an alternate another action is given
-## goes from this one. The pad's bindings are never touched. The switches of view
-## also switch seats in replays, which hear their own keys and Esc first, so a bind
-## that would leave either on one of those is refused (IN_REPLAYS).
+## goes from this one. The pad's bindings are never touched. The switches of view, the
+## free camera's keys and the ghost's act in replays too, which hear their own keys and
+## Esc first, so a bind that would leave one of them on one of those is refused
+## (IN_REPLAYS).
 ## The settings screen saves them at PATH; Game applies them to the input map as it
 ## boots, and InputFrame reads actions, never keys, so the sim sees none of it (D3).
 ##
@@ -33,6 +34,8 @@ const ACTIONS: Array[StringName] = [
 	&"spectate_previous",
 	&"spectate_next",
 	&"spectate_free",
+	&"spectate_follow",
+	&"spectate_ghost",
 ]
 ## Each action's name on the settings screen.
 const TITLES := {
@@ -48,18 +51,22 @@ const TITLES := {
 	&"spectate_previous": "Previous view",
 	&"spectate_next": "Next view",
 	&"spectate_free": "Free camera",
+	&"spectate_follow": "Follow",
+	&"spectate_ghost": "Ghost",
 }
 
 ## The actions that also act in replays, where a replay's own keys and Esc are heard
 ## before them: none of them may hold one of those.
-const IN_REPLAYS: Array[StringName] = [&"spectate_previous", &"spectate_next"]
+const IN_REPLAYS: Array[StringName] = [
+	&"spectate_previous",
+	&"spectate_next",
+	&"spectate_free",
+	&"spectate_follow",
+	&"spectate_ghost",
+]
 ## The project's actions whose keys a replay hears before the switches of view.
 const REPLAY_PREFIX := "input/replay_"
 const REPLAY_CLOSE: StringName = &"ui_cancel"
-## The mouse buttons a replay's orbit drags and pans with (OrbitCamera.drag), whose
-## presses a replay hears before the switches of view too.
-const REPLAY_DRAGS: Array[MouseButton] = [MOUSE_BUTTON_LEFT, MOUSE_BUTTON_MIDDLE]
-
 ## A wheel's turns are not buttons a player holds.
 const WHEEL: Array[MouseButton] = [
 	MOUSE_BUTTON_WHEEL_UP,
@@ -207,7 +214,7 @@ func clashes_in_replays(action: StringName, event: InputEvent) -> bool:
 
 
 ## The keys a replay hears before the switches of view: every replay action's, as
-## project.godot binds them, Esc's and the buttons its orbit drags with.
+## project.godot binds them, and Esc's.
 static func replay_keys() -> Array[InputEvent]:
 	if _replay_keys.is_empty():
 		for property: Dictionary in ProjectSettings.get_property_list():
@@ -215,10 +222,6 @@ static func replay_keys() -> Array[InputEvent]:
 			if setting.begins_with(REPLAY_PREFIX):
 				_replay_keys.append_array(defaults_of(StringName(setting.trim_prefix("input/"))))
 		_replay_keys.append_array(defaults_of(REPLAY_CLOSE))
-		for button: MouseButton in REPLAY_DRAGS:
-			var drag := InputEventMouseButton.new()
-			drag.button_index = button
-			_replay_keys.append(drag)
 	return _replay_keys
 
 

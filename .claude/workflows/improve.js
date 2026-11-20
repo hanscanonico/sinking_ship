@@ -36,7 +36,7 @@ export const meta = {
 // retry is null or a second { impl, review }; a skipped task carries { skipped: true, reason }
 // instead. verdict reads the last attempt: approve | reject | verify_failed | gate_timed_out |
 // abandoned | unreviewed | no_result | skipped | error.
-// impl.local_gate is the implementer's make verify-changed (completed | timed_out | failed);
+// impl.local_gate is the implementer's make test-changed (completed | timed_out | failed);
 // anything but completed is the red gate the retry answers. impl.ci_green is what it saw on
 // the PR head when it reported, and impl.verify_pass is derived here as local_gate ===
 // 'completed' for older readers. No verdict is a merge: the orchestrator checks CI's full
@@ -103,7 +103,7 @@ const IMPL = {
 			type: 'string',
 			enum: ['completed', 'timed_out', 'failed'],
 			description:
-				'make verify-changed plus any area gate in the worktree: completed = it ran to its end and passed; failed = it ran to its end and something was red; timed_out = it had not ended when you reported (slots held, machine loaded). Never completed for a gate you did not see end. Not read when abandoned.',
+				'make test-changed plus any area gate in the worktree: completed = it ran to its end and passed; failed = it ran to its end and something was red; timed_out = it had not ended when you reported (slots held, machine loaded). Never completed for a gate you did not see end. Not read when abandoned.',
 		},
 		ci_green: {
 			type: 'boolean',

@@ -90,8 +90,19 @@ uniform float outdoor = 0.0;
 // a rough wobble, broad bright streaks and white foam boiling up all over it. 0 is calm
 // water.
 uniform float inflow : hint_range(0.0, 1.0) = 0.0;
+// A cell's first water running out over its floor (WaterFronts, FrontMask):
+// drawn only within front_reaches of one of the front_count rectangles it runs out from
+// (low x, low z, high x, high z in ship metres), with a lip of white water front_lip wide
+// at its edge — the sim's own answer of where its floor is wet. 0 fronts: drawn whole.
+uniform int front_count = 0;
+uniform vec4 front_rects[8];
+uniform float front_reaches[8];
+uniform float front_lip = 0.35;
 
 varying vec3 world;
+// The sheet's own up in the world: the world's up but while its water sloshes
+// (CellSlosh), which tilts the sheet.
+varying vec3 sheet_up;
 // The share of the lamps' hue this fragment sheds (foam, the underside), and the calm
 // wobble's normal its lamps' glints turn on, fragment to light.
 varying float pale;
@@ -163,6 +174,7 @@ float broken_lace(vec2 p, float t, float width) {
 
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	sheet_up = normalize(cross(MODEL_MATRIX[2].xyz, MODEL_MATRIX[0].xyz));
 }
 
 void fragment() {
@@ -180,6 +192,19 @@ void fragment() {
 	if (any(lessThan(ship, clip_low)) || any(greaterThan(ship, clip_high))) {
 		discard;
 	}
+	float lip = 0.0;
+	if (front_count > 0) {
+		float inside = -1e6;
+		for (int i = 0; i < front_count; i++) {
+			vec4 rect = front_rects[i];
+			vec2 off = max(max(rect.xy - ship.xz, ship.xz - rect.zw), vec2(0.0));
+			inside = max(inside, front_reaches[i] - length(off));
+		}
+		if (inside < 0.0) {
+			discard;
+		}
+		lip = 1.0 - smoothstep(0.0, front_lip, inside);
+	}
 	float t = TIME;
 	// A slow wobble of the surface: what turns a lamp's glint on it about.
 	vec2 slope = vec2(
@@ -191,12 +216,12 @@ void fragment() {
 		value_noise(world.xz * 5.3 + vec2(t * 0.7, t * 0.5) + 13.0)
 	) - 0.5) * 0.5;
 	float wobble = 0.35 + 1.8 * inflow;
-	vec3 up = normalize(vec3(-slope.x * wobble, 1.0, -slope.y * wobble));
+	vec3 up = normalize(sheet_up + vec3(-slope.x * wobble, 0.0, -slope.y * wobble));
 	NORMAL = normalize((VIEW_MATRIX * vec4(up, 0.0)).xyz) * (FRONT_FACING ? 1.0 : -1.0);
 	// The mirror, the underside's sheen and the lamps' glints follow the calm wobble
 	// only: the churn's steep slopes would turn them into hard crescents of the lamps'
 	// and the room's hue.
-	calm = normalize(vec3(-slope.x * 0.35, 1.0, -slope.y * 0.35));
+	calm = normalize(sheet_up + vec3(-slope.x * 0.35, 0.0, -slope.y * 0.35));
 	calm = normalize((VIEW_MATRIX * vec4(calm, 0.0)).xyz) * (FRONT_FACING ? 1.0 : -1.0);
 	float grazing = 1.0 - abs(dot(calm, VIEW));
 	AO = mix(indoor_ambient, 1.0, outdoor);
@@ -296,6 +321,13 @@ void fragment() {
 			float foam = max(edge, lacing);
 			colour = mix(colour, foam_colour.rgb, foam);
 			foamed = max(foamed, foam);
+		}
+		// The lip of white water at a spreading front, frayed.
+		if (lip > 0.0) {
+			float frayed = soft_noise(world.xz * 5.0 + vec2(t * 0.7, -t * 0.5) + 53.0);
+			float white = lip * (0.55 + 0.45 * frayed);
+			colour = mix(colour, foam_colour.rgb, white);
+			foamed = max(foamed, white);
 		}
 		// Rings spreading round the bodies wading or swimming in it.
 		if (wader_count > 0) {

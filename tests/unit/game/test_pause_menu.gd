@@ -56,6 +56,8 @@ func test_open_names_the_spectate_keys_once_out() -> void:
 	var label: Label = pause.get_node("%PauseControls")
 	assert_string_contains(label.text, "Q / E — switch view")
 	assert_string_contains(label.text, "C — free camera")
+	assert_string_contains(label.text, "V — follow the seat")
+	assert_string_contains(label.text, "B — ghost: walk her decks")
 
 
 func test_the_keyboard_looks_with_the_mouse_and_the_pad_with_its_stick() -> void:
@@ -63,3 +65,20 @@ func test_the_keyboard_looks_with_the_mouse_and_the_pad_with_its_stick() -> void
 	assert_string_contains(InputPrompts.pause_controls_for(true), "Right stick — look")
 	assert_string_contains(InputPrompts.pause_controls_for(false), "Esc — pause")
 	assert_string_contains(InputPrompts.pause_controls_for(true), "Start — pause")
+
+
+## A watcher plays nothing: the pause names only what switches the seat and flies the
+## free camera.
+func test_a_watchers_pause_names_only_the_views() -> void:
+	var pause := _pause()
+	var prompts: InputPrompts = autofree(InputPrompts.new())
+	pause.open(prompts, true, true)
+	var label: Label = pause.get_node("%PauseControls")
+	assert_string_contains(label.text, "Q / E — switch seat")
+	assert_string_contains(label.text, "C — free camera")
+	assert_string_contains(label.text, "V — follow the seat")
+	assert_string_contains(label.text, "B — ghost: walk her decks")
+	assert_string_contains(label.text, "Space / Shift — up / down")
+	assert_string_contains(label.text, "Esc — pause")
+	assert_false(label.text.contains("shove"), "nothing of play")
+	assert_false(label.text.contains("orbit"), "no orbit camera")

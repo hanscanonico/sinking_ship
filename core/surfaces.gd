@@ -187,8 +187,11 @@ func _mirrored() -> Object:
 ## doors as the ship's until the next pose, with the railings [param broken] by the
 ## match and its crates where [param props] has them: whoever asks about a tick hands
 ## its pose here first. Holds nothing it is not handed, so a match resumed from a
-## snapshot stands on the same ship.
-func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState] = []) -> void:
+## snapshot stands on the same ship. [param stood]: [param props] are only the crates
+## changed since it last stood them all, each stood alone; the rest stand as they stood.
+func honour(
+	pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState] = [], stood := false
+) -> void:
 	# A pose is a value, never changed once handed in: the same one with the same
 	# broken spans masks what it last masked. The cargo honours many times a tick. A
 	# copy, so a caller's list edited in place is not the one compared.
@@ -207,7 +210,11 @@ func honour(pose: ShipPose, broken := PackedInt32Array(), props: Array[PropState
 		if masked:
 			shapes += 1
 		_obstacles.honoured(self, fell, masked)
-	stands.stand_all(props)
+	if not stood:
+		stands.stand_all(props)
+		return
+	for crate: PropState in props:
+		stands.stand(crate)
 
 
 ## Takes the platforms [param collapsed] and the railings [param failed] as gone, and
@@ -277,6 +284,10 @@ func height_at(surface: int, ship_point: Vector3) -> float:
 ## never the lid of the crate [param except_prop]. NONE when every surface under it
 ## is farther below than that — it falls — or there is none at all.
 func under(ship_point: Vector3, step: float, except_prop: int = NONE) -> int:
+	# The extension's twin is held to this GDScript (test_contacts_native).
+	var mirror := native
+	if mirror != null:
+		return mirror.under(ship_point, step, except_prop)
 	var best := NONE
 	var best_height := -INF
 	var x := ship_point.x
@@ -363,9 +374,13 @@ func ceiling(ship_point: Vector3, clearance: float) -> float:
 	return lowest
 
 
-## The platform or ramp a body on [param surface] walks on: a blocker top's is
-## where a body stepping off its middle comes down, past any other blocker top, or
-## NONE when that is the sea; any other surface is its own.
+## The platform or ramp a body on [param surface] walks on: a blocker top's is the
+## highest of them under its middle at or below that top, past every blocker top — the
+## deck a wall's top stands flush with, over it across its width there, which a body steps
+## onto it from and walks on as that deck (#558), but not a floor whose edge a step's riser
+## stands half under; else where a body stepping off its middle comes down — or NONE when
+## that is the sea; any other surface is its own. Its top is read as the layout has it,
+## never as a point's float32: a floor at a height that rounds under it is not passed.
 func footing(surface: int) -> int:
 	if surface >= _first_lid:
 		if stands.gone[surface - _first_lid] == 1:
@@ -375,9 +390,27 @@ func footing(surface: int) -> int:
 		)
 	if not _is_blocker_top(surface):
 		return surface
-	var middle := _area(surface).get_center()
-	var below := Vector3(middle.x, _blocker_of(surface).bottom, middle.y)
-	return _highest_at_or_below(below, _platforms.size() + _ramps.size())
+	var area := _area(surface)
+	var middle := area.get_center()
+	var at := Vector3(middle.x, 0.0, middle.y)
+	var half := minf(area.size.x, area.size.y) * 0.5
+	var across := Vector3(half, 0.0, half)
+	var top := _blocker_of(surface).top
+	var best := NONE
+	var best_height := -INF
+	for below: int in _grid.near(Rect2(middle, Vector2.ZERO), -INF, top):
+		if below >= _first_top:
+			break
+		if _gone[below] == 1 or not _contains(below, at):
+			continue
+		var height := height_at(below, at)
+		if height > top or height <= best_height:
+			continue
+		if height == top and not (_contains(below, at - across) and _contains(below, at + across)):
+			continue
+		best = below
+		best_height = height
+	return best
 
 
 ## The platforms a ramp joins: at its start end, then at its end end — the platform
@@ -433,35 +466,23 @@ func obstacle_contacts(
 ## deck the feet could step up onto, or whose top stands over them — the floor's railing
 ## along the stair's side near its head or foot, across the way off it there (#552) — each
 ## held to from the stair's side of its line. A railing holds only along its span: a
-## centre level with a gap is touching nothing.
+## centre level with a gap is touching nothing. A body that has walked there this tick from
+## [param came_from] (x/z) meets those of the surface it stands over too, and any railing it
+## crossed, on the side it came from (RailContacts.walked, #592).
 func rail_contacts(
-	ship_point: Vector3, radius: float, surface: int, step: float, railing_height: float
+	ship_point: Vector3,
+	radius: float,
+	surface: int,
+	step: float,
+	railing_height: float,
+	came_from := Vector2.INF
 ) -> Array[Contact]:
+	if came_from != Vector2.INF:
+		return RailContacts.walked(
+			self, ship_point, came_from, radius, surface, step, railing_height
+		)
 	var contacts: Array[Contact] = []
-	var point := Vector2(ship_point.x, ship_point.z)
-	if is_ramp(surface):
-		var box := Rect2(point - Vector2(radius, radius), Vector2(radius, radius) * 2.0)
-		var feet := ship_point.y
-		var middle := _areas[surface].get_center()
-		for index: int in _rail_grid.near(box, feet - railing_height, feet + step):
-			if _rail_gone[index] == 1:
-				continue
-			var deck := _platforms[_railings[index].platform].height
-			if deck > feet + step or feet >= deck + railing_height:
-				continue
-			var side := (middle - _railings[index].from).dot(_rail_normals[index])
-			var contact := _rail_contact(index, point, radius, side < 0.0)
-			if contact != null:
-				contacts.append(contact)
-		return PlaneShapes.deepest_per_direction(contacts)
-	if surface < 0 or surface >= _platforms.size():
-		return contacts
-	for index: int in _platform_rails[surface]:
-		if _rail_gone[index] == 1:
-			continue
-		var contact := _rail_contact(index, point, radius)
-		if contact != null:
-			contacts.append(contact)
+	RailContacts.standing(self, surface, ship_point, radius, step, railing_height, contacts)
 	return PlaneShapes.deepest_per_direction(contacts)
 
 
@@ -611,6 +632,10 @@ func clear_stretches(
 ## one answer to who sees whom (D13): the bots' view and the
 ## first-person HUD's marks both ask it.
 func line_of_sight(from_point: Vector3, to_point: Vector3, pose: ShipPose) -> bool:
+	# The extension's twin is held to this GDScript (test_contacts_native).
+	var mirror := native
+	if mirror != null:
+		return mirror.line_of_sight(from_point, to_point, pose.collapsed)
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
 	var low := minf(from_point.y, to_point.y)

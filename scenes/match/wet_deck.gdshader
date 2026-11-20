@@ -8,7 +8,7 @@
 // It lies a few millimetres over the planks and is drawn a hair nearer the eye along
 // its own line of sight — the same pixels, nearer in depth — so it wins over them
 // without z-fighting and without rising over the sole of a foot.
-// Where water stands on the planks (wetness past 0.7) it also catches the sky at a
+// Where water stands on the planks (wetness past standing_from) it also catches the sky at a
 // grazing look, a fresnel sheen toward sheen_colour; below that it is only the veil.
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_back, fog_disabled, skip_vertex_transform;
@@ -25,11 +25,14 @@ uniform float pull = 0.0006;
 // fast it fades as the look steepens: a soft falloff, so a seat's eye 1.6 m over the
 // deck sees it on water a few metres off, not only at the horizon. It is drawn
 // sheen_glow times brighter than its colour, so it stays sky through the tonemap
-// rather than greying the planks.
+// rather than greying the planks — and no more than that, nor more of it than a
+// glint: the planks and their seams show through it everywhere, never a white sheet.
+// It comes in from standing_from to fully standing, so its edge is soft, not a line.
 uniform vec4 sheen_colour : source_color = vec4(0.55, 0.62, 0.7, 1.0);
-uniform float sheen = 0.5;
+uniform float sheen = 0.2;
 uniform float falloff = 2.0;
-uniform float sheen_glow = 5.0;
+uniform float sheen_glow = 1.6;
+uniform float standing_from = 0.55;
 
 varying vec3 world;
 varying vec2 deck;
@@ -67,9 +70,9 @@ void fragment() {
 		discard;
 	}
 	float veil = wet * soaked;
-	// Standing water only: zero below 0.7, so a merely wet deck is today's veil.
+	// Standing water only: zero below standing_from, so a merely wet deck is the veil.
 	float facing = abs(dot(normalize(-VERTEX), NORMAL));
-	float glint = pow(1.0 - facing, falloff) * sheen * smoothstep(0.7, 0.9, wet);
+	float glint = pow(1.0 - facing, falloff) * sheen * smoothstep(standing_from, 1.0, wet);
 	ALPHA = max(veil, glint);
 	// The black veil and the sheen share one draw: the sheen's share of the alpha.
 	ALBEDO = sheen_colour.rgb * sheen_glow * (glint / ALPHA);
