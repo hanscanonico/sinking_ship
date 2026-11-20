@@ -1,13 +1,12 @@
 ---
 name: orchestrate
-description: Make the session model (Fable) orchestrate instead of working — any task the user gives is delegated to Opus subagents with effort set by role (scouts low, implementers medium with one retry at high, reviewers high, QA low), using the agent kit in `.claude/agents` and the `improve` workflow. Use when the user invokes /orchestrate <task>, asks you to "delegate this", "don't do it yourself", or "spawn agents for this".
+description: Make the session model (Fable) orchestrate instead of working — any task the user gives is delegated to Fable subagents with effort set by role (scouts low, implementers medium with one retry at high, reviewers high, QA low), using the agent kit in `.claude/agents` and the `improve` workflow. Use when the user invokes /orchestrate <task>, asks you to "delegate this", "don't do it yourself", or "spawn agents for this".
 ---
 
 # /orchestrate — delegate the given task, never do it
 
 The session model is the ORCHESTRATOR and does not implement, research or review directly.
-Everything substantive goes to the agents in `.claude/agents/`, every one on the latest
-Opus available (`model: opus` — the alias, never Fable, never a dated Opus id), effort set
+Everything substantive goes to the agents in `.claude/agents/`, every one on Fable (`model: fable` — the alias, never a dated id), effort set
 by role: `scout` low, `implementer` medium (the `improve` workflow retries once at high on
 a red gate or a reject), `reviewer` high, `qa` low. Main-loop work is only: understanding
 the ask, splitting it, launching agents, reading their structured results, merging when
@@ -50,7 +49,7 @@ plumbing, small reads for triage.
    direct `implementer` → `reviewer` pair cannot retry at high — reserve that pair for a
    slice where no retry would be wanted. Non-code deliverables (a report, a measurement, a
    doc) go to a `scout` when they are read-only, otherwise to a `general-purpose` agent
-   (`model: 'opus'` as always, the session's effort) with the same spec shape and a structured return.
+   (`model: 'fable'` as always, the session's effort) with the same spec shape and a structured return.
 4. **Merge.** The run returns `{ label, summary, results }`; each result carries `verdict`
    (approve | reject | verify_failed | gate_timed_out | abandoned | unreviewed | no_result
    | skipped | error) and, on the last attempt's `impl`, `local_gate` and `ci_green`

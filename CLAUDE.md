@@ -123,8 +123,8 @@ gate's engines wait in `tools/test_slot.sh` until there is memory for them.
 
 ## Model roles
 
-Workers are the agents in `.claude/agents/`, every one on the latest Opus available
-(`model: opus` — the alias, never Fable, never a dated Opus id), effort set by role:
+Workers are the agents in `.claude/agents/`, every one on Fable
+(`model: fable` — the alias, never a dated id), effort set by role:
 `scout` low, `reviewer` high, `qa` low. `/orchestrate` carries the full delegation loop.
 `qa` stays idle until the repo has a `make smoke` capture sweep.
 
