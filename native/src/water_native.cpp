@@ -181,6 +181,97 @@ Array NativeWater::chains_under(const PackedVector3Array &p_points, const Packed
 	return found;
 }
 
+// CellMap.cell_at of every point, in her own frame: per point, its cell in [0] and the
+// point on that cell's floor under it in [1], the point itself for none
+// (StillPoints._locate). Her slots, boxes and sections flattened as chains_under has
+// them.
+Array NativeWater::cells_at(const PackedVector3Array &p_points, const PackedVector3Array &p_low,
+		const PackedVector3Array &p_high, const Vector3 &p_from, const Vector3 &p_to, double p_slot,
+		const PackedInt32Array &p_slot_from, const PackedInt32Array &p_slot_cells,
+		const PackedByteArray &p_poking, const PackedFloat64Array &p_inside_port,
+		const PackedFloat64Array &p_inside_starboard, const PackedFloat64Array &p_section_x,
+		const PackedFloat64Array &p_section_length, const PackedInt32Array &p_outline_from,
+		const PackedVector2Array &p_outlines) const {
+	const int64_t count = p_points.size();
+	PackedInt32Array cells;
+	PackedVector3Array own_floors;
+	cells.resize(count);
+	own_floors.resize(count);
+	int32_t *found = cells.ptrw();
+	Vector3 *floors = own_floors.ptrw();
+	const Vector3 *points = p_points.ptr();
+	const Vector3 *low = p_low.ptr();
+	const Vector3 *high = p_high.ptr();
+	const int32_t *slot_from = p_slot_from.ptr();
+	const int32_t *slot_cells = p_slot_cells.ptr();
+	const int64_t slots = p_slot_from.size() - 1;
+	const uint8_t *poking = p_poking.ptr();
+	const double *inside_port = p_inside_port.ptr();
+	const double *inside_starboard = p_inside_starboard.ptr();
+	const double *section_x = p_section_x.ptr();
+	const double *section_length = p_section_length.ptr();
+	const int64_t sections = p_section_x.size();
+	const int32_t *outline_from = p_outline_from.ptr();
+	const Vector2 *outlines = p_outlines.ptr();
+	for (int64_t point = 0; point < count; point++) {
+		const Vector3 at = points[point];
+		found[point] = NONE;
+		floors[point] = at;
+		if (double(at.x) < double(p_from.x) || double(at.x) >= double(p_to.x) || double(at.y) < double(p_from.y)) {
+			continue;
+		}
+		if (double(at.y) >= double(p_to.y) || double(at.z) < double(p_from.z) || double(at.z) >= double(p_to.z)) {
+			continue;
+		}
+		int64_t slot = int64_t(std::floor((double(at.x) - double(p_from.x)) / p_slot));
+		slot = slot < slots - 1 ? slot : slots - 1;
+		for (int32_t at_slot = slot_from[slot]; at_slot < slot_from[slot + 1]; at_slot++) {
+			const int32_t index = slot_cells[at_slot];
+			if (at.x < low[index].x || at.x >= high[index].x) {
+				continue;
+			}
+			if (at.y < low[index].y || at.y >= high[index].y) {
+				continue;
+			}
+			if (at.z < low[index].z || at.z >= high[index].z) {
+				continue;
+			}
+			if (poking[index] == 1) {
+				const double z = double(at.z);
+				const double inside = z >= 0.0 ? inside_starboard[index] : inside_port[index];
+				if (std::fabs(z) > inside) {
+					// CellMap._in_hull: ShipStructure.section_at, then _in_section.
+					const double x = double(at.x);
+					int64_t section = -1;
+					for (int64_t each = 0; each < sections; each++) {
+						const double half = section_length[each] * 0.5;
+						if (x >= section_x[each] - half && x < section_x[each] + half) {
+							section = each;
+							break;
+						}
+					}
+					if (section == -1) {
+						continue;
+					}
+					const int side = z >= 0.0 ? 1 : -1;
+					const double shell = shell_at(outlines + outline_from[section],
+							outline_from[section + 1] - outline_from[section], double(at.y), side);
+					if (std::isnan(shell) || !(z * side <= shell * side)) {
+						continue;
+					}
+				}
+			}
+			found[point] = index;
+			floors[point] = Vector3(at.x, low[index].y, at.z);
+			break;
+		}
+	}
+	Array located;
+	located.push_back(cells);
+	located.push_back(own_floors);
+	return located;
+}
+
 // Per group of points, from p_groups[group] to p_groups[group + 1], the least of their
 // StillPoints.above_water (ShipPose.above_water_seen) — WalkGraph._floor_lowest of
 // every zone.
@@ -446,6 +537,10 @@ void NativeWater::_bind_methods() {
 								 "slot_cells", "poking", "inside_port", "inside_starboard", "section_x",
 								 "section_length", "outline_from", "outlines", "dry"),
 			&NativeWater::chains_under);
+	ClassDB::bind_method(D_METHOD("cells_at", "points", "low", "high", "from", "to", "slot", "slot_from",
+								 "slot_cells", "poking", "inside_port", "inside_starboard", "section_x",
+								 "section_length", "outline_from", "outlines"),
+			&NativeWater::cells_at);
 	ClassDB::bind_method(D_METHOD("lowest_of", "groups", "world", "chain_from", "chain_cells", "world_floors",
 								 "levels", "dry"),
 			&NativeWater::lowest_of);

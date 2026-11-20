@@ -42,7 +42,7 @@ func _init(points: PackedVector3Array, native: Object = null) -> void:
 
 ## A NativeWater where the game's extension is loaded (native/, make native), else null.
 static func native_water() -> Object:
-	return ClassDB.instantiate(&"NativeWater") if ClassDB.class_exists(&"NativeWater") else null
+	return ClassDB.instantiate(&"NativeWater") if NativeVersion.has(&"NativeWater") else null
 
 
 func size() -> int:
@@ -199,6 +199,13 @@ func world_all() -> PackedVector3Array:
 
 
 func _locate() -> void:
+	var located: Array = _map.cells_at(water, _points) if water != null and _map != null else []
+	if not located.is_empty():
+		_cells = located[0]
+		_own_floors = located[1]
+		_located = true
+		_world_own_floors.clear()
+		return
 	_cells.resize(_points.size())
 	_own_floors.resize(_points.size())
 	for index in _points.size():
