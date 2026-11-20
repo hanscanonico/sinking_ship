@@ -501,7 +501,9 @@ func _play(cue: FxCue, root: Transform3D, camera: Camera3D) -> void:
 				to.y = 0.0
 			if _seen((at + to) * 0.5, maxf(at.distance_to(to) * 0.5, 1.0), camera):
 				var burst := _burst_for(cue.kind)
-				_water_burst(burst, cue.kind, at, to, toward, cue.strength, cue.rise, camera)
+				_water_burst(
+					burst, cue.kind, at, to, toward, cue.strength, cue.rise, camera, cue.lit
+				)
 		FxCue.Kind.MIST:
 			# It hangs for seconds: one behind the eye is there when it turns round.
 			var middle := (at + ship * cue.end) * 0.5
@@ -631,7 +633,7 @@ func _burst_for(kind: FxCue.Kind) -> CPUParticles3D:
 
 ## White water or air thrown out of [param burst] from [param at] — or along to
 ## [param to], a sheet — [param toward], climbing [param rise] over where it starts;
-## near the eye low, small and faint.
+## near the eye low, small and faint; [param lit] of its white showing (FxCue.lit).
 func _water_burst(
 	burst: CPUParticles3D,
 	kind: FxCue.Kind,
@@ -640,7 +642,8 @@ func _water_burst(
 	toward: Vector3,
 	strength: float,
 	rise: float,
-	camera: Camera3D
+	camera: Camera3D,
+	lit := 1.0
 ) -> void:
 	var shows := 1.0
 	var top := rise
@@ -687,7 +690,7 @@ func _water_burst(
 		burst.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 		burst.emission_sphere_radius = depth
 	burst.global_transform = Transform3D(basis, (at + to) * 0.5)
-	burst.color = Color(1.0, 1.0, 1.0, lerpf(SPECK_ALPHA, 1.0, shows))
+	burst.color = Color(lit, lit, lit, lerpf(SPECK_ALPHA, 1.0, shows))
 	burst.direction = basis.transposed() * direction
 	burst.scale_amount_max = grain / streak
 	burst.scale_amount_min = minf(0.6, burst.scale_amount_max)

@@ -2,6 +2,7 @@
 // level, before any script that asks ClassDB for them runs.
 
 #include "art_native.h"
+#include "cell_map_native.h"
 #include "contacts_native.h"
 #include "hull_native.h"
 #include "motion_native.h"
@@ -60,6 +61,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeCrates);
 	GDREGISTER_CLASS(NativeWaterFx);
 	GDREGISTER_CLASS(NativeStill);
+	GDREGISTER_CLASS(NativeCellMap);
 }
 
 static void uninitialize_sinking_native(ModuleInitializationLevel p_level) {

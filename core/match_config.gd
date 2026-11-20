@@ -244,20 +244,31 @@ func _prop_kinds() -> Array[PropKind]:
 
 
 ## A resource's saved fields only: what a script keeps for itself, unsaved (a cache, a
-## lock), is no number the match loaded.
-static func _describe(value: Variant) -> String:
+## lock), is no number the match loaded. [param saved_of] holds each script's saved field
+## names as the walk first lists them: no script here lists its fields per instance, so
+## one listing serves every instance — a liner's walk lists ~3.5x faster for it (#640).
+## Kept per walk, never shared, so walks on two threads touch nothing in common.
+static func _describe(value: Variant, saved_of: Dictionary = {}) -> String:
 	if value is Resource:
 		var resource: Resource = value
+		var script: Variant = resource.get_script()
+		var names: PackedStringArray
+		if saved_of.has(script):
+			names = saved_of[script]
+		else:
+			var saved := PROPERTY_USAGE_SCRIPT_VARIABLE | PROPERTY_USAGE_STORAGE
+			for property: Dictionary in resource.get_property_list():
+				if (property["usage"] & saved) == saved:
+					names.append(property["name"])
+			saved_of[script] = names
 		var fields := PackedStringArray()
-		var saved := PROPERTY_USAGE_SCRIPT_VARIABLE | PROPERTY_USAGE_STORAGE
-		for property: Dictionary in resource.get_property_list():
-			if (property["usage"] & saved) == saved:
-				var field: String = property["name"]
-				fields.append("%s=%s" % [field, _describe(resource.get(field))])
-		return "{%s}" % ",".join(fields)
+		fields.resize(names.size())
+		for at in names.size():
+			fields[at] = names[at] + "=" + _describe(resource.get(names[at]), saved_of)
+		return "{" + ",".join(fields) + "}"
 	if value is Array:
 		var items := PackedStringArray()
 		for item: Variant in value:
-			items.append(_describe(item))
-		return "[%s]" % ",".join(items)
+			items.append(_describe(item, saved_of))
+		return "[" + ",".join(items) + "]"
 	return var_to_str(value)

@@ -624,7 +624,7 @@ static func glass_of(opening: ShipOpening) -> PackedVector2Array:
 
 
 ## The glass of her structure (glass_of()): a porthole set in her shell, a window in the
-## wall it is flat across, each outside facing outdoors (_outside_of()).
+## wall it is flat across, each outside facing outdoors (ShipSpace._outside_of()).
 func _structure_glass(mesh: ShipMesh) -> void:
 	for opening: ShipOpening in _layout.structure.openings:
 		var porthole := opening.kind == ShipOpening.Kind.PORTHOLE
@@ -632,7 +632,7 @@ func _structure_glass(mesh: ShipMesh) -> void:
 		if not (porthole or opening.kind == ShipOpening.Kind.WINDOW) or across in [-1, 1]:
 			continue
 		var along := 2 - across
-		var out := _outside_of(opening.centre, across)
+		var out := _space._outside_of(opening.centre, across)
 		var size := WINDOW_SIZE if porthole else Vector2(opening.size[along], opening.size.y)
 		for spot: Vector2 in glass_of(opening):
 			var at := opening.centre
@@ -647,6 +647,13 @@ func _structure_glass(mesh: ShipMesh) -> void:
 				at.z = out * _hull.breadth(at.x, at.y, side)
 				normal = _hull.normal(at.x, at.y, side)
 			var inside := at - Vector3(normal.x, 0.0, normal.z).normalized() * SHELL_DEPTH
+			var outer := at + normal * (HULL_GLASS_PROUD if porthole else GLASS_PROUD)
+			# A window stands in a wall: its glass on the wall's faces, inside and out,
+			# wherever in the wall's thickness its opening's centre stands.
+			var faces := Vector2(NAN, NAN) if porthole else _space._wall_faces(at, across, out)
+			if not is_nan(faces.x):
+				inside[across] = faces.x - out * GLASS_PROUD
+				outer[across] = faces.y + out * GLASS_PROUD
 			var room := _room_holding(inside)
 			# A row the hit left open is open all along it.
 			var open := porthole and opening.centre in _open_ports
@@ -657,22 +664,9 @@ func _structure_glass(mesh: ShipMesh) -> void:
 			else:
 				_pane(mesh, inside, -normal, porthole, ShipPaints.glass_in, size)
 			panes.append([room, inside, -normal, porthole, size * 0.5])
-			var outer := at + normal * (HULL_GLASS_PROUD if porthole else GLASS_PROUD)
 			_pane(mesh, outer, normal, porthole, ShipPaints.glass_out, size, not open)
 			if open:
 				_disc(mesh, outer + normal * FRAME_PROUD, normal, ShipPaints.dark)
-
-
-## Which way along [param across] from a pane at [param centre] is outdoors: the way a
-## step out of the wall it is set in is, the way its middle stands from her centreline
-## when both are or neither is.
-func _outside_of(centre: Vector3, across: int) -> float:
-	var step := Vector3.ZERO
-	step[across] = ShipSpace.WALL_MAX + ShipMesh.PROBE
-	var ahead := _space.outdoors(centre + step)
-	if ahead != _space.outdoors(centre - step):
-		return 1.0 if ahead else -1.0
-	return 1.0 if centre[across] >= 0.0 else -1.0
 
 
 ## The room whose floor and walls hold [param point], or null.
