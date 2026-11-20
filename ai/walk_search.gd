@@ -186,7 +186,7 @@ static func native_graph(
 	portal_length: PackedFloat64Array,
 	pace: PackedFloat64Array
 ) -> Object:
-	if not ClassDB.class_exists(NATIVE_GRAPH):
+	if not NativeVersion.has(NATIVE_GRAPH):
 		return null
 	var graph: Object = ClassDB.instantiate(NATIVE_GRAPH)
 	graph.build(out, portal_to, portal_entry, portal_exit, portal_length, pace)

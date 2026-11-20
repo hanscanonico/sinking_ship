@@ -155,6 +155,58 @@ func cells_under(ship_point: Vector3) -> PackedInt32Array:
 func chains_under(water: Object, points: PackedVector3Array) -> Array:
 	if _framed:
 		return []
+	var flat := _flattened()
+	return water.chains_under(
+		points,
+		_low,
+		_high,
+		_bounds.position,
+		_bounds.end,
+		SLOT,
+		flat[0],
+		flat[1],
+		_poking,
+		_inside_port,
+		_inside_starboard,
+		flat[2],
+		flat[3],
+		flat[4],
+		flat[5],
+		DRY
+	)
+
+
+## cell_at of every one of [param points], worked out by [param water] (a NativeWater)
+## in one call: per point, its cell in [0] and the point on that cell's floor under it
+## in [1], the point itself for none (StillPoints._locate) — the same answers bit for
+## bit (test_cells_under). Empty for a map in another frame, which only cell_at walks.
+func cells_at(water: Object, points: PackedVector3Array) -> Array:
+	if _framed:
+		return []
+	var flat := _flattened()
+	return water.cells_at(
+		points,
+		_low,
+		_high,
+		_bounds.position,
+		_bounds.end,
+		SLOT,
+		flat[0],
+		flat[1],
+		_poking,
+		_inside_port,
+		_inside_starboard,
+		flat[2],
+		flat[3],
+		flat[4],
+		flat[5]
+	)
+
+
+## Her slots and hull sections flattened for NativeWater: each slot's cells from
+## [0][slot] to [0][slot + 1] in [1]; each section's x in [2], its length in [3], and
+## its outline from [4][section] to [4][section + 1] in [5].
+func _flattened() -> Array:
 	var slot_from := PackedInt32Array()
 	var slot_cells := PackedInt32Array()
 	for reaching: PackedInt32Array in _slots:
@@ -173,24 +225,7 @@ func chains_under(water: Object, points: PackedVector3Array) -> Array:
 		outline_from.append(outlines.size())
 		outlines.append_array(section.outline)
 	outline_from.append(outlines.size())
-	return water.chains_under(
-		points,
-		_low,
-		_high,
-		_bounds.position,
-		_bounds.end,
-		SLOT,
-		slot_from,
-		slot_cells,
-		_poking,
-		_inside_port,
-		_inside_starboard,
-		section_x,
-		section_length,
-		outline_from,
-		outlines,
-		DRY
-	)
+	return [slot_from, slot_cells, section_x, section_length, outline_from, outlines]
 
 
 ## The height of cell [param cell]'s floor, and of its ceiling.

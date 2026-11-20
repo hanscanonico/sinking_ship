@@ -32,6 +32,13 @@ public:
 			const PackedFloat64Array &p_inside_starboard, const PackedFloat64Array &p_section_x,
 			const PackedFloat64Array &p_section_length, const PackedInt32Array &p_outline_from,
 			const PackedVector2Array &p_outlines, double p_dry) const;
+	Array cells_at(const PackedVector3Array &p_points, const PackedVector3Array &p_low,
+			const PackedVector3Array &p_high, const Vector3 &p_from, const Vector3 &p_to, double p_slot,
+			const PackedInt32Array &p_slot_from, const PackedInt32Array &p_slot_cells,
+			const PackedByteArray &p_poking, const PackedFloat64Array &p_inside_port,
+			const PackedFloat64Array &p_inside_starboard, const PackedFloat64Array &p_section_x,
+			const PackedFloat64Array &p_section_length, const PackedInt32Array &p_outline_from,
+			const PackedVector2Array &p_outlines) const;
 	PackedFloat64Array lowest_of(const PackedInt32Array &p_groups, const PackedVector3Array &p_world,
 			const PackedInt32Array &p_chain_from, const PackedInt32Array &p_chain_cells,
 			const PackedVector3Array &p_world_floors, const PackedFloat64Array &p_levels,

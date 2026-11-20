@@ -33,7 +33,7 @@ static func made(
 	shipped: ShippedWater,
 	sea: SeaPhysics
 ) -> SinkNative:
-	if not ClassDB.class_exists(&"NativeSink"):
+	if not NativeVersion.has(&"NativeSink"):
 		return null
 	var native := SinkNative.new(ClassDB.instantiate(&"NativeSink"))
 	var frames := PackedFloat64Array()
