@@ -5,6 +5,7 @@ extends GutTest
 ## into her officers' cabins and its foot through her galley's ceiling.
 
 const SHIPS := "res://data/ships/"
+const FREIGHTER := "res://data/ships/freighter.tres"
 ## How many ways round each funnel is felled.
 const WAYS := 8
 ## How far inside a room's walls, floor and ceiling a point of the funnel counts as in it.
@@ -43,7 +44,7 @@ func test_a_fallen_funnel_lies_in_no_room() -> void:
 
 
 func test_a_funnel_with_nothing_in_its_way_lies_flat_on_its_deck() -> void:
-	var layout: ShipLayout = load(SHIPS + "freighter.tres")
+	var layout: ShipLayout = load(FREIGHTER)
 	var fitting := _funnel(layout)
 	# Over her side, toward the open sea: nothing on her boat deck stands in its way.
 	var fall := FunnelFall.new(fitting, Vector2(0.0, 1.0), 0, 1, 2)
@@ -58,7 +59,7 @@ func test_a_funnel_with_nothing_in_its_way_lies_flat_on_its_deck() -> void:
 
 
 func test_the_freighters_funnel_rests_on_her_cabins() -> void:
-	var layout: ShipLayout = load(SHIPS + "freighter.tres")
+	var layout: ShipLayout = load(FREIGHTER)
 	var fitting := _funnel(layout)
 	var fall := FunnelFall.new(fitting, Vector2(1.0, 0.0), 0, 1, 2)
 	var rest := FunnelArt.resting(layout, fall, fitting.base.y)
