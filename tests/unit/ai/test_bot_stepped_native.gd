@@ -39,8 +39,9 @@ func after_each() -> void:
 func test_her_ships_reckon_alike() -> void:
 	if not _loaded():
 		return
-	for path: String in [STEAMER, SMALL_TITANIC]:
-		var layout: ShipLayout = load(path)
+	var ships: Array[ShipLayout] = [load(STEAMER), load(SMALL_TITANIC)]
+	for layout: ShipLayout in ships:
+		var path := layout.resource_path
 		var native := Surfaces.new(layout)
 		ContactsNative.off = true
 		var reference := Surfaces.new(layout)
