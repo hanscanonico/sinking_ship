@@ -593,6 +593,11 @@ func blocked(from_point: Vector3, to_point: Vector3, body_height: float, step: f
 func clear_stretches(
 	from_point: Vector3, to_point: Vector3, body_height: float, step: float
 ) -> PackedVector2Array:
+	# The extension's twin is held to this GDScript (test_clear_stretches_native). It knows
+	# a blocker's top as it stands now, a fallen funnel's its foot: asked while none is.
+	var mirror := native
+	if mirror != null and not _fallen.any_down():
+		return mirror.clear_stretches(from_point, to_point, body_height, step)
 	var start := Vector2(from_point.x, from_point.z)
 	var end := Vector2(to_point.x, to_point.z)
 	var length := start.distance_to(end)
