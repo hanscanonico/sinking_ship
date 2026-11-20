@@ -792,14 +792,16 @@ func _across(side: PackedVector3Array, y: float) -> float:
 	return 0.0
 
 
-## A keel bar under the hull from the sternpost to the forefoot.
+## A keel bar under the hull from the sternpost to where the forefoot rises from the
+## keel: under it, its top a sliver into her shell — never up through a floor laid
+## just over her keel inside her, as her lowest holds' are.
 func _keel_bar(mesh: ShipMesh) -> void:
 	var from := _span.x + STERNPOST
-	var to := _stem_x(_keel + KEEL_BAR.y)
+	var to := _stem_x(_keel + SLIVER)
 	mesh.box(
 		Rect2(from, -KEEL_BAR.x * 0.5, to - from, KEEL_BAR.x),
 		_keel - KEEL_BAR.y,
-		_keel + KEEL_BAR.y,
+		_keel + SLIVER,
 		ShipPaints.hull,
 		ShipMesh.ALL_FACES,
 		NAN,
