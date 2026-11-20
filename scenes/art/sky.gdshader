@@ -23,6 +23,12 @@ uniform vec4 ambient_top_colour : source_color = vec4(0.169, 0.227, 0.404, 1.0);
 uniform vec4 ambient_horizon_colour : source_color = vec4(0.914, 0.627, 0.478, 1.0);
 uniform vec4 ambient_ground_colour : source_color = vec4(0.424, 0.416, 0.522, 1.0);
 uniform vec4 ambient_bottom_colour : source_color = vec4(0.078, 0.133, 0.208, 1.0);
+// Whether the eye is under the sea (Underwater), and the water's colour that then
+// stands in for every sky it sees: past the fog's reach all is one water, as the sea
+// over it is fogged to that colour (water.gdshader). This renderer does not fog the
+// sky, so it is painted so. The radiance stays the dusk's.
+uniform bool under = false;
+uniform vec4 under_colour : source_color = vec4(0.04, 0.2, 0.28, 1.0);
 const float AMBIENT_SKY_CURVE = 4.0;
 const float AMBIENT_GROUND_CURVE = 30.0;
 const float AMBIENT_GLOW_EDGE = 0.877;
@@ -104,6 +110,8 @@ void sky() {
 			colour = mix(colour, LIGHT0_COLOR * LIGHT0_ENERGY, glow);
 		}
 		COLOR = dusk_dim(colour);
+	} else if (under) {
+		COLOR = under_colour.rgb;
 	} else {
 		vec3 sun = LIGHT0_ENABLED ? LIGHT0_DIRECTION : normalize(vec3(0.44, 0.53, 0.73));
 		COLOR = painted_sky(dir, sun);
