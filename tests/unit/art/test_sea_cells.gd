@@ -29,6 +29,9 @@ const DOOR_STEP := 0.1
 const PAST_DOOR := 0.8
 ## How far under a room's floor the sea is looked for: within its deck's planks.
 const UNDER_FLOOR := 0.01
+## How far past a room's side — its walls' middle — the sea is looked for: inside a
+## wall, a hair out from its middle.
+const INTO_WALL := 0.03
 const UNDER_E_DECK: Array[StringName] = [
 	&"F deck working corridor, boiler room 4",
 	&"F deck working corridor, boiler room 5",
@@ -405,6 +408,61 @@ func _first_open_under(structure: ShipStructure, room: ShipRoom, masked: Array[A
 			if _in_a_cell(structure, point) and not _in_any(masked, point):
 				return point
 	return Vector3.INF
+
+
+## Her sea is left out a hair past every room's sides too, inside the walls standing on
+## them, wherever that is still inside one of her cells: a box that stopped at a room's
+## side — its walls' middle — let the sea's surface, where it crossed a wall, win the
+## depth test against it along a sliver at a grazing look — short dashes along the
+## waterline on the freighter's engine room's far wall as she settled.
+func test_the_sea_is_left_out_inside_every_room_s_walls() -> void:
+	for ship: StringName in [&"freighter", &"steamer", &"trawler", &"ferry"]:
+		var layout := Fleet.layout(ship)
+		var masked := _masked(layout)
+		var open := []
+		for room: ShipRoom in layout.rooms:
+			var found := _first_open_in_walls(layout, room, masked)
+			if found != Vector3.INF:
+				open.append("%s at %s" % [room.name, found.snappedf(0.01)])
+		assert_eq(open, [], "%s: rooms whose walls the sea is drawn just inside" % ship)
+
+
+## The first point INTO_WALL out past [param room]'s sides, INWARD in from its corners
+## and up from its floor to a full wall's height, STEP apart, inside one of [param
+## layout]'s walls and cells but in none of [param masked]; Vector3.INF for none.
+func _first_open_in_walls(layout: ShipLayout, room: ShipRoom, masked: Array[AABB]) -> Vector3:
+	var walls: Array[ShipBlocker] = []
+	for blocker: ShipBlocker in layout.blockers:
+		var thin := minf(blocker.area.size.x, blocker.area.size.y) <= ShipSpace.WALL_MAX
+		var box := blocker.shape == ShipBlocker.Shape.BOX
+		if box and thin and blocker.area.intersects(room.area.grow(INTO_WALL * 2.0)):
+			walls.append(blocker)
+	var inner := room.area.grow(-INWARD)
+	var heights := _steps(room.floor_height + INWARD, room.floor_height + ShipSpace.FULL_WALL)
+	var points: Array[Vector2] = []
+	for x: float in _steps(inner.position.x, inner.end.x):
+		points.append(Vector2(x, room.area.position.y - INTO_WALL))
+		points.append(Vector2(x, room.area.end.y + INTO_WALL))
+	for z: float in _steps(inner.position.y, inner.end.y):
+		points.append(Vector2(room.area.position.x - INTO_WALL, z))
+		points.append(Vector2(room.area.end.x + INTO_WALL, z))
+	for flat: Vector2 in points:
+		for y: float in heights:
+			var point := Vector3(flat.x, y, flat.y)
+			if not _in_a_wall(walls, point) or not _in_a_cell(layout.structure, point):
+				continue
+			if not _in_any(masked, point):
+				return point
+	return Vector3.INF
+
+
+## Whether [param point] stands inside one of [param walls].
+func _in_a_wall(walls: Array[ShipBlocker], point: Vector3) -> bool:
+	for wall: ShipBlocker in walls:
+		var inside := wall.area.has_point(Vector2(point.x, point.z))
+		if inside and point.y > wall.bottom and point.y < wall.top:
+			return true
+	return false
 
 
 func test_a_ship_with_no_drawn_cell_masks_nothing() -> void:
