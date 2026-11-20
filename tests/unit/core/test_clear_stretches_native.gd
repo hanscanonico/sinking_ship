@@ -36,8 +36,9 @@ func test_her_rooms_sides_answer_alike() -> void:
 	if not _loaded():
 		return
 	var rules := SimFixtures.rules()
-	for path: String in [STEAMER, SMALL_TITANIC]:
-		var layout: ShipLayout = load(path)
+	var ships: Array[ShipLayout] = [load(STEAMER), load(SMALL_TITANIC)]
+	for layout: ShipLayout in ships:
+		var path := layout.resource_path
 		var pair := _pair(layout)
 		assert_not_null(pair[0].native, "%s asks the extension" % path)
 		for room: ShipRoom in layout.rooms:
@@ -66,8 +67,8 @@ func test_her_blockers_and_decks_answer_alike() -> void:
 	if not _loaded():
 		return
 	var rules := SimFixtures.rules()
-	for path: String in [STEAMER, SMALL_TITANIC]:
-		var layout: ShipLayout = load(path)
+	var ships: Array[ShipLayout] = [load(STEAMER), load(SMALL_TITANIC)]
+	for layout: ShipLayout in ships:
 		var pair := _pair(layout)
 		var points: Array[Vector3] = []
 		for blocker: ShipBlocker in layout.blockers:
