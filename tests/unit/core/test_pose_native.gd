@@ -30,7 +30,9 @@ func _alike_over(seed_name: StringName, pieces: int) -> void:
 	config.countdown_ticks = 0
 	var native := SinkSchedule.for_match(config)
 	var script := SinkSchedule.for_match(config)
-	# The GDScript's walk: its extension never made, the timeline marked held as it is.
+	# The GDScript's walk: its extension let go — it was made as the schedule cut her into
+	# pieces — and the timeline marked held as it is, so it is never made again.
+	script._native = null
 	script._native_of = script.timeline().count()
 	var last := native.end_tick() + Ticks.RATE
 	var most := 0
@@ -38,7 +40,7 @@ func _alike_over(seed_name: StringName, pieces: int) -> void:
 	for tick in range(0, last, EVERY):
 		var own := native.pose_at(tick)
 		var theirs := script.pose_at(tick)
-		most = maxi(most, own.pieces.size())
+		most = maxi(most, own.standing.size())
 		if own.pieces.size() != theirs.pieces.size():
 			differences.append("tick %d: %d pieces" % [tick, own.pieces.size()])
 			continue
@@ -56,6 +58,7 @@ func _alike_over(seed_name: StringName, pieces: int) -> void:
 	assert_eq(most, pieces, "she breaks into %d pieces" % pieces)
 	assert_eq(differences, [] as Array[String], "every piece's water alike")
 	assert_true(native._native != null, "the extension walked her cells")
+	assert_null(script._native, "the GDScript walked them")
 
 
 func _loaded() -> bool:
