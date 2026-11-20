@@ -35,10 +35,10 @@ Review the actual diff: `git -C <worktree> diff origin/main...HEAD` (fetch first
    save lines, is a fix you push or a reason to reject.
 
 Verify claims yourself rather than trusting the PR body: re-run the new and changed GUT
-tests plus `make check lint format-check` in the worktree; for a visual change re-capture
+tests in the worktree (CI runs check, lint and format-check); for a visual change re-capture
 the scene once the repo has a capture target and read the frame as an image; for a
 measured claim re-record the measurement. Skip the full suite unless something smells
-wrong — the implementer already ran `make verify-changed`, and CI runs the full
+wrong — the implementer already ran `make test-changed`, and CI runs the full
 `make verify` on the PR head before any merge.
 
 Small fixable problems (naming, a weak assertion, a missing edge case, a wrong comment):

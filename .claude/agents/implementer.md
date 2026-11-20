@@ -1,6 +1,6 @@
 ---
 name: implementer
-description: Implements one scoped Sinking Ship task in its own git worktree — sets up the worktree, codes to the task spec, gets make verify-changed green, commits, pushes, and opens a PR. Never merges. Use for any implementation work an orchestrator session delegates.
+description: Implements one scoped Sinking Ship task in its own git worktree — sets up the worktree, codes to the task spec, gets make test-changed green, commits, pushes, and opens a PR. Never merges. Use for any implementation work an orchestrator session delegates.
 tools: Read, Write, Edit, Bash, Grep, Glob, ToolSearch
 model: fable
 effort: medium
@@ -42,18 +42,19 @@ design — typed GDScript, tabs, nothing Node-flavoured in core/ or ai/, seeded 
 balance numbers in data/, match surrounding style, let `make format` settle whitespace.
 Implement the task and nothing more.
 
-Gate: `make verify-changed` must pass in your worktree, plus any area gate the task names
-— every gate of `make verify` with only the tests your change can reach. Run it once, on
+Gate: your local gate is `make test-changed` — the tests your change can reach — plus
+any area gate the task names. CI is the full gate: it runs `make verify` on the PR, a
+merge waits for it to be green on the PR head, and a red CI run is yours to fix. This
+stands in for CLAUDE.md's `make verify-changed` bar: several agents share this machine,
+and a dozen whole gates at once took three hours each (#705). Run the local gate once, on
 the head you will report: finish the change, and any fixes your own review brings, before
-you start it — a gate whose head then moves has to run again. `make verify`
-stays available and is what CI runs on the PR; a merge waits for CI's full verify to be
-green on the PR head, so a red CI run is yours to fix too. For a
+you start it — a gate whose head then moves has to run again. For a
 visual change, capture the affected scene and read the frame as an image once the repo has
 a capture target; until then, say in the PR that the change was not seen running. A
 shared, loaded machine makes gates slow; slowness is not failure.
 
 Report the gate as `local_gate`, exactly one of:
-- `completed` — `make verify-changed` (and any area gate) ran to its end in your worktree
+- `completed` — `make test-changed` (and any area gate) ran to its end in your worktree
   and passed. Only a run you saw end, on the head you pushed, is completed.
 - `failed` — it ran to its end and something was red that you could not fix.
 - `timed_out` — it had not ended when you reported (test slots held by other sessions, a
@@ -66,11 +67,10 @@ still running, or you did not look. Also return `head_sha`, the PR head when you
 Mark the PR ready (`gh pr ready`) as soon as the local gate is green; CI then runs while
 you report.
 
-Long commands. Start any command that can outlast two minutes — `make verify-changed`,
+Long commands. Start any command that can outlast two minutes — `make test-changed`,
 `make capture`, `make smoke`, a Titanic probe — with `run_in_background`, its output in a
-log in your scratchpad: `make verify-changed > <scratchpad>/<slug>/gate.log 2>&1`. Then
-end your turn: the harness wakes you when the command exits. The gate's log ends on
-`verify-changed: PASS` or `verify-changed: FAIL at <step>`; read the log's end — and, for
+log in your scratchpad: `make test-changed > <scratchpad>/<slug>/gate.log 2>&1`. Then
+end your turn: the harness wakes you when the command exits. Read the log's end — and, for
 a capture, every frame it wrote — before you report. Give a shorter command the Bash
 tool's own `timeout` (up to 600000 ms), and run make bare: a `timeout` wrapper kills make
 and leaves its engines running. Report only once the job has ended.
