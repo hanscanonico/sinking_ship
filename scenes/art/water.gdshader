@@ -303,8 +303,8 @@ bool in_cells(vec3 ship, vec3 reach) {
 
 void fragment() {
 	vec3 ship = (world_to_ship * vec4(world, 1.0)).xyz;
-	vec3 footprint = min(fwidth(ship) * 0.5, vec3(CELL_FOOTPRINT_MAX));
-	if (cell_count > 0 && in_cells(ship, footprint)) {
+	vec3 past_box = min(fwidth(ship) * 0.5, vec3(CELL_FOOTPRINT_MAX));
+	if (cell_count > 0 && in_cells(ship, past_box)) {
 		discard;
 	}
 	float t = TIME * SEA_RIPPLE_SPEED;
