@@ -273,7 +273,7 @@ func _process(delta: float) -> void:
 	var eye := _eyes.global_position
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
-	_lens_drops.show_eye(_underwater.is_under())
+	_lens_drops.show_eye(viewed, _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, yaw, _eyes, _view)
 
 
@@ -973,7 +973,7 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	var eye := _eyes.global_position
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
-	_lens_drops.show_eye(_underwater.is_under())
+	_lens_drops.show_eye(-1, _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 
 
@@ -1001,7 +1001,7 @@ func _walk(snapshot: Dictionary, viewed: int, delta: float) -> bool:
 	_view.keep_clear_of(eye)
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
-	_lens_drops.show_eye(_underwater.is_under())
+	_lens_drops.show_eye(GHOST_EYES, _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
 	return true
 
