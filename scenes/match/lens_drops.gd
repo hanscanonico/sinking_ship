@@ -4,8 +4,9 @@ extends CanvasLayer
 ## it surfaces, a dozen drops and their short streaks slide down the view, each
 ## bending what is behind it (lens_drops.gdshader), and dry off over DRY_SECONDS.
 ## Nothing is drawn under the water — the view there is Underwater's alone — nor once
-## the lens is dry. Presentation only (D12): it reads whether Underwater has the eye
-## under (Underwater.is_under) frame by frame, and nothing else.
+## the lens is dry. Presentation only (D12): it reads which eye is shown and whether
+## Underwater has it under (Underwater.is_under) frame by frame, and nothing else. Only
+## that same eye coming up wets the lens: a cut to another seat or camera finds it dry.
 
 const OVERLAY := preload("res://scenes/match/lens_drops.gdshader")
 ## How many seconds after surfacing the last of the water is gone off the lens.
@@ -16,6 +17,8 @@ var _overlay: ShaderMaterial
 ## Seconds since the eye last came up out of the water; DRY_SECONDS or more, dry.
 var _since := DRY_SECONDS
 var _under := false
+## Which eye the lens is on (a seat, or a camera's own number); a change of it is a cut.
+var _eye := -1
 ## Whether a capture holds the lens at _since (--capture-wet), the frame never drying.
 var _held := false
 
@@ -42,9 +45,17 @@ func _ready() -> void:
 	_show()
 
 
-## The eye [param under] the water or not, this frame: coming up out of it wets the
-## lens afresh; going under dries it at once.
-func show_eye(under: bool) -> void:
+## The view from [param eye] (a seat, or a camera's own number), [param under] the
+## water or not, this frame: that eye coming up out of it wets the lens afresh; going
+## under dries it at once; a cut to another eye finds the lens dry, whichever side it is.
+func show_eye(eye: int, under: bool) -> void:
+	if eye != _eye:
+		_eye = eye
+		_under = under
+		if not _held:
+			_since = DRY_SECONDS
+		_show()
+		return
 	if under == _under:
 		return
 	_under = under

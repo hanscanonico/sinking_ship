@@ -274,20 +274,27 @@ vec3 ceiling(float t, vec3 look, float dist, vec2 slope) {
 	return mix(colour, under_fog_colour.rgb, fog);
 }
 
-// Whether the world point [at] lies in one of her cells' boxes.
-bool in_cells(vec3 at) {
-	vec3 ship = (world_to_ship * vec4(at, 1.0)).xyz;
-	if (any(lessThan(ship, cells_low)) || any(greaterThan(ship, cells_high))) {
+// How far past a cell's box, at most, the sea is left out for the ground a pixel
+// covers, in metres.
+const float CELL_FOOTPRINT_MAX = 2.0;
+
+// Whether the ship-space point [ship] lies in one of her cells' boxes, each grown by
+// [reach] every way: the half of the ground its pixel covers, so where the eye nears the
+// sea's plane and a pixel spans metres of it, none of its samples in front of a wall
+// takes the sea's colour from a middle past it — at most a pixel's edge of the sea left
+// out beside her shell.
+bool in_cells(vec3 ship, vec3 reach) {
+	if (any(lessThan(ship, cells_low - reach)) || any(greaterThan(ship, cells_high + reach))) {
 		return false;
 	}
 	for (int i = 0; i < cell_count; i++) {
 		vec3 low = texelFetch(cells, ivec2(i * 2, 0), 0).xyz;
 		// In order along her: no box further on starts aft of this point.
-		if (low.x >= ship.x) {
+		if (low.x - reach.x >= ship.x) {
 			break;
 		}
 		vec3 high = texelFetch(cells, ivec2(i * 2 + 1, 0), 0).xyz;
-		if (all(greaterThan(ship, low)) && all(lessThan(ship, high))) {
+		if (all(greaterThan(ship, low - reach)) && all(lessThan(ship, high + reach))) {
 			return true;
 		}
 	}
@@ -295,7 +302,9 @@ bool in_cells(vec3 at) {
 }
 
 void fragment() {
-	if (cell_count > 0 && in_cells(world)) {
+	vec3 ship = (world_to_ship * vec4(world, 1.0)).xyz;
+	vec3 past_box = min(fwidth(ship) * 0.5, vec3(CELL_FOOTPRINT_MAX));
+	if (cell_count > 0 && in_cells(ship, past_box)) {
 		discard;
 	}
 	float t = TIME * SEA_RIPPLE_SPEED;
