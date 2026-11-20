@@ -96,7 +96,7 @@ func _pose(layout: ShipLayout, shut: bool) -> ShipPose:
 
 ## Whether the extension is loaded: a failure where CI requires it, pending elsewhere.
 func _loaded() -> bool:
-	if ClassDB.class_exists(&"NativeSurfaces"):
+	if NativeVersion.has(&"NativeSurfaces"):
 		return true
 	if OS.get_environment("SINKING_NATIVE_REQUIRED") == "1":
 		fail_test("the extension is not loaded: make native, then make import")
