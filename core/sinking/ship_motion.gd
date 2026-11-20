@@ -114,7 +114,7 @@ func _init(structure: ShipStructure, sea: SeaPhysics, rest: float, depth := INF)
 		[structure.heave_damping, structure.pitch_damping, structure.roll_damping]
 	)
 	_drag = sea.sink_drag
-	if not native_off and ClassDB.class_exists(&"NativeMotion"):
+	if not native_off and NativeVersion.has(&"NativeMotion"):
 		_native = ClassDB.instantiate(&"NativeMotion")
 		_native.setup(
 			_x,

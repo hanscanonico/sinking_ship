@@ -22,7 +22,7 @@ static var native_off := false
 func _init(sections: Array[HullSection]) -> void:
 	# Every height of every section against every section: hundreds of sections where
 	# her hull is cut fine take the extension's (NativeLevelHull), the same bits.
-	if not native_off and ClassDB.class_exists(&"NativeLevelHull"):
+	if not native_off and NativeVersion.has(&"NativeLevelHull"):
 		_built(ClassDB.instantiate(&"NativeLevelHull"), sections)
 		return
 	var lines: Array[PackedFloat64Array] = []

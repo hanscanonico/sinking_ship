@@ -55,12 +55,12 @@ static func described(cues: Array) -> PackedStringArray:
 
 
 ## The emitters of [param fx] that playing [param cues] to [param camera], in
-## [param eye_room], set going.
+## [param eye_room] (and inside her if [param eye_indoors]), set going.
 static func played(
-	fx: SinkingFx, cues: Array[FxCue], camera: Camera3D, eye_room := -1
+	fx: SinkingFx, cues: Array[FxCue], camera: Camera3D, eye_room := -1, eye_indoors := false
 ) -> Array[CPUParticles3D]:
 	fx.clear()
-	fx.play(cues, Transform3D(), camera, eye_room)
+	fx.play(cues, Transform3D(), camera, eye_room, eye_indoors)
 	return fx.emitters().filter(func(emitter: CPUParticles3D) -> bool: return emitter.emitting)
 
 
