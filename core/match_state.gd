@@ -142,8 +142,10 @@ func to_dict(version: int) -> Dictionary:
 ## The state [param snapshot] — a to_dict() of one — holds again, without the last
 ## tick's events: a report of that tick, not state. Of [param kept], the crates of the
 ## state it follows, each the snapshot has as it stands is its own again
-## (PropState.from_snapshot).
-static func from_dict(snapshot: Dictionary, kept: Array[PropState] = []) -> MatchState:
+## (PropState.from_snapshot); those made anew go in [param made].
+static func from_dict(
+	snapshot: Dictionary, kept: Array[PropState] = [], made: Array[PropState] = []
+) -> MatchState:
 	var state := MatchState.new()
 	state.tick = snapshot["tick"]
 	state.phase = snapshot["phase"]
@@ -152,7 +154,7 @@ static func from_dict(snapshot: Dictionary, kept: Array[PropState] = []) -> Matc
 	state.rng.state = snapshot["rng"]
 	for entry: Dictionary in snapshot["seats"]:
 		state.seats.append(PlayerState.from_dict(entry))
-	state.props = PropState.from_snapshot(snapshot, kept)
+	state.props = PropState.from_snapshot(snapshot, kept, made)
 	for entry: Dictionary in snapshot["bonuses"]:
 		state.bonuses.append(BonusState.from_dict(entry))
 	state.railing_hp = (snapshot["railing_hp"] as PackedFloat64Array).duplicate()
