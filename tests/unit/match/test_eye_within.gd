@@ -24,3 +24,15 @@ func test_a_body_stands_up_its_own_deck() -> void:
 	var head := up * 1.6
 	assert_true(MatchView.eye_within(head, Vector3.ZERO, up, 1.7, 0.75))
 	assert_false(MatchView.eye_within(Vector3(-0.5, 1.6, 0), Vector3.ZERO, up, 1.7, 0.75))
+
+
+func test_the_seat_watched_stays_hidden_from_an_eye_on_a_steep_deck() -> void:
+	# The eyes stand along the world's up, the body along its deck's: trimmed 37°, the
+	# ghost's first eye is a metre off the upright of the seat it starts in, past the
+	# clearance, yet that seat stays hidden till the eye has walked clear of it.
+	var up := Vector3(sin(deg_to_rad(37.0)), cos(deg_to_rad(37.0)), 0)
+	var eye := Vector3(0, 1.6, 0)
+	assert_false(MatchView.hides(eye, Vector3.ZERO, up, 1.7, 0.4, false), "anyone else shows")
+	assert_true(MatchView.hides(eye, Vector3.ZERO, up, 1.7, 0.4, true), "the seat left hides")
+	var clear := Vector3(-2.0, 1.6, 0)
+	assert_false(MatchView.hides(clear, Vector3.ZERO, up, 1.7, 0.4, true), "walked clear")
