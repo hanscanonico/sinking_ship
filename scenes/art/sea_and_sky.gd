@@ -44,6 +44,11 @@ const HAZE_LENGTH := 72.0
 ## How far under a cell's box the sea is left out too (left_out): inside the planks
 ## of the deck it stands on, so the sea leaves out nothing a deck does not hide.
 const UNDER_FLOOR := ShipArt.PLANK * 0.5
+## How far out past a cell's box's sides the sea is left out too (left_out): into the
+## walls standing on them — a box round a cell's rooms stops at their sides, the middle
+## of walls 0.2 m thick — and a plank short of a wall's outside, which a whole cell's
+## box stands CellBoxes.INSET in from: the sea leaves out nothing a wall does not hide.
+const BESIDE_WALL := CellBoxes.INSET - ShipArt.PLANK
 ## A long ship's length over how much farther her haze reaches than the scene's: the
 ## rig's 24 m over the share of her length it stands back (LONG_HULL_DISTANCE, 0.8).
 const HAZE_SPAN := 30.0
@@ -316,20 +321,35 @@ func _mask_cells(boxes: Array[AABB]) -> void:
 
 ## The boxes, ship space, of [param layout]'s cells the sea leaves out: each cell's
 ## (CellBoxes.boxes and stacked), reaching UNDER_FLOOR down past its floor into the
-## deck's planks. A box that stopped at the floor's top let the sea's surface, where it
-## crossed the floor, win the depth test against it along a sliver: a dashed line of
-## its foam across a dark room as the waterline swept over the floor.
+## deck's planks and BESIDE_WALL out past its sides into their walls — athwartships no
+## further out than her shell where she stands round it (CellBoxes.held), nor less far
+## than it stood. A box that stopped at the floor's top, or at a room's side, let the
+## sea's surface, where it crossed the floor or a wall, win the depth test against it
+## along a sliver at a grazing look: a dashed line of its foam across a dark room's floor
+## or along its far wall as the waterline swept over them. Its top stands on the deck
+## over it already, the top of that deck's planks.
 static func left_out(layout: ShipLayout) -> Array[AABB]:
 	var boxes := CellBoxes.boxes(layout.structure, layout.rooms)
 	for stack: Array in CellBoxes.stacked(layout.structure, layout.rooms, layout):
 		boxes.append(stack[1])
-	var lowered: Array[AABB] = []
+	var grown: Array[AABB] = []
 	for box: AABB in boxes:
-		if box.size != Vector3.ZERO:
-			box.position.y -= UNDER_FLOOR
-			box.size.y += UNDER_FLOOR
-		lowered.append(box)
-	return lowered
+		if box.size == Vector3.ZERO:
+			grown.append(box)
+			continue
+		var wide := box
+		wide.position.z -= BESIDE_WALL
+		wide.size.z += BESIDE_WALL * 2.0
+		# Held where her shell stands round the box; a deckhouse over her outline is held
+		# by nothing, its walls round it.
+		var held := CellBoxes.held(layout.structure, wide)
+		if held.size.z > 0.0:
+			wide.position.z = minf(box.position.z, held.position.z)
+			wide.end.z = maxf(box.end.z, held.end.z)
+		wide.position -= Vector3(BESIDE_WALL, UNDER_FLOOR, 0.0)
+		wide.size += Vector3(BESIDE_WALL * 2.0, UNDER_FLOOR, 0.0)
+		grown.append(wide)
+	return grown
 
 
 ## The boxes among [param boxes] (ship space) that hold anything, as the sea's shader

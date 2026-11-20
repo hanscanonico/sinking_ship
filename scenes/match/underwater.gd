@@ -34,6 +34,7 @@ const MENISCUS := 0.15
 var _world: WorldEnvironment
 var _above: Environment
 var _below: Environment
+var _sky: ShaderMaterial
 var _tint: ColorRect
 var _overlay: ShaderMaterial
 var _motes: CPUParticles3D
@@ -76,11 +77,16 @@ func _ready() -> void:
 
 
 ## Takes over [param sea_and_sky]'s environment: its dusk above the sea, and a copy
-## with the fog closed in below it; and tells its sea what the view under it is.
+## with the fog closed in below it; and tells its sea, and its sky, what the view
+## under it is — the sky the fog's own colour, as the sea's underside is fogged, so
+## all past the fog's reach is one water.
 func setup(sea_and_sky: SeaAndSky) -> void:
 	_world = sea_and_sky.world()
 	_above = sea_and_sky.dusk()
+	_sky = _above.sky.sky_material
+	_sky.set_shader_parameter(&"under_colour", FOG)
 	_below = _above.duplicate()
+	_below.fog_sun_scatter = 0.0
 	_below.fog_enabled = true
 	_below.fog_light_color = FOG
 	_below.fog_depth_begin = 0.0
@@ -98,6 +104,7 @@ func setup(sea_and_sky: SeaAndSky) -> void:
 	var shafts := Vector3(slant.x, -sqrt(maxf(1.0 - slant.length_squared(), 0.0)), slant.y)
 	_overlay.set_shader_parameter(&"shaft_axis", shafts)
 	_world.environment = _above
+	_sky.set_shader_parameter(&"under", false)
 	_under = false
 	_meniscus = false
 	_show_under(false)
@@ -127,6 +134,7 @@ func show_eye(eye: Vector3, above: float, indoors := false) -> void:
 	if under != _under:
 		_under = under
 		_world.environment = _below if under else _above
+		_sky.set_shader_parameter(&"under", under)
 		_show_under(under)
 
 

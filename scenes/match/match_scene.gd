@@ -987,7 +987,6 @@ func _walk(snapshot: Dictionary, viewed: int, delta: float) -> bool:
 			_free.toggle(true)
 			_free.start(_eyes.global_position, -_eyes.global_basis.z)
 			return false
-	_view.look_out_of(-1)
 	_arms.visible = false
 	_eyes.ease_eye(GHOST_EYES, _ghost.stature(), delta)
 	_eyes.look_from(
@@ -999,6 +998,7 @@ func _walk(snapshot: Dictionary, viewed: int, delta: float) -> bool:
 		_ghost.up()
 	)
 	var eye := _eyes.global_position
+	_view.keep_clear_of(eye)
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
 	_lens_drops.show_eye(_underwater.is_under())
