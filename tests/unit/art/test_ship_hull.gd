@@ -5,6 +5,8 @@ const RULES := "res://data/rules/brawl.tres"
 const RAILING_HEIGHT := 1.0
 ## How near upright a face must turn to read as floor (art-lint's FLOOR_FACING).
 const FLOOR_FACING := 0.7
+## How far over a floor the rays down onto it start.
+const PROUD := 0.3
 
 var _layout: ShipLayout
 var _space: ShipSpace
@@ -122,6 +124,52 @@ func test_a_deck_edge_on_the_hull_is_left_to_the_hull() -> void:
 			&"boat deck":
 				assert_eq(hidden, 0, "the boat deck stands clear of the hull")
 	assert_eq(forecastle, hull_side, "its sides and its end")
+
+
+func test_no_keel_bar_stands_proud_of_a_floor_down_her_middle() -> void:
+	# Her keel bar stood 0.12 m over her keel, up through the lower hold's floor
+	# 0.0875 m over it: a red slit down the hold's middle.
+	var faces := _drawn_hull()
+	var proud := 0
+	var first := ""
+	for platform: ShipPlatform in _layout.platforms:
+		var area := platform.area.grow(-0.1)
+		if area.size.x <= 0.0 or area.position.y > 0.0 or area.end.y < 0.0:
+			continue
+		var low := platform.height - ShipArt.PLANK
+		var near := _faces_near(faces, area, low, platform.height + PROUD)
+		var x := area.position.x
+		while x <= area.end.x:
+			for z: float in [-0.04, 0.0, 0.04]:
+				var from := Vector3(x, platform.height + PROUD, z)
+				for index in range(0, near.size(), 3):
+					var hit: Variant = Geometry3D.ray_intersects_triangle(
+						from, Vector3.DOWN, near[index], near[index + 1], near[index + 2]
+					)
+					if hit != null and (hit as Vector3).y > low:
+						proud += 1
+						if first.is_empty():
+							first = "%s on %s" % [hit, platform.name]
+						break
+			x += 0.5
+	assert_eq(proud, 0, "nothing of the hull stands proud of a floor amidships; first: %s" % first)
+
+
+## Of [param faces], three by three, those reaching over [param area] between
+## [param low] and [param high].
+func _faces_near(
+	faces: PackedVector3Array, area: Rect2, low: float, high: float
+) -> PackedVector3Array:
+	var near := PackedVector3Array()
+	for index in range(0, faces.size(), 3):
+		var box := AABB(faces[index], Vector3.ZERO)
+		box = box.expand(faces[index + 1]).expand(faces[index + 2])
+		if box.end.y < low or box.position.y > high:
+			continue
+		if not Rect2(box.position.x, box.position.z, box.size.x, box.size.z).intersects(area, true):
+			continue
+		near.append_array([faces[index], faces[index + 1], faces[index + 2]])
+	return near
 
 
 ## The decks' x range.
