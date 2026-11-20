@@ -257,3 +257,33 @@ func test_a_prop_kind_s_numbers_are_in_the_data_hash() -> void:
 	kind.sea_cold_rate = rate
 	assert_ne(after, before, "another ring, another match")
 	assert_eq(config.data_hash(), before, "and its own again")
+
+
+## #640: the walk lists each script's saved fields once rather than per instance, and
+## describes every match's data — a liner's included — character for character as the
+## walk did before, so no replay, wire or bake-cache key made under it moves.
+func test_the_data_walk_describes_as_it_did_before_640() -> void:
+	for ship_name: StringName in [&"steamer", &"titanic"]:
+		var config := MatchConfig.from_rules(_rules(), 1701, 0, ship_name)
+		var described: Array = [config.rules, config.ship, config.scenario]
+		described.append_array([config.countdown_ticks, config._prop_kinds(), config.bonus_rules])
+		assert_eq(MatchConfig._describe(described), _walked(described), String(ship_name))
+
+
+## The walk as it was before #640: every resource's property list read afresh.
+func _walked(value: Variant) -> String:
+	if value is Resource:
+		var resource: Resource = value
+		var fields := PackedStringArray()
+		var saved := PROPERTY_USAGE_SCRIPT_VARIABLE | PROPERTY_USAGE_STORAGE
+		for property: Dictionary in resource.get_property_list():
+			if (property["usage"] & saved) == saved:
+				var field: String = property["name"]
+				fields.append("%s=%s" % [field, _walked(resource.get(field))])
+		return "{%s}" % ",".join(fields)
+	if value is Array:
+		var items := PackedStringArray()
+		for item: Variant in value:
+			items.append(_walked(item))
+		return "[%s]" % ",".join(items)
+	return var_to_str(value)
