@@ -596,21 +596,35 @@ func _sheets() -> int:
 
 ## A sheet of spray on the sea along [param side] (ship-local z, -1 or 1) of the ship,
 ## [param length] long round [param x], outboard of the widest the decks reach along
-## it; null where no deck stands at [param x].
+## it and of her shell (_shell_reach) — a hull wider than her decks would hold it
+## inside her rooms; null where no deck stands at [param x].
 func _side_sheet(x: float, length: float, side: float, tick: int) -> FxCue:
 	var outline := _space.envelope(x)
 	if outline.x == INF:
 		return null
 	var z := outline.y if side > 0.0 else outline.x
-	for end: float in [x - length * 0.5, x + length * 0.5]:
-		var reach := _space.envelope(end)
+	for along: float in [x - length * 0.5, x, x + length * 0.5]:
+		var reach := _space.envelope(along)
 		if reach.x != INF:
 			z = maxf(z, reach.y) if side > 0.0 else minf(z, reach.x)
+		var shell := _shell_reach(_layout.structure, along, side)
+		z = maxf(z, shell) if side > 0.0 else minf(z, shell)
 	z += side * 0.3
 	var sheet := FxCue.new(FxCue.Kind.SPRAY, tick, Vector3(x - length * 0.5, 0.0, z))
 	sheet.end = Vector3(x + length * 0.5, 0.0, z)
 	sheet.on_sea = true
 	return sheet
+
+
+## Where her shell stands out farthest on [param side] (ship-local z, -1 or 1) of her
+## section at [param x], anywhere up her side, as a z; 0 where she has no section.
+static func _shell_reach(structure: ShipStructure, x: float, side: float) -> float:
+	var section := structure.section_at(x)
+	var reach := 0.0
+	if section != null:
+		for point in section.outline:
+			reach = maxf(reach, point.x * side)
+	return reach * side
 
 
 ## Loose gear sliding [param downhill] (ship plane, unit) down every deck still
