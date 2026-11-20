@@ -799,7 +799,8 @@ check:
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
 # fixture project, and its list of runtime-built loads, against the code; the worktree
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
-# gh's snapshots; and art-lint-changed's selection, against a throwaway repo and a
+# gh's snapshots; the merge train, against a stand-in gh's pull requests, again on Perl's
+# lock; and art-lint-changed's selection, against a throwaway repo and a
 # stand-in make; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
 	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
@@ -821,6 +822,8 @@ guard-check:
 	tools/test_changed.py --check-sites
 	tools/prune_worktrees_check.sh
 	tools/ci_wait_check.sh
+	tools/merge_train_check.sh
+	FD_LOCK=perl tools/merge_train_check.sh
 	tools/art_lint_changed_check.sh
 	tools/exactness_check.sh
 	python3 tools/titanic_plates/deck_check.py

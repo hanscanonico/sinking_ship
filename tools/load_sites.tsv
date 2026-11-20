@@ -58,6 +58,7 @@ tests/unit/art/test_committed_models.gd	ResourceLoader.exists(MODELS.path_join(m
 tests/unit/art/test_committed_models.gd	load("res://data/ships".path_join(file))	data/ships/*
 tests/unit/art/test_deck_under.gd	load(ship)	data/ships/*.tres
 tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	@ship
+tests/unit/art/test_funnel_rest.gd	load(SHIPS + file)	data/ships/*.tres
 tests/unit/art/test_liner_boiler.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_room_dressing.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_sea_haze.gd	load("res://data/ships/%s.tres" % ship)	@ship
@@ -114,6 +115,7 @@ tools/art_lint_costs.gd	FileAccess.get_file_as_string(path)	tools/art_lint_costs
 tools/art_lint_costs.gd	FileAccess.open(path)	tools/art_lint_costs.tsv
 tools/census.gd	FileAccess.open(OUT if ship == DEFAULT_SHIP else SHIP_OUT % ship)	docs/census*.md
 tools/census.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
+tools/exactness.gd	FileAccess.open(out)	-
 tools/online_e2e.gd	FileAccess.file_exists(_settings)	-
 tools/ship_bake.gd	FileAccess.file_exists(scene)	authoring/* data/ships/* tests/fixtures/ships/*
 tools/ship_bake.gd	FileAccess.open(json)	-
