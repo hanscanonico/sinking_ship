@@ -118,6 +118,11 @@ var _aground_tick := -1
 ## it, the sound's a second back, the contact watch's ahead — each built once. Never
 ## match state: no snapshot or digest holds them.
 var _kept_ticks := PackedInt32Array()
+## The extension's walk of a piece's cells (NativePose, _piece_pose), holding the
+## timeline's heads, pockets and lights as of [member _native_of] states kept — handed
+## them again once more have come — or null where it is not loaded and the GDScript runs.
+var _native: Object
+var _native_of := -1
 ## The sea's constants it was baked under, and where each cell's first water has run to
 ## (WaterFronts): made as the schedule is, from the timeline as it has come — again
 ## once more of it has (TimelineStream) — null for none.
@@ -573,6 +578,12 @@ func _piece_pose(piece: int, frame: int, next: int, weight: float, seconds: floa
 	var pose := ShipPose.new(sink, leans[0], leans[1], Transform3D(turn, origin))
 	pose.cells = _piece_cells[piece]
 	var cells := _cell_of[piece]
+	if _native_held():
+		var made: Array = _native.pose(cells, frame, next, weight, origin.y)
+		pose.levels = made[0]
+		pose.pockets = made[1]
+		pose.lit = made[2]
+		return pose
 	var count := _timeline.cells
 	pose.levels.resize(cells.size())
 	pose.pockets.resize(cells.size())
@@ -586,6 +597,18 @@ func _piece_pose(piece: int, frame: int, next: int, weight: float, seconds: floa
 		pose.pockets[cell] = _timeline.pocket(frame, next, weight, at)
 		pose.lit[cell] = _timeline.lit(frame, at)
 	return pose
+
+
+## Whether the extension walks a piece's cells (_piece_pose): it holds the timeline as it
+## stands now, handed it again whenever more states have come.
+func _native_held() -> bool:
+	if _native_of != _timeline.count():
+		_native_of = _timeline.count()
+		if _native == null and NativeVersion.has(&"NativePose"):
+			_native = ClassDB.instantiate(&"NativePose")
+		if _native != null:
+			_native.hold(_timeline.heads, _timeline.pockets, _timeline.lits, _timeline.cells)
+	return _native != null
 
 
 ## The piece of her standing [param seconds] after the hit that piece [param piece] is
