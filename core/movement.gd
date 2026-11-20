@@ -32,8 +32,9 @@ extends RefCounted
 ## way out clear (Falls, #631).
 ##
 ## A ghost's Movement (GhostWalk, #655) moves one body that is in no match by the same
-## steps: water neither slows nor grips it less, no slope pulls it downhill, and it holds to a crate or a railing as
-## to a wall — it shoves, slams, vaults and damages nothing — so it needs no Hazards.
+## steps: water neither slows nor grips it less, no slope pulls it downhill, and it holds
+## to a crate or a railing as to a wall — it shoves, slams, vaults and damages nothing — so
+## it needs no Hazards.
 
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
