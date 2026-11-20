@@ -6,20 +6,28 @@ extends RefCounted
 ## look is, flown level along where it looks by the move, up by the jump and down by the
 ## brace, frame by frame. Following, it trails the seat watched at the offset it stood
 ## from it as it locked on, until flown by hand or let go. It never touches the ship, and
-## keeps inside a box round the decks and over the sea — the world plane y = 0 (D7), as
-## Underwater and MatchAudio have it. Presentation only: nothing of it is ever sent,
-## and no rule reads it. Its state is world space; the scene reads transform().
+## keeps inside a box round the decks, from under the sea — the world plane y = 0 (D7) —
+## to its ceiling: it dives under her keel and follows her down, the view under the water
+## Underwater's and MatchAudio's, as a seat's eyes have it, and a coast's bottom
+## (SinkScenario.sea_depth) stops it. It opens over the sea. Presentation only: nothing of it is
+## ever sent, and no rule reads it. Its state is world space; the scene reads transform().
 
 ## How fast it flies level and climbs, in metres per second.
 const SPEED := 8.0
 const CLIMB_SPEED := 6.0
 ## How far it may look up or down, short of straight.
 const PITCH_LIMIT_DEG := 80.0
-## How far past the decks' edges it may fly, how far over the sea it keeps, and how
-## high it may go, in metres.
+## How far past the decks' edges it may fly, how deep under the sea and how high over it
+## it may go, and how far over a coast's bottom it keeps, in metres. DEPTH reaches under
+## the deepest keel of the fleet as her sinking ends — the Titanic's, 42 m under her
+## boat deck, once all of her is 10 m under (SeaPhysics.gone_depth) — so it gets under
+## her keel at rest (she draws 9.8 m) and stays with her all the way down.
 const MARGIN := 20.0
-const SEA_CLEARANCE := 1.0
+const DEPTH := 60.0
 const CEILING := 40.0
+const BED_CLEARANCE := 1.0
+## How far over the sea it opens (start), whatever the seat it opens at.
+const SEA_CLEARANCE := 1.0
 ## Where it starts: this far behind and over the seat it was watching, looking at it.
 const START_BACK := 6.0
 const START_RISE := 4.0
@@ -39,8 +47,8 @@ var following := false
 var position := Vector3.ZERO
 var yaw := 0.0
 var pitch := 0.0
-## The world box it keeps inside: over the sea and nowhere else until set_bounds().
-var bounds := AABB(Vector3(-1e6, SEA_CLEARANCE, -1e6), Vector3(2e6, 1e6, 2e6))
+## The world box it keeps inside: no deeper than DEPTH and nowhere else until set_bounds().
+var bounds := AABB(Vector3(-1e6, -DEPTH, -1e6), Vector3(2e6, 1e6 + DEPTH, 2e6))
 ## The look's sensitivity and invert-Y, as the first-person look reads them.
 var settings: ViewSettings
 
@@ -72,22 +80,35 @@ func leave() -> void:
 
 
 ## Keeps it within [constant MARGIN] of [param deck] — every platform's area in the
-## ship plane, taken as the world's x/z as ObserverCamera takes it — over the sea and
-## under the ceiling.
-func set_bounds(deck: Rect2) -> void:
+## ship plane, taken as the world's x/z as ObserverCamera takes it — between its floor
+## (floor_under) in a sea [param sea_depth] deep and the ceiling.
+func set_bounds(deck: Rect2, sea_depth := INF) -> void:
 	var area := deck.grow(MARGIN)
+	var bottom := floor_under(sea_depth)
 	bounds = AABB(
-		Vector3(area.position.x, SEA_CLEARANCE, area.position.y),
-		Vector3(area.size.x, CEILING - SEA_CLEARANCE, area.size.y)
+		Vector3(area.position.x, bottom, area.position.y),
+		Vector3(area.size.x, CEILING - bottom, area.size.y)
 	)
 
 
+## How low it may go, in the world, in a sea [param sea_depth] deep: [constant DEPTH]
+## under the surface, or [constant BED_CLEARANCE] over a shallower bottom — never over
+## the surface. A depth of 0 or less is no bottom (an authored fixture's).
+static func floor_under(sea_depth: float) -> float:
+	if sea_depth <= 0.0:
+		return -DEPTH
+	return minf(maxf(-DEPTH, BED_CLEARANCE - sea_depth), 0.0)
+
+
 ## Stands it behind and over [param target] — whose view looks along [param ahead],
-## in the world — looking at it, so the switch out of its eyes keeps the bearings.
+## in the world — looking at it, so the switch out of its eyes keeps the bearings; at
+## least [constant SEA_CLEARANCE] over the sea, however deep the seat went down.
 func start(target: Vector3, ahead: Vector3) -> void:
 	var level := Vector3(ahead.x, 0.0, ahead.z)
 	level = Vector3.FORWARD if level.is_zero_approx() else level.normalized()
-	position = clamped(target - level * START_BACK + Vector3.UP * START_RISE, bounds)
+	var at := target - level * START_BACK + Vector3.UP * START_RISE
+	at.y = maxf(at.y, SEA_CLEARANCE)
+	position = clamped(at, bounds)
 	var to := target - position
 	if not to.is_zero_approx():
 		yaw = atan2(-to.x, -to.z)
@@ -118,7 +139,8 @@ func toggle_follow(target: Vector3) -> void:
 
 
 ## Drawn toward where it keeps its offset from [param target] while it follows, at
-## [constant FOLLOW_RATE] over [param delta] seconds, inside its box.
+## [constant FOLLOW_RATE] over [param delta] seconds, inside its box: down under the sea
+## with a seat that goes there.
 func trail(target: Vector3, delta: float) -> void:
 	if following:
 		var weight := clampf(FOLLOW_RATE * delta, 0.0, 1.0)

@@ -549,7 +549,7 @@ func _setup_view(
 	_planner = null
 	_kick = ViewKick.new(settings.view_kick)
 	_free = FreeCamera.new(settings)
-	_free.set_bounds(_deck_bounds(config.ship))
+	_free.set_bounds(_deck_bounds(config.ship), config.scenario.sea_depth)
 	_ghost = GhostWalk.new(config, sim.schedule, settings)
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
