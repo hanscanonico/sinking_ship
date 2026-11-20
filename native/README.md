@@ -18,8 +18,9 @@ round by the floor and the surface under each square it asks of (`ai/bot_floor_w
 emission — her faces cut at the chunk and room lines, judged indoors or out and gathered
 into batches (`scenes/art/ship_mesh.gd`, `scenes/art/indoor_grid.gd`, #411) — the
 water's effects' walks of her cells, openings and decks (`scenes/art/inner_water.gd`,
-`scenes/match/fx_planner.gd`, `scenes/audio/cue_planner.gd`), and the choice of which
-rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410).
+`scenes/match/fx_planner.gd`, `scenes/audio/cue_planner.gd`), the choice of which
+rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410), and which of her
+cells a point lies in (`CellMap.cell_at`, `core/sinking/cell_map.gd`).
 
 ## Layout
 
@@ -29,7 +30,8 @@ rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410).
   `NativeGirder`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
   `NativeCrates`) with `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `sight_native.{h,cpp}`
-  (`NativeSight`), `register_types.cpp` (the entry, `sinking_native_init`).
+  (`NativeSight`), `cell_map_native.{h,cpp}` (`NativeCellMap`), `register_types.cpp` (the
+  entry, `sinking_native_init`).
 - `SConstruct` — the build, over godot-cpp's; `build_profile.json` — the engine
   classes godot-cpp binds (few, so it compiles quickly).
 - `build/` — not tracked: godot-cpp at its pinned commit (`tools/native_build.sh`) and
@@ -58,7 +60,7 @@ an artifact of the run:
 - `native (linux)` — `native-linux`, the `.so` the ten test shards load
   (`SINKING_NATIVE_REQUIRED=1`).
 - `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
-  runner, where the ten cross-check scripts run against it: arm64 is where a compiler
+  runner, where the eleven cross-check scripts run against it: arm64 is where a compiler
   contracts `a * b + c` by default, so a difference from the engine's own GDScript
   arithmetic would show there first.
 - `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with

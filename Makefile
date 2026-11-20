@@ -133,10 +133,13 @@ bake-cache-arg = $(if $(filter 0,$(BAKE_CACHE)),,--bake-cache)
 # coming aboard, in either goal (the menu's Bonuses, unticked); without it, or with
 # BONUSES=1, bonuses come as the match data's bonus rules bring them, for a player and a
 # tool alike. A SEED= that is not a
-# whole number of 0 or more is refused, as the menu refuses it.
+# whole number of 0 or more is refused, as the menu refuses it. run and replay name their
+# log: project.godot turns the shared user://logs/godot.log off for the editor binary, as
+# engines run side by side (gates, shards, captures) rotate it under each other and fill
+# it with NUL bytes (test_file_logging).
 run:
 	$(call require-godot)
-	$(GODOT) --path . -- $(match-args) $(bake-cache-arg) $(ARGS)
+	$(GODOT) --path . --log-file user://logs/godot.log -- $(match-args) $(bake-cache-arg) $(ARGS)
 
 # `make replay FILE=path/to/one.replay` watches a saved replay — one the game wrote
 # under user://replays, or any path — in the replay viewer (R4–R6); the game quits with
@@ -144,7 +147,7 @@ run:
 replay:
 	$(call require-godot)
 	@test -n "$(FILE)" || { echo "replay: FILE=<path to a .replay> is required" >&2; exit 1; }
-	$(GODOT) --path . -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
+	$(GODOT) --path . --log-file user://logs/godot.log -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
 
 # Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
 # the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run

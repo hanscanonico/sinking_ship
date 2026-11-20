@@ -2,6 +2,7 @@
 // level, before any script that asks ClassDB for them runs.
 
 #include "art_native.h"
+#include "cell_map_native.h"
 #include "contacts_native.h"
 #include "hull_native.h"
 #include "motion_native.h"
@@ -31,7 +32,7 @@ class NativeAbi : public RefCounted {
 	GDCLASS(NativeAbi, RefCounted)
 
 public:
-	enum : int64_t { VERSION = 1 };
+	enum : int64_t { VERSION = 2 };
 
 protected:
 	static void _bind_methods() { BIND_CONSTANT(VERSION); }
@@ -60,6 +61,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeCrates);
 	GDREGISTER_CLASS(NativeWaterFx);
 	GDREGISTER_CLASS(NativeStill);
+	GDREGISTER_CLASS(NativeCellMap);
 }
 
 static void uninitialize_sinking_native(ModuleInitializationLevel p_level) {
