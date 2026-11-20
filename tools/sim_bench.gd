@@ -1,7 +1,7 @@
 extends SceneTree
 ## `make sim-bench`: what one MatchSim.step costs with no bots — what a predicting
-## client pays for every tick it re-runs (R7). One bots-only match of the default
-## data is played through the local host, as `make match` plays it, and its input
+## client pays for every tick it re-runs (R7). One bots-only match the command
+## line chooses is played through the local host, as `make match` plays it, and its input
 ## log replayed through a bare MatchSim ROUNDS times:
 ##
 ##   godot --headless --path . -s res://tools/sim_bench.gd -- --seed=1701 --seats=8
@@ -17,13 +17,18 @@ const NetBench := preload("res://tools/net_bench.gd")
 const ROUNDS := 5
 
 
+## The match the command line chooses — its ship, scenario, hit, clock, goal and
+## bonuses as `make match` plays them (#343): null, every problem printed, when it has any.
+static func config_of(args: MatchArgs) -> MatchConfig:
+	return RunMatch.chosen_config(args)
+
+
 func _initialize() -> void:
 	var args := MatchArgs.parse(OS.get_cmdline_user_args())
-	var seed_number := RunMatch.seed_of(args)
-	if seed_number < 0:
+	var config := config_of(args)
+	if config == null:
 		quit(1)
 		return
-	var config := RunMatch.default_config(seed_number, args.choices.seats)
 	var host := RunMatch.served(config)
 	while not host.is_over() and host.tick() < Ticks.from_seconds(args.seconds):
 		host.step()

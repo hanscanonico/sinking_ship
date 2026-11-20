@@ -15,6 +15,6 @@ static var allowed := true
 ## A new instance of the extension's class [param name], or null where it is not loaded
 ## or not [member allowed].
 static func made(name: StringName) -> Object:
-	if not allowed or not ClassDB.class_exists(name):
+	if not allowed or not NativeVersion.has(name):
 		return null
 	return ClassDB.instantiate(name)

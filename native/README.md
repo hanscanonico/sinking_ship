@@ -105,6 +105,15 @@ what stays GDScript's (a room's ceiling worked out, what fades, roofed space). A
 that never ran `make native`, or the web export, runs the GDScript and the same match,
 the same sinking and the same art.
 
+Every one of those checks goes through `NativeVersion.has()` (`core/native_version.gd`),
+which also asks the library's version: `NativeAbi.VERSION` in `src/register_types.cpp`
+against `NativeVersion.VERSION`. `lib/` is built per machine, so a checkout that pulled a
+change to the extension's classes without running `make native` again holds a library
+older than the GDScript calling it; a library of any other version counts as absent, the
+GDScript runs, and the game warns once to run `make native`. **Bump both numbers together
+in every change that adds, removes or changes a native class or a method the GDScript
+calls.** CI requires the library, and `test_native_version` fails there on a mismatch.
+
 ## Determinism
 
 - Each operation keeps the GDScript's types and order. A GDScript `float` is a double

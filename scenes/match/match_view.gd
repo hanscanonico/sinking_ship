@@ -27,6 +27,9 @@ const BLINK_TICKS := 6
 const FALL_SECONDS := 0.5
 ## The most bodies in water the water's rings are drawn round (water.gdshader).
 const MAX_WADERS := 8
+## How far past a body's radius a free eye still hides it (keep_clear_of): near enough
+## that the body would fill the view with its inside or its coat.
+const EYE_CLEARANCE := 0.35
 ## How many props in a row a frame asks at once whether they are as last drawn.
 const STILL_RUN := 16
 
@@ -67,6 +70,9 @@ var _bonus_kinds: Array[BonusKind] = []
 var _bonus_pieces: Array[Transform3D] = []
 ## The seat the camera looks out of, or -1 for none.
 var _eye_seat := -1
+## Whether no body is drawn round _clear_eye, the world eye of a camera seat-free.
+var _clearing := false
+var _clear_eye := Vector3.ZERO
 ## The seat this player plays: drawn where its prediction has it, but for a
 ## correction being drawn away.
 var _local_seat := -1
@@ -252,12 +258,34 @@ func _notification(what: int) -> void:
 ## seat, and the marker would hang before them as a blank shape.
 func look_out_of(seat: int) -> void:
 	_eye_seat = seat
+	_clearing = false
 	# A watched match has no local seat, and no marker.
 	if _local_seat >= 0:
 		_bodies[_local_seat].show_marker(seat == -1)
 	if seat != -1:
 		_bodies[seat].visible = false
 		_shadows[seat].visible = false
+
+
+## Draws every seat, as look_out_of(-1), but for any body the world [param eye] is inside
+## or up against and the local seat's marker, till the next look_out_of: the ghost's eyes,
+## which start where the seat watched stands and walk through anyone, and from that near
+## would see the marker hang before them as a blank shape.
+func keep_clear_of(eye: Vector3) -> void:
+	look_out_of(-1)
+	_clearing = true
+	_clear_eye = eye
+	if _local_seat >= 0:
+		_bodies[_local_seat].show_marker(false)
+
+
+## Whether [param eye] is within [param radius] of a body standing [param height] tall up
+## [param up] from [param feet]: nearer its upright than that, its body is not drawn.
+static func eye_within(
+	eye: Vector3, feet: Vector3, up: Vector3, height: float, radius: float
+) -> bool:
+	var along := clampf((eye - feet).dot(up), 0.0, height)
+	return eye.distance_to(feet + up * along) < radius
 
 
 ## The seat whose eyes the view is in, or -1 for none.
@@ -526,6 +554,15 @@ func _process(delta: float) -> void:
 			_ship.transform.affine_inverse() * world if piece != 0 else Transform3D.IDENTITY
 		)
 		body.transform = placed * Transform3D(to_ship * Basis(Vector3.UP, -_facings[seat]), pos)
+		if _clearing and body.visible:
+			var stands := body.global_transform
+			body.visible = not eye_within(
+				_clear_eye,
+				stands.origin,
+				stands.basis.y.normalized(),
+				_rules.body_height,
+				_rules.body_radius + EYE_CLEARANCE
+			)
 		var feet := to_ship.transposed() * pos
 		var below := here.landing(feet)
 		_heights[seat] = _rules.height_on(here, feet, below)
