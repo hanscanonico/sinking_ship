@@ -65,8 +65,14 @@ vec2 water_screen_uv(vec3 at, mat4 projection) {
 // none, fading toward the screen's edges, where the scene the ray meets runs out, and
 // toward the march's end — and w how far the ray ran, in metres. [inv_view]
 // (INV_VIEW_MATRIX) and [floor_y] keep it to what stands over the water: a ray off a
-// surface never meets what lies under it.
+// surface never meets what lies under it. A crossing still more than MIRROR_THICKNESS
+// (and the narrowed stride, and MIRROR_SLACK of its distance for the depth's coarser
+// steps far off) behind what is drawn there once narrowed was no crossing:
+// the ray slipped behind a silhouette — a berg's, her hull's — far off where the
+// strides are long, and marches on, else the sky.
 const float STRIDE_GROWTH = 1.35;
+const float MIRROR_THICKNESS = 0.5;
+const float MIRROR_SLACK = 0.02;
 vec4 water_mirror_trace(
 	vec3 from, vec3 way, int steps, float stride, float floor_y,
 	mat4 projection, mat4 inv_projection, mat4 inv_view
@@ -102,15 +108,20 @@ vec4 water_mirror_trace(
 				}
 			}
 			vec3 hit = from + way * high;
-			uv = water_screen_uv(hit, projection);
-			vec3 met = (inv_view * vec4(water_drawn_at(uv, inv_projection), 1.0)).xyz;
-			if (met.y < floor_y) {
-				return vec4(0.0);
+			vec2 hit_uv = water_screen_uv(hit, projection);
+			vec3 drawn_hit = water_drawn_at(hit_uv, inv_projection);
+			float slack = MIRROR_THICKNESS + (high - low) * 2.0 - hit.z * MIRROR_SLACK;
+			if (drawn_hit.z - hit.z < slack) {
+				uv = hit_uv;
+				vec3 met = (inv_view * vec4(drawn_hit, 1.0)).xyz;
+				if (met.y < floor_y) {
+					return vec4(0.0);
+				}
+				vec2 edge = smoothstep(vec2(0.0), vec2(0.1), uv);
+				edge *= smoothstep(vec2(0.0), vec2(0.1), 1.0 - uv);
+				float ending = 1.0 - smoothstep(0.6, 1.0, float(i) / float(steps));
+				return vec4(uv, edge.x * edge.y * ending, high);
 			}
-			vec2 edge = smoothstep(vec2(0.0), vec2(0.1), uv);
-			edge *= smoothstep(vec2(0.0), vec2(0.1), 1.0 - uv);
-			float ending = 1.0 - smoothstep(0.6, 1.0, float(i) / float(steps));
-			return vec4(uv, edge.x * edge.y * ending, high);
 		}
 		stride *= STRIDE_GROWTH;
 	}
