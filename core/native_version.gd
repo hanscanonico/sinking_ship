@@ -11,7 +11,7 @@ extends RefCounted
 ## The version of the extension's classes this GDScript calls. Bump it, and NativeAbi's
 ## VERSION in native/src/register_types.cpp with it, in every change that adds, removes or
 ## changes a native class or a method the GDScript calls.
-const VERSION := 2
+const VERSION := 3
 ## The class whose VERSION constant gives the loaded library's version; a library built
 ## before there was one has none, and counts as stale.
 const ABI := &"NativeAbi"

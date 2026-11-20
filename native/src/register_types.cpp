@@ -32,7 +32,7 @@ class NativeAbi : public RefCounted {
 	GDCLASS(NativeAbi, RefCounted)
 
 public:
-	enum : int64_t { VERSION = 2 };
+	enum : int64_t { VERSION = 3 };
 
 protected:
 	static void _bind_methods() { BIND_CONSTANT(VERSION); }
