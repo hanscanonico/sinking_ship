@@ -71,3 +71,33 @@ func test_a_ship_with_no_structure_is_painted_as_her_rooms_say() -> void:
 	var roofed := RoofedIndoors.new(flat)
 	assert_eq(roofed.weather_floor(), -INF, "no weather deck to stand under")
 	assert_false(roofed.holds(Vector3(0.0, -2.0, 0.0)), "nothing roofed in her")
+
+
+func test_holds_answers_as_her_half_breadth_reads_asked_again_or_not() -> void:
+	# holds() remembers half_breadth() per x, height and side (#411): the same answers as
+	# reading it each time, on her first asking and on every one after, and for any z.
+	var roofed := RoofedIndoors.new(_space)
+	var structure := _space.layout.structure
+	var lowest := roofed.weather_floor()
+	var wrong := PackedStringArray()
+	var held := 0
+	for asking in 2:
+		for x in range(-130, 131, 3):
+			for y: float in [-12.0, -7.56, -4.94, -1.25, 0.0, 2.5]:
+				for z: float in [-14.0, -6.52, -0.5, 0.0, 3.94, 9.0, 14.0]:
+					var point := Vector3(x + 0.37, y, z)
+					var side := 1 if z >= 0.0 else -1
+					var breadth := structure.half_breadth(point.x, point.y, side)
+					var expected := (
+						point.y < lowest
+						and breadth > 0.0
+						and point.z * side <= breadth
+						and roofed._under_a_deck(point)
+					)
+					if expected:
+						held += 1
+					if roofed.holds(point) != expected:
+						wrong.append("%s on asking %d" % [point, asking])
+	assert_eq(wrong, PackedStringArray(), "holds() as half_breadth() reads, every time")
+	assert_gt(held, 0, "some of them roofed")
+	assert_gt(roofed._breadths.size(), 0, "her breadths remembered")
