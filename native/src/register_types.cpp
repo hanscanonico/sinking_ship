@@ -37,6 +37,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeStands);
 	GDREGISTER_CLASS(NativeSurfaces);
 	GDREGISTER_CLASS(NativeCrates);
+	GDREGISTER_CLASS(NativeRest);
 	GDREGISTER_CLASS(NativeWaterFx);
 	GDREGISTER_CLASS(NativeStill);
 }
