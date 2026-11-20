@@ -31,7 +31,8 @@ cells a point lies in (`CellMap.cell_at`, `core/sinking/cell_map.gd`).
   `NativeCrates`) with `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `sight_native.{h,cpp}`
   (`NativeSight`), `cell_map_native.{h,cpp}` (`NativeCellMap`), `register_types.cpp` (the
-  entry, `sinking_native_init`).
+  entry, `sinking_native_init`, and `NativeAbi`), `registry.h` (`SINKING_CLASS`, which
+  lists a class for the entry to register).
 - `SConstruct` — the build, over godot-cpp's; `build_profile.json` — the engine
   classes godot-cpp binds (few, so it compiles quickly).
 - `build/` — not tracked: godot-cpp at its pinned commit (`tools/native_build.sh`) and
@@ -108,13 +109,20 @@ that never ran `make native`, or the web export, runs the GDScript and the same 
 the same sinking and the same art.
 
 Every one of those checks goes through `NativeVersion.has()` (`core/native_version.gd`),
-which also asks the library's version: `NativeAbi.VERSION` in `src/register_types.cpp`
-against `NativeVersion.VERSION`. `lib/` is built per machine, so a checkout that pulled a
-change to the extension's classes without running `make native` again holds a library
-older than the GDScript calling it; a library of any other version counts as absent, the
-GDScript runs, and the game warns once to run `make native`. **Bump both numbers together
-in every change that adds, removes or changes a native class or a method the GDScript
-calls.** CI requires the library, and `test_native_version` fails there on a mismatch.
+which also asks which sources the library was built from. `SConstruct` works out a
+SHA-256 of every `.cpp` and `.h` in `src/` and builds it into `NativeAbi.source()`
+(`src/register_types.cpp`); `NativeVersion` works out the same digest of the `src/`
+beside it and holds the library to it. `lib/` is built per machine, so a checkout that
+pulled a change to the extension without running `make native` again holds a library
+older than the GDScript calling it; that library counts as absent, the GDScript runs, and
+the game warns once to run `make native`. A class the library lacks is absent too. An
+export leaves `src/` out and takes the library it ships with.
+
+**There is no version to bump.** A change to a native class only edits that class's
+files and its callers. A new class is listed beside its `_bind_methods` with
+`SINKING_CLASS(NativeX)` (`src/registry.h`), never in `register_types.cpp`, so two
+changes that add or change different classes share no line. CI requires the library,
+and `test_native_version` fails there when it was built from other sources.
 
 ## Determinism
 
