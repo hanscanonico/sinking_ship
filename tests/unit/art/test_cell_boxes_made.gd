@@ -8,7 +8,7 @@ extends GutTest
 const MADE := {
 	&"steamer": "157ac16fb17f0d8103e0e2e3825b29e746fa53be0d6e8a3717f81d454afe829e",
 	&"small_titanic": "5cb3208278f5f5f50c76703abd8f336835556b6d5bfefd352650d54199db0f0d",
-	&"titanic": "4e782d52dffecfe16f1458b2f533bc272364b09b536825ba46a8ecd6249e2c08",
+	&"titanic": "3b59862abc3c99e9d1beb9d01f0aadd6d74690079b3849c8ea9b57a6f52ece55",
 }
 const STEAMER := "res://data/ships/steamer.tres"
 const SMALL_TITANIC := "res://data/ships/small_titanic.tres"
