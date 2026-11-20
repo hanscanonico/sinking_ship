@@ -998,7 +998,7 @@ func _walk(snapshot: Dictionary, viewed: int, delta: float) -> bool:
 		_ghost.up()
 	)
 	var eye := _eyes.global_position
-	_view.keep_clear_of(eye)
+	_view.keep_clear_of(eye, viewed)
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
 	_lens_drops.show_eye(_underwater.is_under())
