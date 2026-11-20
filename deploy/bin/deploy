@@ -12,7 +12,7 @@ cd "$(dirname "$0")/../.."
 
 COMPOSE=(docker compose -f deploy/compose.yml)
 # The proxy's host-local port (compose.yml): the page, and the game under /ws.
-PROXY=http://127.0.0.1:8120
+PROXY=http://127.0.0.1:8130
 # How long the stack may take to answer once it is up.
 WAIT_TIMEOUT=120
 # In the checkout rather than /tmp, so the runner service and a login shell lock the

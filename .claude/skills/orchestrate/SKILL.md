@@ -79,7 +79,7 @@ plumbing, small reads for triage.
 ## Hard rules
 
 - Nothing merges without all three: the implementer's `local_gate` `completed` (its
-  `make verify-changed` seen to end green — `timed_out` is not green), CI's full
+  `make test-changed` seen to end green — `timed_out` is not green), CI's full
   `make verify` green on the PR head as you read it yourself, AND reviewer approve — on a
   retried slice, the retry's own gate, CI run and review. `make verify` stays runnable locally; CI is where
   it gates.
