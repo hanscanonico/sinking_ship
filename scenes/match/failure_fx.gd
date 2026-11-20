@@ -17,6 +17,10 @@ const BURST_HEAD := 2.0
 const LANDING_DUST := 2.5
 const LANDING_DEBRIS := 4.0
 const LANDING_SPRAY := 3.0
+## How much of a burst's white shows in the room it bursts into, by what lights the room
+## (ShipPower.Power, DARK, EMERGENCY, MAIN): drawn in its own light, as white as out on
+## deck, it glared in a dark room as glowing streaks; even lamplight is dimmer than day.
+const ROOM_LIGHT: Array[float] = [0.1, 0.25, 0.6]
 
 var _structure: ShipStructure
 var _schedule: SinkSchedule
@@ -94,6 +98,9 @@ func _burst(opening: ShipOpening, pose: ShipPose, tick: int, cues: Array[FxCue])
 	var head := absf(levels[0] - levels[1])
 	spray.strength = 1.0
 	spray.rise = lerpf(BURST_RISE.x, BURST_RISE.y, clampf(head / BURST_HEAD, 0.0, 1.0))
+	var room := _structure.cell_named(opening.joins[into])
+	if room != -1 and not pose.lit.is_empty():
+		spray.lit = ROOM_LIGHT[pose.lit[room]]
 	cues.append(spray)
 	var splinters := FxCue.new(FxCue.Kind.SPLINTERS, tick, opening.centre)
 	splinters.strength = 0.8
