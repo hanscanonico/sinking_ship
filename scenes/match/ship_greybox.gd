@@ -79,6 +79,9 @@ var _flash: StandardMaterial3D
 var _glows: Array[StandardMaterial3D] = []
 var _glow_cells := PackedInt32Array()
 var _funnels := {}
+## Per funnel, by its fitting's name, where it breaks off and how far over it
+## comes to rest (FunnelArt.turned_on).
+var _rests := {}
 
 
 ## [param railing_height] is the rules' — how high every railing stands.
@@ -93,6 +96,7 @@ func build(layout: ShipLayout, railing_height: float) -> void:
 	_glows.clear()
 	_glow_cells.clear()
 	_funnels.clear()
+	_rests.clear()
 	_flash = _material(FLASH_COLOUR)
 	_flash.emission_enabled = true
 	_flash.emission = FLASH_COLOUR
@@ -231,7 +235,7 @@ func show_falls(falls: Array[FunnelFall], tick: float) -> void:
 	for fall: FunnelFall in falls:
 		var node: Node3D = _funnels.get(fall.fitting.name)
 		if node != null:
-			node.transform = FunnelArt.turned(fall, tick)
+			node.transform = FunnelArt.turned_on(_rests, _layout, fall, tick)
 
 
 ## Whether some lower platform lies under [param platform] — a deck on a house

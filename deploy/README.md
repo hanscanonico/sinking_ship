@@ -13,7 +13,7 @@ browser ──https──▶ Cloudflare ──tunnel──▶ cloudflared ──
 |---|---|
 | `server` | The exported Linux dedicated server (`make export-server`), run as `--server --bind=0.0.0.0` by a non-root user in a distroless image with no shell, its root filesystem read-only. Published on no port: only the proxy reaches it. |
 | `web` | The browser build (`make export-web`) as static files behind nginx. Single-threaded, so it needs no cross-origin isolation headers. |
-| `proxy` | nginx in front of both: `/` is the web build, `/ws` is upgraded to the game server. It keys every client on the `CF-Connecting-IP` header cloudflared forwards — trusted from cloudflared's fixed address (`10.247.47.6`) alone — an IPv4 client by its address and an IPv6 one by its /64, and holds each to **4 game connections at once** and **one new game connection every 10 s (6 at a go)**, and pages to 20 requests a second. The game server only ever sees the proxy, so this is the per-address limit (R9). Tune it in `deploy/proxy.conf`. Host-local on `127.0.0.1:8120` for checks. |
+| `proxy` | nginx in front of both: `/` is the web build, `/ws` is upgraded to the game server. It keys every client on the `CF-Connecting-IP` header cloudflared forwards — trusted from cloudflared's fixed address (`10.247.47.6`) alone — an IPv4 client by its address and an IPv6 one by its /64, and holds each to **4 game connections at once** and **one new game connection every 10 s (6 at a go)**, and pages to 20 requests a second. The game server only ever sees the proxy, so this is the per-address limit (R9). Tune it in `deploy/proxy.conf`. Host-local on `127.0.0.1:8130` for checks. |
 | `cloudflared` | The tunnel, reading its token from `deploy/.env`, at `10.247.47.6` on the `edge` network: outside the range Docker hands out by itself, so no other container takes it. |
 
 Both images are built on the mini PC from the checkout by `deploy/Dockerfile`: an
@@ -102,7 +102,7 @@ On the mini PC (`ssh mini-pc`), as the deploy user:
      **`proxy:8080`**. WebSockets must be on for the zone (Network → WebSockets; on
      by default).
 3. Deploy by hand once: `deploy/bin/deploy`. Then `curl -fsS
-   http://127.0.0.1:8120/healthz`, and open `https://<hostname>/?create=1&name=Ada`
+   http://127.0.0.1:8130/healthz`, and open `https://<hostname>/?create=1&name=Ada`
    in a browser: the room shows, its code large, with the host's Start button.
 
 ### The runner (optional)
@@ -134,7 +134,7 @@ the two `svc.sh` commands it prints.
 
 Either way `deploy/bin/deploy` fast-forwards the checkout, builds both images, swaps
 `server`, `web` and `proxy`, and waits until the page and a WebSocket handshake on
-`/ws` both answer through `127.0.0.1:8120`. A deploy restarts the game server:
+`/ws` both answer through `127.0.0.1:8130`. A deploy restarts the game server:
 matches being played end with it.
 
 The server logs every room's tick time, each player's round trip and the snapshot
