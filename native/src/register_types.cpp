@@ -13,16 +13,37 @@
 #include "water_native.h"
 
 #include <gdextension_interface.h>
+#include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
 
 using namespace godot;
 
+namespace godot {
+
+// The version of this library's classes as the GDScript calls them, read by
+// core/native_version.gd, which treats a library of any other version as absent and runs
+// the GDScript instead. Bump it, and NativeVersion.VERSION with it, in every change that
+// adds, removes or changes a method or class the GDScript calls: a library built before
+// the change then falls back with a warning to run make native, never a script error.
+class NativeAbi : public RefCounted {
+	GDCLASS(NativeAbi, RefCounted)
+
+public:
+	enum : int64_t { VERSION = 1 };
+
+protected:
+	static void _bind_methods() { BIND_CONSTANT(VERSION); }
+};
+
+} // namespace godot
+
 static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
+	GDREGISTER_CLASS(NativeAbi);
 	GDREGISTER_CLASS(NativeWalkGraph);
 	GDREGISTER_CLASS(NativeWalkSearch);
 	GDREGISTER_CLASS(NativeWater);

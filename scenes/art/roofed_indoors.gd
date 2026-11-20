@@ -20,6 +20,10 @@ var _layout: ShipLayout
 var _squares := {}
 ## weather_floor(), worked out once; -INF where the rule holds nowhere.
 var _floor := -INF
+## Vector3(x, y, side) -> her half_breadth() there, each asked once (_breadth()): her
+## art's faces ask holds() of the same x and height over and over where the extension
+## does not answer for them (the web), 3.9 M times for the Titanic over 224 K of them.
+var _breadths := {}
 
 
 func _init(space: ShipSpace) -> void:
@@ -46,7 +50,7 @@ func holds(point: Vector3) -> bool:
 	if point.y >= _floor:
 		return false
 	var side := 1 if point.z >= 0.0 else -1
-	var breadth := _layout.structure.half_breadth(point.x, point.y, side)
+	var breadth := _breadth(point.x, point.y, side)
 	if breadth <= 0.0 or point.z * side > breadth:
 		return false
 	return _under_a_deck(point)
@@ -123,6 +127,19 @@ func _weather_floor() -> float:
 		if not _under_a_deck(air) and not _in_a_cell(air):
 			lowest = platform.height
 	return lowest if lowest < INF else -INF
+
+
+## Her ShipStructure.half_breadth() at [param x], [param y] on [param side], worked out
+## the first time it is asked and remembered: her structure stands still while she is
+## dressed, as weather_floor() does.
+func _breadth(x: float, y: float, side: int) -> float:
+	var key := Vector3(x, y, side)
+	var known: Variant = _breadths.get(key)
+	if known != null:
+		return known
+	var breadth := _layout.structure.half_breadth(x, y, side)
+	_breadths[key] = breadth
+	return breadth
 
 
 ## Whether a platform of hers stands over ship point [param point].
