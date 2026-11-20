@@ -58,6 +58,7 @@ tests/unit/art/test_committed_models.gd	ResourceLoader.exists(MODELS.path_join(m
 tests/unit/art/test_committed_models.gd	load("res://data/ships".path_join(file))	data/ships/*
 tests/unit/art/test_deck_under.gd	load(ship)	data/ships/*.tres
 tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	@ship
+tests/unit/art/test_funnel_rest.gd	load(SHIPS + file)	data/ships/*.tres
 tests/unit/art/test_liner_boiler.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_room_dressing.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_sea_haze.gd	load("res://data/ships/%s.tres" % ship)	@ship
