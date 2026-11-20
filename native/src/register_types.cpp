@@ -31,7 +31,7 @@ class NativeAbi : public RefCounted {
 	GDCLASS(NativeAbi, RefCounted)
 
 public:
-	enum : int64_t { VERSION = 1 };
+	enum : int64_t { VERSION = 2 };
 
 protected:
 	static void _bind_methods() { BIND_CONSTANT(VERSION); }
@@ -52,6 +52,7 @@ static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	GDREGISTER_CLASS(NativeMotion);
 	GDREGISTER_CLASS(NativeLevelHull);
 	GDREGISTER_CLASS(NativeGirder);
+	GDREGISTER_CLASS(NativeShell);
 	GDREGISTER_CLASS(NativeIndoorGrid);
 	GDREGISTER_CLASS(NativeLining);
 	GDREGISTER_CLASS(NativeShipMesh);
