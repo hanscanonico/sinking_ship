@@ -320,6 +320,11 @@ func test_effects_near_the_eye_are_low_small_and_faint() -> void:
 	assert_eq(
 		_played(fx, [rain], camera, 4).size(), 0, "no spray rains through the deck over a room"
 	)
+	# Inside her off any room's floor — on a ladder, swimming — by her cells.
+	assert_eq(
+		_played(fx, [rain], camera, -1, true).size(), 0, "nor round an eye inside her off a floor"
+	)
+	assert_eq(_played(fx, [rain], camera).size(), 1, "out on deck it rains")
 
 
 func test_the_strike_near_the_eye_is_low_small_and_faint() -> void:
@@ -826,11 +831,11 @@ func _on_sea(emitter: CPUParticles3D) -> bool:
 
 
 ## The emitters of [param fx] that playing [param cues] to [param camera], in
-## [param eye_room], set going.
+## [param eye_room] (and inside her if [param eye_indoors]), set going.
 func _played(
-	fx: SinkingFx, cues: Array[FxCue], camera: Camera3D, eye_room := -1
+	fx: SinkingFx, cues: Array[FxCue], camera: Camera3D, eye_room := -1, eye_indoors := false
 ) -> Array[CPUParticles3D]:
-	return FxProbe.played(fx, cues, camera, eye_room)
+	return FxProbe.played(fx, cues, camera, eye_room, eye_indoors)
 
 
 ## The most a grain of [param emitter] climbs over its emitter, in the emitter's own
