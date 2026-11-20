@@ -14,9 +14,10 @@ extends RefCounted
 ## among the snapshot's seats, where it rides at its feet.
 
 ## How high over its holder's feet a held ring's middle is carried, and how far ahead:
-## at the chest, its top arc in the foot of the holder's own view.
-const HELD_HEIGHT := 1.15
-const HELD_AHEAD := 0.4
+## low before the chest, its top arc about the holder's own hands at the foot of their
+## view, the rest of it below, its back to them (the lifebelt is closed there).
+const HELD_HEIGHT := 1.05
+const HELD_AHEAD := 0.45
 ## How far a piece of furniture turns for every metre it stands from where it stood, in
 ## radians.
 const DRIFT_TURN := 0.3
