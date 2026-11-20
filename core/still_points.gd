@@ -42,7 +42,7 @@ func _init(points: PackedVector3Array, native: Object = null) -> void:
 
 ## A NativeWater where the game's extension is loaded (native/, make native), else null.
 static func native_water() -> Object:
-	return ClassDB.instantiate(&"NativeWater") if ClassDB.class_exists(&"NativeWater") else null
+	return ClassDB.instantiate(&"NativeWater") if NativeVersion.has(&"NativeWater") else null
 
 
 func size() -> int:
