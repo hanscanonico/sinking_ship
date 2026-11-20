@@ -396,6 +396,42 @@ static func over(blocker: ShipBlocker, point: Vector2) -> bool:
 	return blocker.area.has_point(point)
 
 
+## The faces, along [param across], of the walls a window at [param centre] is set in:
+## (the room's face, the outer face), the way [param out] points outdoors; NANs when no
+## wall holds it.
+func _wall_faces(centre: Vector3, across: int, out: float) -> Vector2:
+	var axis := 0 if across == 0 else 1
+	var point := Vector2(centre.x, centre.z)
+	var faces := Vector2(NAN, NAN)
+	for index: int in _blockers_near(Rect2(point, Vector2.ZERO).grow(WALL_MAX)):
+		var blocker := layout.blockers[index]
+		if not is_wall(blocker) or centre.y < blocker.bottom or centre.y > blocker.top:
+			continue
+		# Flat across the window, as it is: not a wall meeting it at a corner.
+		var flat := blocker.area.size[axis] <= WALL_MAX
+		if not (flat and blocker.area.grow(SLIVER).has_point(point)):
+			continue
+		var room_face := blocker.area.position[axis] if out > 0.0 else blocker.area.end[axis]
+		var outer_face := blocker.area.end[axis] if out > 0.0 else blocker.area.position[axis]
+		if is_nan(faces.x) or (room_face - faces.x) * out < 0.0:
+			faces.x = room_face
+		if is_nan(faces.y) or (outer_face - faces.y) * out > 0.0:
+			faces.y = outer_face
+	return faces
+
+
+## Which way along [param across] from a pane at [param centre] is outdoors: the way a
+## step out of the wall it is set in is, the way its middle stands from her centreline
+## when both are or neither is.
+func _outside_of(centre: Vector3, across: int) -> float:
+	var step := Vector3.ZERO
+	step[across] = WALL_MAX + ShipMesh.PROBE
+	var ahead := outdoors(centre + step)
+	if ahead != outdoors(centre - step):
+		return 1.0 if ahead else -1.0
+	return 1.0 if centre[across] >= 0.0 else -1.0
+
+
 ## Whether a blocker stands at [param height] within [param reach] of [param point],
 ## ship plane, the way [param toward] points: one holds a body back there (WALL_STEP
 ## apart).
