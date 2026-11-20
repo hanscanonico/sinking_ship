@@ -56,6 +56,7 @@ tests/unit/ai/test_walk_search_native.gd	load(path)	data/ships/steamer.tres data
 tests/unit/ai/test_way_through.gd	load("res://data/ships/%s.tres" % ship)	data/ships/steamer.tres data/ships/trawler.tres data/ships/tug.tres data/ships/barque.tres data/ships/ferry.tres data/ships/freighter.tres
 tests/unit/art/test_committed_models.gd	ResourceLoader.exists(MODELS.path_join(model).path_join(model + ".glb"))	assets/models/*.glb
 tests/unit/art/test_committed_models.gd	load("res://data/ships".path_join(file))	data/ships/*
+tests/unit/art/test_deck_under.gd	load(ship)	data/ships/*.tres
 tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	@ship
 tests/unit/art/test_liner_boiler.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_room_dressing.gd	load("res://data/ships/%s.tres" % ship_name)	@ship

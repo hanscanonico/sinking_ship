@@ -55,6 +55,8 @@ var _grabbing: Array[PlayerState] = []
 ## The bonuses the match plans to bring aboard (#307), drawn once from the config and the
 ## seed: none for a match without bonuses.
 var _plan: BonusPlan
+## Whether the last honour (_honour) stood every crate on the whole ship, piece 0, alone.
+var _whole := false
 
 
 func _init(match_config: MatchConfig) -> void:
@@ -142,14 +144,21 @@ static func from_snapshot(snapshot: Dictionary, match_config: MatchConfig) -> Ma
 
 ## Resets this match to [param snapshot], one of its own: what from_snapshot continues
 ## from, without building the ship again — a client predicting does it every snapshot.
-## A crate the snapshot has as this match has it is kept, not made again.
+## A crate the snapshot has as this match has it is kept, not made again — and, while
+## she is whole now and was at the last honour, stands where it stood: only the crates
+## made anew are stood again. Every step stands them all first anyway (_sinking_events).
 func restore(snapshot: Dictionary) -> void:
 	assert(snapshot["v"] == SNAPSHOT_VERSION, "snapshot version %s" % snapshot["v"])
 	var kept: Array[PropState] = []
 	if state != null:
 		kept = state.props
-	state = MatchState.from_dict(snapshot, kept)
-	_honour(pose())
+	var made: Array[PropState] = []
+	state = MatchState.from_dict(snapshot, kept, made)
+	var pose_now := pose()
+	if kept.is_empty() or not _whole or not _is_whole(pose_now):
+		_honour(pose_now)
+		return
+	pieces.honour(0, pose_now, state.broken_railings(), made, true)
 
 
 func snapshot() -> Dictionary:
@@ -252,8 +261,14 @@ func _sinking_events(pose_now: ShipPose, tick: int, events: Array[SimEvent]) -> 
 
 ## Every piece she stands in under [param pose_now] honours it (Pieces.honour).
 func _honour(pose_now: ShipPose) -> void:
+	_whole = _is_whole(pose_now)
 	for piece: int in pose_now.standing:
 		pieces.honour(piece, pose_now, state.broken_railings(), state.props)
+
+
+## Whether she stands in one piece under [param pose]: the whole ship, piece 0.
+static func _is_whole(pose: ShipPose) -> bool:
+	return pose.standing.size() == 1 and pose.standing[0] == 0
 
 
 ## The tick's rules stand on piece [param piece]: its movement and hazards, made the
