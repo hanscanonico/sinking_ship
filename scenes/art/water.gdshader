@@ -92,6 +92,10 @@ uniform float fine_share = 1.0;
 // Out past mirror_reach metres from the eye the sea mirrors the sky alone; nearer, as
 // far as the graphics preset marches a ray off it (water_mirror).
 uniform float mirror_reach = 90.0;
+// Metres the eye stands over the water it looks at, between which it fades in what
+// a ray off the sea meets: from a swimmer's eye the ray grazes the water and meets
+// the hull in steps, so the sea there mirrors the sky alone.
+uniform vec2 mirror_eye = vec2(0.5, 1.5);
 // How far up and down the screen the ripples draw a mirrored image out, as a share of
 // its height, and that much again for every ~7 metres the ray ran to meet it.
 uniform float mirror_blur = 0.004;
@@ -367,7 +371,9 @@ void fragment() {
 		vec3 mirrored = mix(body * 0.4, dusk_sky(mirror, sun), sky_over);
 		float facing = max(dot(normal, -look), 1e-3);
 		float mirroring = water_fresnel(facing);
-		if (water_mirror > 0 && dist < mirror_reach && mirroring > MIRROR_SEEN) {
+		float eye_over = CAMERA_POSITION_WORLD.y - world.y;
+		if (water_mirror > 0 && dist < mirror_reach && mirroring > MIRROR_SEEN
+				&& eye_over > mirror_eye.x) {
 			vec3 calm = normalize(vec3(-swell.x, 1.0, -swell.y));
 			vec3 ray = reflect(look, calm);
 			ray.y = abs(ray.y);
@@ -377,6 +383,7 @@ void fragment() {
 			);
 			float reach = 1.0 - smoothstep(mirror_reach * 0.6, mirror_reach, dist);
 			reach *= smoothstep(MIRROR_SEEN, MIRROR_SEEN * 2.0, mirroring);
+			reach *= smoothstep(mirror_eye.x, mirror_eye.y, eye_over);
 			if (found.z > 0.0) {
 				vec2 drawn_out = vec2(0.0, mirror_blur * (1.0 + found.w * 0.15));
 				vec3 image = water_screen(found.xy) * 0.5;

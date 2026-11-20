@@ -21,6 +21,9 @@ const SOAK_HEIGHT := 0.3
 ## in metres: past a ceiling's margin, so the room under a deck, whose ceiling it is,
 ## never holds it.
 const OVER := 0.5
+## How far wide of a line's box a room must lie for out_of to pass it over unasked, in
+## metres: wide of any rounding of _within's.
+const APART := 0.001
 
 ## Per layout, per platform by index, the rooms its deck stands in and its patches out
 ## of them (rooms_on, out_on_deck): made once a run, the first time they are asked for —
@@ -152,11 +155,38 @@ static func _on_deck(start: float, end: float, patch: int) -> float:
 static func out_on_deck_along(
 	layout: ShipLayout, platform: int, from: Vector3, to: Vector3
 ) -> PackedVector2Array:
+	return out_of(rooms_grown_on(layout, platform), from, to)
+
+
+## The areas of the rooms platform [param platform] of [param layout] stands in
+## (rooms_on), each grown as ShipSpace.outdoors() grows a room, in that order: what
+## out_of reads, for a caller that asks of the same deck again and again to keep.
+static func rooms_grown_on(layout: ShipLayout, platform: int) -> Array[Rect2]:
+	var grown: Array[Rect2] = []
+	for index: int in rooms_on(layout)[platform]:
+		grown.append(layout.rooms[index].area.grow(ShipSpace.INSIDE))
+	return grown
+
+
+## The stretches of the line from [param from] to [param to] that stand out of every one
+## of [param areas] (ship plane), as out_on_deck_along's.
+static func out_of(areas: Array[Rect2], from: Vector3, to: Vector3) -> PackedVector2Array:
 	var runs := PackedVector2Array([Vector2(0.0, 1.0)])
 	var start := Vector2(from.x, from.z)
 	var way := Vector2(to.x - from.x, to.z - from.z)
-	for index: int in rooms_on(layout)[platform]:
-		var inside := _within(start, way, layout.rooms[index].area.grow(ShipSpace.INSIDE))
+	# An area wide of the line's box by more than APART cannot hold any of it: passed
+	# over without asking _within, which would find it holds none.
+	var low := start.min(start + way) - Vector2(APART, APART)
+	var high := start.max(start + way) + Vector2(APART, APART)
+	for area: Rect2 in areas:
+		if (
+			area.position.x > high.x
+			or area.position.y > high.y
+			or area.end.x < low.x
+			or area.end.y < low.y
+		):
+			continue
+		var inside := _within(start, way, area)
 		if inside.x >= inside.y:
 			continue
 		var left := PackedVector2Array()

@@ -352,10 +352,13 @@ func clear(planner: FxPlanner = null) -> void:
 
 ## Plays [param cues] — FxPlanner's — with the ship drawn at [param ship], as seen
 ## by [param camera] (none: seen from everywhere) from the room [param eye_room], by
-## index in the layout, or from none.
-func play(cues: Array[FxCue], ship: Transform3D, camera: Camera3D, eye_room := -1) -> void:
+## index in the layout, or from none; and from inside her if [param eye_indoors] (by
+## her cells: on a ladder, a flight, swimming), or if in a room.
+func play(
+	cues: Array[FxCue], ship: Transform3D, camera: Camera3D, eye_room := -1, eye_indoors := false
+) -> void:
 	_pieces.follow(ship)
-	_eye_indoors = eye_room >= 0
+	_eye_indoors = eye_indoors or eye_room >= 0
 	_offered.fill(0)
 	for index in cues.size():
 		var cue := cues[index]
@@ -445,7 +448,11 @@ func _on_stepped(_events: Array[SimEvent]) -> void:
 	if _view.eye_seat() >= 0:
 		var feet: Vector3 = _driver.current["seats"][_view.eye_seat()]["pos"]
 		eye_room = _rooms.room_at(feet, _step)
-	play(cues, ship, get_viewport().get_camera_3d(), eye_room)
+	# Whether the eye is inside her at all, by her cells as the underwater view asks:
+	# no room's floor holds feet on a ladder, a flight, in mid-air or swimming.
+	var camera := get_viewport().get_camera_3d()
+	var eye_indoors := camera != null and _view.indoors(camera.global_position)
+	play(cues, ship, camera, eye_room, eye_indoors)
 	# Against the ship as stepped, not as last drawn: a deck righting under a piece
 	# sends it under before the deck is wadeable.
 	_pieces.sink_shallows(_flotsam, _schedule.pose_at(_driver.current["tick"]))

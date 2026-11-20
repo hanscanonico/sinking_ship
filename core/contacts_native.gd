@@ -16,7 +16,7 @@ static var off := false
 
 ## Whether what is made now asks the extension.
 static func loaded() -> bool:
-	return not off and ClassDB.class_exists(&"NativeCrates")
+	return not off and NativeVersion.has(&"NativeCrates")
 
 
 ## A new object of the extension's class [param name].
