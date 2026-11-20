@@ -14,7 +14,7 @@ props stand (`core/prop_stands.gd`), what holds a circle back
 whom (`Surfaces.line_of_sight`, the bots' view and the HUD's marks), and the
 cargo's contact passes (`Hazards._move`, `core/hazards.gd`), a bot's search for a way
 round by the floor and the surface under each square it asks of (`ai/bot_floor_way.gd`,
-`Surfaces.under`), the dressed ship's face
+`Surfaces.under`) and its reckoning by the walks it has sent (`ai/bot_reckoning.gd`), the dressed ship's face
 emission — her faces cut at the chunk and room lines, judged indoors or out and gathered
 into batches (`scenes/art/ship_mesh.gd`, `scenes/art/indoor_grid.gd`, #411) — the
 water's effects' walks of her cells, openings and decks (`scenes/art/inner_water.gd`,
@@ -27,7 +27,8 @@ rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410).
   `NativeWalkSearch`), `water_native.{h,cpp}` (`NativeWater`), `sink_native.{h,cpp}`
   and `sink_step_native.cpp` (`NativeSink`), `motion_native.{h,cpp}` (`NativeMotion`), `hull_native.{h,cpp}` (`NativeLevelHull`,
   `NativeGirder`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
-  `NativeCrates`) with `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
+  `NativeCrates`) with `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`) and
+  `bot_stepped_native.cpp` (`NativeSurfaces.stepped`, a bot's reckoning by its walks), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `sight_native.{h,cpp}`
   (`NativeSight`), `register_types.cpp` (the entry, `sinking_native_init`).
 - `SConstruct` — the build, over godot-cpp's; `build_profile.json` — the engine
