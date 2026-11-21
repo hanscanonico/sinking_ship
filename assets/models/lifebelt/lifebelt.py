@@ -20,8 +20,9 @@ sys.path.insert(0, os.path.join(HERE, "..", "..", "..", "tools"))
 from model_kit import Part, fresh_scene, save, sweep, triangles  # noqa: E402
 
 # The ring's section, round the axis z: (radius, out from the wall), from inside its
-# hole round its face to its outside, both ends on the wall.
-SECTION = [(0.19, 0.0), (0.205, 0.05), (0.26, 0.075), (0.315, 0.05), (0.33, 0.0)]
+# hole round its face to its outside and back across the wall to where it began —
+# closed, so a ring carried before its holder (PropPlacing) shows its back.
+SECTION = [(0.19, 0.0), (0.205, 0.05), (0.26, 0.075), (0.315, 0.05), (0.33, 0.0), (0.19, 0.0)]
 # Twelve strips round it; every third, from the second, white.
 STRIPS = 12
 # The grab line: its thickness, where it is seized on the ring, how far out its bights

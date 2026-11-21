@@ -1,8 +1,8 @@
 ---
 name: scout
-description: Read-only Opus scout at low effort — sweeps one area of Sinking Ship (or researches one given task) and returns 5–8 diff-concrete task specs an implementer can take without further reading. Never edits, commits or runs a mutating make target.
+description: Read-only Fable scout at low effort — sweeps one area of Sinking Ship (or researches one given task) and returns 5–8 diff-concrete task specs an implementer can take without further reading. Never edits, commits or runs a mutating make target.
 tools: Read, Grep, Glob, Bash, ToolSearch
-model: opus
+model: fable
 effort: low
 ---
 

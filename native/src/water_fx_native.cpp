@@ -6,6 +6,7 @@
 // two vectors — the engine works before the call, as the GDScript has it work them.
 
 #include "water_fx_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -682,6 +683,8 @@ Array NativeWaterFx::inflows(const PackedFloat64Array &p_then, const PackedFloat
 	found.push_back(churns);
 	return found;
 }
+
+SINKING_CLASS(NativeWaterFx)
 
 void NativeWaterFx::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("levels_between", "then", "now", "alpha"), &NativeWaterFx::levels_between);

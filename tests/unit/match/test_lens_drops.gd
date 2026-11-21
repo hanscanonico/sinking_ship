@@ -1,6 +1,11 @@
 extends GutTest
 ## The lens is wet as the eye comes up out of the water, dries over DRY_SECONDS, and
-## draws nothing under the water nor once dry.
+## draws nothing under the water nor once dry. Only the same eye surfacing wets it: a cut to
+## another seat or camera finds the lens dry.
+
+const SEAT := 3
+const OTHER_SEAT := 5
+const FREE := -1
 
 
 func test_the_lens_is_wettest_just_surfaced() -> void:
@@ -22,34 +27,64 @@ func test_the_lens_dries_steadily() -> void:
 
 func test_a_lens_never_under_is_dry() -> void:
 	var drops := _drops()
-	drops.show_eye(false)
+	drops.show_eye(SEAT, false)
 	assert_false(drops.is_wet())
 
 
 func test_surfacing_wets_the_lens() -> void:
 	var drops := _drops()
-	drops.show_eye(true)
+	drops.show_eye(SEAT, true)
 	assert_false(drops.is_wet(), "under the water the view is Underwater's")
-	drops.show_eye(false)
+	drops.show_eye(SEAT, false)
 	assert_true(drops.is_wet())
 
 
 func test_staying_up_does_not_wet_it_afresh() -> void:
 	var drops := _drops()
-	drops.show_eye(true)
-	drops.show_eye(false)
+	drops.show_eye(SEAT, true)
+	drops.show_eye(SEAT, false)
 	drops._process(LensDrops.DRY_SECONDS * 0.5)
-	drops.show_eye(false)
+	drops.show_eye(SEAT, false)
 	drops._process(LensDrops.DRY_SECONDS * 0.6)
 	assert_false(drops.is_wet(), "dry DRY_SECONDS after the one surfacing")
 
 
 func test_going_under_hides_the_drops_at_once() -> void:
 	var drops := _drops()
-	drops.show_eye(true)
-	drops.show_eye(false)
-	drops.show_eye(true)
+	drops.show_eye(SEAT, true)
+	drops.show_eye(SEAT, false)
+	drops.show_eye(SEAT, true)
 	assert_false(drops.is_wet())
+
+
+func test_a_cut_from_an_eye_under_to_another_dry_one_leaves_the_lens_dry() -> void:
+	var drops := _drops()
+	drops.show_eye(SEAT, true)
+	drops.show_eye(OTHER_SEAT, false)
+	assert_false(drops.is_wet())
+
+
+func test_a_cut_from_an_eye_under_to_the_free_camera_leaves_the_lens_dry() -> void:
+	var drops := _drops()
+	drops.show_eye(SEAT, true)
+	drops.show_eye(FREE, false)
+	assert_false(drops.is_wet())
+
+
+func test_a_cut_dries_drops_already_on_the_lens() -> void:
+	var drops := _drops()
+	drops.show_eye(SEAT, true)
+	drops.show_eye(SEAT, false)
+	drops.show_eye(FREE, false)
+	assert_false(drops.is_wet(), "the free camera's lens is its own")
+
+
+func test_the_eye_cut_to_wets_the_lens_as_it_surfaces() -> void:
+	var drops := _drops()
+	drops.show_eye(SEAT, false)
+	drops.show_eye(OTHER_SEAT, true)
+	drops.show_eye(OTHER_SEAT, false)
+	assert_true(drops.is_wet())
 
 
 func test_a_held_lens_stays_wet() -> void:

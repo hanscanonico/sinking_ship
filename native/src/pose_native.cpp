@@ -1,11 +1,14 @@
 // See pose_native.h.
 
 #include "pose_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
 
 namespace godot {
+
+SINKING_CLASS(NativePose)
 
 void NativePose::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("hold", "heads", "pockets", "lits", "cells"), &NativePose::hold);

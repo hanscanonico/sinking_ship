@@ -104,6 +104,7 @@ const FILES := {
 	AudioCue.Kind.DOUBLE_LIFE_SPENT: ["bonus/double_life.wav"],
 	## A seamless loop, marked as one in the file.
 	AudioCue.Kind.HUM: ["bonus/hum.wav"],
+	AudioCue.Kind.SEEK: ["bonus/seek.wav"],
 }
 ## How each kind carries: its level in dB; for a positional cue the distance it
 ## plays at that level ("near") and the farthest it is heard ("far"), in metres;
@@ -137,6 +138,8 @@ const CARRY := {
 	## Faint, and heard only near it: silent 5 m off, so found once you are close (§13). A
 	## wall does not muffle it, so someone right beside it in the next room hears it too.
 	AudioCue.Kind.HUM: {"db": -14.0, "near": 1.0, "far": 5.0},
+	## Clear, and heard the whole of BonusSeeker.RANGE: its pace, not its level, says how near.
+	AudioCue.Kind.SEEK: {"db": -10.0, "near": 8.0, "far": 36.0},
 }
 
 var _streams := {}
