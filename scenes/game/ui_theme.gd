@@ -207,7 +207,13 @@ static func _build() -> Theme:
 	theme.set_stylebox("hover", "PopupMenu", _flat(teak.darkened(0.3), TRIM, 1, 2))
 	theme.set_color("font_color", "PopupMenu", TEXT)
 	theme.set_color("font_hover_color", "PopupMenu", TRIM.lightened(0.45))
-	theme.set_font_size("font_size", "PopupMenu", FONT_SIZE)
+	# A choice's list reads as the choice it drops from: its type, and before each line a
+	# brass ring, filled for the one chosen — the engine's own marks are dark on the plate.
+	theme.set_font("font", "PopupMenu", button_font)
+	theme.set_font_size("font_size", "PopupMenu", BUTTON_FONT_SIZE)
+	theme.set_icon("radio_checked", "PopupMenu", _knob(TEXT, TRIM))
+	theme.set_icon("radio_unchecked", "PopupMenu", _knob(Color(TEXT, 0.0), TRIM.darkened(0.2)))
+	theme.set_constant("v_separation", "PopupMenu", 6)
 
 	var field := _flat(Color(OUTLINE, 0.9), TRIM.darkened(0.35), 0, 2)
 	field.border_width_bottom = 2
