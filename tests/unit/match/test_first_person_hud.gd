@@ -23,6 +23,26 @@ func test_the_height_reads_above_or_under_the_sea() -> void:
 	assert_eq(FirstPersonHud.height_words(0.0), "At the waterline")
 
 
+## Under each dial, its angle and its low side: whole within the dial's width in every
+## language, at the widest angle it reads — a heel right over, a capsize, and a trim of
+## two digits, as on end she stands at ninety. Drawn any wider, a line is cut.
+func test_the_dials_captions_fit_under_them_in_every_language() -> void:
+	var font := ThemeDB.fallback_font
+	var size := FirstPersonHud.FONT_SIZE
+	for language: String in Language.locales():
+		Language.use(language)
+		var captions := PackedStringArray()
+		captions.append(Language.t("Heel %s") % FirstPersonHud.degrees_words(-179.9))
+		captions.append(Language.t("Trim %s") % FirstPersonHud.degrees_words(-99.9))
+		for angle: float in [-1.0, 0.0, 1.0]:
+			captions.append(FirstPersonHud.low_words(angle, "starboard low", "port low"))
+			captions.append(FirstPersonHud.low_words(angle, "bow low", "stern low"))
+		for caption in captions:
+			var width := font.get_string_size(caption, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x
+			assert_lte(width, FirstPersonHud.DIAL_TEXT, "%s: %s" % [language, caption])
+	Language.use(Language.SOURCE)
+
+
 ## A swimmer is in the sea — or, inside one of her rooms, in the water: no sea is there.
 func test_a_swimmer_in_a_room_is_in_the_water_not_the_sea() -> void:
 	assert_eq(FirstPersonHud.swimming_words(false), "In the sea")
