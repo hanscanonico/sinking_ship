@@ -70,6 +70,8 @@ const OpenSpanCheck := preload("res://tools/open_span_check.gd")
 const ArtLintCosts := preload("res://tools/art_lint_costs.gd")
 const ShipFaces := preload("res://tools/ship_faces.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
+## The checks that play a match, in the order --match=K/N deals them (_check_match).
+const MATCH_CHECKS: PackedStringArray = ["seats", "collapse", "effects", "overhead"]
 const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
 const SEED := 1701
@@ -160,8 +162,13 @@ func _initialize() -> void:
 	# every ship but those, and what plays a match too: CI checks the biggest ships beside
 	# the rest (.github/workflows/verify.yml). --part=K/N, with --ship, checks her share K
 	# of N alone (_check_ship): CI lints the traced Titanic in parts side by side.
+	# --match=no checks the ships and plays no match; --match=K/N checks no ship, only
+	# share K of N of what plays a match (_check_match): CI runs the fleet's ships and
+	# the match's parts side by side, the match being four fifths of the two together.
 	var only := ""
 	var skipped := PackedStringArray()
+	var ships := true
+	var played := Vector2i.ONE
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--ship="):
 			only = arg.trim_prefix("--ship=") + ".tres"
@@ -176,30 +183,60 @@ func _initialize() -> void:
 				return
 		elif arg.begins_with("--costs="):
 			_costs_file = arg.trim_prefix("--costs=")
+		elif arg == "--match=no":
+			played = Vector2i.ZERO
+		elif arg.begins_with("--match="):
+			ships = false
+			played = _part_of(arg.trim_prefix("--match="))
+			if played == Vector2i.ZERO:
+				printerr("art-lint: %s is no part — --match takes no, or K/N with K from 1 to N" % arg)
+				quit(1)
+				return
 	if _part.y > 1 and only.is_empty():
 		printerr("art-lint: --part deals one ship's checks — name her with --ship=NAME")
 		quit(1)
 		return
+	if not ships and not only.is_empty():
+		printerr("art-lint: --match=K/N checks no ship — leave --ship out")
+		quit(1)
+		return
 	for file: String in DirAccess.get_files_at(SHIPS_DIR):
-		if not file.ends_with(".tres") or file in skipped:
+		if not ships or not file.ends_with(".tres") or file in skipped:
 			continue
 		if only.is_empty() or file == only:
 			_check_ship(file, load(SHIPS_DIR + file))
-	if not only.is_empty():
-		_report()
-		return
-	_check_snapshot_only()
-	_check_crew()
-	_check_sea_reach()
-	await _check_seats()
-	await _check_collapse()
-	var effects: Array = await SinkingFxCheck.check(root, SinkingFxCheck.SEED, SEATS)
-	_problems.append_array(effects[0])
-	_checks += effects[1]
-	var overhead: Array = await OverheadCheck.check(root, SEED, SEATS)
-	_problems.append_array(overhead[0])
-	_checks += overhead[1]
+	if only.is_empty() and played != Vector2i.ZERO:
+		await _check_match(played)
 	_report()
+
+
+## What plays a match, or needs none of a ship's data: share [param part].x of
+## [param part].y. The four that play one are dealt in turn, MATCH_CHECKS' order, and
+## each says what it took; the quick ones before them go with the first share.
+func _check_match(part: Vector2i) -> void:
+	if part.x == 1:
+		_check_snapshot_only()
+		_check_crew()
+		_check_sea_reach()
+	for index in MATCH_CHECKS.size():
+		if index % part.y != part.x - 1:
+			continue
+		var since := Time.get_ticks_usec()
+		match MATCH_CHECKS[index]:
+			"seats":
+				await _check_seats()
+			"collapse":
+				await _check_collapse()
+			"effects":
+				var effects: Array = await SinkingFxCheck.check(root, SinkingFxCheck.SEED, SEATS)
+				_problems.append_array(effects[0])
+				_checks += effects[1]
+			"overhead":
+				var overhead: Array = await OverheadCheck.check(root, SEED, SEATS)
+				_problems.append_array(overhead[0])
+				_checks += overhead[1]
+		var took := (Time.get_ticks_usec() - since) / 1e6
+		print("art-lint: match part %d/%d: %s %.1f s" % [part.x, part.y, MATCH_CHECKS[index], took])
 
 
 ## Part K of N, as (K, N), of [param given] ("K/N"); Vector2i.ZERO when it names none.

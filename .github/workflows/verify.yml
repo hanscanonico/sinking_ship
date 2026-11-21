@@ -263,7 +263,7 @@ jobs:
           retention-days: 7
 
   test:
-    name: test ${{ matrix.shard }}/10
+    name: test ${{ matrix.shards }} of 21
     needs: native
     runs-on: ubuntu-24.04
     # A guard against a hung engine, not a budget: the shards are dealt about
@@ -276,8 +276,8 @@ jobs:
       # Every shard reports, so one red run names every failing script.
       fail-fast: false
       matrix:
-        # Change the 10 in SHARD and the job name with this list.
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        # Change the 21 in the name and the command with this list.
+        shards: ["1 2 3", "4 5 6", "7 8 9", "10 11 12", "13 14 15", "16 17 18", "19 20 21"]
     steps:
       - uses: actions/checkout@v4
 
@@ -290,7 +290,7 @@ jobs:
       - uses: ./.github/actions/setup-godot
 
       - name: test
-        run: make test SHARD=${{ matrix.shard }}/10
+        run: tools/test_parts.sh 21 ${{ matrix.shards }}
         env:
           SINKING_NATIVE_REQUIRED: "1"
 
@@ -312,9 +312,9 @@ jobs:
       matrix:
         include:
           - part: small_titanic
-            run: tools/art_lint_parts.sh small_titanic 3 1 2 3
+            run: tools/art_lint_parts.sh small_titanic 4 1 2 3 4
           - part: fleet
-            run: make art-lint SKIP=titanic,small_titanic
+            run: tools/art_lint_fleet.sh titanic,small_titanic 3
     steps:
       - uses: actions/checkout@v4
 
@@ -346,21 +346,21 @@ jobs:
   # jobs of the 20 GitHub runs at once, and test shards queued five minutes behind
   # them (run 44890213625). Change the 9 in the name and the command with the lists.
   art-lint-titanic:
-    name: art-lint titanic ${{ matrix.parts }} of 9
+    name: art-lint titanic ${{ matrix.parts }} of 18
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       # Every part reports, so one red run names all her problems.
       fail-fast: false
       matrix:
-        parts: ["1 2", "3 4", "5 6", "7 8", "9"]
+        parts: ["1 2 3", "4 5 6", "7 8 9", "10 11 12", "13 14 15", "16 17 18"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
-        run: tools/art_lint_parts.sh titanic 9 ${{ matrix.parts }}
+        run: tools/art_lint_parts.sh titanic 18 ${{ matrix.parts }}
 
       # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
       - uses: actions/upload-artifact@v4
