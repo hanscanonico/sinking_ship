@@ -6,7 +6,7 @@ extends RefCounted
 ## take it alone.
 
 const StructureSteel := preload("res://tools/structure_steel.gd")
-## A lamp's triangles' span in art-lint's faces (_ship_faces): it fades near the eye
+## A lamp's triangles' span in art-lint's faces (ShipFaces.of): it fades near the eye
 ## (ShipLamp.fade_near), so no lamp is a barrier.
 const LAMP := -2
 ## Through a broken railing span: probes stand OPENING_STEP apart along it, at least
@@ -25,7 +25,7 @@ const OPENING_INBOARD := 0.05
 ## its neighbours nor its own remains: the gap the rules leave open is open as drawn
 ## (D6). The art is built under [param root]; [param ship_faces] gathers the faces
 ## drawn under a node, and the railing span or LAMP each is drawn for (art-lint's
-## _ship_faces); a face within [param blocker_tolerance] of a blocker is its own;
+## ShipFaces.of); a face within [param blocker_tolerance] of a blocker is its own;
 ## [param file] names the ship: [problems found, checks made].
 static func check(
 	root: Window,
