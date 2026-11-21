@@ -42,8 +42,10 @@ func _run(user_args: PackedStringArray) -> int:
 		printerr("exactness: --ticks=N of 1 or more and --out=FILE are required")
 		return 1
 	if not native:
-		# A version no library is: every loader asks NativeVersion and gets no.
-		NativeVersion.expected = -1
+		# What no library carries: every loader asks NativeVersion and gets no. A base
+		# from before #709 holds a number there, one since holds a digest.
+		var version: Script = NativeVersion
+		version.set(&"expected", -1 if version.get(&"expected") is int else "off")
 	print("exactness: %s" % _extension(native))
 	var config := RunMatch.chosen_config(MatchArgs.parse(match_args))
 	if config == null:
@@ -71,14 +73,22 @@ func _run(user_args: PackedStringArray) -> int:
 	return 0
 
 
-## Which code answered: the game's extension (native/), or the GDScript.
+## Which code answered: the game's extension (native/), or the GDScript. Asked without
+## naming what only one side of #709 has: a version number before it, a digest since.
 static func _extension(native: bool) -> String:
-	var built := NativeVersion.built()
 	if not native:
 		return "the GDScript ran, the extension off (--native=0)"
-	if built == 0:
+	var version: Script = NativeVersion
+	var built: Variant = version.call(&"built")
+	if (built is int and built == 0) or (built is String and built == ""):
 		return "the GDScript ran, no extension loaded"
-	if built != NativeVersion.VERSION:
-		var stale := "the GDScript ran, the extension stale (version %d, the GDScript calls %d)"
-		return stale % [built, NativeVersion.VERSION]
-	return "the extension ran (version %d)" % built
+	var wanted: Variant = (
+		version.call(&"wanted")
+		if version.has_method(&"wanted")
+		else version.get_script_constant_map().get(&"VERSION")
+	)
+	if wanted is String and wanted == "any":
+		wanted = built
+	if built != wanted:
+		return "the GDScript ran, the extension stale (built from %s, wanted %s)" % [built, wanted]
+	return "the extension ran (%s)" % built
