@@ -16,10 +16,15 @@
 #
 # How many parts follows the machine's test slots (TEST_SLOTS, else half the cores,
 # as tools/test_slot.sh counts them): every engine takes one, so no more run at once
-# than the machine allows whatever is asked for here, and a part costs a build of her
-# before its share. The traced Titanic goes in three fifths of the slots and the small
-# one in three tenths, two parts at least; alone, either takes them all — sixteen at
-# most for the traced one and four for the small one, as CI has them.
+# than the machine allows whatever is asked for here. A Titanic's last part is her
+# open spans alone, a minute; each of the others builds her and takes an even share of
+# the rest, and those are the long engines — the traced one's 38 minutes of checks and
+# the small one's 10 on the Windows box, where the fleet's ships and the match's
+# shares take a minute or two each. So the long parts are one fewer than the slots,
+# a quarter of them the small Titanic's, and the short engines pass through the slot
+# left over. Alone, a Titanic's long parts are as many as the slots — sixteen parts at
+# most for the traced one and four for the small one, as CI has them — and with one
+# slot she is one engine.
 #
 # Their output comes as they write it, each line prefixed with what it checks; every
 # engine runs to its end, and the last line names each that failed.
@@ -56,16 +61,23 @@ clamp() {
 	echo "$n"
 }
 
-# The parts ship $1 goes in, $2 the most she is worth: every slot when she is
-# linted alone, her share of them beside the rest of the lint.
+# The parts ship $1 goes in, $2 the most she is worth: her long parts and one more,
+# her open spans'.
 parts_of() {
+	local long small
 	if [[ -n "$only" ]]; then
-		clamp "$slots" 1 "$2"
-	elif [[ "$1" == titanic ]]; then
-		clamp $((slots * 3 / 5)) 2 "$2"
+		((slots > 1)) || {
+			echo 1
+			return
+		}
+		long="$slots"
 	else
-		clamp $((slots * 3 / 10)) 2 "$2"
+		small=$(((slots + 1) / 4))
+		((small >= 1)) || small=1
+		long="$small"
+		[[ "$1" == titanic ]] && long=$((slots - 1 - small))
 	fi
+	clamp $((long + 1)) 2 "$2"
 }
 
 WORK="$(mktemp -d)"
