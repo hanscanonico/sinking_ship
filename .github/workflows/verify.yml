@@ -13,13 +13,26 @@
 # asks for 20 long jobs, as many as GitHub runs at once for the repository.
 # The `verify` job at the end is the one verdict: green only when every
 # other job is.
+# A push to main comes here through .github/workflows/main.yml, which first asks
+# whether CI has already passed the commit's very tree as a pull request's head
+# (tools/ci_tree_verified.sh) and says so in `verified`. The merge train leaves just
+# such commits, and for them the gates are skipped — each job marked below: run again
+# they took 20 runners from the next pull request's run, which then took ten to
+# thirteen minutes, not six and a half (runs 44921495286, 44913311961). What is left
+# runs for the caches alone, a minute or less a job: a pull request's run restores
+# only what a run on main saved, the engine's import (setup-godot) and the built
+# libraries.
 name: verify
 
 on:
   pull_request:
-  push:
-    branches: [main]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      # True when CI has already passed this tree: the gates are skipped, the caches kept.
+      verified:
+        type: boolean
+        default: false
 
 # A second push to a branch supersedes the first: the gate only ever answers for
 # the tip. Main keeps every run, so each commit there has its own verdict: each of
@@ -53,6 +66,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
+        if: ${{ !inputs.verified }}
         with:
           python-version: "3.12"
 
@@ -60,23 +74,30 @@ jobs:
       # and read timeout outlast a flaky index; the step's timeout ends a stuck one
       # in minutes rather than at the job's limit (#459).
       - name: Install gdtoolkit
+        if: ${{ !inputs.verified }}
         timeout-minutes: 5
         run: pip install --retries 5 --timeout 30 "gdtoolkit==4.*"
 
+      # On a verified tree as well, and then the job's only work: it saves the
+      # import a pull request's nineteen engine jobs restore.
       - uses: ./.github/actions/setup-godot
 
       - name: check
+        if: ${{ !inputs.verified }}
         run: make check
 
       # Every data/ships/NAME.tres and test hull held to its tools/gen_NAME.py;
       # python3 is setup-python's.
       - name: ship-gen-check
+        if: ${{ !inputs.verified }}
         run: make ship-gen-check
 
       - name: lint
+        if: ${{ !inputs.verified }}
         run: make lint
 
       - name: format-check
+        if: ${{ !inputs.verified }}
         run: make format-check
 
   # The gate scripts held to what they promise (make guard-check), beside the static
@@ -84,6 +105,7 @@ jobs:
   # and slot checks waiting on sleeps, which no more cores would shorten.
   guards:
     name: guard-check
+    if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -224,22 +246,23 @@ jobs:
       # seven minutes (run 44883536730). TEST_SLOTS, as a run takes half the cores by
       # default (tools/test_slot.sh).
       - name: Cross-check native against GDScript
+        if: ${{ !inputs.verified }}
         run: make test JOBS=3 TEST_SLOTS=3 TESTS="tests/unit/ai/test_walk_search_native.gd tests/unit/ai/test_water_native.gd tests/unit/core/test_sink_native.gd tests/unit/core/test_sink_native_stages.gd tests/unit/core/test_motion_native.gd tests/unit/core/test_contacts_native.gd tests/unit/ai/test_floor_way_native.gd tests/unit/art/test_ship_mesh_native.gd tests/unit/match/test_water_fx_native.gd tests/unit/art/test_lamp_sight.gd tests/unit/core/test_cell_map_native.gd tests/unit/ai/test_blocked_native.gd tests/unit/core/test_rest_native.gd tests/unit/ai/test_bot_stepped_native.gd tests/unit/core/test_shell_native.gd tests/unit/core/test_pose_native.gd tests/unit/core/test_clear_stretches_native.gd"
         env:
           SINKING_NATIVE_REQUIRED: "1"
 
   # The Windows library, cross-compiled here with mingw-w64 for the Windows export
   # (make export-win). Not run in CI: the cross-checks pass on Windows by hand.
+  # Kept as the Linux library is, by its sources, the build script and the image's
+  # day, and nothing installed or built when none of that changed: the job is then
+  # done before the test jobs start. At a minute it still held a runner when they
+  # did, the run's twenty-first, and one test job queued behind it (run 44923167262).
   native-windows:
     name: native (windows)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
 
       # mingw-w64 is 133 MB from the mirror, more than a slow one serves in
       # ci_apt_install's limit (#465), so its .debs are cached: keyed on the runner
@@ -248,9 +271,24 @@ jobs:
       # restore that will not install, takes the mirror and saves what it fetched.
       - name: Runner image
         id: image
-        run: echo "id=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+        run: |
+          echo "id=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+          echo "day=$ImageOS-${ImageVersion%%.*}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the library
+        id: lib
+        uses: actions/cache@v4
+        with:
+          path: native/lib
+          key: native-lib-windows-${{ steps.image.outputs.day }}-${{ hashFiles('native/**', 'tools/native_build.sh') }}
+
+      - uses: actions/setup-python@v5
+        if: steps.lib.outputs.cache-hit != 'true'
+        with:
+          python-version: "3.12"
 
       - name: Cache mingw-w64 packages
+        if: steps.lib.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: ~/mingw-debs
@@ -259,24 +297,29 @@ jobs:
 
       # Bounded the same way; tools/ci_apt_install.sh retries a hung apt (#459).
       - name: Install SCons and mingw-w64
+        if: steps.lib.outputs.cache-hit != 'true'
         timeout-minutes: 15
         run: |
           pip install --retries 5 --timeout 30 scons
           CI_APT_DEBS=~/mingw-debs tools/ci_apt_install.sh g++-mingw-w64-x86-64
 
       - name: Cache godot-cpp
+        if: steps.lib.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: native/build
           key: godot-cpp-windows-${{ hashFiles('tools/native_build.sh', 'native/build_profile.json') }}
 
       - name: Build
+        if: steps.lib.outputs.cache-hit != 'true'
         run: tools/native_build.sh
         env:
           PLATFORM: windows
 
-      # What the DLL needs at run time: Windows' own DLLs, nothing from mingw.
+      # What the DLL needs at run time: Windows' own DLLs, nothing from mingw. Asked
+      # of a library when it is built: objdump is mingw's.
       - name: Imports
+        if: steps.lib.outputs.cache-hit != 'true'
         run: x86_64-w64-mingw32-objdump -p native/lib/libsinking_native.windows.x86_64.dll | grep 'DLL Name'
 
       - uses: actions/upload-artifact@v4
@@ -289,6 +332,7 @@ jobs:
   test:
     name: test ${{ matrix.shards }} of 21
     needs: native
+    if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
     # A guard against a hung engine, not a budget: the shards are dealt about two
     # and a half minutes apiece (tests/durations.tsv), the longest single script
@@ -334,6 +378,7 @@ jobs:
   # for the ships and then took four more (run 44900242066).
   art-lint:
     name: art-lint ${{ matrix.part }}
+    if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
@@ -380,6 +425,7 @@ jobs:
   # name and the command with the lists.
   art-lint-titanic:
     name: art-lint titanic ${{ matrix.parts }} of 16
+    if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
@@ -404,19 +450,23 @@ jobs:
           if-no-files-found: ignore
           retention-days: 90
 
+  # On a verified tree the gates are to be skipped, every one, and the jobs that
+  # keep the caches green.
   verify:
     needs: [static, guards, native, native-macos, native-windows, test, art-lint, art-lint-titanic]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Every gate passed
+        env:
+          GATE: ${{ inputs.verified && 'skipped' || 'success' }}
         run: |
-          echo "static: ${{ needs.static.result }}, guards: ${{ needs.guards.result }}, native: ${{ needs.native.result }}, native-macos: ${{ needs.native-macos.result }}, native-windows: ${{ needs.native-windows.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}, art-lint-titanic: ${{ needs.art-lint-titanic.result }}"
+          echo "static: ${{ needs.static.result }}, guards: ${{ needs.guards.result }}, native: ${{ needs.native.result }}, native-macos: ${{ needs.native-macos.result }}, native-windows: ${{ needs.native-windows.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}, art-lint-titanic: ${{ needs.art-lint-titanic.result }}; a gate is to be: $GATE"
           test "${{ needs.static.result }}" = success
-          test "${{ needs.guards.result }}" = success
+          test "${{ needs.guards.result }}" = "$GATE"
           test "${{ needs.native.result }}" = success
           test "${{ needs.native-macos.result }}" = success
           test "${{ needs.native-windows.result }}" = success
-          test "${{ needs.test.result }}" = success
-          test "${{ needs.art-lint.result }}" = success
-          test "${{ needs.art-lint-titanic.result }}" = success
+          test "${{ needs.test.result }}" = "$GATE"
+          test "${{ needs.art-lint.result }}" = "$GATE"
+          test "${{ needs.art-lint-titanic.result }}" = "$GATE"

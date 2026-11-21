@@ -53,6 +53,7 @@ tools/test_changed_check.sh
 tools/test_changed.py --check-sites
 tools/prune_worktrees_check.sh
 tools/ci_wait_check.sh
+tools/ci_tree_verified_check.sh
 tools/merge_train_check.sh
 FD_LOCK=perl tools/merge_train_check.sh
 tools/art_lint_changed_check.sh
