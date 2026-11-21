@@ -70,13 +70,15 @@ func show_room(roster: RoomRoster, note: String = "") -> void:
 	_watch.set_pressed_no_signal(roster.you_watch())
 	_watch.disabled = roster.playing
 	if roster.playing:
-		_status.text = "A match is on in this room: it waits for that one to end."
+		_status.text = Language.t("A match is on in this room: it waits for that one to end.")
 	elif hosting:
-		_status.text = "You host: start when everyone is aboard. Bots take the empty seats."
+		_status.text = Language.t(
+			"You host: start when everyone is aboard. Bots take the empty seats."
+		)
 	else:
-		_status.text = "Waiting for the host to start."
+		_status.text = Language.t("Waiting for the host to start.")
 	if roster.you_watch() and not roster.playing:
-		_status.text += " You watch: you take no seat."
+		_status.text += Language.t(" You watch: you take no seat.")
 	_show_seats(roster)
 	show()
 	var focused := get_viewport().gui_get_focus_owner()
@@ -113,11 +115,11 @@ func _show_seats(roster: RoomRoster) -> void:
 		row.queue_free()
 	var seated := roster.seated()
 	var players := mini(seated.size(), seats)
-	_aboard.text = "Aboard · %d of %d" % [players, seats]
+	_aboard.text = Language.t("Aboard · %d of %d") % [players, seats]
 	for seat in seats:
 		var row := _row(str(seat + 1))
 		if seat >= players:
-			_name(row, "A bot takes this seat", UiTheme.MUTED)
+			_name(row, Language.t("A bot takes this seat"), UiTheme.MUTED)
 			continue
 		_player(row, seated[seat], roster)
 	for player: RoomRoster.Player in roster.players:
@@ -154,6 +156,8 @@ func _player(row: HBoxContainer, player: RoomRoster.Player, roster: RoomRoster) 
 func _name(row: HBoxContainer, text: String, colour: Color) -> void:
 	var label := Label.new()
 	label.text = text
+	# A player's name is theirs, never a word to translate.
+	label.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.clip_text = true
 	label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

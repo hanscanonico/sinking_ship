@@ -173,3 +173,10 @@ model, never weeping or giving way, so the space under it floods as it did befor
 place, while bodies pass through it as through a doorway (#148). A manhole in a tank top
 is one.
 _Avoid_: trapdoor
+
+**Language**:
+What the game words its screens in: English, as the code and the scenes write it, or a
+catalog under `locale/` keyed by that English — French and Spanish. The system's until
+the player picks one in the settings. Presentation only: transcripts, logs and the
+command line stay English.
+_Avoid_: locale, translation (for the choice itself)

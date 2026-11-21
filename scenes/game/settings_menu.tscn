@@ -306,8 +306,19 @@ custom_minimum_size = Vector2(456, 0)
 theme_type_variation = &"HintLabel"
 autowrap_mode = 3
 
-[node name="Back" type="Button" parent="Panel/Box"]
+[node name="Foot" type="HBoxContainer" parent="Panel/Box"]
+theme_override_constants/separation = 12
+
+[node name="LanguageLabel" type="Label" parent="Panel/Box/Foot"]
+text = "Language"
+
+[node name="Language" type="OptionButton" parent="Panel/Box/Foot"]
+unique_name_in_owner = true
+auto_translate_mode = 2
+custom_minimum_size = Vector2(150, 0)
+
+[node name="Back" type="Button" parent="Panel/Box/Foot"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(140, 0)
-size_flags_horizontal = 4
+size_flags_horizontal = 10
 text = "Back"

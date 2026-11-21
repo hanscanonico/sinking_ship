@@ -184,6 +184,12 @@ static func leave_field(event: InputEvent, field: LineEdit) -> void:
 	field.accept_event()
 
 
+## The fold's line is put together here, so a change of language words it again.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		_show_custom(_custom_choices.visible)
+
+
 ## The ship picked, by name; empty when none is.
 func picked_ship() -> StringName:
 	return StringName(_ship.get_item_metadata(_ship.selected)) if _ship.selected != -1 else &""
@@ -209,7 +215,7 @@ func _offer_seats(seats: int, otherwise: int) -> void:
 ## build has no system font to borrow one from.
 func _show_custom(shown: bool) -> void:
 	_custom_choices.visible = shown
-	_custom.text = ("− " if shown else "+ ") + "Custom match"
+	_custom.text = ("− " if shown else "+ ") + Language.t("Custom match")
 	_custom.focus_neighbor_bottom = _custom.get_path_to(_seed if shown else _play)
 
 

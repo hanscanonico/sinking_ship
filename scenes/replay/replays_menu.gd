@@ -51,10 +51,6 @@ func _ready() -> void:
 	_rows.add_theme_constant_override("separation", ROW_GAP)
 	scroll.add_child(_rows)
 	_empty = Label.new()
-	_empty.text = (
-		"No replays yet: every match played here is kept, the newest %d."
-		% ReplayRules.load_default().keep_newest
-	)
 	_empty.theme_type_variation = UiTheme.HINT_LABEL
 	box.add_child(_empty)
 	_back = Button.new()
@@ -94,6 +90,10 @@ func _refresh() -> void:
 		var file := _store.load_file(path)
 		var reason := ReplayListing.reason(file, _match_rules)
 		_add_row(path, file, reason)
+	_empty.text = (
+		Language.t("No replays yet: every match played here is kept, the newest %d.")
+		% ReplayRules.load_default().keep_newest
+	)
 	_empty.visible = paths.is_empty()
 
 
@@ -133,14 +133,31 @@ func _when(file: ReplayFile, path: String) -> String:
 
 
 static func _what(file: ReplayFile, reason: String) -> String:
+	var why := Language.t(reason)
 	if file == null:
-		return reason[0].to_upper() + reason.substr(1)
-	var row := ReplayListing.row(file, reason)
+		return why[0].to_upper() + why.substr(1)
 	var words := (
-		"%s · %s · %s · %s · %s"
-		% [row["ship"], row["seed"], row["seats"], row["length"], row["winner"]]
+		" · "
+		. join(
+			PackedStringArray(
+				[
+					Language.titled(String(file.ship).replace("_", " ")),
+					Language.t("Seed %d") % file.match_seed,
+					Language.t("%d seats") % file.seats,
+					MatchTranscript.clock(file.ticks),
+					_winner(file.winner, file.ended),
+				]
+			)
+		)
 	)
-	return words if reason.is_empty() else "%s — %s" % [words, reason]
+	return words if reason.is_empty() else "%s — %s" % [words, why]
+
+
+## Who won (ReplayListing.winner_text), in the language in use.
+static func _winner(winner: int, ended: bool) -> String:
+	if ended and winner > 0:
+		return Language.t("Bot %d won") % winner
+	return Language.t(ReplayListing.winner_text(winner, ended))
 
 
 ## Delete asks once: the first press arms it, the second deletes.

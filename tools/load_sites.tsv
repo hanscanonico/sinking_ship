@@ -39,6 +39,7 @@ scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(file)	core/*.gd data/*
 scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(path)	-
 scenes/game/bake_cache.gd	FileAccess.open(aside)	-
 scenes/game/key_bindings.gd	FileAccess.open(path)	-
+scenes/game/language.gd	load(catalog_path(code))	locale/*.po
 scenes/match/bonus_icons.gd	load(DIR + String(kind.icon) + ".svg")	assets/ui/bonus/*.svg
 scenes/match/iceberg_planner.gd	load(path)	assets/models/*.glb
 scenes/match/view_settings.gd	ResourceLoader.exists(path)	-
@@ -100,6 +101,12 @@ tests/unit/game/test_bake_cache.gd	FileAccess.open(cache.entry_path(name))	-
 tests/unit/game/test_bake_cache.gd	FileAccess.open(path)	-
 tests/unit/game/test_credits_menu.gd	DirAccess.get_directories_at(folder)	assets/audio/* assets/fonts/*
 tests/unit/game/test_credits_menu.gd	DirAccess.get_files_at(folder)	assets/audio/* assets/fonts/*
+tests/unit/game/test_language.gd	DirAccess.get_directories_at(dir)	scenes/*
+tests/unit/game/test_language.gd	DirAccess.get_files_at(dir)	scenes/* data/bonuses/*.tres
+tests/unit/game/test_language.gd	FileAccess.file_exists(path)	-
+tests/unit/game/test_language.gd	FileAccess.get_file_as_string(Language.catalog_path(locale))	locale/*.po
+tests/unit/game/test_language.gd	FileAccess.get_file_as_string(path)	scenes/*
+tests/unit/game/test_language.gd	load(BONUSES.path_join(file))	data/bonuses/*.tres
 tests/unit/game/test_settings.gd	FileAccess.file_exists(path)	-
 tests/unit/game/test_ui_theme.gd	load(screen)	scenes/online/*.tscn
 tests/unit/goldens.gd	FileAccess.file_exists(path)	tests/golden/*.txt

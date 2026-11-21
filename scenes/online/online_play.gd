@@ -400,11 +400,11 @@ func _seat_names(seats: int, seat: int) -> PackedStringArray:
 		players = _room.roster.seated()
 	for each in seats:
 		if each == seat:
-			names.append("You")
+			names.append(Language.t("You"))
 		elif each < players.size():
 			names.append(players[each].name)
 		else:
-			names.append("Bot %d" % each)
+			names.append(Language.t("Bot %d") % each)
 	return names
 
 

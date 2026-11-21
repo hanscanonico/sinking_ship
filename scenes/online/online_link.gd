@@ -99,7 +99,7 @@ static func from_page(
 		if not key in KEYS:
 			continue
 		if values.has(key):
-			link.problems.append("The address names %s more than once." % key)
+			link.problems.append(Language.t("The address names %s more than once.") % key)
 		values[key] = _decoded(pair.substr(pair.find("=") + 1)) if pair.contains("=") else ""
 	link.wanted = not values.is_empty() and values.keys() != ["server"]
 	var own := _page_server(page_protocol, page_host)
@@ -156,7 +156,9 @@ static func name_rule(rules: ServerRules) -> String:
 	var marks := PackedStringArray()
 	for mark: String in ServerRules.NAME_PUNCTUATION.strip_edges():
 		marks.append(mark)
-	return "1 to %d letters, digits, spaces or %s" % [rules.name_length, " ".join(marks)]
+	return (
+		Language.t("1 to %d letters, digits, spaces or %s") % [rules.name_length, " ".join(marks)]
+	)
 
 
 ## Whether [param url] is a server this reaches: ws:// or wss:// in lower case, a host
@@ -279,8 +281,11 @@ func _check(
 			problems.append("Name a room to join, or create one.")
 		elif room.is_empty():
 			problems.append(
-				"A room code is %d letters, as the room's host sees it." % RoomCodec.CODE_LENGTH
+				(
+					Language.t("A room code is %d letters, as the room's host sees it.")
+					% RoomCodec.CODE_LENGTH
+				)
 			)
 	player_name = rules.clean_name(display_name)
 	if player_name.is_empty():
-		problems.append("A name is %s." % name_rule(rules))
+		problems.append(Language.t("A name is %s.") % name_rule(rules))

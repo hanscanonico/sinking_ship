@@ -123,6 +123,7 @@ func _ready() -> void:
 	AudioSettings.local().apply()
 	KeyBindings.local().apply()
 	_view = ViewSettings.local()
+	Language.use(Language.chosen(_args.language, _view.language))
 	# A capture, and a bot's autoplay (make fps), keep the window, VSync and frame rate
 	# they were launched with, whatever the player saved.
 	if _args.capture_path.is_empty() and not _args.autoplay:

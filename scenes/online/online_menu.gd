@@ -102,7 +102,11 @@ func take_link(link: OnlineLink) -> void:
 		return
 	if _name.text.strip_edges().is_empty():
 		_say(
-			"Choose a name to play under, then %s." % ("create the room" if link.create else "join")
+			(
+				"Choose a name to play under, then create the room."
+				if link.create
+				else "Choose a name to play under, then join."
+			)
 		)
 		_name.grab_focus()
 		return
