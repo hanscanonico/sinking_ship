@@ -12,6 +12,7 @@
 #include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/templates/sort_array.hpp>
 #include <godot_cpp/variant/string_name.hpp>
 
 #include <algorithm>
@@ -225,6 +226,8 @@ thread_local std::vector<int32_t> crossed_met;
 thread_local std::vector<int32_t> walked_held;
 thread_local std::vector<ContactHit> walked_met;
 thread_local std::vector<int32_t> sight_found;
+thread_local std::vector<int32_t> stretches_found;
+thread_local std::vector<Vector2> stretches_covered;
 
 // Geometry2D.segment_intersects_segment, the engine's (core/math/geometry_2d.h), as a
 // yes or no.
@@ -1294,6 +1297,59 @@ bool NativeSurfaces::falls_cross(const Vector2 &p_start, const Vector2 &p_end, d
 	return false;
 }
 
+namespace {
+struct SpanLess {
+	bool operator()(const Vector2 &p_a, const Vector2 &p_b) const { return p_a < p_b; }
+};
+} // namespace
+
+// Surfaces.clear_stretches: the stretches of the line no blocker stands across at a body's
+// height, each a (start, end) in metres from p_from. The blockers' spans are sorted as the
+// engine sorts an Array of Vector2 (SortArray, Vector2's <), equal ones in its order too.
+PackedVector2Array NativeSurfaces::clear_stretches(
+		const Vector3 &p_from, const Vector3 &p_to, double p_body_height, double p_step) const {
+	const Vector2 start(p_from.x, p_from.z);
+	const Vector2 end(p_to.x, p_to.z);
+	const double length = double(start.distance_to(end));
+	const double feet = double(p_from.y);
+	std::vector<Vector2> &covered = stretches_covered;
+	covered.clear();
+	std::vector<int32_t> &near = stretches_found;
+	grid_.along(start, end, -INF, INF, near);
+	for (int32_t surface : near) {
+		if (surface < first_top_ || surface >= first_lid_) {
+			continue;
+		}
+		const int32_t blocker = surface - first_top_;
+		// PlaneShapes.overlaps.
+		if (!(feet + p_step < tops_[surface] && feet + p_body_height > bottoms_[surface])) {
+			continue;
+		}
+		const Vector2 span = round_[blocker] == 1
+				? segment_in_circle(start, end, centres_[blocker], radii_[blocker])
+				: segment_in_rect(start, end, Rect2(area_position_[surface], area_size_[surface]));
+		if (span.x <= span.y) {
+			covered.push_back(span * real_t(length));
+		}
+	}
+	if (covered.size() > 1) {
+		SortArray<Vector2, SpanLess, false> sorter;
+		sorter.sort(covered.data(), int64_t(covered.size()));
+	}
+	PackedVector2Array clear;
+	double reached = 0.0;
+	for (const Vector2 &span : covered) {
+		if (double(span.x) > reached) {
+			clear.push_back(Vector2(real_t(reached), span.x));
+		}
+		reached = max_f(reached, double(span.y));
+	}
+	if (reached < length) {
+		clear.push_back(Vector2(real_t(reached), real_t(length)));
+	}
+	return clear;
+}
+
 // Surfaces.line_of_sight: no shut leaf or fallen funnel across the line, and no surface
 // along it — a deck over another a slab, a stair a wedge, the rest solid from bottom to top.
 bool NativeSurfaces::line_of_sight(const Vector3 &p_from, const Vector3 &p_to, const Array &p_collapsed) const {
@@ -1432,6 +1488,8 @@ void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("lidded", "lids"), &NativeSurfaces::lidded);
 	ClassDB::bind_method(D_METHOD("landing", "ship_point", "except_prop"), &NativeSurfaces::landing);
 	ClassDB::bind_method(D_METHOD("ceiling", "ship_point", "clearance"), &NativeSurfaces::ceiling);
+	ClassDB::bind_method(D_METHOD("clear_stretches", "from", "to", "body_height", "step"),
+			&NativeSurfaces::clear_stretches);
 	ClassDB::bind_method(D_METHOD("obstacle_contacts", "ship_point", "radius", "body_height", "step", "except_prop",
 								 "crawl_height", "crawl_reach"),
 			&NativeSurfaces::obstacle_contacts);

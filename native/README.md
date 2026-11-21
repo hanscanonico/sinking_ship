@@ -64,7 +64,7 @@ an artifact of the run:
 - `native (linux)` — `native-linux`, the `.so` the ten test shards load
   (`SINKING_NATIVE_REQUIRED=1`).
 - `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
-  runner, where the sixteen cross-check scripts run against it: arm64 is where a compiler
+  runner, where the seventeen cross-check scripts run against it: arm64 is where a compiler
   contracts `a * b + c` by default, so a difference from the engine's own GDScript
   arithmetic would show there first.
 - `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with
@@ -147,7 +147,8 @@ and `test_native_version` fails there when it was built from other sources.
   `tests/unit/ai/test_floor_way_native.gd`, `tests/unit/art/test_ship_mesh_native.gd`,
   `tests/unit/match/test_water_fx_native.gd`, `tests/unit/art/test_lamp_sight.gd`,
   `tests/unit/core/test_cell_map_native.gd`, `tests/unit/ai/test_blocked_native.gd`,
-  `tests/unit/core/test_rest_native.gd` and `tests/unit/ai/test_bot_stepped_native.gd`
+  `tests/unit/core/test_rest_native.gd`, `tests/unit/ai/test_bot_stepped_native.gd` and
+  `tests/unit/core/test_clear_stretches_native.gd`
   ask both sides the same questions and fail on any difference. CI sets
   `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load fails too — on Linux
-  across the suite, on macOS (arm64) for those sixteen scripts.
+  across the suite, on macOS (arm64) for those seventeen scripts.

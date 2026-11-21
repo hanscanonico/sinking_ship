@@ -146,6 +146,10 @@ public:
 			double p_step, double p_railing_height, std::vector<ContactHit> &r_found) const;
 	int64_t landing(const Vector3 &p_ship_point, int64_t p_except_prop) const;
 	double ceiling(const Vector3 &p_ship_point, double p_clearance) const;
+	// Surfaces.clear_stretches, whose blockers stand to the tops they were made with: asked
+	// only while none of her funnels is down.
+	PackedVector2Array clear_stretches(
+			const Vector3 &p_from, const Vector3 &p_to, double p_body_height, double p_step) const;
 	NativeStands *stands() const { return stands_.ptr(); }
 
 	// Surfaces.under and BotFloorWay._find (floor_way_native.cpp).
