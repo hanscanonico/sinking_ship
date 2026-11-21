@@ -268,9 +268,9 @@ jobs:
     runs-on: ubuntu-24.04
     # A guard against a hung engine, not a budget: the shards are dealt about
     # 5 minutes apiece (tests/durations.tsv), the longest single script
-    # test_titanic_static.gd, 3. GitHub runs 20 jobs at once for the repository and
-    # this run asks for more, so the last of them queue behind the ones that are over
-    # in a minute or two — the native builds and each Titanic's open spans.
+    # test_titanic_static.gd, 3. Ten shards: with the two static jobs, the macOS
+    # cross-check and art-lint's six that run for minutes, that is 19 of the 20 jobs
+    # GitHub runs at once for the repository — one more queues behind the others.
     timeout-minutes: 40
     strategy:
       # Every shard reports, so one red run names every failing script.
@@ -298,9 +298,10 @@ jobs:
   # match, beside the shards rather than after them. Run only by hand before, it had
   # gathered 25 problems on main by the time someone did (#270). Each Titanic is linted
   # apart from the rest: the traced one alone outgrew the 40 minutes the whole fleet had
-  # taken 24 of (#364). The small one goes in parts as the traced one does below
-  # (PART=K/N, the last her open spans alone): in one job she took eight and a half
-  # minutes, seven of them her furnishings (run 44883536730).
+  # taken 24 of (#364). The small one goes in three parts as the traced one does below
+  # (PART=K/3, the last her open spans alone), the three side by side on the one
+  # runner, an engine a core: in one engine she took eight and a half minutes, seven
+  # of them her furnishings (run 44883536730).
   art-lint:
     name: art-lint ${{ matrix.part }}
     runs-on: ubuntu-24.04
@@ -310,32 +311,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Change the 3 in every small_titanic row together.
-          - part: small_titanic 1/3
-            args: SHIP=small_titanic PART=1/3 COSTS=art-lint-costs.tsv
-            costs: small_titanic-1
-          - part: small_titanic 2/3
-            args: SHIP=small_titanic PART=2/3 COSTS=art-lint-costs.tsv
-            costs: small_titanic-2
-          - part: small_titanic 3/3
-            args: SHIP=small_titanic PART=3/3 COSTS=art-lint-costs.tsv
-            costs: small_titanic-3
+          - part: small_titanic
+            run: tools/art_lint_parts.sh small_titanic 3 1 2 3
           - part: fleet
-            args: SKIP=titanic,small_titanic
+            run: make art-lint SKIP=titanic,small_titanic
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
-        run: make art-lint ${{ matrix.args }}
+        run: ${{ matrix.run }}
 
       # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
       - uses: actions/upload-artifact@v4
-        if: always() && matrix.costs
+        if: always()
         with:
-          name: art-lint-costs-${{ matrix.costs }}
-          path: art-lint-costs.tsv
+          name: art-lint-costs-${{ matrix.part }}
+          path: art-lint-costs-*.tsv
           if-no-files-found: ignore
           retention-days: 90
 
@@ -346,32 +339,35 @@ jobs:
   # (tools/art_lint_costs.tsv, make art-lint-costs RUN=), so a part costs a build of her
   # — 7 to 10 minutes, as fast as the runner it lands on, the same in every part — and
   # its share: 22 minutes between them in run 41571719294, the open spans 2 or so after
-  # their own build. N is how many parts are listed here: one more is one number.
-  # Nine since her build came down to a minute and a half: seven left the dealt parts
-  # at 7 to 11 minutes (run 44883536730), the longest jobs of the run.
+  # their own build.
+  # Nine parts since her build came down to a minute and a half: seven left the dealt
+  # parts at 7 to 11 minutes (run 44883536730), the longest jobs of the run. Two to a
+  # runner, side by side (tools/art_lint_parts.sh): a job apiece, the run asked for 28
+  # jobs of the 20 GitHub runs at once, and test shards queued five minutes behind
+  # them (run 44890213625). Change the 9 in the name and the command with the lists.
   art-lint-titanic:
-    name: art-lint titanic ${{ matrix.part }}/${{ strategy.job-total }}
+    name: art-lint titanic ${{ matrix.parts }} of 9
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       # Every part reports, so one red run names all her problems.
       fail-fast: false
       matrix:
-        part: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        parts: ["1 2", "3 4", "5 6", "7 8", "9"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
-        run: make art-lint SHIP=titanic PART=${{ matrix.part }}/${{ strategy.job-total }} COSTS=art-lint-costs.tsv
+        run: tools/art_lint_parts.sh titanic 9 ${{ matrix.parts }}
 
       # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: art-lint-costs-titanic-${{ matrix.part }}
-          path: art-lint-costs.tsv
+          name: art-lint-costs-titanic-${{ strategy.job-index }}
+          path: art-lint-costs-*.tsv
           if-no-files-found: ignore
           retention-days: 90
 
