@@ -26,6 +26,11 @@ signal credits_requested
 signal settings_requested
 signal quit_requested
 
+## The wordmark drawn no smaller than this share of its size, however tall the panel
+## under it, and the pixels kept between the two.
+const WORDMARK_LEAST := 0.35
+const WORDMARK_GAP := 12.0
+
 @onready var _ship: OptionButton = %Ship
 @onready var _seats: OptionButton = %Seats
 @onready var _tier: OptionButton = %Tier
@@ -39,10 +44,14 @@ signal quit_requested
 @onready var _custom: Button = %Custom
 @onready var _custom_choices: Control = %CustomChoices
 @onready var _panel: PanelContainer = $Panel
+@onready var _wordmark: Control = $Wordmark
 @onready var _backdrop: MenuBackdrop = $Backdrop
 ## The choices the menu was set up with: what it offers no picker for — the command
 ## line's scenario and hit — travels on with every Play.
 var _given := MatchChoices.new()
+## The plate standing in front of the backdrop: this menu's panel, or another screen's
+## (show_behind); null when what stands there is no plate.
+var _front: Control
 
 
 func _ready() -> void:
@@ -52,6 +61,8 @@ func _ready() -> void:
 	%BootTop.color = UiTheme.RULE
 	%TrimBelow.color = UiTheme.TRIM
 	_backdrop.frame_beside(_panel)
+	_wordmark.resized.connect(_fit_wordmark)
+	_stand_before(_panel)
 	visibility_changed.connect(func() -> void: _backdrop.run(visible))
 	_play.pressed.connect(_on_play)
 	_watch.pressed.connect(_on_watch)
@@ -123,6 +134,7 @@ func open() -> void:
 	_problem.hide()
 	_panel.show()
 	_backdrop.frame_beside(_panel)
+	_stand_before(_panel)
 	show()
 	_play.grab_focus()
 
@@ -132,6 +144,8 @@ func open() -> void:
 func show_behind(panel: Control) -> void:
 	_panel.hide()
 	_backdrop.frame_beside(panel)
+	# A plate stands in front as this menu's does; the hold's room beside her is no plate.
+	_stand_before(panel if panel is PanelContainer else null)
 	show()
 
 
@@ -208,6 +222,35 @@ func _offer_seats(seats: int, otherwise: int) -> void:
 	if seat_index == -1:
 		seat_index = _seats.get_item_index(layout.seats_near(otherwise))
 	_seats.select(seat_index)
+
+
+## How small the wordmark is drawn to stand in [param room] pixels of height, itself
+## [param tall]: whole when it fits, never under WORDMARK_LEAST.
+static func wordmark_scale(room: float, tall: float) -> float:
+	if tall <= 0.0:
+		return 1.0
+	return clampf(room / tall, WORDMARK_LEAST, 1.0)
+
+
+## [param front] stands in front of the backdrop from now on — this menu's panel, or
+## another screen's plate (show_behind); null for none — and the wordmark keeps clear of
+## it.
+func _stand_before(front: Control) -> void:
+	_front = front
+	if front != null and not front.item_rect_changed.is_connected(_fit_wordmark):
+		front.item_rect_changed.connect(_fit_wordmark)
+	_fit_wordmark()
+
+
+## Keeps the wordmark clear of the plate in front: a plate grows up from the bottom —
+## this menu's as the custom match unfolds or a problem shows, the credits' always — and
+## in a small window it reaches the title, which then shrinks into the room left above
+## it.
+func _fit_wordmark() -> void:
+	var room := INF
+	if is_instance_valid(_front):
+		room = _front.global_position.y - WORDMARK_GAP - _wordmark.global_position.y
+	_wordmark.scale = Vector2.ONE * wordmark_scale(room, _wordmark.size.y)
 
 
 ## Opens or folds the seed, the pace and the bonuses, the fold's mark and the way down
