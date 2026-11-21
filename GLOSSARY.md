@@ -132,10 +132,11 @@ _Avoid_: recording, video, save
 
 **Free camera**:
 The one detached view a player ever gets (D14): an out seat's in play, a watcher's and the
-replay viewer's. Flown by hand over the sea and round the decks, through anything; a
-watcher's and a replay's opens framing the whole ship. **Following**, it trails the seat
-watched at the offset it locked on at, until flown by hand or let go. The observer camera
-stays a tool.
+replay viewer's. Flown by hand round the decks, over the sea and under it, through
+anything: down under her hull as deep as her sinking takes it, or to a shallower sea's
+bottom. It opens over the sea, a watcher's and a replay's framing the whole ship.
+**Following**, it trails the seat watched at the offset it locked on at, until flown by
+hand or let go. The observer camera stays a tool.
 _Avoid_: orbit camera, spectator camera, overhead, drone
 
 **Ghost**:
