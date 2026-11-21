@@ -87,9 +87,11 @@ var _smoother := CorrectionSmoother.new(0.0)
 ## sinking.
 var _inner: InnerWater
 ## Once she breaks (SH33), every piece of her drawn: the first by the ship's own node, art
-## and water, kept to its stretch — her aftmost piece, _aft; the rest beside it.
+## and water, kept to its stretch — her aftmost piece, _aft; the rest beside it. The
+## pieces she ends in (ShipPieces.leaves_of): none for a hull that never breaks.
 var _broken := false
 var _aft := 0
+var _leaves := PackedInt32Array()
 var _drawn_pieces: ShipPieces
 ## The dressing still building her stretches behind the match (StretchPlan), her whole
 ## art drawn until they are in to take its place (_take_stretches); null once they are.
@@ -140,6 +142,7 @@ func setup(
 	var rules := sim.config.rules
 	_layout = ship
 	var leaves := ShipPieces.leaves_of(_schedule)
+	_leaves = leaves
 	_broken = not leaves.is_empty()
 	_aft = leaves[0] if _broken else 0
 	var stretches: Array[ShipArt] = []
@@ -426,30 +429,53 @@ func flood_with(sea: ShaderMaterial) -> void:
 ## How far the world point [param eye] stands above the water it is in — its cell's,
 ## or the sea's — as the ship is drawn and her water now stands; below 0, under it.
 func above_water(eye: Vector3) -> float:
-	var pose := _eye_pose()
-	var ship_point := _eye_world().affine_inverse() * eye
-	return eye.y - pose.water_level(ship_point)
+	var leaf := _eye_leaf(eye)
+	return eye.y - _eye_pose(leaf).water_level(_eye_world(leaf).affine_inverse() * eye)
 
 
 ## Whether [param eye], in the world, is inside one of her cells.
 func indoors(eye: Vector3) -> bool:
-	return _eye_pose().cell_at(_eye_world().affine_inverse() * eye) != CellMap.NONE
+	var leaf := _eye_leaf(eye)
+	return _eye_pose(leaf).cell_at(_eye_world(leaf).affine_inverse() * eye) != CellMap.NONE
 
 
 ## What lights [param eye], in the world (ShipPower.Power): its cell's lamps' power,
 ## or outside her the sky's (ShipPose.lit_at).
 func lit_at(eye: Vector3) -> int:
-	return _eye_pose().lit_at(_eye_world().affine_inverse() * eye)
+	var leaf := _eye_leaf(eye)
+	return _eye_pose(leaf).lit_at(_eye_world(leaf).affine_inverse() * eye)
 
 
-## The pose of the piece of her the eyes are on, and where it is drawn: the whole ship's
-## for the observer.
-func _eye_pose() -> ShipPose:
+## The piece of her that eyes in no seat — the free camera's, the ghost's, the observer's
+## — are read on at [param eye], in the world, once she breaks (SH33), by its place in
+## ShipPieces.leaves_of: the one a cell of which the eye is inside as it is drawn now, or
+## her first for an eye inside none of them — in the sea, on whichever piece it is read.
+## -1 for a seat's eyes, read on the seat's piece, and for a hull that never breaks.
+func _eye_leaf(eye: Vector3) -> int:
+	if _eye_seat != -1 or not _broken:
+		return -1
 	var pose := _schedule.pose_at(_driver.current["tick"])
+	for at in _leaves.size():
+		var point := piece_to_world(at).affine_inverse() * eye
+		if pose.of_piece(_leaves[at]).cell_at(point) != CellMap.NONE:
+			return at
+	return 0
+
+
+## The pose of the piece of her the eyes are on, and where it is drawn: the seat's piece;
+## for eyes in no seat the whole ship's, or once she breaks that of the piece at
+## [param leaf] (_eye_leaf) — its own cells where it stands, never the whole ship's cells
+## where her aft piece, which the ship's own node follows, would carry them.
+func _eye_pose(leaf: int) -> ShipPose:
+	var pose := _schedule.pose_at(_driver.current["tick"])
+	if leaf != -1:
+		return pose.of_piece(_leaves[leaf])
 	return pose if _eye_seat == -1 else pose.of_piece(_driver.current["seats"][_eye_seat]["piece"])
 
 
-func _eye_world() -> Transform3D:
+func _eye_world(leaf: int) -> Transform3D:
+	if leaf != -1:
+		return piece_to_world(leaf)
 	return _ship.global_transform if _eye_seat == -1 else _worlds[_eye_seat]
 
 
