@@ -1,0 +1,1243 @@
+# French for Last One Dry.
+#
+# The msgid is the English text as the code and the scenes write it (Language): keep
+# every %s, %d and %.1f of it, in the same order. A msgctxt tells two uses of one
+# English text apart: "pad" a pad's button, "key" a key's name, "the" a noun with its
+# article, as "grab the %s" takes it.
+msgid ""
+msgstr ""
+"Project-Id-Version: Last One Dry\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+# Main menu
+
+msgid "A brawl aboard a sinking steamer"
+msgstr "Une bagarre à bord d'un vapeur qui sombre"
+
+msgid "Play vs bots"
+msgstr "Jouer contre des bots"
+
+msgid "Play online"
+msgstr "Jouer en ligne"
+
+msgid "Ship"
+msgstr "Navire"
+
+msgid "Seats"
+msgstr "Joueurs"
+
+msgid "Bots"
+msgstr "Bots"
+
+msgid "Goal"
+msgstr "Objectif"
+
+msgid "Survival"
+msgstr "Survie"
+
+msgid "Custom match"
+msgstr "Partie personnalisée"
+
+msgid "Seed"
+msgstr "Graine"
+
+msgid "random"
+msgstr "aléatoire"
+
+msgid "Rules"
+msgstr "Règles"
+
+msgid "Fast sinking"
+msgstr "Naufrage rapide"
+
+msgid "Bonuses"
+msgstr "Bonus"
+
+msgid "Play"
+msgstr "Jouer"
+
+msgid "Bots play every seat; watch from any seat's eyes or the free camera"
+msgstr "Les bots jouent à toutes les places ; regardez par les yeux de l'un d'eux ou en caméra libre"
+
+msgid "Watch"
+msgstr "Regarder"
+
+msgid "Settings"
+msgstr "Paramètres"
+
+msgid "Replays"
+msgstr "Replays"
+
+msgid "Credits"
+msgstr "Crédits"
+
+msgid "Quit"
+msgstr "Quitter"
+
+msgid "barque"
+msgstr "trois-mâts barque"
+
+msgid "ferry"
+msgstr "ferry"
+
+msgid "flat deck"
+msgstr "pont plat"
+
+msgid "freighter"
+msgstr "cargo"
+
+msgid "small titanic"
+msgstr "petit Titanic"
+
+msgid "steamer"
+msgstr "vapeur"
+
+msgid "titanic"
+msgstr "Titanic"
+
+msgid "trawler"
+msgstr "chalutier"
+
+msgid "tug"
+msgstr "remorqueur"
+
+msgid "easy"
+msgstr "facile"
+
+msgid "normal"
+msgstr "normal"
+
+msgid "hard"
+msgstr "difficile"
+
+msgid "Her sinking is being worked out"
+msgstr "Calcul du naufrage en cours"
+
+# Pause
+
+msgid "Paused"
+msgstr "Pause"
+
+msgid "Resume"
+msgstr "Reprendre"
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "Still playing"
+msgstr "La partie continue"
+
+msgid "Still watching"
+msgstr "La partie continue"
+
+msgid "An online match never pauses: it goes on while this is open."
+msgstr "Une partie en ligne ne se met jamais en pause : elle continue tant que ce menu est ouvert."
+
+msgid "Leave match"
+msgstr "Quitter la partie"
+
+# Settings
+
+msgid "Sound"
+msgstr "Son"
+
+msgid "Controls"
+msgstr "Commandes"
+
+msgid "Keys"
+msgstr "Touches"
+
+msgid "Graphics"
+msgstr "Graphismes"
+
+msgid "Master volume"
+msgstr "Volume général"
+
+msgid "Music"
+msgstr "Musique"
+
+msgid "Effects"
+msgstr "Effets"
+
+msgid "Mouse sensitivity"
+msgstr "Sensibilité de la souris"
+
+msgid "Invert Y"
+msgstr "Inverser l'axe Y"
+
+msgid "Field of view"
+msgstr "Champ de vision"
+
+msgid "Roll with the deck"
+msgstr "Rouler avec le pont"
+
+msgid "View kick"
+msgstr "Secousses de la vue"
+
+msgid "Reset to defaults"
+msgstr "Rétablir les touches par défaut"
+
+msgid "Window mode"
+msgstr "Mode d'affichage"
+
+msgid "VSync"
+msgstr "VSync"
+
+msgid "Max FPS"
+msgstr "FPS max."
+
+msgid "Quality"
+msgstr "Qualité"
+
+msgid "Render scale"
+msgstr "Échelle de rendu"
+
+msgid "Language"
+msgstr "Langue"
+
+msgid "Back"
+msgstr "Retour"
+
+msgid "Windowed"
+msgstr "Fenêtré"
+
+msgid "Borderless fullscreen"
+msgstr "Plein écran sans bordure"
+
+msgid "Exclusive fullscreen"
+msgstr "Plein écran exclusif"
+
+msgid "Unlimited"
+msgstr "Illimité"
+
+msgid "level"
+msgstr "à plat"
+
+msgid "off"
+msgstr "aucune"
+
+msgid "Press a key…"
+msgstr "Appuyez sur une touche…"
+
+msgid "Replay's key"
+msgstr "Touche des replays"
+
+msgid "Low"
+msgstr "Basse"
+
+msgid "Medium"
+msgstr "Moyenne"
+
+msgid "High"
+msgstr "Haute"
+
+msgid "Half the 3D resolution, short hard sun shadows, the sea's fine detail close by only, water that mirrors the sky alone, few lamps behind walls, no smoothing of edges and no glow."
+msgstr "Résolution 3D réduite de moitié, ombres du soleil courtes et dures, détails fins de la mer seulement de près, eau qui ne reflète que le ciel, peu de lampes derrière les murs, ni lissage des bords ni halo."
+
+msgid "Sun shadows over the whole ship, the sea's fine detail to the middle distance, the ship mirrored in the water, every lamp nearby, smoothed edges and glow."
+msgstr "Ombres du soleil sur tout le navire, détails fins de la mer jusqu'à mi-distance, navire reflété dans l'eau, toutes les lampes proches, bords lissés et halo."
+
+msgid "Sun shadows to 70 m, the sea's fine detail far out, the water mirroring further, every lamp nearby, smoothed edges and glow: the look as tuned, whatever it costs."
+msgstr "Ombres du soleil jusqu'à 70 m, détails fins de la mer au loin, reflets dans l'eau plus lointains, toutes les lampes proches, bords lissés et halo : le rendu voulu, quel qu'en soit le coût."
+
+# Actions and what to press
+
+msgid "Forward"
+msgstr "Avancer"
+
+msgid "Backward"
+msgstr "Reculer"
+
+msgid "Left"
+msgstr "Gauche"
+
+msgid "Right"
+msgstr "Droite"
+
+msgid "Jump"
+msgstr "Sauter"
+
+msgid "Shove"
+msgstr "Pousser"
+
+msgid "Brace"
+msgstr "Tenir bon"
+
+msgid "Grab"
+msgstr "Saisir"
+
+msgid "Pause"
+msgstr "Pause"
+
+msgid "Previous view"
+msgstr "Vue précédente"
+
+msgid "Next view"
+msgstr "Vue suivante"
+
+msgid "Free camera"
+msgstr "Caméra libre"
+
+msgid "Follow"
+msgstr "Suivre"
+
+msgid "Ghost"
+msgstr "Fantôme"
+
+msgid "move"
+msgstr "se déplacer"
+
+msgid "jump"
+msgstr "sauter"
+
+msgid "shove"
+msgstr "pousser"
+
+msgid "brace"
+msgstr "tenir bon"
+
+msgid "grab"
+msgstr "saisir"
+
+msgid "look"
+msgstr "regarder"
+
+msgid "pause"
+msgstr "pause"
+
+msgid "switch view"
+msgstr "changer de vue"
+
+msgid "switch seat"
+msgstr "changer de joueur"
+
+msgid "free camera"
+msgstr "caméra libre"
+
+msgid "follow the seat"
+msgstr "suivre le joueur"
+
+msgid "ghost: walk her decks"
+msgstr "fantôme : parcourir ses ponts"
+
+msgid "fly"
+msgstr "voler"
+
+msgid "up / down"
+msgstr "monter / descendre"
+
+msgid "Mouse"
+msgstr "Souris"
+
+msgid "Mouse %d"
+msgstr "Souris %d"
+
+msgid "Left click"
+msgstr "Clic gauche"
+
+msgid "Right click"
+msgstr "Clic droit"
+
+msgid "Middle click"
+msgstr "Clic molette"
+
+msgid "Left stick"
+msgstr "Stick gauche"
+
+msgid "Right stick"
+msgstr "Stick droit"
+
+msgid "Axis %d"
+msgstr "Axe %d"
+
+msgctxt "pad"
+msgid "Button %d"
+msgstr "Bouton %d"
+
+msgctxt "pad"
+msgid "d-pad up"
+msgstr "croix haut"
+
+msgctxt "pad"
+msgid "d-pad down"
+msgstr "croix bas"
+
+msgctxt "pad"
+msgid "d-pad left"
+msgstr "croix gauche"
+
+msgctxt "pad"
+msgid "d-pad right"
+msgstr "croix droite"
+
+msgctxt "key"
+msgid "Space"
+msgstr "Espace"
+
+msgctxt "key"
+msgid "Shift"
+msgstr "Maj"
+
+msgctxt "key"
+msgid "Enter"
+msgstr "Entrée"
+
+msgctxt "key"
+msgid "Backspace"
+msgstr "Retour arrière"
+
+msgctxt "key"
+msgid "Delete"
+msgstr "Suppr"
+
+msgctxt "key"
+msgid "Up"
+msgstr "Haut"
+
+msgctxt "key"
+msgid "Down"
+msgstr "Bas"
+
+msgctxt "key"
+msgid "Left"
+msgstr "Gauche"
+
+msgctxt "key"
+msgid "Right"
+msgstr "Droite"
+
+# Match HUD
+
+msgid "Seats left %d / %d"
+msgstr "Encore en lice %d / %d"
+
+msgid "Go!"
+msgstr "Partez !"
+
+msgid "Stay aboard as long as she floats."
+msgstr "Restez à bord tant qu'il flotte."
+
+msgid "Be the last one dry. Shove rivals into the sea."
+msgstr "Soyez le dernier au sec. Poussez vos rivaux à la mer."
+
+msgid "watching you"
+msgstr "vous, vu de l'extérieur"
+
+msgid "watching %s"
+msgstr "%s, vu de l'extérieur"
+
+msgid "through your own eyes"
+msgstr "par vos propres yeux"
+
+msgid "through %s's eyes"
+msgstr "par les yeux de %s"
+
+msgid "Sunk"
+msgstr "Coulé"
+
+msgid "Overboard"
+msgstr "À la mer"
+
+msgid "%s — %s of %d   ·   %s\n%s / %s to switch"
+msgstr "%s — %s sur %d   ·   %s\n%s / %s pour changer"
+
+msgid "Watching   ·   %s\n%s / %s to switch   ·   %s %s"
+msgstr "Spectateur   ·   %s\n%s / %s pour changer   ·   %s %s"
+
+msgid "eyes"
+msgstr "yeux"
+
+msgid "ghost"
+msgstr "fantôme"
+
+msgid "let go"
+msgstr "lâcher"
+
+msgid "follow"
+msgstr "suivre"
+
+msgid "following %s"
+msgstr "à la suite de %s"
+
+msgid "Heel %s"
+msgstr "Gîte %s"
+
+msgid "Trim %s"
+msgstr "Assiette %s"
+
+msgid "starboard low"
+msgstr "tribord enfoncé"
+
+msgid "port low"
+msgstr "bâbord enfoncé"
+
+msgid "bow low"
+msgstr "proue enfoncée"
+
+msgid "stern low"
+msgstr "poupe enfoncée"
+
+msgid "LURCH TO STARBOARD — BRACE (%s)"
+msgstr "EMBARDÉE SUR TRIBORD — TENEZ BON (%s)"
+
+msgid "LURCH TO PORT — BRACE (%s)"
+msgstr "EMBARDÉE SUR BÂBORD — TENEZ BON (%s)"
+
+msgid "THE %s IS GOING"
+msgstr "EFFONDREMENT : %s"
+
+msgid "%s IS STRAINING"
+msgstr "%s VA CÉDER"
+
+msgid "THE %s IS STRAINING"
+msgstr "LA %s VA CÉDER"
+
+msgid "funnel"
+msgstr "cheminée"
+
+msgid "In the sea"
+msgstr "À la mer"
+
+msgid "At the waterline"
+msgstr "À la flottaison"
+
+msgid "%.1f m under the sea"
+msgstr "%.1f m sous la mer"
+
+msgid "%.1f m above the sea"
+msgstr "%.1f m au-dessus de la mer"
+
+msgid "Stamina"
+msgstr "Souffle"
+
+msgid "Warmth"
+msgstr "Chaleur"
+
+msgid "Hold %s to climb"
+msgstr "Maintenez %s pour grimper"
+
+msgid "%s — take %s"
+msgstr "%s — prendre %s"
+
+msgid "%s — let go of the %s"
+msgstr "%s — lâcher %s"
+
+msgid "%s — grab the %s"
+msgstr "%s — saisir %s"
+
+msgid "cargo"
+msgstr "caisse"
+
+msgid "lifebuoy"
+msgstr "bouée"
+
+msgid "dining table"
+msgstr "table"
+
+msgid "dining chair"
+msgstr "chaise"
+
+msgctxt "the"
+msgid "cargo"
+msgstr "la caisse"
+
+msgctxt "the"
+msgid "lifebuoy"
+msgstr "la bouée"
+
+msgctxt "the"
+msgid "dining table"
+msgstr "la table"
+
+msgctxt "the"
+msgid "dining chair"
+msgstr "la chaise"
+
+msgid "Double life"
+msgstr "Double vie"
+
+msgid "High jump"
+msgstr "Grand saut"
+
+msgid "Steady"
+msgstr "Pied marin"
+
+msgid "Strong arms"
+msgstr "Bras costauds"
+
+msgid "Sure footing"
+msgstr "Pas assuré"
+
+msgid "Holed"
+msgstr "Coque percée"
+
+msgid "Flooding"
+msgstr "Envahissement"
+
+msgid "Listing"
+msgstr "Gîte"
+
+msgid "Capsizing"
+msgstr "Chavirement"
+
+msgid "Breaking"
+msgstr "Rupture"
+
+msgid "Aground"
+msgstr "Échoué"
+
+msgid "Afloat"
+msgstr "À flot"
+
+# Knock-out feed
+
+msgid "You"
+msgstr "Vous"
+
+msgid "Bot %d"
+msgstr "Bot %d"
+
+msgid "You took %s"
+msgstr "Vous avez pris %s"
+
+msgid "%s took %s"
+msgstr "%s a pris %s"
+
+msgid "You went down with her"
+msgstr "Vous avez coulé avec le navire"
+
+msgid "%s went down with her"
+msgstr "%s a coulé avec le navire"
+
+msgid "You went into the sea"
+msgstr "Vous êtes tombé à la mer"
+
+msgid "%s went into the sea"
+msgstr "%s est tombé à la mer"
+
+msgid "%s shoved you into the sea"
+msgstr "%s vous a poussé à la mer"
+
+msgid "You shoved %s into the sea"
+msgstr "Vous avez poussé %s à la mer"
+
+msgid "%s shoved %s into the sea"
+msgstr "%s a poussé %s à la mer"
+
+# Results
+
+msgid "Place"
+msgstr "Place"
+
+msgid "Seat"
+msgstr "Joueur"
+
+msgid "Time dry"
+msgstr "Temps au sec"
+
+msgid "Survived"
+msgstr "Survie"
+
+msgid "Shoves landed"
+msgstr "Poussées réussies"
+
+msgid "Knock-outs"
+msgstr "Éliminations"
+
+msgid "Rank"
+msgstr "Rang"
+
+msgid "Points"
+msgstr "Points"
+
+msgid "Seed %d"
+msgstr "Graine %d"
+
+msgid "Last one dry!"
+msgstr "Dernier au sec !"
+
+msgid "%s — you stayed dry %s"
+msgstr "%s — vous êtes resté au sec %s"
+
+msgid "The sea wins — nobody stays dry"
+msgstr "La mer gagne — personne ne reste au sec"
+
+msgid "%s — %s of %d"
+msgstr "%s — %s sur %d"
+
+msgid " — shoved by %s"
+msgstr " — poussé par %s"
+
+msgid "Last one dry: %s"
+msgstr "Dernier au sec : %s"
+
+msgid "Lasted longest: %s · %s"
+msgstr "A tenu le plus longtemps : %s · %s"
+
+msgid "Survived %s · %s"
+msgstr "Survie %s · %s"
+
+msgid " — sunk with her"
+msgstr " — coulé avec le navire"
+
+msgid "Session · match %d"
+msgstr "Session · partie %d"
+
+msgid "%s · %s · %.0f%% of her sinking played"
+msgstr "%s · %s · %.0f%% du naufrage joué"
+
+msgid "breaks in three"
+msgstr "se brise en trois"
+
+msgid "breaks in two"
+msgstr "se brise en deux"
+
+msgid "down by the head"
+msgstr "sombre par l'avant"
+
+msgid "down by the stern"
+msgstr "sombre par l'arrière"
+
+msgid "over on her side"
+msgstr "se couche sur le flanc"
+
+msgid "afloat upside down"
+msgstr "flotte la quille en l'air"
+
+msgid "aground"
+msgstr "s'échoue"
+
+msgid "stays afloat"
+msgstr "reste à flot"
+
+msgid "her end untold"
+msgstr "fin inconnue"
+
+msgid "Rematch"
+msgstr "Revanche"
+
+msgid "Watch replay"
+msgstr "Voir le replay"
+
+msgid "Back to the room"
+msgstr "Retour au salon"
+
+msgid "Leave"
+msgstr "Quitter"
+
+msgid "rematch"
+msgstr "revanche"
+
+msgid "menu"
+msgstr "menu"
+
+msgid "back to the room"
+msgstr "retour au salon"
+
+msgid "leave"
+msgstr "quitter"
+
+# Replays
+
+msgid "No replays yet: every match played here is kept, the newest %d."
+msgstr "Aucun replay pour l'instant : chaque partie jouée ici est gardée, les %d plus récentes."
+
+msgid "%d seats"
+msgstr "%d joueurs"
+
+msgid "Bot %d won"
+msgstr "Bot %d a gagné"
+
+msgid "You won"
+msgstr "Vous avez gagné"
+
+msgid "The sea won"
+msgstr "La mer a gagné"
+
+msgid "Left unfinished"
+msgstr "Partie inachevée"
+
+msgid "started mid-way, which no replay can rebuild"
+msgstr "commencé en cours de partie, ce qu'aucun replay ne peut reconstituer"
+
+msgid "the match data has changed since"
+msgstr "les données de jeu ont changé depuis"
+
+msgid "not a replay the game can read"
+msgstr "ce n'est pas un replay lisible par le jeu"
+
+msgid "Delete"
+msgstr "Supprimer"
+
+msgid "Sure?"
+msgstr "Sûr ?"
+
+msgid "step back"
+msgstr "image précédente"
+
+msgid "step on"
+msgstr "image suivante"
+
+msgid "slower"
+msgstr "ralentir"
+
+msgid "faster"
+msgstr "accélérer"
+
+msgid "to the start"
+msgstr "au début"
+
+msgid "to the end"
+msgstr "à la fin"
+
+msgid "seat before"
+msgstr "joueur précédent"
+
+msgid "seat after"
+msgstr "joueur suivant"
+
+msgid "back"
+msgstr "retour"
+
+msgctxt "replay"
+msgid "Play"
+msgstr "Lecture"
+
+msgid "First person"
+msgstr "Première personne"
+
+msgid "Free · following"
+msgstr "Libre · suivi"
+
+# Online
+
+msgid "Name"
+msgstr "Nom"
+
+msgid "your name"
+msgstr "votre nom"
+
+msgid "Server"
+msgstr "Serveur"
+
+msgid "Room code"
+msgstr "Code du salon"
+
+msgid "Join"
+msgstr "Rejoindre"
+
+msgid "Create a room"
+msgstr "Créer un salon"
+
+msgid "Rejoin"
+msgstr "Revenir"
+
+msgid "Choose a name to play under, then create the room."
+msgstr "Choisissez un nom de joueur, puis créez le salon."
+
+msgid "Choose a name to play under, then join."
+msgstr "Choisissez un nom de joueur, puis rejoignez le salon."
+
+msgid "Connecting to the server…"
+msgstr "Connexion au serveur…"
+
+msgid "The page's address is too long to read."
+msgstr "L'adresse de la page est trop longue pour être lue."
+
+msgid "The address names %s more than once."
+msgstr "L'adresse indique %s plus d'une fois."
+
+msgid "create takes 1, as in create=1."
+msgstr "create prend la valeur 1, comme dans create=1."
+
+msgid "The server must be a ws:// or wss:// address."
+msgstr "Le serveur doit être une adresse ws:// ou wss://."
+
+msgid "Create a room or join one, not both."
+msgstr "Créez un salon ou rejoignez-en un, pas les deux."
+
+msgid "Name a room to join, or create one."
+msgstr "Indiquez le salon à rejoindre, ou créez-en un."
+
+msgid "A room code is %d letters, as the room's host sees it."
+msgstr "Un code de salon fait %d lettres, tel que l'hôte du salon le voit."
+
+msgid "A name is %s."
+msgstr "Un nom fait %s."
+
+msgid "1 to %d letters, digits, spaces or %s"
+msgstr "1 à %d lettres, chiffres, espaces ou %s"
+
+msgid "This game is another version than the server's: update it."
+msgstr "Ce jeu n'a pas la même version que le serveur : mettez-le à jour."
+
+msgid "This game's match data is not the server's: update it."
+msgstr "Les données de jeu ne sont pas celles du serveur : mettez le jeu à jour."
+
+msgid "The server could not read what this game sent it."
+msgstr "Le serveur n'a pas pu lire ce que le jeu lui a envoyé."
+
+msgid "The server does not take that name: choose another."
+msgstr "Le serveur refuse ce nom : choisissez-en un autre."
+
+msgid "The server stopped hearing from this game and let it go."
+msgstr "Le serveur n'avait plus de nouvelles du jeu et l'a déconnecté."
+
+msgid "Too many tries at room codes: wait a minute and try again."
+msgstr "Trop d'essais de codes de salon : attendez une minute et réessayez."
+
+msgid "This game sent the server too much at once and was let go."
+msgstr "Le jeu a trop envoyé d'un coup au serveur et a été déconnecté."
+
+msgid "This game fell behind the server and was let go."
+msgstr "Le jeu a pris du retard sur le serveur et a été déconnecté."
+
+msgid "The server's sinking did not check out: this game left it."
+msgstr "Le naufrage du serveur n'a pas pu être vérifié : le jeu l'a quitté."
+
+msgid "The server is full: try again later."
+msgstr "Le serveur est plein : réessayez plus tard."
+
+msgid "No room has that code: check it with the room's host."
+msgstr "Aucun salon n'a ce code : vérifiez-le auprès de l'hôte."
+
+msgid "That room is full."
+msgstr "Ce salon est plein."
+
+msgid "That room's match is on: try again once it ends."
+msgstr "La partie de ce salon est en cours : réessayez quand elle sera finie."
+
+msgid "Only the room's host can start the match."
+msgstr "Seul l'hôte du salon peut lancer la partie."
+
+msgid "This game is in a room already."
+msgstr "Le jeu est déjà dans un salon."
+
+msgid "The room has closed."
+msgstr "Le salon a fermé."
+
+msgid "The server is busy: try again in a moment."
+msgstr "Le serveur est occupé : réessayez dans un instant."
+
+msgid "Everyone here watches: someone has to play."
+msgstr "Tout le monde regarde : il faut bien que quelqu'un joue."
+
+msgid "The server refused this game."
+msgstr "Le serveur a refusé le jeu."
+
+msgid "Could not reach the server: check its address, or try again later."
+msgstr "Serveur injoignable : vérifiez son adresse, ou réessayez plus tard."
+
+msgid "The connection to the server was lost."
+msgstr "La connexion au serveur a été perdue."
+
+msgid "This game was hidden too long, and the server let it go."
+msgstr "Le jeu est resté masqué trop longtemps et le serveur l'a déconnecté."
+
+msgid "Your room"
+msgstr "Votre salon"
+
+msgid "Friends join with this code"
+msgstr "Vos amis vous rejoignent avec ce code"
+
+msgid "Copy code"
+msgstr "Copier le code"
+
+msgid "Copy invite link"
+msgstr "Copier le lien d'invitation"
+
+msgid "Copied"
+msgstr "Copié"
+
+msgid "Start"
+msgstr "Lancer"
+
+msgid "Starting…"
+msgstr "Lancement…"
+
+msgid "Leave room"
+msgstr "Quitter le salon"
+
+msgid "Watch without a seat"
+msgstr "Regarder sans jouer"
+
+msgid "A match is on in this room: it waits for that one to end."
+msgstr "Une partie est en cours dans ce salon : il attend qu'elle se termine."
+
+msgid "You host: start when everyone is aboard. Bots take the empty seats."
+msgstr "Vous êtes l'hôte : lancez quand tout le monde est à bord. Des bots prennent les places libres."
+
+msgid "Waiting for the host to start."
+msgstr "En attente du lancement par l'hôte."
+
+msgid " You watch: you take no seat."
+msgstr " Vous regardez : vous ne prenez aucune place."
+
+msgid "Aboard · %d of %d"
+msgstr "À bord · %d sur %d"
+
+msgid "A bot takes this seat"
+msgstr "Un bot prend cette place"
+
+msgid "watching"
+msgstr "spectateur"
+
+msgid "gone · a bot plays"
+msgstr "parti · un bot joue"
+
+msgid "host"
+msgstr "hôte"
+
+msgid "you"
+msgstr "vous"
+
+# Decks and rooms
+
+msgid "main deck"
+msgstr "pont principal"
+
+msgid "tween deck"
+msgstr "entrepont"
+
+msgid "lower deck"
+msgstr "pont inférieur"
+
+msgid "poop deck"
+msgstr "dunette"
+
+msgid "forecastle"
+msgstr "gaillard d'avant"
+
+msgid "car deck"
+msgstr "pont-garage"
+
+msgid "passenger deck"
+msgstr "pont des passagers"
+
+msgid "bridge deck"
+msgstr "pont passerelle"
+
+msgid "spar deck"
+msgstr "spardeck"
+
+msgid "engine room"
+msgstr "salle des machines"
+
+msgid "boat deck"
+msgstr "pont des embarcations"
+
+msgid "bridge"
+msgstr "passerelle"
+
+msgid "stokehold"
+msgstr "chaufferie"
+
+msgid "double bottom"
+msgstr "double fond"
+
+msgid "lower hold"
+msgstr "cale inférieure"
+
+msgid "shaft tunnel"
+msgstr "tunnel de l'arbre"
+
+msgid "stores"
+msgstr "magasins"
+
+msgid "side passage"
+msgstr "coursive latérale"
+
+msgid "steering gear"
+msgstr "appareil à gouverner"
+
+msgid "aft stores"
+msgstr "magasins arrière"
+
+msgid "lower aft stores"
+msgstr "magasins arrière inférieurs"
+
+msgid "bosun's store"
+msgstr "magasin du bosco"
+
+msgid "chain locker"
+msgstr "puits aux chaînes"
+
+msgid "working deck"
+msgstr "pont de travail"
+
+msgid "aft deck"
+msgstr "pont arrière"
+
+msgid "deckhouse roof"
+msgstr "toit du rouf"
+
+msgid "fore stores"
+msgstr "magasins avant"
+
+msgid "towing deck"
+msgstr "pont de remorquage"
+
+msgid "forecastle deck"
+msgstr "pont du gaillard"
+
+msgid "forward well deck"
+msgstr "coffre avant"
+
+msgid "after well deck"
+msgstr "coffre arrière"
+
+msgid "A deck"
+msgstr "pont A"
+
+msgid "B deck"
+msgstr "pont B"
+
+msgid "C deck"
+msgstr "pont C"
+
+msgid "D deck"
+msgstr "pont D"
+
+msgid "E deck"
+msgstr "pont E"
+
+msgid "F deck"
+msgstr "pont F"
+
+msgid "G deck"
+msgstr "pont G"
+
+msgid "tank top"
+msgstr "plafond de ballast"
+
+msgid "orlop deck"
+msgstr "faux-pont"
+
+msgid "engine room floor"
+msgstr "parquet des machines"
+
+msgid "raised roof over the smoking room"
+msgstr "toit surélevé du fumoir"
+
+msgid "raised roof over the lounge"
+msgstr "toit surélevé du salon"
+
+msgid "lower orlop deck"
+msgstr "faux-pont inférieur"
+
+msgid "docking bridge"
+msgstr "passerelle d'accostage"
+
+msgid "hold"
+msgstr "cale"
+
+msgid "sail locker"
+msgstr "soute à voiles"
+
+msgid "cadets' berths"
+msgstr "postes des cadets"
+
+msgid "cadets' mess"
+msgstr "carré des cadets"
+
+msgid "saloon"
+msgstr "carré"
+
+msgid "galley"
+msgstr "cuisine"
+
+msgid "charthouse"
+msgstr "chambre des cartes"
+
+msgid "crew quarters"
+msgstr "poste d'équipage"
+
+msgid "lounge"
+msgstr "salon"
+
+msgid "wheelhouse"
+msgstr "timonerie"
+
+msgid "mess"
+msgstr "réfectoire"
+
+msgid "officers' cabins"
+msgstr "cabines des officiers"
+
+msgid "crew cabins"
+msgstr "cabines de l'équipage"
+
+msgid "forward cabins"
+msgstr "cabines avant"
+
+msgid "pilothouse"
+msgstr "abri de navigation"
+
+msgid "forward hold"
+msgstr "cale avant"
+
+msgid "cabin corridor"
+msgstr "coursive des cabines"
+
+msgid "aft port cabin"
+msgstr "cabine arrière bâbord"
+
+msgid "middle port cabin"
+msgstr "cabine centrale bâbord"
+
+msgid "forward port cabin"
+msgstr "cabine avant bâbord"
+
+msgid "aft starboard cabin"
+msgstr "cabine arrière tribord"
+
+msgid "middle starboard cabin"
+msgstr "cabine centrale tribord"
+
+msgid "forward starboard cabin"
+msgstr "cabine avant tribord"
+
+msgid "deckhouse hall"
+msgstr "hall du rouf"
+
+msgid "deckhouse cabin 1"
+msgstr "cabine du rouf 1"
+
+msgid "deckhouse cabin 2"
+msgstr "cabine du rouf 2"
+
+msgid "deckhouse cabin 3"
+msgstr "cabine du rouf 3"
+
+msgid "deckhouse cabin 4"
+msgstr "cabine du rouf 4"
+
+msgid "port double bottom"
+msgstr "double fond bâbord"
+
+msgid "starboard double bottom"
+msgstr "double fond tribord"
+
+msgid "port side passage"
+msgstr "coursive bâbord"
+
+msgid "starboard side passage"
+msgstr "coursive tribord"
+
+msgid "fish hold"
+msgstr "cale à poisson"
+
+msgid "crew mess"
+msgstr "réfectoire de l'équipage"
+
+msgid "engine room double bottom"
+msgstr "double fond des machines"
+
+msgid "fish hold double bottom"
+msgstr "double fond de la cale à poisson"
+
+msgid "engine casing"
+msgstr "tambour des machines"

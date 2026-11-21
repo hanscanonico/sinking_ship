@@ -1044,9 +1044,9 @@ static func _seat_names(seats: int, watched := false) -> PackedStringArray:
 	var names := PackedStringArray()
 	for seat in seats:
 		if watched:
-			names.append("Bot %d" % (seat + 1))
+			names.append(Language.t("Bot %d") % (seat + 1))
 		else:
-			names.append("You" if seat == LOCAL_SEAT else "Bot %d" % seat)
+			names.append(Language.t("You") if seat == LOCAL_SEAT else Language.t("Bot %d") % seat)
 	return names
 
 

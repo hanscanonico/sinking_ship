@@ -3,7 +3,8 @@ extends Resource
 ## How the local player's first-person view turns and frames (D14), the window — its
 ## mode, VSync and a frame-rate cap — and the graphics — the preset (GraphicsQuality)
 ## and the 3D view's render scale, each this machine's own until the player picks one
-## — with defaults. The settings screen saves them at PATH. Presentation only: none of it is
+## — and the language the game speaks (Language), the system's until they pick one —
+## with defaults. The settings screen saves them at PATH. Presentation only: none of it is
 ## ever sent, and no rule reads it.
 
 const PATH := "user://view_settings.tres"
@@ -64,6 +65,9 @@ static var _shared: WeakRef
 			if value <= 0.0
 			else clampf(value, GraphicsQuality.SCALE_MIN, GraphicsQuality.SCALE_MAX)
 		)
+## The language the player picked (Language), by its code, or empty until they pick
+## one: then the system's.
+@export var language: String = ""
 ## A preset and a render scale for this run alone, over quality and render_scale
 ## (--quality, --render-scale), or AUTOMATIC: never saved, and set aside the moment the
 ## player picks their own.

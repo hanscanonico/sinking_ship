@@ -7,7 +7,8 @@ extends CanvasLayer
 ## each action of play and of spectating (KeyBindings), picked by pressing it;
 ## Graphics — the window mode, VSync, a frame-rate cap, the graphics preset with a
 ## line on what it changes (GraphicsQuality), and the 3D view's render scale, both
-## this machine's own until the player picks them. Each change applies as it is
+## this machine's own until the player picks them. Under every page, the language
+## the game speaks (Language), each under its own name. Each change applies as it is
 ## made; closing saves them under user://.
 
 signal closed
@@ -53,6 +54,7 @@ var on_web := OS.has_feature("web")
 @onready var _view_kick: HSlider = %ViewKick
 @onready var _quality: OptionButton = %Quality
 @onready var _render_scale: HSlider = %RenderScale
+@onready var _language: OptionButton = %Language
 @onready var _pages: Array[Control] = [%Sound, %Controls, %Keys, %Graphics]
 @onready var _tabs: Array[Button] = [%SoundTab, %ControlsTab, %KeysTab, %GraphicsTab]
 
@@ -95,6 +97,9 @@ func _ready() -> void:
 		%KeyRows.add_child(key)
 		_key_buttons[action] = key
 	%ResetKeys.pressed.connect(_on_reset_keys)
+	for locale: String in Language.locales():
+		_language.add_item(Language.NAMES[locale])
+	_language.item_selected.connect(_on_language)
 	var tabs := ButtonGroup.new()
 	for page in _tabs.size():
 		_tabs[page].button_group = tabs
@@ -127,6 +132,7 @@ func open(page := Page.SOUND) -> void:
 	_view_kick.set_value_no_signal(_view.view_kick * 100.0)
 	_quality.select(_quality.get_item_index(_view.graphics().preset))
 	_render_scale.set_value_no_signal(_view.render_scale_3d() * 100.0)
+	_language.select(Language.locales().find(Language.current()))
 	_show_values()
 	show_page(page)
 	show()
@@ -226,6 +232,12 @@ func _on_render_scale(value: float) -> void:
 	_view.run_render_scale = ViewSettings.AUTOMATIC
 	_show_values()
 	view_changed.emit(_view)
+
+
+## The player's choice of language: theirs from then on, over the system's.
+func _on_language(index: int) -> void:
+	_view.language = Language.locales()[index]
+	Language.use(_view.language)
 
 
 ## [param action]'s row waits for the key or mouse button to bind to it.

@@ -101,6 +101,7 @@ func show_results(
 		var colour := LOCAL_COLOUR if line.seat == local_seat else UiTheme.TEXT
 		_cell(ordinal(line.place), colour)
 		var name_cell := _cell(names[line.seat], colour)
+		name_cell.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		name_cell.text = UiTheme.fit(
 			name_cell.text,
 			name_cell.get_theme_font(&"font"),
@@ -112,7 +113,7 @@ func show_results(
 		_cell(str(line.knockouts), colour)
 	show_session(session, names[local_seat] if local_seat >= 0 else "")
 	_show_fate(stats.ended_tick)
-	_seed.text = "Seed %d" % match_seed
+	_seed.text = Language.t("Seed %d") % match_seed
 	_rematch.disabled = true
 	_watch.disabled = true
 	_menu.disabled = true
@@ -132,15 +133,15 @@ static func _title_of(
 	if survival:
 		return survived(mine.dry_ticks, mine.place, mine.out_cause)
 	if stats.winner == local_seat:
-		return "Last one dry!"
+		return Language.t("Last one dry!")
 	if stats.seats.size() == 1:
-		return "%s — you stayed dry %s" % [gone, MatchTranscript.clock(mine.dry_ticks)]
+		return Language.t("%s — you stayed dry %s") % [gone, MatchTranscript.clock(mine.dry_ticks)]
 	if stats.winner == -1 and mine.place == 1:
-		return "The sea wins — nobody stays dry"
-	var title := "%s — %s of %d" % [gone, ordinal(mine.place), stats.seats.size()]
+		return Language.t("The sea wins — nobody stays dry")
+	var title := Language.t("%s — %s of %d") % [gone, ordinal(mine.place), stats.seats.size()]
 	# A shove long before she went is no shove over the side.
 	if mine.out_by >= 0 and mine.out_cause != PlayerState.Cause.WITH_HER:
-		title += " — shoved by %s" % names[mine.out_by]
+		title += Language.t(" — shoved by %s") % names[mine.out_by]
 	return title
 
 
@@ -150,15 +151,15 @@ static func _title_of(
 static func watched_title(stats: MatchStats, names: PackedStringArray, survival: bool) -> String:
 	if not survival:
 		if stats.winner == -1:
-			return "The sea wins — nobody stays dry"
-		return "Last one dry: %s" % names[stats.winner]
+			return Language.t("The sea wins — nobody stays dry")
+		return Language.t("Last one dry: %s") % names[stats.winner]
 	var first := PackedStringArray()
 	var lasted := 0
 	for line: MatchStats.SeatStats in stats.standings():
 		if line.place == 1:
 			first.append(names[line.seat])
 			lasted = line.dry_ticks
-	return "Lasted longest: %s · %s" % [", ".join(first), MatchTranscript.clock(lasted)]
+	return Language.t("Lasted longest: %s · %s") % [", ".join(first), MatchTranscript.clock(lasted)]
 
 
 ## The ship the match is played on, by [param ship_name], and [param schedule], the
@@ -171,11 +172,27 @@ func setup_fate(ship_name: String, schedule: SinkSchedule) -> void:
 ## The fate line for a match ended on [param tick], fitted to the plate; hidden when
 ## there is no sinking to tell.
 func _show_fate(tick: int) -> void:
-	var line := "" if _schedule == null else MatchTranscript.fate_line(_ship_name, _schedule, tick)
+	var line := "" if _schedule == null else fate_words(_ship_name, _schedule, tick)
 	_fate.text = UiTheme.fit(
 		line, _fate.get_theme_font(&"font"), _fate.get_theme_font_size(&"font_size"), FATE_WIDTH
 	)
 	_fate.visible = not line.is_empty()
+
+
+## The fate line (MatchTranscript.fate_line) in the language in use: the ship by
+## [param ship_name], how her sinking ends, and how much of it was played by [param tick].
+static func fate_words(ship_name: String, schedule: SinkSchedule, tick: int) -> String:
+	var timeline := schedule.timeline()
+	if timeline == null:
+		return ""
+	return (
+		Language.t("%s · %s · %.0f%% of her sinking played")
+		% [
+			Language.titled(ship_name.to_lower()),
+			Language.t(MatchTranscript.founders(OutcomeClassifier.labels(timeline))),
+			clampf(MatchTranscript.share_played(schedule, tick), 0.0, 1.0) * 100.0,
+		]
+	)
 
 
 ## Online, a match's end leads back to its room or out of it: the rematch's button and
@@ -199,9 +216,9 @@ func offer_replay(offered: bool) -> void:
 func show_prompts(prompts: InputPrompts) -> void:
 	var rematch := prompts.word(&"restart")
 	var menu := prompts.word(&"pause")
-	var hint := "%s — %s" % [rematch, _first_word]
+	var hint := "%s — %s" % [rematch, Language.t(_first_word)]
 	if menu != rematch:
-		hint += "   ·   %s — %s" % [menu, _second_word]
+		hint += "   ·   %s — %s" % [menu, Language.t(_second_word)]
 	_hint.text = hint
 
 
@@ -217,17 +234,14 @@ func _accept_presses() -> void:
 ## [param cause] inside her as she went, " — sunk with her" after it: the last one in
 ## as she goes is placed first though nothing it could see put it out.
 static func survived(ticks: int, place: int, cause := PlayerState.Cause.COLD) -> String:
-	var title := "Survived %s · %s" % [MatchTranscript.clock(ticks), ordinal(place)]
+	var title := Language.t("Survived %s · %s") % [MatchTranscript.clock(ticks), ordinal(place)]
 	if cause == PlayerState.Cause.WITH_HER:
-		title += " — sunk with her"
+		title += Language.t(" — sunk with her")
 	return title
 
 
 static func ordinal(place: int) -> String:
-	var suffix := "th"
-	if place % 100 < 11 or place % 100 > 13:
-		suffix = ["th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th"][place % 10]
-	return "%d%s" % [place, suffix]
+	return Language.ordinal(place)
 
 
 ## The session's standings beside the table — "Session · match 3", then every name's
@@ -240,7 +254,7 @@ func show_session(session: SessionTally, local_name: String) -> void:
 	_session.visible = session != null and session.matches >= 2
 	if not _session.visible:
 		return
-	_session_title.text = "Session · match %d" % session.matches
+	_session_title.text = Language.t("Session · match %d") % session.matches
 	_session_title.add_theme_color_override("font_color", UiTheme.MUTED)
 	for heading in SESSION_HEADINGS:
 		_cell_in(_session_table, heading, UiTheme.MUTED)
@@ -248,6 +262,7 @@ func show_session(session: SessionTally, local_name: String) -> void:
 		var colour := LOCAL_COLOUR if line.name == local_name else UiTheme.TEXT
 		_cell_in(_session_table, ordinal(line.rank), colour)
 		var name_cell := _cell_in(_session_table, line.name, colour)
+		name_cell.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
 		name_cell.text = UiTheme.fit(
 			name_cell.text,
 			name_cell.get_theme_font(&"font"),

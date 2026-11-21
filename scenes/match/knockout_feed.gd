@@ -75,11 +75,16 @@ func add(events: Array[SimEvent]) -> void:
 			SimEvent.Kind.BONUS_CAME:
 				var kind := _kinds[event.bonus]
 				var room := _layout.rooms[_layout.bonus_spots[event.spot].room].name
-				_in_colour(_post("%s: %s" % [kind.title, room]), kind)
+				_in_colour(_post("%s: %s" % [Language.t(kind.title), Language.named(room)]), kind)
 			SimEvent.Kind.BONUS_TAKEN:
 				var kind := _kinds[event.bonus]
-				var taker := "You" if event.seat == _own_seat else _fitted()[event.seat]
-				_in_colour(_post("%s took %s" % [taker, kind.title]), kind)
+				var title := Language.t(kind.title)
+				var line := (
+					Language.t("You took %s") % title
+					if event.seat == _own_seat
+					else Language.t("%s took %s") % [_fitted()[event.seat], title]
+				)
+				_in_colour(_post(line), kind)
 
 
 ## Every line taken down.
@@ -99,14 +104,20 @@ static func feed_line(
 	own_seat: int,
 	cause := PlayerState.Cause.COLD
 ) -> String:
-	var gone := "You" if out_seat == own_seat else names[out_seat]
+	var own_out := out_seat == own_seat
 	if cause == PlayerState.Cause.WITH_HER:
-		return "%s went down with her" % gone
+		if own_out:
+			return Language.t("You went down with her")
+		return Language.t("%s went down with her") % names[out_seat]
 	if credit < 0:
-		return "%s went into the sea" % gone
-	var shover := "You" if credit == own_seat else names[credit]
-	var shoved := "you" if out_seat == own_seat else names[out_seat]
-	return "%s shoved %s into the sea" % [shover, shoved]
+		if own_out:
+			return Language.t("You went into the sea")
+		return Language.t("%s went into the sea") % names[out_seat]
+	if own_out:
+		return Language.t("%s shoved you into the sea") % names[credit]
+	if credit == own_seat:
+		return Language.t("You shoved %s into the sea") % names[out_seat]
+	return Language.t("%s shoved %s into the sea") % [names[credit], names[out_seat]]
 
 
 func _process(delta: float) -> void:

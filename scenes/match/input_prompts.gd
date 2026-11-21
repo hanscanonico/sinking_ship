@@ -34,6 +34,10 @@ const MOUSE_BUTTONS := {
 	MOUSE_BUTTON_RIGHT: "Right click",
 	MOUSE_BUTTON_MIDDLE: "Middle click",
 }
+## The contexts the catalogs know a pad's button and a key's name under (Language.t):
+## a pad's Back is not a menu's, nor a key's Left a side.
+const ON_PAD: StringName = &"pad"
+const ON_KEYBOARD: StringName = &"key"
 ## A stick pushed less than this is drift, not a player picking the pad up.
 const STICK_DRIFT := 0.5
 
@@ -81,7 +85,7 @@ static func controls_for(on_pad: bool) -> String:
 		[_word_of(&"brace", on_pad), "brace"],
 		[_word_of(&"grab", on_pad), "grab"],
 	]:
-		hints.append("%s — %s" % line)
+		hints.append("%s — %s" % [line[0], Language.t(line[1])])
 	return "   ·   ".join(hints)
 
 
@@ -93,7 +97,7 @@ static func controls_for(on_pad: bool) -> String:
 static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 	var lines: Array[Array] = [
 		[_move_of(on_pad), "move"],
-		[_word_of(&"look_left", on_pad) if on_pad else "Mouse", "look"],
+		[_word_of(&"look_left", on_pad) if on_pad else Language.t("Mouse"), "look"],
 		[_word_of(&"jump", on_pad), "jump"],
 		[_word_of(&"shove", on_pad), "shove"],
 		[_word_of(&"brace", on_pad), "brace"],
@@ -109,7 +113,7 @@ static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 		lines.append([_word_of(&"spectate_ghost", on_pad), "ghost: walk her decks"])
 	var text := PackedStringArray()
 	for line: Array in lines:
-		text.append("%s — %s" % line)
+		text.append("%s — %s" % [line[0], Language.t(line[1])])
 	return "\n".join(text)
 
 
@@ -125,14 +129,14 @@ static func watch_controls_for(on_pad: bool) -> String:
 		[_word_of(&"spectate_free", on_pad), "free camera"],
 		[_word_of(&"spectate_follow", on_pad), "follow the seat"],
 		[_word_of(&"spectate_ghost", on_pad), "ghost: walk her decks"],
-		[_word_of(&"look_left", on_pad) if on_pad else "Mouse", "look"],
+		[_word_of(&"look_left", on_pad) if on_pad else Language.t("Mouse"), "look"],
 		[_move_of(on_pad), "fly"],
 		["%s / %s" % [_word_of(&"jump", on_pad), _word_of(&"brace", on_pad)], "up / down"],
 		[_word_of(&"pause", on_pad), "pause"],
 	]
 	var text := PackedStringArray()
 	for line: Array in lines:
-		text.append("%s — %s" % line)
+		text.append("%s — %s" % [line[0], Language.t(line[1])])
 	return "\n".join(text)
 
 
@@ -156,19 +160,20 @@ static func word_for(events: Array[InputEvent], on_pad: bool) -> String:
 	for event: InputEvent in events:
 		if on_pad and event is InputEventJoypadButton:
 			var button := (event as InputEventJoypadButton).button_index
-			return PAD_BUTTONS.get(button, "Button %d" % button)
+			return Language.t(PAD_BUTTONS.get(button, "Button %d" % button), ON_PAD)
 		if on_pad and event is InputEventJoypadMotion:
 			var axis := (event as InputEventJoypadMotion).axis
-			return PAD_AXES.get(axis, "Axis %d" % axis)
+			return Language.t(PAD_AXES.get(axis, "Axis %d" % axis))
 		if not on_pad and event is InputEventKey:
 			var key := event as InputEventKey
 			var keycode := key.keycode
 			if key.physical_keycode != KEY_NONE:
 				keycode = _on_this_layout(key.physical_keycode)
-			return OS.get_keycode_string(keycode).replace("Escape", "Esc")
+			var named := OS.get_keycode_string(keycode).replace("Escape", "Esc")
+			return Language.t(named, ON_KEYBOARD)
 		if not on_pad and event is InputEventMouseButton:
 			var button := (event as InputEventMouseButton).button_index
-			return MOUSE_BUTTONS.get(button, "Mouse %d" % button)
+			return Language.t(MOUSE_BUTTONS.get(button, "Mouse %d" % button))
 	return ""
 
 

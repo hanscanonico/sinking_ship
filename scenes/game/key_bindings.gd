@@ -40,7 +40,7 @@ const ACTIONS: Array[StringName] = [
 ## Each action's name on the settings screen.
 const TITLES := {
 	&"move_up": "Forward",
-	&"move_down": "Back",
+	&"move_down": "Backward",
 	&"move_left": "Left",
 	&"move_right": "Right",
 	&"jump": "Jump",
