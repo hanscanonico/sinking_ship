@@ -6,7 +6,8 @@ extends RefCounted
 ## Movement, step for step, on a body of its own in a match of its own, through Surfaces
 ## (D6): it walks, jumps, takes the stairs, is held by walls, doors and railings and
 ## stands on the tilting deck, its eyes a seat's height over its feet. Its Movement is a
-## ghost's: water neither slows it nor drowns it, and it shoves, slams and breaks nothing.
+## ghost's: water neither slows it nor drowns it, no heel or trim slides it, and it shoves,
+## slams and breaks nothing.
 ##
 ## Presentation only, as the free camera is: it stands on its own Surfaces, honoured with
 ## the snapshot drawn — the sim's stay the sim's — and nothing of it is ever sent, kept in

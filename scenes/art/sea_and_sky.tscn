@@ -48,6 +48,7 @@ light_color = Color(1, 0.9, 0.78, 1)
 light_energy = 1.35
 shadow_enabled = true
 directional_shadow_mode = 1
+directional_shadow_split_1 = 0.042857144
 directional_shadow_max_distance = 70.0
 
 [node name="Sea" type="MeshInstance3D" parent="." unique_id=1197457541]

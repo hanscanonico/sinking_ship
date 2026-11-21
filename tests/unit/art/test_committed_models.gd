@@ -241,6 +241,33 @@ func test_the_boiler_fronts_run_from_the_largest_boiler_to_the_least() -> void:
 	assert_true(is_nan(EngineRoom.front_for(0.49)), "none under the least")
 
 
+## The lifebelt's ring is closed behind: a ring held before its holder (PropPlacing) is
+## seen from its back by the holder and anyone behind, and a ring open there showed
+## only its grab line — or, in the observer's cut-away, its inside as a flat section.
+## Looking at it from behind, through its middle circle, the first face met faces back.
+func test_the_lifebelt_s_ring_is_closed_behind() -> void:
+	var model := ShipModel.named(RoomDressing.LIFEBELT_MODEL)
+	var middle := 0.26
+	for step in 12:
+		var angle := TAU * (step + 0.5) / 12.0
+		var from := Vector3(cos(angle) * middle, sin(angle) * middle, -1.0)
+		var nearest := INF
+		var facing := 0.0
+		for surface: ShipModel.Surface in model.surfaces:
+			for index in range(0, surface.order.size(), 3):
+				var corners: Array[Vector3] = []
+				for corner in 3:
+					corners.append(surface.points[surface.order[index + corner]])
+				var hit: Variant = Geometry3D.ray_intersects_triangle(
+					from, Vector3.BACK, corners[0], corners[1], corners[2]
+				)
+				if hit != null and (hit as Vector3).z < nearest:
+					nearest = (hit as Vector3).z
+					facing = surface.normals[surface.order[index]].z
+		assert_true(is_finite(nearest), "lifebelt: its ring behind its middle circle")
+		assert_lt(facing, -0.5, "lifebelt: a face behind it, facing back, at %.2f" % angle)
+
+
 func test_every_model_fills_the_box_its_placing_code_gives_it() -> void:
 	for model: String in _rows():
 		if not _committed(model):

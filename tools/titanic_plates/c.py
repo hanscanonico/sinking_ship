@@ -96,6 +96,16 @@ ROOMS = [
     ("second-class entrance, C deck", 3029, 2202.5, 3117, 2280.25),
     ("second-class entrance, C deck", 3029, 2357.25, 3206.75, 2432.5),
     ("second-class entrance, C deck", 3117, 2202.5, 3206.75, 2357.25),
+    # The second-class promenade's forward end ("SECOND CLASS PROMENADE WITH LARGE
+    # WINDOWS P&S"), round the entrance's forward side to the house's after end: BOT's
+    # "access by a door from this space into each of the alleyways in the first class
+    # accommodation". Inboard of the promenade's runs at her sides, under B deck and as far
+    # from her windows as her house's rooms, it is laid as a room, a vestibule (est.),
+    # open on those runs, which stay weather by the owner's ruling (#357). Not a
+    # "passage": the house's rooms it passes keep their doors on their corridors.
+    ("second-class promenade vestibule, C deck", 3130, 1971, 3280, 2202.5),
+    ("second-class promenade vestibule, C deck", 3206.75, 2202.5, 3280, 2432.5),
+    ("second-class promenade vestibule, C deck", 3136.75, 2432.5, 3280, 2669.75),
     # The house (BOT: "a house 450 ft. long and extending for the full breadth of the
     # ship. It contained 148 staterooms for first class, besides service rooms of various
     # kinds"): a corridor down each side between a row of rooms at her side and a row
@@ -850,6 +860,10 @@ OPEN = [
     # The forward second-class entrance's: its corners, its lanes and its well.
     (3023, 1971, 3035, 2202.5), (3023, 2432.5, 3035, 2669.75), (3023, 2202.5, 3035, 2280.25),
     (3023, 2357.25, 3035, 2432.5), (3111, 2202.5, 3123, 2280.25),
+    # The second-class promenade's forward end: its three pieces, and its mouths onto the
+    # promenade's runs either side.
+    (3206.75, 2196.5, 3280, 2208.5), (3206.75, 2426.5, 3280, 2438.5),
+    (3130, 1965, 3280, 1977), (3136.75, 2663.75, 3280, 2675.75),
     # The house's after end: the cross passage and the lavatories' passages into the
     # corridors.
     (3383, 2035, 3411, 2047), (3383, 2578, 3411, 2590), (3487, 2035, 3514, 2047),

@@ -133,10 +133,13 @@ bake-cache-arg = $(if $(filter 0,$(BAKE_CACHE)),,--bake-cache)
 # coming aboard, in either goal (the menu's Bonuses, unticked); without it, or with
 # BONUSES=1, bonuses come as the match data's bonus rules bring them, for a player and a
 # tool alike. A SEED= that is not a
-# whole number of 0 or more is refused, as the menu refuses it.
+# whole number of 0 or more is refused, as the menu refuses it. run and replay name their
+# log: project.godot turns the shared user://logs/godot.log off for the editor binary, as
+# engines run side by side (gates, shards, captures) rotate it under each other and fill
+# it with NUL bytes (test_file_logging).
 run:
 	$(call require-godot)
-	$(GODOT) --path . -- $(match-args) $(bake-cache-arg) $(ARGS)
+	$(GODOT) --path . --log-file user://logs/godot.log -- $(match-args) $(bake-cache-arg) $(ARGS)
 
 # `make replay FILE=path/to/one.replay` watches a saved replay — one the game wrote
 # under user://replays, or any path — in the replay viewer (R4–R6); the game quits with
@@ -144,7 +147,7 @@ run:
 replay:
 	$(call require-godot)
 	@test -n "$(FILE)" || { echo "replay: FILE=<path to a .replay> is required" >&2; exit 1; }
-	$(GODOT) --path . -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
+	$(GODOT) --path . --log-file user://logs/godot.log -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
 
 # Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
 # the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
@@ -786,7 +789,8 @@ check:
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
 # fixture project, and its list of runtime-built loads, against the code; the worktree
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
-# gh's snapshots; and art-lint-changed's selection, against a throwaway repo and a
+# gh's snapshots; the merge train, against a stand-in gh's pull requests, again on Perl's
+# lock; and art-lint-changed's selection, against a throwaway repo and a
 # stand-in make; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
 	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
@@ -808,6 +812,8 @@ guard-check:
 	tools/test_changed.py --check-sites
 	tools/prune_worktrees_check.sh
 	tools/ci_wait_check.sh
+	tools/merge_train_check.sh
+	FD_LOCK=perl tools/merge_train_check.sh
 	tools/art_lint_changed_check.sh
 	python3 tools/titanic_plates/deck_check.py
 

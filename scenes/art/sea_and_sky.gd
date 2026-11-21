@@ -204,6 +204,7 @@ func _lay_bottom(depth: float) -> void:
 func show_graphics(quality: GraphicsQuality) -> void:
 	_sun.directional_shadow_mode = quality.shadow_mode
 	_sun.directional_shadow_max_distance = quality.shadow_distance
+	_sun.directional_shadow_split_1 = quality.shadow_split
 	_dusk.glow_enabled = quality.glow
 	_water.set_shader_parameter(&"fine_share", quality.sea_detail)
 	RenderingServer.global_shader_parameter_set(WATER_MIRROR, quality.sea_mirror)
