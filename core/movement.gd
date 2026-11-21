@@ -32,8 +32,9 @@ extends RefCounted
 ## way out clear (Falls, #631).
 ##
 ## A ghost's Movement (GhostWalk, #655) moves one body that is in no match by the same
-## steps: water neither slows nor grips it less, and it holds to a crate or a railing as
-## to a wall — it shoves, slams, vaults and damages nothing — so it needs no Hazards.
+## steps: water neither slows nor grips it less, no slope pulls it downhill, and it holds
+## to a crate or a railing as to a wall — it shoves, slams, vaults and damages nothing — so
+## it needs no Hazards.
 
 ## How many times a tick's contacts are resolved, at most. In one pass each contact
 ## is met where the body stood before it, so a body pushed two ways — into a corner,
@@ -279,9 +280,10 @@ func forces(live: Array[PlayerState], pose_now: ShipPose, rules_by_seat: Array[S
 			wish = wish.limit_length(_rules.crawl_speed)
 		wish = wish.limit_length(mine.walk_cap)
 		# A brace is rooted: the deck past the grip angle does not pull it. Standing in
-		# water, a body grips less (BrawlRules.wet_angle).
+		# water, a body grips less (BrawlRules.wet_angle). A ghost is never pulled: it
+		# stands and walks on any slope as on a level deck.
 		var grip := _rules.wet_angle(mine.grip_angle_deg, depth)
-		var pulled := slope > grip and not (player.bracing and holds)
+		var pulled := not ghost and slope > grip and not (player.bracing and holds)
 		if player.is_staggered():
 			# Knocked down under a pour, the water washes it out from under it, as it throws
 			# a swimmer (_swim): never left lying in the cascade for as long as it falls.

@@ -1,0 +1,9 @@
+#!/bin/sh
+# Update, build and play: git pull, make import, make native, make run.
+# Arguments go to make run: ./start FAST=1
+set -e
+cd "$(dirname "$0")"
+git pull --ff-only
+make import
+make native
+make run "$@"

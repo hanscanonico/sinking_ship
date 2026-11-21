@@ -6,6 +6,7 @@
 // gives, to the last bit; only the push's is kept here.
 
 #include "sink_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -1135,6 +1136,8 @@ PackedFloat64Array NativeSink::solved(const PackedFloat64Array &p_matrix, const 
 	}
 	return found;
 }
+
+SINKING_CLASS(NativeSink)
 
 void NativeSink::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "first", "second", "in_floor", "middle", "half", "flow_area", "frames",
