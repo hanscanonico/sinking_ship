@@ -16,7 +16,8 @@
 #
 # How many parts follows the machine's test slots (TEST_SLOTS, else half the cores,
 # as tools/test_slot.sh counts them): every engine takes one, so no more run at once
-# than the machine allows whatever is asked for here. A Titanic's last part is her
+# than the machine allows whatever is asked for here — fewer where memory is short
+# (below). A Titanic's last part is her
 # open spans alone, a minute; each of the others builds her and takes an even share of
 # the rest, and those are the long engines — the traced one's 38 minutes of checks and
 # the small one's 10 on the Windows box, where the fleet's ships and the match's
@@ -52,6 +53,35 @@ else
 	slots=$((${cores:-2} / 2))
 	((slots >= 1)) || slots=1
 fi
+
+# No more engines than there is memory for, either: one that builds the traced
+# Titanic holds 2.4 GB, and eight at once took 19 GB of the Windows box's 32 and had
+# Claude Code's memory guard stop other work (2026-11-21). An engine is counted at
+# ART_LINT_ENGINE_MB (3072) of what is free now over the floor tools/test_slot.sh keeps
+# (TEST_SLOT_MIN_FREE_MB, else a tenth of the machine); one runs whatever is free. The
+# engines started here take only that many of the slots, so the short ones wait for a
+# long one's rather than run beside them all.
+source tools/lib/free_memory.sh || exit 1
+engine_mb="${ART_LINT_ENGINE_MB:-3072}"
+if [[ ! "$engine_mb" =~ ^[1-9][0-9]*$ ]]; then
+	echo "art-lint: ART_LINT_ENGINE_MB takes a count of 1 or more, not '$engine_mb'" >&2
+	exit 2
+fi
+free="$(free_memory_mb)"
+if [[ -n "$free" ]]; then
+	floor="${TEST_SLOT_MIN_FREE_MB-}"
+	if [[ ! "$floor" =~ ^[0-9]+$ ]]; then
+		total="$(total_memory_mb)"
+		floor=$((${total:-0} / 10))
+	fi
+	fit=$(((free - floor) / engine_mb))
+	((fit >= 1)) || fit=1
+	if ((fit < slots)); then
+		echo "art-lint: $fit engines at once, not $slots: $free MB free, $engine_mb MB an engine over a floor of $floor"
+		slots="$fit"
+	fi
+fi
+export TEST_SLOTS="$slots"
 
 # $1 held between $2 and $3.
 clamp() {
