@@ -186,3 +186,23 @@ func test_the_wordmark_shrinks_into_the_room_a_tall_panel_leaves() -> void:
 	assert_almost_eq(MainMenu.wordmark_scale(80.0, 160.0), 0.5, 0.001, "half the room, half")
 	assert_eq(MainMenu.wordmark_scale(-20.0, 160.0), MainMenu.WORDMARK_LEAST, "never gone")
 	assert_eq(MainMenu.wordmark_scale(INF, 160.0), 1.0, "no panel showing")
+
+
+func test_the_tagline_goes_before_it_is_too_small_to_read() -> void:
+	assert_true(MainMenu.tagline_shown(INF, 160.0), "no panel showing")
+	assert_true(MainMenu.tagline_shown(160.0, 160.0), "room for it whole")
+	assert_true(MainMenu.tagline_shown(160.0 * MainMenu.TAGLINE_LEAST, 160.0), "just legible")
+	# The custom match unfolded in a 648 px tall window leaves the wordmark 66 px.
+	assert_false(MainMenu.tagline_shown(66.0, 160.0), "a strip nobody reads: the title's room")
+	assert_false(MainMenu.tagline_shown(-20.0, 160.0), "no room at all")
+
+
+func test_the_seed_field_keeps_digits_only() -> void:
+	assert_eq(MainMenu.seed_typed("1701"), "1701")
+	assert_eq(MainMenu.seed_typed(""), "", "blank: one still to be drawn")
+	assert_eq(MainMenu.seed_typed("1701abc-12 xyz"), "170112", "what is no digit is not typed")
+	assert_eq(MainMenu.seed_typed("-3"), "3")
+	var long := MainMenu.seed_typed("9".repeat(40))
+	assert_eq(long.length(), MainMenu.SEED_DIGITS, "no longer than a seed can be")
+	var choices := MatchChoices.new().with_seed(long)
+	assert_eq(choices.seed_problems(), PackedStringArray(), "and still a seed")
