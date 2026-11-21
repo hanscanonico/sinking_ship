@@ -270,7 +270,7 @@ func _process(delta: float) -> void:
 		_arms.show_seat(
 			viewed, _driver.previous["seats"][viewed], snapshot["seats"][viewed], _driver.alpha
 		)
-	var eye := _eyes.global_position
+	var eye := _view.hold_eye(_eyes, viewed if _staged.is_empty() else -1)
 	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
 	_lens_drops.show_eye(viewed, _underwater.is_under())
