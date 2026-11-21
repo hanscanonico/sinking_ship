@@ -81,8 +81,9 @@ static func whose_view(name: String, own: bool, observer: bool) -> String:
 
 ## How a seat out of the match went, as the spectating line and the results' title say
 ## it: sunk when it was inside her as she went ([param cause]); frozen when the cold put
-## it out [param aboard], inside one of her rooms (SeatRoom), which it never left; else
-## overboard — each a word no wider than overboard, as the line has no room for more.
+## it out [param aboard], inside one of her rooms or standing on a deck of hers the water
+## came over (SeatRoom.out_aboard): it never left her; else overboard — each a word no
+## wider than overboard, as the line has no room for more.
 static func out_word(cause: PlayerState.Cause, aboard := false) -> String:
 	if cause == PlayerState.Cause.WITH_HER:
 		return Language.t("Sunk")

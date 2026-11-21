@@ -78,6 +78,25 @@ func test_a_seat_out_in_a_room_went_out_aboard() -> void:
 	assert_false(rooms.out_aboard(sim, sim.snapshot(), 0), "asked again for the next")
 
 
+## A seat the cold put out standing on her open deck as the water came over it went out
+## aboard, never overboard — as a match played from her bridge ended, its title
+## "Overboard" for a seat still at her stern rail; one afloat over that deck is in the sea.
+func test_a_seat_out_standing_on_her_deck_went_out_aboard() -> void:
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var sim := MatchSim.create(SimFixtures.config(2, scenario, 1701, SimFixtures.steamer()))
+	sim.state.tick = sim.schedule.hit_tick()
+	var on_deck := Vector3(-11.5, 0.0, -4.6)
+	var spots: Array[Vector3] = [on_deck, on_deck + Vector3.UP * 0.5]
+	for seat in spots.size():
+		sim.state.seats[seat].pos = spots[seat]
+		sim.state.seats[seat].body = PlayerState.Body.OUT
+		sim.state.seats[seat].out_cause = PlayerState.Cause.COLD
+	assert_eq(sim.config.ship.room_at(on_deck, 0.4), -1, "no room there: her open deck")
+	var rooms := SeatRoom.new()
+	assert_true(rooms.out_aboard(sim, sim.snapshot(), 0), "out standing on her deck")
+	assert_false(rooms.out_aboard(sim, sim.snapshot(), 1), "afloat over it: in the sea")
+
+
 ## The ghost is in the room it walks, as a seat is, and on an open deck on its platform;
 ## nowhere while the view is not its.
 func test_the_ghost_stands_in_the_room_it_walks() -> void:
