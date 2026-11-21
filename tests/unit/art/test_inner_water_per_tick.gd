@@ -207,16 +207,17 @@ func test_water_climbing_slower_churns_by_its_share_of_the_full_rate() -> void:
 	assert_almost_eq(InnerWater.inflow(0.0, 0.005, 1.0 / 30.0, 0.3), 0.5, 1e-6)
 
 
-## How hard the door's high side's sheet churns, as its material is told.
+## How hard the door's high side's sheet churns, as its material is told — made now if
+## its water has not shown yet, told what its cell's sheets were (InnerWaterSheets).
 func _inflow_of(water: InnerWater) -> float:
-	var sheet: MeshInstance3D = water._surfaces[_high]
+	var sheet := InnerWaterSheets.made(water, _high, -1)
 	var churn: Variant = (sheet.material_override as ShaderMaterial).get_shader_parameter(&"inflow")
 	return 0.0 if churn == null else churn
 
 
 func test_a_sheet_churns_a_fifth_of_the_way_more_each_tick_its_water_climbs_fast() -> void:
 	var water := _water()
-	assert_not_null(water._surfaces[_high], "the door's high side's water is drawn")
+	assert_ne(water._boxes[_high].size, Vector3.ZERO, "the door's high side's water is drawn")
 	var calm := _pose()
 	water.show_water(calm, calm, 0.0)
 	assert_eq(_inflow_of(water), 0.0, "calm before")
@@ -407,19 +408,28 @@ func test_every_stacked_sheet_shows_as_its_own_box_says_however_she_leans() -> v
 			var reach := CellSurface.reach(water._ship, stack[1])
 			var sheet: MeshInstance3D = stack[2]
 			assert_eq(
-				sheet.visible,
+				sheet != null and sheet.visible,
 				InnerWater.shows(pose.levels[stack[0]], reach),
 				"frame %d, cell %d's stacked sheet" % [frame, stack[0]]
 			)
 
 
-## What [param water] draws: each sheet's and pour's visibility and, shown, its transform.
+## What [param water] draws: each sheet's and pour's visibility and, shown, its transform
+## — in the order of her cells and openings, not of when each was made: one not made yet
+## is drawn hidden.
 func _drawn(water: InnerWater) -> Array:
+	var sheets: Array = []
+	sheets.append_array(water._surfaces)
+	for stack: Array in water._stacks:
+		sheets.append(stack[2])
+	for kept: Array in [water._pours, water._crossings, water._landings]:
+		sheets.append_array(kept)
+	sheets.append_array(water._bursts)
+	sheets.append_array(water._leaks)
 	var drawn := []
-	for child: Node in water.get_children():
-		var sheet := child as MeshInstance3D
-		if sheet != null:
-			drawn.append([sheet.visible, sheet.transform if sheet.visible else Transform3D()])
+	for sheet: MeshInstance3D in sheets:
+		var shown := sheet != null and sheet.visible
+		drawn.append([shown, sheet.transform if shown else Transform3D()])
 	return drawn
 
 
