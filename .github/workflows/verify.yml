@@ -1,10 +1,13 @@
 # The merge gate, run for us instead of remembered: the targets `make verify`
-# chains but bake-check. The static gates — check, guard-check, ship-gen-check,
-# lint and format-check — run in one job; the suite is dealt
+# chains but bake-check. The static gates run in two jobs — check, ship-gen-check,
+# lint and format-check in one, guard-check, most of it waits on locks, in the
+# other; the suite is dealt
 # across parallel shards by tools/test_shards.py, balanced on
 # tests/durations.tsv — run in one engine it took over 70 minutes (SH34) — and
-# art-lint runs beside them: the small Titanic alone, the rest of the fleet and the
-# match together, and the traced Titanic in parts.
+# art-lint runs beside them: the rest of the fleet and the match together, and each
+# Titanic, the small one and the traced, in parts.
+# No job is meant to take much over seven minutes: in one job the static gates took
+# 17, and the run with them (run 44883536730).
 # The `verify` job at the end is the one verdict: green only when every
 # other job is.
 name: verify
@@ -38,8 +41,10 @@ jobs:
   static:
     name: check, lint, format-check
     runs-on: ubuntu-24.04
-    # Its steps take 15–19 minutes on a usual runner; a slow one ran past 20 and was
-    # cancelled in format-check, its last step, with nothing wrong (PR #646).
+    # A guard against a hung step, not a budget: its steps take three or four minutes
+    # now that check loads the project in one engine and the generators run side by
+    # side. At 15–19 minutes a slow runner ran it past 20 and it was cancelled in
+    # format-check, its last step, with nothing wrong (PR #646).
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -60,9 +65,6 @@ jobs:
       - name: check
         run: make check
 
-      - name: guard-check
-        run: make guard-check
-
       # Every data/ships/NAME.tres and test hull held to its tools/gen_NAME.py;
       # python3 is setup-python's.
       - name: ship-gen-check
@@ -73,6 +75,21 @@ jobs:
 
       - name: format-check
         run: make format-check
+
+  # The gate scripts held to what they promise (make guard-check), beside the static
+  # gates rather than among them: three and a half minutes, nearly all of it the lock
+  # and slot checks waiting on sleeps, which no more cores would shorten.
+  guards:
+    name: guard-check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup-godot
+
+      - name: guard-check
+        run: make guard-check
 
   # The game's GDExtension (native/, #410) built for Linux, for the shards to load: they
   # test the native walk search the game runs, and test_walk_search_native holds it to
@@ -179,8 +196,11 @@ jobs:
       - name: Import assets
         run: make import
 
+      # An engine a core, of the runner's three: in one engine the scripts took over
+      # seven minutes (run 44883536730). TEST_SLOTS, as a run takes half the cores by
+      # default (tools/test_slot.sh).
       - name: Cross-check native against GDScript
-        run: make test JOBS=1 TESTS="tests/unit/ai/test_walk_search_native.gd tests/unit/ai/test_water_native.gd tests/unit/core/test_sink_native.gd tests/unit/core/test_sink_native_stages.gd tests/unit/core/test_motion_native.gd tests/unit/core/test_contacts_native.gd tests/unit/ai/test_floor_way_native.gd tests/unit/art/test_ship_mesh_native.gd tests/unit/match/test_water_fx_native.gd tests/unit/art/test_lamp_sight.gd tests/unit/core/test_cell_map_native.gd tests/unit/ai/test_blocked_native.gd tests/unit/core/test_rest_native.gd tests/unit/ai/test_bot_stepped_native.gd tests/unit/core/test_shell_native.gd tests/unit/core/test_pose_native.gd tests/unit/core/test_clear_stretches_native.gd"
+        run: make test JOBS=3 TEST_SLOTS=3 TESTS="tests/unit/ai/test_walk_search_native.gd tests/unit/ai/test_water_native.gd tests/unit/core/test_sink_native.gd tests/unit/core/test_sink_native_stages.gd tests/unit/core/test_motion_native.gd tests/unit/core/test_contacts_native.gd tests/unit/ai/test_floor_way_native.gd tests/unit/art/test_ship_mesh_native.gd tests/unit/match/test_water_fx_native.gd tests/unit/art/test_lamp_sight.gd tests/unit/core/test_cell_map_native.gd tests/unit/ai/test_blocked_native.gd tests/unit/core/test_rest_native.gd tests/unit/ai/test_bot_stepped_native.gd tests/unit/core/test_shell_native.gd tests/unit/core/test_pose_native.gd tests/unit/core/test_clear_stretches_native.gd"
         env:
           SINKING_NATIVE_REQUIRED: "1"
 
@@ -247,10 +267,10 @@ jobs:
     needs: native
     runs-on: ubuntu-24.04
     # A guard against a hung engine, not a budget: the shards are dealt about
-    # 11 minutes apiece (tests/durations.tsv), the longest single script
-    # test_liner_boiler.gd, 10. Ten shards, as the Titanic's art-lint is seven parts:
-    # with the static job and the other two art-lint jobs that is 20, as many jobs as
-    # GitHub runs at once for the repository.
+    # 5 minutes apiece (tests/durations.tsv), the longest single script
+    # test_titanic_static.gd, 3. GitHub runs 20 jobs at once for the repository and
+    # this run asks for more, so the last of them queue behind the ones that are over
+    # in a minute or two — the native builds and each Titanic's open spans.
     timeout-minutes: 40
     strategy:
       # Every shard reports, so one red run names every failing script.
@@ -278,7 +298,9 @@ jobs:
   # match, beside the shards rather than after them. Run only by hand before, it had
   # gathered 25 problems on main by the time someone did (#270). Each Titanic is linted
   # apart from the rest: the traced one alone outgrew the 40 minutes the whole fleet had
-  # taken 24 of (#364).
+  # taken 24 of (#364). The small one goes in parts as the traced one does below
+  # (PART=K/N, the last her open spans alone): in one job she took eight and a half
+  # minutes, seven of them her furnishings (run 44883536730).
   art-lint:
     name: art-lint ${{ matrix.part }}
     runs-on: ubuntu-24.04
@@ -288,8 +310,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - part: small_titanic
-            args: SHIP=small_titanic
+          # Change the 3 in every small_titanic row together.
+          - part: small_titanic 1/3
+            args: SHIP=small_titanic PART=1/3 COSTS=art-lint-costs.tsv
+            costs: small_titanic-1
+          - part: small_titanic 2/3
+            args: SHIP=small_titanic PART=2/3 COSTS=art-lint-costs.tsv
+            costs: small_titanic-2
+          - part: small_titanic 3/3
+            args: SHIP=small_titanic PART=3/3 COSTS=art-lint-costs.tsv
+            costs: small_titanic-3
           - part: fleet
             args: SKIP=titanic,small_titanic
     steps:
@@ -300,6 +330,15 @@ jobs:
       - name: art-lint
         run: make art-lint ${{ matrix.args }}
 
+      # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
+      - uses: actions/upload-artifact@v4
+        if: always() && matrix.costs
+        with:
+          name: art-lint-costs-${{ matrix.costs }}
+          path: art-lint-costs.tsv
+          if-no-files-found: ignore
+          retention-days: 90
+
   # The traced Titanic's lint in parts side by side (make art-lint PART=K/N): in one
   # job it took 29 minutes once B deck was laid (#370), with her decks from C down still
   # to lay. Each part builds her once, the last to check her railings' open spans and
@@ -308,6 +347,8 @@ jobs:
   # — 7 to 10 minutes, as fast as the runner it lands on, the same in every part — and
   # its share: 22 minutes between them in run 41571719294, the open spans 2 or so after
   # their own build. N is how many parts are listed here: one more is one number.
+  # Nine since her build came down to a minute and a half: seven left the dealt parts
+  # at 7 to 11 minutes (run 44883536730), the longest jobs of the run.
   art-lint-titanic:
     name: art-lint titanic ${{ matrix.part }}/${{ strategy.job-total }}
     runs-on: ubuntu-24.04
@@ -316,7 +357,7 @@ jobs:
       # Every part reports, so one red run names all her problems.
       fail-fast: false
       matrix:
-        part: [1, 2, 3, 4, 5, 6, 7]
+        part: [1, 2, 3, 4, 5, 6, 7, 8, 9]
     steps:
       - uses: actions/checkout@v4
 
@@ -335,14 +376,15 @@ jobs:
           retention-days: 90
 
   verify:
-    needs: [static, native, native-macos, native-windows, test, art-lint, art-lint-titanic]
+    needs: [static, guards, native, native-macos, native-windows, test, art-lint, art-lint-titanic]
     if: always()
     runs-on: ubuntu-24.04
     steps:
       - name: Every gate passed
         run: |
-          echo "static: ${{ needs.static.result }}, native: ${{ needs.native.result }}, native-macos: ${{ needs.native-macos.result }}, native-windows: ${{ needs.native-windows.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}, art-lint-titanic: ${{ needs.art-lint-titanic.result }}"
+          echo "static: ${{ needs.static.result }}, guards: ${{ needs.guards.result }}, native: ${{ needs.native.result }}, native-macos: ${{ needs.native-macos.result }}, native-windows: ${{ needs.native-windows.result }}, test: ${{ needs.test.result }}, art-lint: ${{ needs.art-lint.result }}, art-lint-titanic: ${{ needs.art-lint-titanic.result }}"
           test "${{ needs.static.result }}" = success
+          test "${{ needs.guards.result }}" = success
           test "${{ needs.native.result }}" = success
           test "${{ needs.native-macos.result }}" = success
           test "${{ needs.native-windows.result }}" = success
