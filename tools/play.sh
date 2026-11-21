@@ -15,7 +15,7 @@
 #       between commands
 #   tools/play.sh 'click "Play"; until live 3000; shot start'
 #   tools/play.sh 'hold move_up; wait 60; release all; turn 90; shot'
-#   tools/play.sh quit
+#   tools/play.sh quit                                      ends it; a no-op with none up
 #   tools/play.sh - <<'EOF' … EOF                           a turn read from stdin
 #
 # A turn's answer names each frame it saved, PLAY/shots/NNNN_NAME.png: read it as an
@@ -65,6 +65,13 @@ fi
 commands="$*"
 if [[ "$1" == "-" ]]; then
 	commands="$(cat)"
+fi
+
+# A quit with no session up has nothing to quit: left to wait for one, it would be the
+# first turn of the next session and end it on its first frame.
+if [[ "$commands" == "quit" && ! -f "$PLAY/ready" ]]; then
+	echo "play: no session in $PLAY to quit"
+	exit 0
 fi
 
 # The session is up once its driver has written PLAY/ready: a ship's first bake and the
