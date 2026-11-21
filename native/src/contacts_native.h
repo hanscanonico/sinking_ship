@@ -307,4 +307,36 @@ private:
 	void knock(int32_t p_prop, int32_t p_other, const ContactHit &p_contact);
 };
 
+// Hazards._stirring's rest test (#682's profile: its loop over the Titanic's crates, nearly
+// all at rest, was most of the cargo's tick), in rest_native.cpp: every crate's piece and
+// whether it is loose here, and every crate the test surely leaves at rest this tick
+// decided as the GDScript decides it, operation for operation. What it cannot decide alone
+// — a crate held, hung, over another piece, stepped, or at rest where its cell must be
+// looked for or the water under it asked of the pose — it hands back, in order, for the
+// GDScript's own loop.
+class NativeRest : public RefCounted {
+	GDCLASS(NativeRest, RefCounted)
+
+public:
+	void setup(const PackedFloat64Array &p_grips, const PackedFloat64Array &p_lifts);
+	Array stir(const Array &p_props, const PackedByteArray &p_gone, const PackedVector3Array &p_feet,
+			const PackedInt32Array &p_rested_on, const PackedInt32Array &p_rest_cells,
+			const PackedFloat64Array &p_rest_roofs, const PackedFloat64Array &p_levels,
+			const PackedByteArray &p_aboard, const PackedInt32Array &p_standing, const PackedVector2Array &p_spans,
+			const PackedFloat64Array &p_numbers);
+	Array loose() const;
+	PackedByteArray turn() const;
+	PackedByteArray aboard() const;
+
+protected:
+	static void _bind_methods();
+
+private:
+	std::vector<double> grips_;
+	std::vector<double> lifts_;
+	Array loose_;
+	PackedByteArray turn_;
+	PackedByteArray aboard_;
+};
+
 } // namespace godot
