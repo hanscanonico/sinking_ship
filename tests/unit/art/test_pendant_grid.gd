@@ -2,6 +2,15 @@ extends GutTest
 ## A plain room's pendants light the whole of it (PendantGrid): found playing the
 ## ferry, whose saloon and car deck stood near black between their lamps.
 
+const SHIPS: Array[ShipLayout] = [
+	preload("res://data/ships/steamer.tres"),
+	preload("res://data/ships/trawler.tres"),
+	preload("res://data/ships/tug.tres"),
+	preload("res://data/ships/ferry.tres"),
+	preload("res://data/ships/freighter.tres"),
+	preload("res://data/ships/barque.tres"),
+]
+
 
 func test_a_cabins_pendant_keeps_its_own_reach() -> void:
 	var cabin := Rect2(0.0, 0.0, 4.0, 3.0)
@@ -26,8 +35,8 @@ func test_no_pendant_is_asked_further_than_the_most() -> void:
 
 
 func test_every_ships_plain_rooms_are_lit_to_their_corners() -> void:
-	for ship: String in ["steamer", "trawler", "tug", "ferry", "freighter", "barque"]:
-		var layout: ShipLayout = load("res://data/ships/%s.tres" % ship)
+	for layout: ShipLayout in SHIPS:
+		var ship := layout.resource_path.get_file()
 		var space := ShipSpace.new(layout)
 		for room in layout.rooms:
 			var lights := PendantGrid.lights(space, room)
