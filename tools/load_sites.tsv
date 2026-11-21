@@ -119,6 +119,7 @@ tools/art_lint_costs.gd	FileAccess.get_file_as_string(path)	tools/art_lint_costs
 tools/art_lint_costs.gd	FileAccess.open(path)	tools/art_lint_costs.tsv
 tools/census.gd	FileAccess.open(OUT if ship == DEFAULT_SHIP else SHIP_OUT % ship)	docs/census*.md
 tools/census.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
+tools/exactness.gd	FileAccess.open(out)	-
 tools/online_e2e.gd	FileAccess.file_exists(_settings)	-
 tools/ship_bake.gd	FileAccess.file_exists(scene)	authoring/* data/ships/* tests/fixtures/ships/*
 tools/ship_bake.gd	FileAccess.open(json)	-

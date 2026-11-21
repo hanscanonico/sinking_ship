@@ -29,10 +29,8 @@ func show(water: InnerWater, pose: ShipPose, levels: PackedFloat64Array) -> void
 		var box := AABB(low, water._structure.cells[cell].high - low)
 		var held := cell < pose.pockets.size() and pose.pockets[cell] > 0.0
 		var glow := InnerWater.POCKET_GLOW if held else 0.0
-		if water._surfaces[cell] != null and water._glows[cell] != glow:
-			InnerWater._param(water._surfaces[cell], &"pocket_glow", glow)
-			for index: int in water._stacks_of(cell):
-				InnerWater._param(water._stacks[index][2], &"pocket_glow", glow)
+		if water._boxes[cell].size != Vector3.ZERO and water._glows[cell] != glow:
+			InnerWaterSheets.tell(water, cell, &"pocket_glow", glow)
 			water._glows[cell] = glow
 		if held and cell == eye_cell:
 			lit = cell
