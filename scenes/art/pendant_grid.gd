@@ -22,6 +22,18 @@ static func reach(area: Rect2, drop: float) -> float:
 	return clampf(Vector3(half.x, drop, half.y).length(), ShipLamp.RANGE, REACH_MOST)
 
 
+## How far a lamp hung at [param at], ship space, must reach to light the furthest
+## corner of the floor of [param area] at [param floor]: an engine room's, hung over
+## its lanes wherever its machinery leaves room. Never under a lamp's own reach.
+static func reach_from(area: Rect2, at: Vector3, floor: float) -> float:
+	var far := Vector3(
+		maxf(at.x - area.position.x, area.end.x - at.x),
+		at.y - floor,
+		maxf(at.z - area.position.y, area.end.y - at.z)
+	)
+	return clampf(far.length(), ShipLamp.RANGE, REACH_MOST)
+
+
 ## The pendants of [param room], under its ceiling.
 static func lights(space: ShipSpace, room: ShipRoom) -> Array[RoomDressing.Light]:
 	var found: Array[RoomDressing.Light] = []
