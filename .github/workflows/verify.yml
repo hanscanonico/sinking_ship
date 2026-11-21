@@ -4,10 +4,13 @@
 # other; the suite is dealt
 # across parallel shards by tools/test_shards.py, balanced on
 # tests/durations.tsv — run in one engine it took over 70 minutes (SH34) — and
-# art-lint runs beside them: the rest of the fleet and the match together, and each
+# art-lint runs beside them: the rest of the fleet beside the match, and each
 # Titanic, the small one and the traced, in parts.
-# No job is meant to take much over seven minutes: in one job the static gates took
-# 17, and the run with them (run 44883536730).
+# No job is meant to take much over six minutes: in one job the static gates took
+# 17, and the run with them (run 44883536730). A runner has four cores that work as
+# two: three engines side by side on one each took half as long again as two did
+# (run 44903878057), so a job runs two or three engines, never one, and the run
+# asks for 20 long jobs, as many as GitHub runs at once for the repository.
 # The `verify` job at the end is the one verdict: green only when every
 # other job is.
 name: verify
@@ -101,23 +104,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The built library is kept by what it is built from — native/'s sources, the
+      # build script and the runner image, whose compiler it is — and the build skipped
+      # when nothing of that changed: the test jobs wait for this one, and a build is
+      # most of its minute (run 44903878057). The image by its date alone: runners
+      # of one day's image differ in the version's last numbers, and two runs a few
+      # minutes apart each missed the other's library (run 44905545258).
+      - name: Runner image
+        id: image
+        run: echo "id=$ImageOS-${ImageVersion%%.*}" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the library
+        id: lib
+        uses: actions/cache@v4
+        with:
+          path: native/lib
+          key: native-lib-linux-${{ steps.image.outputs.id }}-${{ hashFiles('native/**', 'tools/native_build.sh') }}
+
       - uses: actions/setup-python@v5
+        if: steps.lib.outputs.cache-hit != 'true'
         with:
           python-version: "3.12"
 
       # pip's own retries and read timeout outlast a flaky index; the step's timeout
       # ends a stuck one in minutes rather than at the job's limit (#459).
       - name: Install SCons
+        if: steps.lib.outputs.cache-hit != 'true'
         timeout-minutes: 5
         run: pip install --retries 5 --timeout 30 scons
 
       - name: Cache godot-cpp
+        if: steps.lib.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: native/build
           key: godot-cpp-linux-${{ hashFiles('tools/native_build.sh', 'native/build_profile.json') }}
 
       - name: Build
+        if: steps.lib.outputs.cache-hit != 'true'
         run: tools/native_build.sh
 
       - uses: actions/upload-artifact@v4
@@ -263,21 +287,24 @@ jobs:
           retention-days: 7
 
   test:
-    name: test ${{ matrix.shard }}/10
+    name: test ${{ matrix.shards }} of 21
     needs: native
     runs-on: ubuntu-24.04
-    # A guard against a hung engine, not a budget: the shards are dealt about
-    # 5 minutes apiece (tests/durations.tsv), the longest single script
-    # test_titanic_static.gd, 3. Ten shards: with the two static jobs, the macOS
-    # cross-check and art-lint's six that run for minutes, that is 19 of the 20 jobs
-    # GitHub runs at once for the repository — one more queues behind the others.
+    # A guard against a hung engine, not a budget: the shards are dealt about two
+    # and a half minutes apiece (tests/durations.tsv), the longest single script
+    # test_ship_occluders.gd, 3. Twenty-one shards, three to a runner side by side
+    # (tools/test_parts.sh), a job three and a half to five and a half minutes (run
+    # 44903878057): one engine a runner, ten jobs took four and a half to eight (run
+    # 44900242066). Seven jobs: with the two static jobs, the macOS cross-check and
+    # art-lint's ten, that is the 20 GitHub runs at once for the repository — one more
+    # queues behind the others.
     timeout-minutes: 40
     strategy:
       # Every shard reports, so one red run names every failing script.
       fail-fast: false
       matrix:
-        # Change the 10 in SHARD and the job name with this list.
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        # Change the 21 in the name and the command with this list.
+        shards: ["1 2 3", "4 5 6", "7 8 9", "10 11 12", "13 14 15", "16 17 18", "19 20 21"]
     steps:
       - uses: actions/checkout@v4
 
@@ -290,7 +317,7 @@ jobs:
       - uses: ./.github/actions/setup-godot
 
       - name: test
-        run: make test SHARD=${{ matrix.shard }}/10
+        run: tools/test_parts.sh 21 ${{ matrix.shards }}
         env:
           SINKING_NATIVE_REQUIRED: "1"
 
@@ -298,10 +325,13 @@ jobs:
   # match, beside the shards rather than after them. Run only by hand before, it had
   # gathered 25 problems on main by the time someone did (#270). Each Titanic is linted
   # apart from the rest: the traced one alone outgrew the 40 minutes the whole fleet had
-  # taken 24 of (#364). The small one goes in three parts as the traced one does below
-  # (PART=K/3, the last her open spans alone), the three side by side on the one
-  # runner, an engine a core: in one engine she took eight and a half minutes, seven
-  # of them her furnishings (run 44883536730).
+  # taken 24 of (#364). The small one goes in four parts as the traced one does below
+  # (PART=K/4, the last her open spans alone, done in half a minute), side by side on
+  # the one runner: in one engine she took eight and a half minutes, seven of them
+  # her furnishings (run 44883536730). The fleet's ships go in one engine and what
+  # plays a match in two more beside it (tools/art_lint_fleet.sh), the effects' whole
+  # match alone in one: in one engine the match's checks waited a minute and a half
+  # for the ships and then took four more (run 44900242066).
   art-lint:
     name: art-lint ${{ matrix.part }}
     runs-on: ubuntu-24.04
@@ -312,9 +342,9 @@ jobs:
       matrix:
         include:
           - part: small_titanic
-            run: tools/art_lint_parts.sh small_titanic 3 1 2 3
+            run: tools/art_lint_parts.sh small_titanic 4 1 2 3 4
           - part: fleet
-            run: make art-lint SKIP=titanic,small_titanic
+            run: tools/art_lint_fleet.sh titanic,small_titanic 2
     steps:
       - uses: actions/checkout@v4
 
@@ -340,27 +370,30 @@ jobs:
   # — 7 to 10 minutes, as fast as the runner it lands on, the same in every part — and
   # its share: 22 minutes between them in run 41571719294, the open spans 2 or so after
   # their own build.
-  # Nine parts since her build came down to a minute and a half: seven left the dealt
-  # parts at 7 to 11 minutes (run 44883536730), the longest jobs of the run. Two to a
-  # runner, side by side (tools/art_lint_parts.sh): a job apiece, the run asked for 28
-  # jobs of the 20 GitHub runs at once, and test shards queued five minutes behind
-  # them (run 44890213625). Change the 9 in the name and the command with the lists.
+  # Sixteen parts, two to a runner side by side (tools/art_lint_parts.sh), on the
+  # runners the test shards gave up: nine parts on five runners took five and a half
+  # to nine minutes as the runner was fast or slow (run 44900242066). Two, not three:
+  # eighteen parts three to a runner took four and a half to eight, a build of her
+  # two and a half minutes where three shared a slow runner (run 44903878057). A job
+  # apiece, the run would ask for more jobs than the 20 GitHub runs at once, and test
+  # shards queued five minutes behind them (run 44890213625). Change the 16 in the
+  # name and the command with the lists.
   art-lint-titanic:
-    name: art-lint titanic ${{ matrix.parts }} of 9
+    name: art-lint titanic ${{ matrix.parts }} of 16
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
       # Every part reports, so one red run names all her problems.
       fail-fast: false
       matrix:
-        parts: ["1 2", "3 4", "5 6", "7 8", "9"]
+        parts: ["1 2", "3 4", "5 6", "7 8", "9 10", "11 12", "13 14", "15 16"]
     steps:
       - uses: actions/checkout@v4
 
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
-        run: tools/art_lint_parts.sh titanic 9 ${{ matrix.parts }}
+        run: tools/art_lint_parts.sh titanic 16 ${{ matrix.parts }}
 
       # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
       - uses: actions/upload-artifact@v4

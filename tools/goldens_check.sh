@@ -38,6 +38,18 @@ cut -f3- "$SAMPLE" | sed -E 's/^[0-9T:.-]+Z ?//' >"$WORK/bare.log"
 read_log "$WORK/bare.log" || fail "reading the bare lines failed"
 cmp -s "$WORK/out/$FILE" "$EXPECTED" || fail "the bare lines did not decode to $EXPECTED"
 
+# Two shards side by side in one job (tools/test_parts.sh), each printing the block,
+# line about: each line names its shard after its stamp, and a block is read from its
+# own shard's lines — read as one, the block would hold every line twice.
+shard() {
+	awk -F'\t' -v OFS='\t' -v shard="$1" '{ stamp = $3; sub(/ .*/, "", stamp)
+		text = index($3, " ") ? substr($3, index($3, " ") + 1) : ""; print $1, $2, stamp " [" shard "] " text }' "$SAMPLE"
+}
+paste -d'\n' <(shard 1/3) <(shard 2/3) >"$WORK/side.log"
+grep -q 'Z \[2/3\] golden .* begin ' "$WORK/side.log" || fail "the side-by-side copy of the sample names no shard"
+read_log "$WORK/side.log" || fail "two shards printing the block side by side were refused"
+cmp -s "$WORK/out/$FILE" "$EXPECTED" || fail "the side-by-side block did not decode to $EXPECTED"
+
 # The block printed twice, alike, is one golden; another run printing the same file
 # with other text, its own block sound, is a determinism bug.
 cat "$SAMPLE" "$SAMPLE" >"$WORK/twice.log"
