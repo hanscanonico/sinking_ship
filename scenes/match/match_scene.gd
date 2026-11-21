@@ -967,6 +967,7 @@ func _head_of(seat: int) -> Vector3:
 
 ## The view from the free camera: every seat drawn, nobody's arms, and the HUD as the
 ## observer's, of [param viewed] — the seat last watched, which it trails while it follows.
+## Under the water it is the view from under it, but for a brawler's breath: nobody's eyes.
 func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	if _flying():
 		_free.fly_by_input(delta)
@@ -975,7 +976,7 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	_arms.visible = false
 	_eyes.global_transform = _free.transform()
 	var eye := _eyes.global_position
-	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
+	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye), false)
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
 	_lens_drops.show_eye(-1, _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)

@@ -2,7 +2,8 @@ extends GutTest
 ## Once she has broken (SH33), eyes in no seat — the free camera's, the ghost's — read the
 ## water round them on the piece of her they are inside as it is drawn: a cell of her fore
 ## piece is that cell where the fore piece stands, not where her aft piece, which the
-## ship's own node follows, would carry it.
+## ship's own node follows, would carry it; and the free camera, under the sea, has the
+## view under the water without a brawler's breath.
 
 const MATCH := preload("res://scenes/match/match.tscn")
 const CLEAR := 2.0
@@ -122,6 +123,27 @@ func test_the_free_camera_in_dry_air_under_the_waterline_is_not_under_water() ->
 	assert_true(scene._free.active, "a watcher flies the free camera")
 	assert_almost_eq(scene._eyes.global_position, eye, Vector3.ONE * 1e-4, "the view is its own")
 	assert_false(scene._underwater.is_under(), "in the cell's air")
+
+
+func test_the_free_camera_under_the_sea_has_the_view_under_it_and_nobody_s_breath() -> void:
+	var scene := _broken_match()
+	var box := scene._free.bounds
+	# A corner of its box, off her decks' corner: the open sea.
+	var eye := Vector3(box.position.x + 1.0, -8.0, box.position.z + 1.0)
+	_fly_to(scene, eye)
+	var underwater := scene._underwater
+	assert_almost_eq(scene._eyes.global_position, eye, Vector3.ONE * 1e-4, "its box holds it")
+	assert_true(underwater.is_under(), "under the sea")
+	assert_true(underwater._motes.emitting, "motes drift past it")
+	assert_false(underwater._bubbles.emitting, "nobody breathes there")
+	assert_false(underwater._bubbles.visible)
+	# A brawler's eyes at the same spot — a seat's, the ghost's — breathe.
+	underwater.show_eye(eye, -8.0)
+	assert_true(underwater._bubbles.emitting, "a brawler's breath bubbles up")
+	assert_true(underwater._bubbles.visible)
+	_fly_to(scene, eye)
+	assert_false(underwater._bubbles.emitting, "and stops as the view leaves its eyes")
+	assert_true(underwater._motes.emitting, "the motes drift on")
 
 
 ## Stands [param scene]'s free camera at [param eye] in the world, the match only watched,
