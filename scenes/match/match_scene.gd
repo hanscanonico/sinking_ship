@@ -223,9 +223,9 @@ func _process(delta: float) -> void:
 		_local_up = local_up
 	if _looking() and not _free.active and not _ghost.active:
 		_local.look_by_stick(delta)
-	var detached := _free.active or _ghost.active
-	_audio.hear_through(-1 if _observer or detached else viewed)
-	_first_person_hud.flying = detached
+	_first_person_hud.ghost = _ghost
+	_first_person_hud.flying = _free.active or _ghost.active
+	_audio.hear_through(-1 if _observer or _first_person_hud.flying else viewed)
 	if _observer:
 		_observer_camera.follow(_view.seat_world_position(viewed), delta)
 		_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)
