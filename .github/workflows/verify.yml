@@ -349,25 +349,42 @@ jobs:
           retention-days: 7
 
   test:
-    name: test ${{ matrix.shards }} of 21
+    name: test ${{ matrix.shards }} of 27
     needs: native
     if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
-    # A guard against a hung engine, not a budget: the shards are dealt about two
-    # and a half minutes apiece (tests/durations.tsv), the longest single script
-    # test_ship_occluders.gd, 3. Twenty-one shards, three to a runner side by side
-    # (tools/test_parts.sh), a job three and a half to five and a half minutes (run
-    # 44903878057): one engine a runner, ten jobs took four and a half to eight (run
-    # 44900242066). Seven jobs: with the two static jobs, the macOS cross-check and
-    # art-lint's ten, that is the 20 GitHub runs at once for the repository — one more
-    # queues behind the others.
+    # A guard against a hung engine, not a budget: the shards are dealt two minutes
+    # apiece (tests/durations.tsv), the longest single script test_ship_occluders.gd,
+    # 3, so more shards than these would not shorten the longest. Twenty-seven shards,
+    # three to a runner side by side (tools/test_parts.sh): twenty-one on seven
+    # runners took three and a quarter to four minutes a job, the longest jobs of the
+    # run, while art-lint's on their eight were done in two to two and a half (run
+    # 44943309472); one engine a runner, ten jobs took four and a half to eight (run
+    # 44900242066). Nine jobs: with the two static jobs, the macOS cross-check and
+    # art-lint's eight, that is the 20 GitHub runs at once for the repository — one
+    # more queues behind the others.
     timeout-minutes: 40
     strategy:
       # Every shard reports, so one red run names every failing script.
       fail-fast: false
       matrix:
-        # Change the 21 in the name and the command with this list.
-        shards: ["1 2 3", "4 5 6", "7 8 9", "10 11 12", "13 14 15", "16 17 18", "19 20 21"]
+        # Change the 27 in the name and the command with this list. A runner takes
+        # shards nine apart, not three in a row: the first shards dealt are each one
+        # long script alone (tools/test_shards.py deals the longest first), and three
+        # of those on one runner each ran at the pace of three engines to the end —
+        # test_titanic_static.gd five and a half minutes beside two others of three
+        # (run 44945994128). Beside two shards of many short scripts, the long one has
+        # the runner to itself once they are done.
+        shards:
+          - "1 10 19"
+          - "2 11 20"
+          - "3 12 21"
+          - "4 13 22"
+          - "5 14 23"
+          - "6 15 24"
+          - "7 16 25"
+          - "8 17 26"
+          - "9 18 27"
     steps:
       - uses: actions/checkout@v4
 
@@ -380,7 +397,7 @@ jobs:
       - uses: ./.github/actions/setup-godot
 
       - name: test
-        run: tools/test_parts.sh 21 ${{ matrix.shards }}
+        run: tools/test_parts.sh 27 ${{ matrix.shards }}
         env:
           SINKING_NATIVE_REQUIRED: "1"
 
@@ -447,16 +464,19 @@ jobs:
   # — 7 to 10 minutes, as fast as the runner it lands on, the same in every part — and
   # its share: 22 minutes between them in run 41571719294, the open spans 2 or so after
   # their own build.
-  # Sixteen parts, two to a runner side by side (tools/art_lint_parts.sh), on the
-  # runners the test shards gave up: nine parts on five runners took five and a half
-  # to nine minutes as the runner was fast or slow (run 44900242066). Two, not three:
-  # eighteen parts three to a runner took four and a half to eight, a build of her
-  # two and a half minutes where three shared a slow runner (run 44903878057). A job
-  # apiece, the run would ask for more jobs than the 20 GitHub runs at once, and test
-  # shards queued five minutes behind them (run 44890213625). Change the 16 in the
-  # name and the command with the lists.
+  # Twelve parts, two to a runner side by side (tools/art_lint_parts.sh), on the
+  # runners the test shards leave: with the extension, one ShipSpace for her blockers
+  # and her faces filed once (#732, #745), sixteen parts on eight runners took a
+  # minute and a half to two and a quarter each, half a minute of it her build and
+  # her faces, and all her dealt checks eighteen minutes between them (run
+  # 44943309472) — so two of the eight runners went to the test shards, the run's
+  # longest jobs. Two, not three: eighteen parts three to a runner took four and a
+  # half to eight, a build of her two and a half minutes where three shared a slow
+  # runner (run 44903878057). A job apiece, the run would ask for more jobs than the
+  # 20 GitHub runs at once, and test shards queued five minutes behind them (run
+  # 44890213625). Change the 12 in the name and the command with the lists.
   art-lint-titanic:
-    name: art-lint titanic ${{ matrix.parts }} of 16
+    name: art-lint titanic ${{ matrix.parts }} of 12
     needs: native
     if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
@@ -465,7 +485,7 @@ jobs:
       # Every part reports, so one red run names all her problems.
       fail-fast: false
       matrix:
-        parts: ["1 2", "3 4", "5 6", "7 8", "9 10", "11 12", "13 14", "15 16"]
+        parts: ["1 2", "3 4", "5 6", "7 8", "9 10", "11 12"]
     steps:
       - uses: actions/checkout@v4
 
@@ -478,7 +498,7 @@ jobs:
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
-        run: tools/art_lint_parts.sh titanic 16 ${{ matrix.parts }}
+        run: tools/art_lint_parts.sh titanic 12 ${{ matrix.parts }}
         env:
           SINKING_NATIVE_REQUIRED: "1"
 
