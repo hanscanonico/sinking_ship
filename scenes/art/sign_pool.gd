@@ -32,6 +32,19 @@ var _drawn := {}
 var _eye := Vector3.INF
 
 
+## Whether a doorway stands under a sign hung on [param room]'s [param side] over the
+## middle of [param gap], a stretch along it between the room's own walls
+## (ShipSpace.wall_runs): no wall stands across it from the room's floor up past a head.
+## A bulkhead shared with a deeper room stands on that room's floor, so it is none of the
+## higher room's runs — and no doorway to name a room over.
+static func over_a_doorway(space: ShipSpace, room: ShipRoom, side: int, gap: Vector2) -> bool:
+	var middle := (gap.x + gap.y) * 0.5
+	var here := space.on_side(room, side, middle, 0.3)
+	var past := space.on_side(room, side, middle, -0.3)
+	var head := room.floor_height + ShipSpace.FULL_WALL
+	return not space.walled_between(here, past, room.floor_height, head)
+
+
 ## A pool of every sign's letters under [param dressed] (take), put under it as Signs and
 ## kept to [param span] (keep_to): what a packed art draws them by (ShipArt.pack).
 static func under(dressed: Node3D, span: Vector2) -> SignPool:
