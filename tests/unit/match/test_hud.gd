@@ -79,6 +79,56 @@ func test_the_line_says_how_into_the_free_camera_and_back() -> void:
 	)
 
 
+## A seat the cold put out inside one of her rooms never went overboard: the line says
+## frozen. Sunk with her stays sunk wherever it was.
+func test_the_line_says_frozen_for_a_seat_the_cold_put_out_aboard() -> void:
+	assert_eq(Hud.out_word(COLD), "Overboard")
+	assert_eq(Hud.out_word(COLD, true), "Frozen")
+	assert_eq(Hud.out_word(WITH_HER, true), "Sunk", "inside her as she went: sunk")
+	var aboard := Hud.spectating_text(
+		"3rd", 8, "watching Bot 3", "Q", "E", "", false, COLD, "", false, "", false, true
+	)
+	assert_eq(aboard, "Frozen — 3rd of 8   ·   watching Bot 3\nQ / E to switch")
+
+
+## Frozen is no wider than overboard — the English word the line's box was sized for — in
+## any language, and the line a seat frozen aboard reads, the widest name in it, fits the
+## box in each.
+func test_frozen_is_no_wider_than_overboard_in_any_language() -> void:
+	var font := UiTheme.shared().get_font(&"font", &"Label")
+	var box := Hud.spectating_box(SIZES[0])
+	var widest := UiTheme.fit("WWWWWWWWWWWWWWWW", font, FONT_SIZE, Hud.NAME_WIDTH)
+	var english := Hud.out_word(COLD)
+	var overboard := font.get_string_size(english, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+	for language: String in ["en", "fr", "es"]:
+		Language.use(language)
+		var frozen := Hud.out_word(COLD, true)
+		assert_ne(frozen, Hud.out_word(COLD), "%s: a word of its own" % language)
+		var word := font.get_string_size(frozen, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+		assert_lte(word, overboard, "%s: %s against Overboard" % [language, frozen])
+		for observer: bool in [false, true]:
+			var whose := Hud.whose_view(widest, false, observer)
+			var text := Hud.spectating_text(
+				Language.ordinal(16),
+				16,
+				whose,
+				"Q",
+				"E",
+				"C",
+				false,
+				COLD,
+				"",
+				false,
+				"",
+				false,
+				true
+			)
+			var line := text.split("\n")[0]
+			var width := font.get_string_size(line, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+			assert_lt(width + OUTLINE * 2.0, box.size.x, "%s fits on one line" % line)
+	Language.use(Language.SOURCE)
+
+
 ## Once out, the free camera's line says how to follow the seat watched, and how to let go.
 func test_the_line_from_the_free_camera_says_how_to_follow() -> void:
 	assert_eq(

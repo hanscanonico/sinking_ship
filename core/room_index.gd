@@ -47,5 +47,28 @@ func room_at(ship_point: Vector3, step: float) -> int:
 	return -1
 
 
+## The room [param ship_point] is in off its floor, as a body afloat in it is: of the
+## rooms whose area holds it and whose floor is no more than [param step] over it, the
+## one with the highest floor — the first such in the layout's order — or -1. Nothing
+## is asked of what lies between the point and that floor: it is the room only of a
+## point known to be inside her (ShipPose.cell_at).
+func room_around(ship_point: Vector3, step: float) -> int:
+	var slot := _slot(ship_point.x)
+	if slot < 0 or slot >= _slots.size():
+		return -1
+	var found := -1
+	var highest := -INF
+	for index: int in _slots[slot]:
+		var room := _layout.rooms[index]
+		if room.floor_height <= highest or room.floor_height > ship_point.y + step:
+			continue
+		# Over its floor, in its area as ShipRoom.holds has it.
+		var on_floor := Vector3(ship_point.x, room.floor_height, ship_point.z)
+		if room.holds(on_floor, step):
+			found = index
+			highest = room.floor_height
+	return found
+
+
 func _slot(x: float) -> int:
 	return floori((x - _from) / SLOT)

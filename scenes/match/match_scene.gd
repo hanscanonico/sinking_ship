@@ -79,6 +79,10 @@ var _config: MatchConfig
 var _stats: MatchStats
 ## The stats the results showed, kept past a replay of the match (show_results_again).
 var _last_stats: MatchStats
+## Which seats went out inside one of her rooms (SeatRoom.out_aboard); and whether the
+## local seat had, as the results kept in _last_stats told it.
+var _rooms := SeatRoom.new()
+var _last_aboard := false
 ## Whether the match started last has been counted in the session: once, as its results
 ## first show.
 var _counted := false
@@ -204,14 +208,7 @@ func _process(delta: float) -> void:
 		_show_replay(snapshot, viewed)
 	else:
 		_count_in_session()
-		_end.show_results(
-			_stats,
-			_local_seat,
-			_names,
-			_config.match_seed,
-			_config.goal == MatchRules.Goal.SURVIVAL,
-			session
-		)
+		_show_results(_stats, _rooms.out_aboard(_driver.sim(), snapshot, _local_seat))
 	_feed.visible = not _end.visible
 	if _end.visible:
 		_end.show_prompts(_prompts)
@@ -528,6 +525,7 @@ func _setup_view(
 	# sinking are.
 	var sim := _driver.sim()
 	_stats = MatchStats.new(config.seats, config.countdown_ticks)
+	_rooms.forget()
 	_order = SpectateOrder.new(-1 if _watcher else _eye_seat, _stats)
 	_names = names
 	_feed.setup(names, _local_seat, config.ship, config.bonus_rules)
@@ -598,6 +596,7 @@ func save_replay() -> void:
 		return
 	last_replay = replays.record(choices, runner)
 	_last_stats = _stats
+	_last_aboard = _rooms.out_aboard(_driver.sim(), _driver.current, _local_seat)
 	var playable := last_replay.playable()
 	_end.offer_replay(playable)
 	if playable and (_local != null or _watcher):
@@ -696,14 +695,14 @@ func show_results_again() -> void:
 	_driver.clock().paused = true
 	_replay_hud.hide()
 	# The session as the match's own results showed it: the replay adds nothing to it.
-	_end.show_results(
-		_last_stats,
-		_local_seat,
-		_names,
-		_config.match_seed,
-		_config.goal == MatchRules.Goal.SURVIVAL,
-		session
-	)
+	_show_results(_last_stats, _last_aboard)
+
+
+## The results of [param stats] (EndOverlay.show_results), the local seat gone out
+## inside one of her rooms when [param aboard].
+func _show_results(stats: MatchStats, aboard: bool) -> void:
+	var survival := _config.goal == MatchRules.Goal.SURVIVAL
+	_end.show_results(stats, _local_seat, _names, _config.match_seed, survival, session, aboard)
 
 
 ## Stands the ended match aside while Game holds the next one's countdown for its
@@ -1074,7 +1073,8 @@ func _spectating(snapshot: Dictionary, viewed: int) -> String:
 		_prompts.word(&"spectate_follow"),
 		_free.following,
 		"" if _observer else _prompts.word(&"spectate_ghost"),
-		_ghost.active
+		_ghost.active,
+		_rooms.out_aboard(_driver.sim(), snapshot, _eye_seat)
 	)
 
 

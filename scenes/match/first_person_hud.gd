@@ -135,8 +135,8 @@ var _rules: BrawlRules
 ## The ship's layout: what each prop is (#273); and the props a hand may hold
 ## (GrabReach.holdable_of).
 var _layout: ShipLayout
-## Per layout the eye has stood in, its rooms indexed (RoomIndex).
-var _room_indexes := {}
+## The room the eye's seat is in, on its feet or afloat (SeatRoom).
+var _rooms := SeatRoom.new()
 var _holdable := PackedInt32Array()
 ## How the match's bonuses come and what each kind is (#307), null for none; and what a
 ## Grab press does, which the prompt names (GrabReach).
@@ -263,7 +263,8 @@ func _draw_hud() -> void:
 	var me := answers.me
 	var decks := MatchState.up_of(_snapshot, me) == Faces.Up.DECK
 	var where := answers.faces.layout(Faces.Up.DECK)
-	_draw_where(where, me["pos"], me["surface"] if decks else Surfaces.NONE)
+	var room := _rooms.of(where, answers.pose, me["pos"], _rules.step_height)
+	_draw_where(where, room, me["surface"] if decks else Surfaces.NONE)
 	if not _eyes or flying:
 		return
 	_draw_crosshair(ShoveResolver.would_hit(answers.framed, _seat, _rules, answers.here))
@@ -279,7 +280,7 @@ func _draw_hud() -> void:
 				var size := _font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
 				var badge := at + Vector2(-size.x * 0.5 - PROMPT_BADGE, -FONT_SIZE * 0.35)
 				BonusIcons.draw(_drawing, kind, badge, BONUS_RADIUS)
-	_draw_readouts(me, answers.pose.world_height(me["pos"]))
+	_draw_readouts(me, answers.pose.world_height(me["pos"]), room != -1)
 
 
 ## What moves with the eye frame by frame, over the rest (_live): the climb prompt, the
@@ -437,13 +438,11 @@ func _draw_crosshair(lit: bool) -> void:
 		_drawing.draw_arc(centre, 16.0, 0.0, TAU, 32, colour, 2.5, true)
 
 
-## Bottom left, over the readouts and on their plate: the name of the room
-## [param feet] stand in, else of the platform [param surface] is.
-func _draw_where(layout: ShipLayout, feet: Vector3, surface: int) -> void:
+## Bottom left, over the readouts and on their plate: the name of [param room] of
+## [param layout], the one the seat is in (SeatRoom) — afloat in it too — else, for -1,
+## of the platform [param surface] is.
+func _draw_where(layout: ShipLayout, room: int, surface: int) -> void:
 	var where := ""
-	if not _room_indexes.has(layout):
-		_room_indexes[layout] = RoomIndex.new(layout)
-	var room: int = _room_indexes[layout].room_at(feet, _rules.step_height)
 	if room != -1:
 		where = layout.rooms[room].name
 	elif surface >= 0 and surface < layout.platforms.size():
@@ -505,16 +504,17 @@ static func _fits(text: String, font: Font, font_size: int, width: float) -> boo
 
 
 ## Bottom left: metres from [param me]'s feet to the sea, above or under it — or
-## that it is in it — then the stamina and warmth slots, filled from [param me], a strip
+## that it is in it, or in the water of a room of her when [param in_room]
+## (swimming_words) — then the stamina and warmth slots, filled from [param me], a strip
 ## under the warmth bar for each spare meter (spare_meters); and under the plate, a badge
 ## for each kind of bonus the seat has (BonusIcons), with how many of it past one
 ## (held_bonuses).
-func _draw_readouts(me: Dictionary, above_sea: float) -> void:
+func _draw_readouts(me: Dictionary, above_sea: float, in_room: bool) -> void:
 	var at := Vector2(24.0, _canvas.size.y - 120.0)
 	var colour := LOW if above_sea < 1.0 else TEXT
 	var height := height_words(above_sea)
 	if me["state"] == PlayerState.Body.SWIMMING:
-		height = Language.t("In the sea")
+		height = swimming_words(in_room)
 	_text(at, height, colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 	for slot: String in ["Stamina", "Warmth"]:
 		at.y += 30.0
@@ -638,6 +638,12 @@ static func height_words(above_sea: float) -> String:
 	if above_sea < 0.0:
 		return Language.t("%.1f m under the sea") % -above_sea
 	return Language.t("%.1f m above the sea") % above_sea
+
+
+## What the height readout says of a swimmer instead: in the sea, or — [param in_room],
+## inside one of her rooms (SeatRoom) — in the water, which there is no sea.
+static func swimming_words(in_room: bool) -> String:
+	return Language.t("In the water" if in_room else "In the sea")
 
 
 ## A chevron in seat colour, ringed by its stamina, and the seat's name over every

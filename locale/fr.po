@@ -441,6 +441,9 @@ msgstr "Coulé"
 msgid "Overboard"
 msgstr "À la mer"
 
+msgid "Frozen"
+msgstr "Gelé"
+
 msgid "%s — %s of %d   ·   %s\n%s / %s to switch"
 msgstr "%s — %s sur %d   ·   %s\n%s / %s pour changer"
 
@@ -500,6 +503,9 @@ msgstr "cheminée"
 
 msgid "In the sea"
 msgstr "À la mer"
+
+msgid "In the water"
+msgstr "Dans l'eau"
 
 msgid "At the waterline"
 msgstr "À la flottaison"

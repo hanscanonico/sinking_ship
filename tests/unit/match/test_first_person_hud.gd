@@ -23,6 +23,12 @@ func test_the_height_reads_above_or_under_the_sea() -> void:
 	assert_eq(FirstPersonHud.height_words(0.0), "At the waterline")
 
 
+## A swimmer is in the sea — or, inside one of her rooms, in the water: no sea is there.
+func test_a_swimmer_in_a_room_is_in_the_water_not_the_sea() -> void:
+	assert_eq(FirstPersonHud.swimming_words(false), "In the sea")
+	assert_eq(FirstPersonHud.swimming_words(true), "In the water")
+
+
 func test_a_level_heel_or_trim_reads_plus_nought() -> void:
 	assert_eq(FirstPersonHud.degrees_words(0.0), "+0.0°")
 	assert_eq(FirstPersonHud.degrees_words(-0.01), "+0.0°", "not -0.0°")

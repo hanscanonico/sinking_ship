@@ -78,13 +78,17 @@ static func whose_view(name: String, own: bool, observer: bool) -> String:
 
 
 ## How a seat out of the match went, as the spectating line and the results' title say
-## it: sunk when it was inside her as she went ([param cause]), else overboard — a word
-## no wider than overboard, as the line has no room for more.
-static func out_word(cause: PlayerState.Cause) -> String:
-	return Language.t("Sunk" if cause == PlayerState.Cause.WITH_HER else "Overboard")
+## it: sunk when it was inside her as she went ([param cause]); frozen when the cold put
+## it out [param aboard], inside one of her rooms (SeatRoom), which it never left; else
+## overboard — each a word no wider than overboard, as the line has no room for more.
+static func out_word(cause: PlayerState.Cause, aboard := false) -> String:
+	if cause == PlayerState.Cause.WITH_HER:
+		return Language.t("Sunk")
+	return Language.t("Frozen" if aboard else "Overboard")
 
 
-## The spectating line: how the local seat went out by [param cause] (out_word), its
+## The spectating line: how the local seat went out by [param cause], inside one of her
+## rooms when [param aboard] (out_word), its
 ## [param place] of [param seats] and [param whose] view it is (whose_view) over what
 ## switches the view, [param previous] and [param next] — the prompts on a line of
 ## their own, as long as a pad's are — and, when [param free_key] names one, the key
@@ -104,7 +108,8 @@ static func spectating_text(
 	follow_key := "",
 	following := false,
 	ghost_key := "",
-	ghost := false
+	ghost := false,
+	aboard := false
 ) -> String:
 	if free:
 		whose = Language.t(FREE_VIEW)
@@ -112,7 +117,7 @@ static func spectating_text(
 		whose = Language.t(GHOST_VIEW)
 	var text := (
 		Language.t("%s — %s of %d   ·   %s\n%s / %s to switch")
-		% [out_word(cause), place, seats, whose, previous, next]
+		% [out_word(cause, aboard), place, seats, whose, previous, next]
 	)
 	if not free_key.is_empty():
 		text += "   ·   %s %s" % [free_key, Language.t("eyes" if free else "free camera")]
