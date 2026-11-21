@@ -181,6 +181,9 @@ var _lamp_power: LampPower
 ## Per funnel the sinking can fell, by its fitting's name, the node its standing part
 ## hangs from, turned about its foot as it falls (show_falls).
 var _funnels := {}
+## Per funnel, by its fitting's name, where it breaks off and how far over it
+## comes to rest (FunnelArt.turned_on).
+var _rests := {}
 ## Whether a funnel has come down: its smoke has stopped.
 var _felled := false
 ## The glass the sinking can break (BrokenGlass).
@@ -275,6 +278,7 @@ func build_frame(
 	_lamp_at.clear()
 	_lamp_power = null
 	_funnels.clear()
+	_rests.clear()
 	_felled = false
 	var hull := SectionHull.of(_space, railing_height)
 	var materials := _materials(layout, hull.bow_sweep())
@@ -596,7 +600,7 @@ func show_falls(falls: Array[FunnelFall], tick: float) -> void:
 	for fall: FunnelFall in falls:
 		var node: Node3D = _funnels.get(fall.fitting.name)
 		if node != null:
-			node.transform = FunnelArt.turned(fall, tick)
+			node.transform = FunnelArt.turned_on(_rests, _space.layout, fall, tick)
 			_felled = _felled or FunnelArt.down(fall, tick)
 
 
@@ -929,7 +933,8 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: Sh
 		if felled != null:
 			var node := _piece(pieces, true, "Funnel_%s" % felled.name, self)
 			_funnels[felled.name] = node
-			_smoke = FunnelArt.split(mesh, pieces[node], blocker, felled, top, self)
+			var foot := FunnelArt.breaks_at(_space.layout, felled)
+			_smoke = FunnelArt.split(mesh, pieces[node], blocker, foot, top, self)
 			_smoke.reparent(node, false)
 		elif is_funnel(_space.layout, blocker):
 			_smoke = DeckWorks.funnel(mesh, blocker, top, self)
