@@ -51,12 +51,14 @@ tools/goldens_check.sh
 tools/lint_warmup_check.sh
 tools/test_changed_check.sh
 tools/test_changed.py --check-sites
+tools/fixtures_reach_check.sh
 tools/prune_worktrees_check.sh
 tools/ci_wait_check.sh
 tools/ci_tree_verified_check.sh
 tools/merge_train_check.sh
 FD_LOCK=perl tools/merge_train_check.sh
 tools/art_lint_changed_check.sh
+tools/art_lint_all_check.sh
 tools/gate_changed_check.sh
 tools/guard_checks_check.sh
 tools/exactness_check.sh
