@@ -25,6 +25,18 @@ func test_an_event_line_keeps_the_local_seat_and_drops_what_nobody_named() -> vo
 	assert_eq(PlayDriver.event_line(landed.to_dict()), "00:01.5 SHOVE_LANDED seat=0 target=3")
 
 
+func test_a_ghost_line_says_where_the_ghost_walks_and_looks() -> void:
+	var body := PlayerState.new(0)
+	body.pos = Vector3(4.5, -2.6, 2.0)
+	body.piece = 1
+	body.body = PlayerState.Body.GROUNDED
+	body.surface = 56
+	assert_eq(
+		PlayDriver.ghost_line(body, deg_to_rad(450.0)),
+		"ghost: GROUNDED at (4.5, -2.6, 2.0) piece 1 surface 56, facing 90°"
+	)
+
+
 func test_the_match_lines_say_the_seat_and_who_is_near() -> void:
 	var sim := SimFixtures.sim(3)
 	var lines := PlayDriver.match_lines(sim.snapshot())

@@ -6,7 +6,8 @@ extends Node
 ## action presses injected as the events a keyboard and a mouse would send, frames let
 ## run, frames saved — and answers each in DIR/out/NNNN.txt with what a player would
 ## know then: the text on the screen, where each button is, the local seat as the
-## latest snapshot has it, what happened to her and to the seat since, the frames saved
+## latest snapshot has it — and the ghost, while the view walks as one —, what happened
+## to her and to the seat since, the frames saved
 ## (DIR/shots). Between
 ## batches nothing moves: the game is held on its frame until the next batch comes, so
 ## however long the player thinks, the match has not gone on without them. Launched with
@@ -518,6 +519,11 @@ func _answer() -> void:
 	if not _held.is_empty():
 		lines.append("held: " + ", ".join(_held.keys()))
 	lines.append_array(match_lines(_snapshot()))
+	# The match scene's own ghost, read where it keeps it: its file has no line to spare
+	# for a way to ask (gdlint's max-file-lines).
+	var ghost: GhostWalk = _match._ghost if is_instance_valid(_match) else null
+	if ghost != null and ghost.active:
+		lines.append(ghost_line(ghost.body, ghost.look.yaw))
 	if not _events.is_empty():
 		lines.append("events:")
 		for event: String in _events:
@@ -546,6 +552,24 @@ func _write(path: String, text: String) -> void:
 	file.store_string(text)
 	file.close()
 	DirAccess.rename_absolute(path + ".part", path)
+
+
+## The ghost the view walks as (GhostWalk), as a seat's first line says a seat: its
+## [param body] in its piece's space and the [param yaw] it looks along — what a walk by
+## dead reckoning goes by while the local seat is out, watched or replayed.
+static func ghost_line(body: PlayerState, yaw: float) -> String:
+	return (
+		"ghost: %s at (%.1f, %.1f, %.1f) piece %d surface %d, facing %d°"
+		% [
+			PlayerState.Body.keys()[body.body],
+			body.pos.x,
+			body.pos.y,
+			body.pos.z,
+			body.piece,
+			body.surface,
+			roundi(rad_to_deg(wrapf(yaw, -PI, PI))),
+		]
+	)
 
 
 ## The match as the local seat knows it from [param snapshot]: the clock, who is in,

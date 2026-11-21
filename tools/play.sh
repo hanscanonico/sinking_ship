@@ -3,7 +3,8 @@
 # Plays the game by turns, for an agent with no hands on the keys: `make play` opens
 # the game held on its first frame, and each `tools/play.sh '<commands>'` after it is one
 # turn — the commands are run, in order, and what a player would know then is printed:
-# the words on the screen and where each button is, the local seat, what happened, the
+# the words on the screen and where each button is, the local seat (and the ghost, while
+# the view walks as one), what happened, the
 # frames saved. Between turns the game stands still (PlayDriver, scenes/game/play_driver.gd,
 # which lists the commands).
 #
