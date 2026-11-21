@@ -130,6 +130,8 @@ var _came_from := PackedVector2Array()
 ## The contact passes in the extension (ContactsNative, NativeCrates), made the first
 ## time they are asked for; null without it.
 var _native: Object
+## _stirring's rest test in the extension (ContactsNative, NativeRest); null without it.
+var _rest_native: Object
 
 ## How a tick takes a crate: none of its loose ones aboard, or at rest, or stepped.
 enum Turn { NONE, RESTS, STEPS }
@@ -162,6 +164,7 @@ func _init(
 		_lifts.append(kind.lift(_rules))
 		_least_grip = minf(_least_grip, prop.grip_angle_deg)
 	_at_rest = PropStands.new(config.ship, SpatialIndex.bounds_of(config.ship))
+	_rest_native = ContactsNative.rest(_grips, _lifts)
 	_rested_on.resize(_props.size())
 	_rest_cells.resize(_props.size())
 	_rest_cells.fill(UNKNOWN_CELL)
@@ -266,7 +269,28 @@ func _stirring(
 	var levels := here.levels
 	var celled := not levels.is_empty()
 	var crates: Array[PropState] = []
-	for crate: PropState in state.props:
+	# The extension decides every crate surely left at rest, as below; the rest it hands
+	# back, in order, to be taken here.
+	var pending: Array = state.props
+	if _rest_native != null:
+		var numbers := [_piece, broken, passing, slope, all_hold, upright, up, along_x]
+		numbers.append_array([along_z, origin, celled])
+		pending = _rest_native.stir(
+			state.props,
+			resting,
+			rested_at,
+			_rested_on,
+			_rest_cells,
+			_rest_roofs,
+			levels,
+			_aboard,
+			standing,
+			spans,
+			PackedFloat64Array(numbers)
+		)
+		_turn = _rest_native.turn()
+		_aboard = _rest_native.aboard()
+	for crate: PropState in pending:
 		var prop := crate.prop
 		if broken:
 			_aboard[prop] = 1 if Pieces.piece_in(standing, spans, crate.pos.x) == _piece else 0
@@ -311,6 +335,8 @@ func _stirring(
 			_at_rest.take(prop)
 		_turn[prop] = Turn.STEPS
 		crates.append(crate)
+	if _rest_native != null:
+		loose.assign(_rest_native.loose())
 	return crates
 
 
@@ -589,33 +615,8 @@ func _move(
 ## The NativeCrates working the contact passes, made now if not yet; null without the
 ## extension, or where the Surfaces or the crates at rest do not ask it.
 func _native_passes() -> Object:
-	if _native != null:
-		return _native
-	var surfaces := _surfaces.native
-	if surfaces == null or _at_rest.native() == null:
-		return null
-	_native = ContactsNative.made(&"NativeCrates")
-	var radii := PackedFloat64Array()
-	var heights := PackedFloat64Array()
-	var masses := PackedFloat64Array()
-	var harmless := PackedByteArray()
-	for index in _props.size():
-		radii.append(_props[index].radius)
-		heights.append(_props[index].height)
-		masses.append(_props[index].mass)
-		harmless.append(1 if _kinds[index].harmless else 0)
-	var numbers := PackedFloat64Array(
-		[
-			_rules.step_height,
-			_rules.railing_height,
-			_rules.railing_break_speed,
-			_rules.crate_impact_speed,
-			_rules.crate_restitution,
-			_credit_window_ticks,
-			Movement.CONTACT_PASSES,
-		]
-	)
-	_native.setup(surfaces, _at_rest.native(), radii, heights, masses, _solid, harmless, numbers)
+	if _native == null and _surfaces.native != null and _at_rest.native() != null:
+		_native = ContactsNative.crates(_surfaces.native, _at_rest.native(), _props, _rules)
 	return _native
 
 

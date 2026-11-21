@@ -6,20 +6,26 @@ extends RefCounted
 ## look is, flown level along where it looks by the move, up by the jump and down by the
 ## brace, frame by frame. Following, it trails the seat watched at the offset it stood
 ## from it as it locked on, until flown by hand or let go. It never touches the ship, and
-## keeps inside a box round the decks and over the sea — the world plane y = 0 (D7), as
-## Underwater and MatchAudio have it. Presentation only: nothing of it is ever sent,
-## and no rule reads it. Its state is world space; the scene reads transform().
+## keeps inside a box round the decks, from under the sea — the world plane y = 0 (D7) —
+## to its ceiling: it dives under her keel and follows her down, its floor under the
+## deepest her hull goes while her sinking is followed (reach_of), or over a shallower
+## sea's bottom (SinkScenario.sea_depth). Under the water its view is Underwater's and
+## MatchAudio's, as a seat's eyes have it, but for a brawler's breath. It opens over the
+## sea. Presentation only: nothing of it is ever sent, and no rule reads it. Its state is
+## world space; the scene reads transform().
 
 ## How fast it flies level and climbs, in metres per second.
 const SPEED := 8.0
 const CLIMB_SPEED := 6.0
 ## How far it may look up or down, short of straight.
 const PITCH_LIMIT_DEG := 80.0
-## How far past the decks' edges it may fly, how far over the sea it keeps, and how
-## high it may go, in metres.
+## How far past the decks' edges, and under the deepest her hull goes (floor_under), it
+## may fly; how high over the sea; and how far over a sea's bottom it keeps, in metres.
 const MARGIN := 20.0
-const SEA_CLEARANCE := 1.0
 const CEILING := 40.0
+const BED_CLEARANCE := 1.0
+## How far over the sea it opens (start), whatever the seat it opens at.
+const SEA_CLEARANCE := 1.0
 ## Where it starts: this far behind and over the seat it was watching, looking at it.
 const START_BACK := 6.0
 const START_RISE := 4.0
@@ -72,22 +78,71 @@ func leave() -> void:
 
 
 ## Keeps it within [constant MARGIN] of [param deck] — every platform's area in the
-## ship plane, taken as the world's x/z as ObserverCamera takes it — over the sea and
-## under the ceiling.
-func set_bounds(deck: Rect2) -> void:
+## ship plane, taken as the world's x/z as ObserverCamera takes it — between
+## [param bottom], its floor in the world (floor_of) — over the sea, given none — and
+## the ceiling.
+func set_bounds(deck: Rect2, bottom := SEA_CLEARANCE) -> void:
 	var area := deck.grow(MARGIN)
 	bounds = AABB(
-		Vector3(area.position.x, SEA_CLEARANCE, area.position.y),
-		Vector3(area.size.x, CEILING - SEA_CLEARANCE, area.size.y)
+		Vector3(area.position.x, bottom, area.position.y),
+		Vector3(area.size.x, CEILING - bottom, area.size.y)
 	)
 
 
+## Its floor, in the world, round [param ship] sinking in [param scenario]: floor_under
+## her hull's reach as the sea's physics follows her (reach_of, SeaPhysics.gone_depth), in
+## the scenario's sea.
+static func floor_of(ship: ShipLayout, scenario: SinkScenario) -> float:
+	var reach := reach_of(ship.structure, SeaPhysics.load_default().gone_depth)
+	return floor_under(reach, scenario.sea_depth)
+
+
+## How low it may go, in the world, round a hull that goes [param reach] metres under the
+## sea (reach_of) where the sea is [param sea_depth] deep: [constant MARGIN] under the
+## deepest she goes, so it gets under her all the way down, or [constant BED_CLEARANCE]
+## over a shallower bottom — never over the surface. A depth of 0 or less is no bottom
+## (an authored fixture's).
+static func floor_under(reach: float, sea_depth: float) -> float:
+	var deepest := -(reach + MARGIN)
+	if sea_depth <= 0.0:
+		return deepest
+	return minf(maxf(deepest, BED_CLEARANCE - sea_depth), 0.0)
+
+
+## How far under the sea the lowest point of [param structure]'s hull can stand while the
+## physics follows her sinking, in metres. The bake follows her — every piece of her,
+## once she breaks — until its highest point is [param gone_depth] under
+## (SeaPhysics.gone_depth, BakePiece.follow) and then holds it there, and no point of a
+## hull stands farther under her highest than her two farthest points stand apart,
+## however she trims and heels: no farther than the diagonal of the box her sections
+## fill, which a liner going down on end all but reaches — her bow her whole length
+## under her stern. So her lowest point is never deeper than the two together, but by
+## what the bake's last step carries her past gone_depth: a metre or so, well within
+## the [constant MARGIN] floor_under adds. 0 for a ship without a structure, which the
+## physics never sinks.
+static func reach_of(structure: ShipStructure, gone_depth: float) -> float:
+	if structure == null or structure.sections.is_empty():
+		return 0.0
+	var low := Vector3(INF, INF, INF)
+	var high := -low
+	for section: HullSection in structure.sections:
+		low.x = minf(low.x, section.x - section.length * 0.5)
+		high.x = maxf(high.x, section.x + section.length * 0.5)
+		for point: Vector2 in section.outline:
+			low = low.min(Vector3(low.x, point.y, point.x))
+			high = high.max(Vector3(high.x, point.y, point.x))
+	return gone_depth + (high - low).length()
+
+
 ## Stands it behind and over [param target] — whose view looks along [param ahead],
-## in the world — looking at it, so the switch out of its eyes keeps the bearings.
+## in the world — looking at it, so the switch out of its eyes keeps the bearings; at
+## least [constant SEA_CLEARANCE] over the sea, however deep the seat went down.
 func start(target: Vector3, ahead: Vector3) -> void:
 	var level := Vector3(ahead.x, 0.0, ahead.z)
 	level = Vector3.FORWARD if level.is_zero_approx() else level.normalized()
-	position = clamped(target - level * START_BACK + Vector3.UP * START_RISE, bounds)
+	var at := target - level * START_BACK + Vector3.UP * START_RISE
+	at.y = maxf(at.y, SEA_CLEARANCE)
+	position = clamped(at, bounds)
 	var to := target - position
 	if not to.is_zero_approx():
 		yaw = atan2(-to.x, -to.z)
@@ -118,7 +173,8 @@ func toggle_follow(target: Vector3) -> void:
 
 
 ## Drawn toward where it keeps its offset from [param target] while it follows, at
-## [constant FOLLOW_RATE] over [param delta] seconds, inside its box.
+## [constant FOLLOW_RATE] over [param delta] seconds, inside its box: down under the sea
+## with a seat that goes there.
 func trail(target: Vector3, delta: float) -> void:
 	if following:
 		var weight := clampf(FOLLOW_RATE * delta, 0.0, 1.0)

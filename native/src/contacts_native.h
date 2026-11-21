@@ -130,6 +130,11 @@ public:
 	// name, ShipPose.collapsed): her platforms' names first, by named().
 	void named(const Array &p_names);
 	bool line_of_sight(const Vector3 &p_from, const Vector3 &p_to, const Array &p_collapsed) const;
+	// WalkDoorLeaves.shut_all: Surfaces.blocked of each line p_ask has a 1 for, its blockers
+	// standing to the tops they were made with (standing_tops), never a fallen one's.
+	void standing_tops(const PackedFloat64Array &p_tops);
+	PackedByteArray blocked_all(const PackedVector3Array &p_lines, const PackedByteArray &p_ask,
+			double p_body_height, double p_step) const;
 
 	void obstacles(const Vector3 &p_ship_point, double p_radius, double p_body_height, double p_step,
 			int32_t p_except_prop, double p_crawl_height, double p_crawl_reach, std::vector<ContactHit> &r_found) const;
@@ -152,6 +157,10 @@ public:
 	// WalkPieces._read's squares (floor_way_native.cpp).
 	PackedByteArray stands_grid(const Vector2 &p_origin, int64_t p_width, int64_t p_depth, double p_side,
 			double p_height, const Rect2 &p_within, const PackedFloat64Array &p_rules) const;
+	// BotReckoning._stepped's walk, tick by tick (bot_stepped_native.cpp).
+	Vector3 stepped(const Vector3 &p_seen_pos, const Vector3 &p_seen_vel, int64_t p_surface, int64_t p_seen_tick,
+			const PackedVector2Array &p_moves, const PackedInt32Array &p_ticks, double p_pace, bool p_eased,
+			const PackedFloat64Array &p_rules) const;
 
 protected:
 	static void _bind_methods();
@@ -169,6 +178,8 @@ private:
 	std::vector<uint8_t> round_;
 	std::vector<Vector2> centres_;
 	std::vector<double> radii_;
+	// Per blocker: its top as made (ShipBlocker.top), whatever a fallen funnel's is now.
+	std::vector<double> standing_tops_;
 	// Per ramp: 1 along x, its start and end heights.
 	std::vector<uint8_t> ramp_x_;
 	std::vector<double> ramp_start_;
@@ -298,6 +309,38 @@ private:
 	bool railings(int32_t p_prop, const Callable &p_damage);
 	void hold(Crate &r_crate, const ContactHit &p_contact) const;
 	void knock(int32_t p_prop, int32_t p_other, const ContactHit &p_contact);
+};
+
+// Hazards._stirring's rest test (#682's profile: its loop over the Titanic's crates, nearly
+// all at rest, was most of the cargo's tick), in rest_native.cpp: every crate's piece and
+// whether it is loose here, and every crate the test surely leaves at rest this tick
+// decided as the GDScript decides it, operation for operation. What it cannot decide alone
+// — a crate held, hung, over another piece, stepped, or at rest where its cell must be
+// looked for or the water under it asked of the pose — it hands back, in order, for the
+// GDScript's own loop.
+class NativeRest : public RefCounted {
+	GDCLASS(NativeRest, RefCounted)
+
+public:
+	void setup(const PackedFloat64Array &p_grips, const PackedFloat64Array &p_lifts);
+	Array stir(const Array &p_props, const PackedByteArray &p_gone, const PackedVector3Array &p_feet,
+			const PackedInt32Array &p_rested_on, const PackedInt32Array &p_rest_cells,
+			const PackedFloat64Array &p_rest_roofs, const PackedFloat64Array &p_levels,
+			const PackedByteArray &p_aboard, const PackedInt32Array &p_standing, const PackedVector2Array &p_spans,
+			const PackedFloat64Array &p_numbers);
+	Array loose() const;
+	PackedByteArray turn() const;
+	PackedByteArray aboard() const;
+
+protected:
+	static void _bind_methods();
+
+private:
+	std::vector<double> grips_;
+	std::vector<double> lifts_;
+	Array loose_;
+	PackedByteArray turn_;
+	PackedByteArray aboard_;
 };
 
 } // namespace godot
