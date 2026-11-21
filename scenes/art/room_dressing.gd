@@ -256,6 +256,8 @@ class Light:
 	var at: Vector3
 	var kind: ShipLamp.Kind
 	var facing: Vector3
+	## How far its light must reach, in metres; 0 for the lamp's own.
+	var reach := 0.0
 
 	func _init(point: Vector3, lamp: ShipLamp.Kind, out := Vector3.DOWN) -> void:
 		at = point
@@ -592,16 +594,7 @@ func lights(room: ShipRoom) -> Array[Light]:
 		Kind.SQUASH:
 			found = _squash.lights(room)
 	if found.is_empty():
-		# A pendant under the middle of each LAMP_SPACING square of it: one in all but a
-		# liner's great rooms.
-		var across := Vector2i(
-			maxi(1, ceili(area.size.x / LAMP_SPACING)), maxi(1, ceili(area.size.y / LAMP_SPACING))
-		)
-		for i in across.x:
-			for j in across.y:
-				var share := Vector2((i + 0.5) / across.x, (j + 0.5) / across.y)
-				var at := area.position + area.size * share
-				found.append(Light.new(under_ceiling(_space, room, at), ShipLamp.Kind.PENDANT))
+		found = PendantGrid.lights(_space, room)
 	return found
 
 

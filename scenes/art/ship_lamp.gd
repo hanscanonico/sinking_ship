@@ -95,6 +95,8 @@ var drowned := false:
 			_unsettle()
 ## Whether the lamp lights its room whatever eye draws the frame: the observer's
 ## cut-away, which looks down into every room at once.
+## How far a pendant's light reaches, when further than RANGE: set before setup().
+var reach := 0.0
 var everywhere := false:
 	set(value):
 		if value != everywhere:
@@ -238,7 +240,7 @@ func setup(
 	_light.light_color = ArtPalette.LAMP_LIGHT
 	_light.light_energy = ENERGY
 	_light.light_specular = 0.0
-	_light.omni_range = RANGE
+	_light.omni_range = maxf(RANGE, reach)
 	_light.omni_attenuation = 1.2
 	_light.shadow_enabled = false
 	_unlit_outdoors(_light)

@@ -1009,6 +1009,7 @@ func _hang_lamps(room: ShipRoom, index: int, brass: Material) -> void:
 		var lamp := ShipLamp.new()
 		lamp.name = "Lamp%d" % index if number == 0 else "Lamp%d_%d" % [index, number]
 		lamp.position = light.at
+		lamp.reach = light.reach
 		lamp.visible = room.floor_height < cut_above
 		lamp.everywhere = is_finite(cut_above)
 		var roof := _space.roof(room, light.at.x, light.at.z)
