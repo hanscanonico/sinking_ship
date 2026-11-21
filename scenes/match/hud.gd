@@ -7,6 +7,8 @@ extends CanvasLayer
 
 ## How long "Go!" stays up once the countdown is over.
 const GO_SECONDS := 0.8
+## The least the hints for play keep clear of each side of the window (show_controls).
+const CONTROLS_MARGIN := 48.0
 ## The widest the banner shows a seat's name, in pixels: a server's may be far longer.
 const NAME_WIDTH := 130.0
 ## How far the spectating line keeps off the readouts' plate either side of it and
@@ -196,7 +198,26 @@ func fit_name(seat_name: String) -> String:
 func show_controls(prompts: InputPrompts) -> void:
 	_controls.visible = _countdown.visible and prompts != null
 	if _controls.visible:
-		_controls.text = prompts.controls()
+		var font := _controls.get_theme_font(&"font")
+		var font_size := _controls.get_theme_font_size(&"font_size")
+		var width := _controls.get_viewport_rect().size.x - 2.0 * CONTROLS_MARGIN
+		_controls.text = controls_text(prompts.controls(), font, font_size, width)
+
+
+## [param line], the hints for play (InputPrompts.controls), as lines no wider than
+## [param width] in [param font] at [param font_size], broken between two hints as the
+## replay's are (ReplayHud.hint_text): Spanish on a keyboard stood edge to edge in the
+## narrowest window, and a longer key's name ran off both sides. Of two lines neither
+## is left much the shorter.
+static func controls_text(line: String, font: Font, font_size: int, width: float) -> String:
+	var said := line.split(ReplayHud.SEPARATOR)
+	var text := ReplayHud.hint_text(said, font, font_size, width)
+	# As few lines, and those as even as they come: no last hint left alone under four.
+	for tenth in range(5, 10):
+		var evener := ReplayHud.hint_text(said, font, font_size, width * tenth / 10.0)
+		if evener.count("\n") == text.count("\n"):
+			return evener
+	return text
 
 
 ## Centres the spectating line over the bottom edge, as spectating_box() has it on
