@@ -14,11 +14,9 @@ signal speed_requested(direction: int)
 signal seek_requested(tick: int)
 signal close_requested
 
-## Holds a hint's words together on one line: the line wraps between hints only.
-const NO_BREAK := "\u00a0"
-## Between two hints: its dot holds to the hint before it and the line wraps after it,
-## so no line starts or ends on a dot alone.
-const SEPARATOR := NO_BREAK + NO_BREAK + NO_BREAK + "\u00b7   "
+## Between two hints on one line: a line break takes its place, so no line starts or
+## ends on a dot (hint_text).
+const SEPARATOR := "   \u00b7   "
 ## The controls and the words for them, in the order the hint line reads.
 const HINTS: Array[Array] = [
 	[&"replay_pause", "pause"],
@@ -47,6 +45,9 @@ var _clock: Label
 var _seat: Label
 var _camera: Label
 var _hint: Label
+## The hints the line was last laid out from, and the width it was laid out in.
+var _hints := PackedStringArray()
+var _laid_width := -1.0
 var _dragging := false
 var _last_tick := 1
 
@@ -92,8 +93,9 @@ func _ready() -> void:
 	_hint = _label(box, "")
 	_hint.theme_type_variation = UiTheme.HINT_LABEL
 	_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_hint.custom_minimum_size.x = 0
+	# Its lines are broken here, between hints (hint_text): it never asks for their width.
+	_hint.clip_text = true
+	_hint.resized.connect(_lay_out_hints)
 
 
 ## The replay's span: the seek bar runs from [param first_tick] to [param last_tick].
@@ -118,18 +120,62 @@ func show_state(
 	_clock.text = "%s / %s" % [MatchTranscript.clock(tick), MatchTranscript.clock(_last_tick)]
 	_seat.text = "" if whose.is_empty() else whose[0].to_upper() + whose.substr(1)
 	_camera.text = camera
-	_hint.text = hint_line(prompts)
+	var said := hints(prompts)
+	if said != _hints:
+		_hints = said
+		_laid_width = -1.0
+		_lay_out_hints()
 
 
-## The keys' hints as one line, worded by [param prompts]: each hint's spaces are
-## no-break spaces, so the line wraps only between hints, never inside one, each
-## hint's dot going with it (SEPARATOR).
-static func hint_line(prompts: InputPrompts) -> String:
+## The keys' hints, worded by [param prompts]: each its key and what it does — and only
+## that where the device has no key for it.
+static func hints(prompts: InputPrompts) -> PackedStringArray:
 	var words := PackedStringArray()
 	for hint: Array in HINTS:
-		var phrase := "%s %s" % [prompts.word(hint[0]), Language.t(hint[1])]
-		words.append(phrase.replace(" ", NO_BREAK))
-	return SEPARATOR.join(words)
+		words.append(("%s %s" % [prompts.word(hint[0]), Language.t(hint[1])]).strip_edges())
+	return words
+
+
+## How hints [param widths] wide each go onto lines [param width] wide, in their order,
+## with [param gap] between two on a line: how many each line takes, as many as fit. A
+## hint wider than a line has one to itself.
+static func lines_of(widths: PackedFloat32Array, gap: float, width: float) -> PackedInt32Array:
+	var lines := PackedInt32Array()
+	var taken := 0.0
+	for wide: float in widths:
+		if lines.is_empty() or taken + gap + wide > width:
+			lines.append(1)
+			taken = wide
+		else:
+			lines[-1] += 1
+			taken += gap + wide
+	return lines
+
+
+## [param said], the hints, as the text of lines no wider than [param width] in
+## [param font] at [param font_size]: a SEPARATOR between two hints on a line and a line
+## break in its place between two lines, so no hint is broken and no line starts or ends
+## on a dot.
+static func hint_text(said: PackedStringArray, font: Font, font_size: int, width: float) -> String:
+	var widths := PackedFloat32Array()
+	for hint: String in said:
+		widths.append(font.get_string_size(hint, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+	var gap := font.get_string_size(SEPARATOR, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var lines := PackedStringArray()
+	var from := 0
+	for count: int in lines_of(widths, gap, width):
+		lines.append(SEPARATOR.join(said.slice(from, from + count)))
+		from += count
+	return "\n".join(lines)
+
+
+## Lays the hints out again in the width the line has now, once that or they have changed.
+func _lay_out_hints() -> void:
+	if _hint.size.x == _laid_width:
+		return
+	_laid_width = _hint.size.x
+	var font := _hint.get_theme_font(&"font")
+	_hint.text = hint_text(_hints, font, _hint.get_theme_font_size(&"font_size"), _laid_width)
 
 
 func _on_drag_ended(changed: bool) -> void:

@@ -394,6 +394,30 @@ msgid "Delete"
 msgstr "Supr"
 
 msgctxt "key"
+msgid "Home"
+msgstr "Inicio"
+
+msgctxt "key"
+msgid "End"
+msgstr "Fin"
+
+msgctxt "key"
+msgid "PageUp"
+msgstr "Re Pág"
+
+msgctxt "key"
+msgid "PageDown"
+msgstr "Av Pág"
+
+msgctxt "key"
+msgid "Insert"
+msgstr "Insert"
+
+msgctxt "key"
+msgid "CapsLock"
+msgstr "Bloq Mayús"
+
+msgctxt "key"
 msgid "Up"
 msgstr "Arriba"
 
@@ -472,16 +496,16 @@ msgid "Trim %s"
 msgstr "Asiento %s"
 
 msgid "starboard low"
-msgstr "estribor hundido"
+msgstr "estribor bajo"
 
 msgid "port low"
-msgstr "babor hundido"
+msgstr "babor bajo"
 
 msgid "bow low"
-msgstr "proa hundida"
+msgstr "proa baja"
 
 msgid "stern low"
-msgstr "popa hundida"
+msgstr "popa baja"
 
 msgid "LURCH TO STARBOARD — BRACE (%s)"
 msgstr "BANDAZO A ESTRIBOR — AGUANTA (%s)"
@@ -753,6 +777,9 @@ msgstr "Aún no hay repeticiones: se guarda cada partida jugada aquí, las %d m�
 
 msgid "%d seats"
 msgstr "%d jugadores"
+
+msgid "%d seat"
+msgstr "%d jugador"
 
 msgid "Bot %d won"
 msgstr "Ganó Bot %d"

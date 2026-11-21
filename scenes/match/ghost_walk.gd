@@ -234,6 +234,11 @@ func up() -> int:
 	return _state.up[body.piece]
 
 
+## The layout of the piece of her it is on: hers, cut to that piece (Pieces.layout).
+func layout() -> ShipLayout:
+	return _pieces.layout(body.piece)
+
+
 ## How tall it stands where it is, over a standing body's height: less in a crawl space.
 func stature() -> float:
 	var framed := Faces.to_frame(up()) * body.pos
