@@ -59,10 +59,11 @@ plumbing, small reads for triage.
    them. A slice is mergeable when `local_gate` is `completed`, the verdict is `approve`,
    AND you have yourself read CI's verify check as concluded success on the PR head
    (`gh pr view N --json statusCheckRollup`) — `ci_green` is only what the implementer
-   saw when it reported. Merge sequentially, dependencies first: `gh pr merge N
-   --squash` (`gh pr ready N` first while it is still the draft the implementer opened at
-   its first commit); on a stale-branch error `gh pr update-branch N`, wait ~25s, retry. After a
-   merge, `gh pr update-branch` every PR that was `after` it and wait for its CI again. After each merged branch:
+   saw when it reported. Merge through the machine's one merge train, dependencies first:
+   `tools/merge_train.sh N [N…]` in the background (`gh pr ready N` first while it is still
+   the draft the implementer opened at its first commit) — it updates each PR onto main,
+   waits for its CI and squash-merges it when green, and ends on a line per PR; never loop
+   `gh pr update-branch` and `gh pr merge` yourself. After each merged branch:
    `git -C <main checkout> worktree remove <worktree>`, using the `worktree` path the
    implementer returned, then delete the local branch. Without `--force`: a refusal means
    uncommitted files, so stop and report them. A worktree whose PR is not merged stays.

@@ -65,10 +65,11 @@ to make; memory keeps only what no fix can change.
 
 Finished work ships without being asked. Push the branch and open its PR as a draft at
 the first commit, so the work outlives a session that stops; once the change is done,
-`gh pr ready` it, wait for CI (`tools/ci_wait.sh N` in the background reports only what
-failed), and merge it yourself when it is green on the PR head. When main has moved
-since that run, `gh pr update-branch` first and merge on the new run's green: two PRs
-green apart can break main together. A red PR gets fixed, not merged. Ask first only
+`gh pr ready` it and merge it yourself with `tools/merge_train.sh N [N…]` in the
+background, never a loop of your own: the one train on this machine updates each PR onto
+main, waits for its CI and squash-merges it when green, one PR at a time, as two PRs
+green apart can break main together (`tools/ci_wait.sh N` only waits, and reports only
+what failed). A red PR gets fixed, not merged. Ask first only
 when the change is not what was asked for or a decision is genuinely the user's.
 
 Every session works in its own worktree, never in the main checkout: several sessions share

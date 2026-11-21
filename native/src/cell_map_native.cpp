@@ -4,6 +4,7 @@
 // is NativeWater's copy. Contraction is off.
 
 #include "cell_map_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -127,6 +128,8 @@ int64_t NativeCellMap::cell_at(const Vector3 &p_point) const {
 	}
 	return NONE;
 }
+
+SINKING_CLASS(NativeCellMap)
 
 void NativeCellMap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "low", "high", "from", "to", "slot", "slot_from", "slot_cells",

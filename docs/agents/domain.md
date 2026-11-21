@@ -9,6 +9,7 @@ How the engineering skills should consume this repo's domain documentation when 
 - **`docs/adr/`**: read ADRs that touch the area you're about to work in. In multi-context repos, also check `src/<context>/docs/adr/` for context-scoped decisions.
 
 - **`.lavish/sinking-ship-plan.html`**: the design of record. Its numbered decisions (D1–D14) and open questions (Q*) act as this repo's ADRs until `docs/adr/` exists; check the decisions that touch your area.
+- **`docs/titanic-1912.md`**: before layout, flooding or art work on the `titanic` ship. It holds the owner's rulings, the standing constraints and where the plates are.
 
 If any of these files don't exist, **proceed silently**. Don't flag their absence; don't suggest creating them upfront. The `/domain-modeling` skill (reached via `/grill-with-docs` and `/improve-codebase-architecture`) creates them lazily when terms or decisions actually get resolved.
 
