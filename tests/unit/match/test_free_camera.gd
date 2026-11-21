@@ -15,7 +15,7 @@ const FLOOR := -(REACH + FreeCamera.MARGIN)
 
 func _camera() -> FreeCamera:
 	var camera := FreeCamera.new()
-	camera.set_bounds(DECK, REACH)
+	camera.set_bounds(DECK, FLOOR)
 	camera.position = Vector3(0.0, 10.0, 0.0)
 	return camera
 
@@ -94,6 +94,11 @@ func test_it_keeps_round_the_decks_and_between_its_floor_and_ceiling() -> void:
 	assert_almost_eq(
 		unbounded.position.y, FreeCamera.SEA_CLEARANCE, 1e-4, "over the sea until it has a box"
 	)
+	unbounded.set_bounds(DECK)
+	unbounded.fly(Vector2.ZERO, -1.0, 100.0)
+	assert_almost_eq(
+		unbounded.position.y, FreeCamera.SEA_CLEARANCE, 1e-4, "and in a box given no floor"
+	)
 
 
 func test_the_brace_dives_it_under_the_sea() -> void:
@@ -128,7 +133,7 @@ func test_a_sea_s_bottom_stops_it() -> void:
 	assert_eq(FreeCamera.floor_under(REACH, -FLOOR + 2.0), FLOOR, "a deeper one never reached")
 	assert_eq(FreeCamera.floor_under(REACH, 0.5), 0.0, "never over the surface")
 	var camera := FreeCamera.new()
-	camera.set_bounds(DECK, REACH, 6.0)
+	camera.set_bounds(DECK, FreeCamera.floor_under(REACH, 6.0))
 	camera.position = Vector3(0.0, 2.0, 0.0)
 	camera.fly(Vector2.ZERO, -1.0, 100.0)
 	assert_almost_eq(camera.position.y, FreeCamera.BED_CLEARANCE - 6.0, 1e-4)

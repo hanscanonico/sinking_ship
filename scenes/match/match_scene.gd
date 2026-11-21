@@ -549,11 +549,7 @@ func _setup_view(
 	_planner = null
 	_kick = ViewKick.new(settings.view_kick)
 	_free = FreeCamera.new(settings)
-	_free.set_bounds(
-		_deck_bounds(config.ship),
-		FreeCamera.reach_of(config.ship.structure, SeaPhysics.load_default().gone_depth),
-		config.scenario.sea_depth
-	)
+	_free.set_bounds(_deck_bounds(config.ship), FreeCamera.floor_of(config.ship, config.scenario))
 	_ghost = GhostWalk.new(config, sim.schedule, settings)
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
@@ -967,7 +963,6 @@ func _head_of(seat: int) -> Vector3:
 
 ## The view from the free camera: every seat drawn, nobody's arms, and the HUD as the
 ## observer's, of [param viewed] — the seat last watched, which it trails while it follows.
-## Under the water it is the view from under it, but for a brawler's breath: nobody's eyes.
 func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	if _flying():
 		_free.fly_by_input(delta)

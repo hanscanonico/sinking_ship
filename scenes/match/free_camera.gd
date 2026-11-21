@@ -78,16 +78,23 @@ func leave() -> void:
 
 
 ## Keeps it within [constant MARGIN] of [param deck] — every platform's area in the
-## ship plane, taken as the world's x/z as ObserverCamera takes it — between its floor
-## (floor_under) round a hull that goes [param reach] metres under the sea (reach_of),
-## in a sea [param sea_depth] deep, and the ceiling.
-func set_bounds(deck: Rect2, reach := 0.0, sea_depth := INF) -> void:
+## ship plane, taken as the world's x/z as ObserverCamera takes it — between
+## [param bottom], its floor in the world (floor_of) — over the sea, given none — and
+## the ceiling.
+func set_bounds(deck: Rect2, bottom := SEA_CLEARANCE) -> void:
 	var area := deck.grow(MARGIN)
-	var bottom := floor_under(reach, sea_depth)
 	bounds = AABB(
 		Vector3(area.position.x, bottom, area.position.y),
 		Vector3(area.size.x, CEILING - bottom, area.size.y)
 	)
+
+
+## Its floor, in the world, round [param ship] sinking in [param scenario]: floor_under
+## her hull's reach as the sea's physics follows her (reach_of, SeaPhysics.gone_depth), in
+## the scenario's sea.
+static func floor_of(ship: ShipLayout, scenario: SinkScenario) -> float:
+	var reach := reach_of(ship.structure, SeaPhysics.load_default().gone_depth)
+	return floor_under(reach, scenario.sea_depth)
 
 
 ## How low it may go, in the world, round a hull that goes [param reach] metres under the

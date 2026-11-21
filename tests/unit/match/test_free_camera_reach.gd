@@ -51,7 +51,7 @@ func _check_floor(config: MatchConfig) -> float:
 	var reach := FreeCamera.reach_of(config.ship.structure, sea.gone_depth)
 	var lowest := _lowest(config.schedule())
 	assert_gt(lowest, -reach - LAST_STEP, "%s: never deeper than her reach" % ship)
-	var bottom := FreeCamera.floor_under(reach, config.scenario.sea_depth)
+	var bottom := FreeCamera.floor_of(config.ship, config.scenario)
 	assert_lt(bottom, lowest, "%s: its floor under her lowest point, all the way down" % ship)
 	return lowest
 
