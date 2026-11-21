@@ -4,6 +4,7 @@
 // where GDScript rounds twice.
 
 #include "walk_search_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -45,6 +46,8 @@ Ref<NativeWalkSearch> NativeWalkGraph::start(int64_t p_zones) {
 	search->setup(Ref<NativeWalkGraph>(this), p_zones);
 	return search;
 }
+
+SINKING_CLASS(NativeWalkGraph)
 
 void NativeWalkGraph::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("build", "out", "portal_to", "portal_entry", "portal_exit",
@@ -239,6 +242,8 @@ void NativeWalkSearch::settle(int32_t p_goal, double p_within) {
 		}
 	}
 }
+
+SINKING_CLASS(NativeWalkSearch)
 
 void NativeWalkSearch::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "graph", "zones"), &NativeWalkSearch::setup);
