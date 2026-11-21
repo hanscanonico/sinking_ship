@@ -107,10 +107,12 @@ jobs:
       # The built library is kept by what it is built from — native/'s sources, the
       # build script and the runner image, whose compiler it is — and the build skipped
       # when nothing of that changed: the test jobs wait for this one, and a build is
-      # most of its minute (run 44903878057).
+      # most of its minute (run 44903878057). The image by its date alone: runners
+      # of one day's image differ in the version's last numbers, and two runs a few
+      # minutes apart each missed the other's library (run 44905545258).
       - name: Runner image
         id: image
-        run: echo "id=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+        run: echo "id=$ImageOS-${ImageVersion%%.*}" >> "$GITHUB_OUTPUT"
 
       - name: Cache the library
         id: lib
