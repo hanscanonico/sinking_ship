@@ -754,6 +754,9 @@ msgstr "Aucun replay pour l'instant : chaque partie jouée ici est gardée, les 
 msgid "%d seats"
 msgstr "%d joueurs"
 
+msgid "%d seat"
+msgstr "%d joueur"
+
 msgid "Bot %d won"
 msgstr "Bot %d a gagné"
 
