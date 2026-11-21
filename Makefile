@@ -822,7 +822,7 @@ check:
 # gh's snapshots; main's question of whether CI has passed a commit's tree already, against
 # a stand-in gh's commits; the merge train, against a stand-in gh's pull requests, again on Perl's
 # lock; and art-lint-changed's selection, against a throwaway repo and a
-# stand-in make; verify-changed's guard-check and ship-gen-check, the same way; this list's own runner (tools/guard_checks.sh, which holds the list and runs GUARD_JOBS of them side by side), against stand-in lists; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
+# stand-in make; make art-lint's engines side by side, against a stand-in make; verify-changed's guard-check and ship-gen-check, the same way; this list's own runner (tools/guard_checks.sh, which holds the list and runs GUARD_JOBS of them side by side), against stand-in lists; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
 	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
 		echo "make-shell-check: make runs recipes in $(SHELL), which has no pipefail" >&2; exit 1; fi
