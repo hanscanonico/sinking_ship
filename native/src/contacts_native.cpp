@@ -9,6 +9,7 @@
 // (SConstruct).
 
 #include "contacts_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/string_name.hpp>
@@ -545,6 +546,8 @@ PackedByteArray NativeStands::gone_of(const PackedInt32Array &p_props) const {
 	}
 	return out;
 }
+
+SINKING_CLASS(NativeStands)
 
 void NativeStands::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "radii", "heights", "origin", "columns", "rows"), &NativeStands::setup);
@@ -1334,6 +1337,8 @@ bool NativeSurfaces::line_of_sight(const Vector3 &p_from, const Vector3 &p_to, c
 	return true;
 }
 
+SINKING_CLASS(NativeSurfaces)
+
 void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "firsts", "areas", "bottoms", "tops", "gone", "round", "centres", "radii",
 								 "ramp_x", "ramp_heights", "grid", "stands"),
@@ -1675,6 +1680,8 @@ PackedVector2Array NativeCrates::came_from() const {
 	}
 	return out;
 }
+
+SINKING_CLASS(NativeCrates)
 
 void NativeCrates::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "surfaces", "at_rest", "radii", "heights", "masses", "solid", "harmless",

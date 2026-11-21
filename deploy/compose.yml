@@ -84,8 +84,8 @@ services:
       - edge
     ports:
       # Host-local only, for bin/deploy's checks and SSH-tunnel debugging. Ports
-      # 8070–8110 belong to sibling stacks on this machine.
-      - "127.0.0.1:8120:8080"
+      # 8070–8120 belong to sibling stacks on this machine.
+      - "127.0.0.1:8130:8080"
     depends_on:
       server:
         condition: service_started

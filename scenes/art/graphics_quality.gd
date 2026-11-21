@@ -17,6 +17,8 @@ enum Preset { LOW, MEDIUM, HIGH }
 ##   glow: the dusk's bloom round the sun, the lamps and the foam;
 ##   shadow_distance: metres from the eye the sun's shadows reach (the ship is 60 m);
 ##   shadow_splits: the sun's shadow map in one piece (1), or two, finer near the eye;
+##   shadow_near: metres from the eye the finer piece of two reaches: past a few, its
+##       texels grow coarse enough to cut a shadow's edge on the deck into a sawtooth;
 ##   shadow_size: the sun's shadow map's side, in texels;
 ##   shadow_filter: how softly a shadow's edge is sampled (RenderingServer.ShadowQuality);
 ##   sea_detail: the share (0…1) of its full reach (water.gdshader's detail_reach,
@@ -41,6 +43,7 @@ const PRESETS := {
 		"msaa": Viewport.MSAA_DISABLED,
 		"glow": false,
 		"shadow_distance": 40.0,
+		"shadow_near": 3.0,
 		"shadow_splits": 1,
 		"shadow_size": 2048,
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_HARD,
@@ -61,6 +64,7 @@ const PRESETS := {
 		"msaa": Viewport.MSAA_2X,
 		"glow": true,
 		"shadow_distance": 60.0,
+		"shadow_near": 3.0,
 		"shadow_splits": 2,
 		"shadow_size": 4096,
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
@@ -81,6 +85,7 @@ const PRESETS := {
 		"msaa": Viewport.MSAA_2X,
 		"glow": true,
 		"shadow_distance": 70.0,
+		"shadow_near": 3.0,
 		"shadow_splits": 2,
 		"shadow_size": 4096,
 		"shadow_filter": RenderingServer.SHADOW_QUALITY_SOFT_LOW,
@@ -103,6 +108,8 @@ var msaa: Viewport.MSAA
 var glow: bool
 var shadow_distance: float
 var shadow_mode: DirectionalLight3D.ShadowMode
+## The share of shadow_distance the finer piece of two covers (the sun's split_1).
+var shadow_split: float
 var shadow_size: int
 var shadow_filter: RenderingServer.ShadowQuality
 var sea_detail: float
@@ -124,6 +131,7 @@ static func of(chosen: int) -> GraphicsQuality:
 		if row["shadow_splits"] == 1
 		else DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
 	)
+	quality.shadow_split = row["shadow_near"] / row["shadow_distance"]
 	quality.shadow_size = row["shadow_size"]
 	quality.shadow_filter = row["shadow_filter"]
 	quality.sea_detail = row["sea_detail"]

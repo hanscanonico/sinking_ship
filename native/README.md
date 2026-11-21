@@ -18,8 +18,9 @@ round by the floor and the surface under each square it asks of (`ai/bot_floor_w
 emission — her faces cut at the chunk and room lines, judged indoors or out and gathered
 into batches (`scenes/art/ship_mesh.gd`, `scenes/art/indoor_grid.gd`, #411) — the
 water's effects' walks of her cells, openings and decks (`scenes/art/inner_water.gd`,
-`scenes/match/fx_planner.gd`, `scenes/audio/cue_planner.gd`), and the choice of which
-rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410).
+`scenes/match/fx_planner.gd`, `scenes/audio/cue_planner.gd`), the choice of which
+rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410), and which of her
+cells a point lies in (`CellMap.cell_at`, `core/sinking/cell_map.gd`).
 
 ## Layout
 
@@ -30,7 +31,9 @@ rooms' lamps light around the eye (`scenes/art/lamp_sight.gd`, #410).
   `NativeCrates`) with `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`) and
   `bot_stepped_native.cpp` (`NativeSurfaces.stepped`, a bot's reckoning by its walks), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `sight_native.{h,cpp}`
-  (`NativeSight`), `register_types.cpp` (the entry, `sinking_native_init`).
+  (`NativeSight`), `cell_map_native.{h,cpp}` (`NativeCellMap`), `register_types.cpp` (the
+  entry, `sinking_native_init`, and `NativeAbi`), `registry.h` (`SINKING_CLASS`, which
+  lists a class for the entry to register).
 - `SConstruct` — the build, over godot-cpp's; `build_profile.json` — the engine
   classes godot-cpp binds (few, so it compiles quickly).
 - `build/` — not tracked: godot-cpp at its pinned commit (`tools/native_build.sh`) and
@@ -59,7 +62,7 @@ an artifact of the run:
 - `native (linux)` — `native-linux`, the `.so` the ten test shards load
   (`SINKING_NATIVE_REQUIRED=1`).
 - `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
-  runner, where the ten cross-check scripts run against it: arm64 is where a compiler
+  runner, where the twelve cross-check scripts run against it: arm64 is where a compiler
   contracts `a * b + c` by default, so a difference from the engine's own GDScript
   arithmetic would show there first.
 - `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with
@@ -107,13 +110,20 @@ that never ran `make native`, or the web export, runs the GDScript and the same 
 the same sinking and the same art.
 
 Every one of those checks goes through `NativeVersion.has()` (`core/native_version.gd`),
-which also asks the library's version: `NativeAbi.VERSION` in `src/register_types.cpp`
-against `NativeVersion.VERSION`. `lib/` is built per machine, so a checkout that pulled a
-change to the extension's classes without running `make native` again holds a library
-older than the GDScript calling it; a library of any other version counts as absent, the
-GDScript runs, and the game warns once to run `make native`. **Bump both numbers together
-in every change that adds, removes or changes a native class or a method the GDScript
-calls.** CI requires the library, and `test_native_version` fails there on a mismatch.
+which also asks which sources the library was built from. `SConstruct` works out a
+SHA-256 of every `.cpp` and `.h` in `src/` and builds it into `NativeAbi.source()`
+(`src/register_types.cpp`); `NativeVersion` works out the same digest of the `src/`
+beside it and holds the library to it. `lib/` is built per machine, so a checkout that
+pulled a change to the extension without running `make native` again holds a library
+older than the GDScript calling it; that library counts as absent, the GDScript runs, and
+the game warns once to run `make native`. A class the library lacks is absent too. An
+export leaves `src/` out and takes the library it ships with.
+
+**There is no version to bump.** A change to a native class only edits that class's
+files and its callers. A new class is listed beside its `_bind_methods` with
+`SINKING_CLASS(NativeX)` (`src/registry.h`), never in `register_types.cpp`, so two
+changes that add or change different classes share no line. CI requires the library,
+and `test_native_version` fails there when it was built from other sources.
 
 ## Determinism
 
