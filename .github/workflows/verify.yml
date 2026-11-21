@@ -104,23 +104,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The built library is kept by what it is built from — native/'s sources, the
+      # build script and the runner image, whose compiler it is — and the build skipped
+      # when nothing of that changed: the test jobs wait for this one, and a build is
+      # most of its minute (run 44903878057).
+      - name: Runner image
+        id: image
+        run: echo "id=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the library
+        id: lib
+        uses: actions/cache@v4
+        with:
+          path: native/lib
+          key: native-lib-linux-${{ steps.image.outputs.id }}-${{ hashFiles('native/**', 'tools/native_build.sh') }}
+
       - uses: actions/setup-python@v5
+        if: steps.lib.outputs.cache-hit != 'true'
         with:
           python-version: "3.12"
 
       # pip's own retries and read timeout outlast a flaky index; the step's timeout
       # ends a stuck one in minutes rather than at the job's limit (#459).
       - name: Install SCons
+        if: steps.lib.outputs.cache-hit != 'true'
         timeout-minutes: 5
         run: pip install --retries 5 --timeout 30 scons
 
       - name: Cache godot-cpp
+        if: steps.lib.outputs.cache-hit != 'true'
         uses: actions/cache@v4
         with:
           path: native/build
           key: godot-cpp-linux-${{ hashFiles('tools/native_build.sh', 'native/build_profile.json') }}
 
       - name: Build
+        if: steps.lib.outputs.cache-hit != 'true'
         run: tools/native_build.sh
 
       - uses: actions/upload-artifact@v4
