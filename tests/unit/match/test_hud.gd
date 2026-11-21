@@ -284,3 +284,37 @@ func test_the_line_fits_clear_of_the_plate_and_the_wedges() -> void:
 			var root := FirstPersonHud.wedge_behind(size, bearing)
 			var arrow := Rect2(root - Vector2(reach, reach), Vector2(reach * 2.0, reach))
 			assert_false(shown.intersects(arrow), "%s %d°: clear of the arrow" % [size, degrees])
+
+
+## The hints for play under the countdown keep clear of the window's sides in every
+## language, on a keyboard and on a pad, broken between two hints and never inside one:
+## Spanish stood 1136 px wide in a 1152 px window.
+func test_the_hints_for_play_fit_the_window_in_every_language() -> void:
+	var font := UiTheme.shared().get_font(&"font", &"Label")
+	for language: String in Language.locales():
+		Language.use(language)
+		for on_pad: bool in [false, true]:
+			var line := InputPrompts.controls_for(on_pad)
+			for size: Vector2 in SIZES:
+				var width := size.x - 2.0 * Hud.CONTROLS_MARGIN
+				var text := Hud.controls_text(line, font, FONT_SIZE, width)
+				var said := "%s pad=%s %d" % [language, on_pad, size.x]
+				assert_eq(text.replace("\n", ReplayHud.SEPARATOR), line, "whole: " + said)
+				for row: String in text.split("\n"):
+					var wide := font.get_string_size(row, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
+					assert_lte(wide.x, width, "fits: " + said)
+					assert_eq(row, row.strip_edges(), "no dot at an end: " + said)
+	Language.use(Language.SOURCE)
+
+
+func test_a_line_of_hints_too_long_for_the_window_breaks_between_two() -> void:
+	var font := UiTheme.shared().get_font(&"font", &"Label")
+	var line := "W A S D — move   ·   Space — jump   ·   Left click — shove"
+	assert_eq(Hud.controls_text(line, font, FONT_SIZE, 2000.0), line, "room for it: one line")
+	var five := line + "   ·   Shift — brace   ·   G — grab"
+	var lines := Hud.controls_text(five, font, FONT_SIZE, 760.0).split("\n")
+	assert_eq(lines.size(), 2)
+	for row: String in lines:
+		assert_gt(row.split(ReplayHud.SEPARATOR).size(), 1, "no hint left alone: " + row)
+	var two := Hud.controls_text(line, font, FONT_SIZE, 420.0)
+	assert_eq(two, "W A S D — move   ·   Space — jump\nLeft click — shove")
