@@ -56,6 +56,13 @@ func _ready() -> void:
 	_server.text = first_server(_settings.server_url, _rules)
 
 
+# The name's rule is worded in the language played: the game picks it after this screen
+# is ready, and the settings change it while it stands.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
+		%NameRule.text = OnlineLink.name_rule(_rules)
+
+
 ## The server the field starts on: the one [param saved] if any, else [param rules]'
 ## default_server_url when it is a server's address, else this machine's own.
 static func first_server(saved: String, rules: ServerRules) -> String:

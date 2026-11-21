@@ -160,3 +160,17 @@ func test_every_online_control_is_reachable_with_a_pad() -> void:
 					waiting.append(next)
 		for control: Control in _offered(layer):
 			assert_true(reached.has(control), "%s: %s is reached" % [screen, control.name])
+
+
+## The credits and the replays build their plates in code after asking for the theme:
+## both stood in the engine's default grey (seen played, 2026-11-21).
+func test_a_control_added_after_the_theme_was_asked_for_has_it_too() -> void:
+	var layer := CanvasLayer.new()
+	add_child_autofree(layer)
+	var before := Control.new()
+	layer.add_child(before)
+	UiTheme.apply_to(layer)
+	var after := Control.new()
+	layer.add_child(after)
+	assert_eq(before.theme, UiTheme.shared(), "one there as it was asked")
+	assert_eq(after.theme, UiTheme.shared(), "one made afterwards")
