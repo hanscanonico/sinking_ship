@@ -141,6 +141,11 @@ var _dealt_to := {}
 func _initialize() -> void:
 	# The root joins the tree only once the main loop runs.
 	await process_frame
+	# CI's lint runs with the game's extension: the GDScript dresses a ship far slower.
+	if OS.get_environment("SINKING_NATIVE_REQUIRED") == "1" and not NativeVersion.current():
+		printerr("art-lint: SINKING_NATIVE_REQUIRED is set, and native/lib is not built")
+		quit(1)
+		return
 	# --ship=NAME checks that ship alone, and nothing that plays a match; --skip=NAME,NAME
 	# every ship but those, and what plays a match too: CI checks the biggest ships beside
 	# the rest (.github/workflows/verify.yml). --part=K/N, with --ship, checks her share K

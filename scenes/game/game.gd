@@ -6,7 +6,8 @@ extends Node
 ## SimDriver; the pause is never sim state. User arguments are MatchArgs':
 ## their match choices fill the menu in, --autoplay presses Play for a bot on the
 ## local seat, and --capture saves a frame — of the match, or of the menu when
-## nothing is autoplaying — and quits. A match is seen through the local seat's
+## nothing is autoplaying — and quits; --play has it played by batches of commands
+## (PlayDriver). A match is seen through the local seat's
 ## eyes (D14); the observer camera is a tool that only --observer and captures
 ## reach, and --capture-eye takes a capture through a seat's eyes instead;
 ## --observer-cut cuts the observer's view of the ship away to show the inside;
@@ -124,9 +125,11 @@ func _ready() -> void:
 	KeyBindings.local().apply()
 	_view = ViewSettings.local()
 	Language.use(Language.chosen(_args.language, _view.language))
-	# A capture, and a bot's autoplay (make fps), keep the window, VSync and frame rate
-	# they were launched with, whatever the player saved.
-	if _args.capture_path.is_empty() and not _args.autoplay:
+	# A capture, a bot's autoplay (make fps) and a played session (make play) keep the
+	# window, VSync and frame rate they were launched with, whatever the player saved.
+	if not _args.play_dir.is_empty():
+		add_child(PlayDriver.new(_args.play_dir, _args.play_idle))
+	elif _args.capture_path.is_empty() and not _args.autoplay:
 		_view.apply_window()
 	else:
 		_draw_watch = DrawWatch.new()
