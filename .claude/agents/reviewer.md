@@ -2,7 +2,7 @@
 name: reviewer
 description: Adversarially reviews one Sinking Ship PR in the implementer's worktree — verifies every claim independently, fixes small problems itself, rejects fundamental ones. Approve means "I would merge this into a repo I maintain."
 tools: Read, Write, Edit, Bash, Grep, Glob, ToolSearch
-model: opus
+model: fable
 effort: high
 ---
 

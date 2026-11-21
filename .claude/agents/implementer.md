@@ -2,7 +2,7 @@
 name: implementer
 description: Implements one scoped Sinking Ship task in its own git worktree — sets up the worktree, codes to the task spec, gets make test-changed green, commits, pushes, and opens a PR. Never merges. Use for any implementation work an orchestrator session delegates.
 tools: Read, Write, Edit, Bash, Grep, Glob, ToolSearch
-model: opus
+model: fable
 effort: medium
 ---
 

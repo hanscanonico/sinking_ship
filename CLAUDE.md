@@ -125,11 +125,10 @@ gate's engines wait in `tools/test_slot.sh` until there is memory for them.
 
 ## Model roles
 
-Fable orchestrates and does not implement, research or review a PR itself. Workers are the
-agents in `.claude/agents/`, every one on the latest Opus available (`model: opus` — the
-alias, never Fable, never a dated Opus id), effort set by role: `scout` low, `reviewer`
-high, `qa` low. `/orchestrate` carries the full loop. `qa` stays idle until the
-repo has a `make smoke` capture sweep.
+Workers are the agents in `.claude/agents/`, every one on Fable
+(`model: fable` — the alias, never a dated id), effort set by role:
+`scout` low, `reviewer` high, `qa` low. `/orchestrate` carries the full delegation loop.
+`qa` stays idle until the repo has a `make smoke` capture sweep.
 
 ## Agent skills
 
