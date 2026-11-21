@@ -48,3 +48,25 @@ func test_every_ships_plain_rooms_are_lit_to_their_corners() -> void:
 				assert_gte(
 					light.reach, minf(corner, PendantGrid.REACH_MOST), "%s %s" % [ship, room.name]
 				)
+
+
+func test_an_engine_rooms_lamp_reaches_its_furthest_corner() -> void:
+	# A lamp over a lane aft, 2.2 m up: the forward corners are 8 m off.
+	var room := Rect2(-10.0, -4.0, 10.0, 8.0)
+	var lamp := Vector3(-6.0, -0.4, 1.0)
+	var corner := Vector3(6.0, 2.2, 5.0).length()
+	assert_gt(corner, ShipLamp.RANGE, "the far bulkhead stood black")
+	assert_almost_eq(PendantGrid.reach_from(room, lamp, -2.6), corner, 0.001)
+	var small := Rect2(0.0, 0.0, 4.0, 4.0)
+	assert_eq(PendantGrid.reach_from(small, Vector3(2.0, 2.0, 2.0), 0.0), ShipLamp.RANGE)
+	var great := Rect2(-84.0, -8.0, 20.0, 16.0)
+	assert_eq(PendantGrid.reach_from(great, Vector3(-80.0, 0.0, 0.0), -5.0), PendantGrid.REACH_MOST)
+
+
+func test_every_engine_rooms_pendants_reach_past_a_cabin_lamps() -> void:
+	for layout: ShipLayout in SHIPS:
+		var engine := EngineRoom.new(ShipSpace.new(layout))
+		for room in layout.rooms:
+			for light in engine.pendants(room):
+				var want := PendantGrid.reach_from(room.area, light.at, room.floor_height)
+				assert_eq(light.reach, want, "%s %s" % [layout.resource_path, room.name])

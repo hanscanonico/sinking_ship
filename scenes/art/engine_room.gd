@@ -84,7 +84,9 @@ func pendants(room: ShipRoom) -> Array[RoomDressing.Light]:
 	var found: Array[RoomDressing.Light] = []
 	for lane: Vector2 in _lanes(room):
 		var hang := RoomDressing.under_ceiling(_space, room, lane)
-		found.append(RoomDressing.Light.new(hang, ShipLamp.Kind.PENDANT))
+		var light := RoomDressing.Light.new(hang, ShipLamp.Kind.PENDANT)
+		light.reach = PendantGrid.reach_from(room.area, hang, room.floor_height)
+		found.append(light)
 	return found
 
 
