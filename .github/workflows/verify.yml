@@ -375,9 +375,14 @@ jobs:
   # her furnishings (run 44883536730). The fleet's ships go in one engine and what
   # plays a match in two more beside it (tools/art_lint_fleet.sh), the effects' whole
   # match alone in one: in one engine the match's checks waited a minute and a half
-  # for the ships and then took four more (run 44900242066).
+  # for the ships and then took four more (run 44900242066). Every engine here runs
+  # with the game's extension, as the test shards do (SINKING_NATIVE_REQUIRED): it
+  # dresses a ship in a quarter of the time the GDScript takes — the traced Titanic's
+  # build 13 s for 57, her furnishings' check two thirds — and without it each of her
+  # parts paid a minute or more for the build alone (run 44926120933).
   art-lint:
     name: art-lint ${{ matrix.part }}
+    needs: native
     if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -393,10 +398,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Before setup-godot: its import registers the extension it finds.
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-linux
+          path: native/lib/
+
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
         run: ${{ matrix.run }}
+        env:
+          SINKING_NATIVE_REQUIRED: "1"
 
       # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
       - uses: actions/upload-artifact@v4
@@ -425,6 +438,7 @@ jobs:
   # name and the command with the lists.
   art-lint-titanic:
     name: art-lint titanic ${{ matrix.parts }} of 16
+    needs: native
     if: ${{ !inputs.verified }}
     runs-on: ubuntu-24.04
     timeout-minutes: 40
@@ -436,10 +450,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Before setup-godot: its import registers the extension it finds.
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-linux
+          path: native/lib/
+
       - uses: ./.github/actions/setup-godot
 
       - name: art-lint
         run: tools/art_lint_parts.sh titanic 16 ${{ matrix.parts }}
+        env:
+          SINKING_NATIVE_REQUIRED: "1"
 
       # What each of her checks took, for tools/art_lint_costs.py to deal the parts by.
       - uses: actions/upload-artifact@v4

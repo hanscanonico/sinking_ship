@@ -60,11 +60,19 @@ static func shared() -> Theme:
 
 
 ## Gives the theme to every Control directly under [param layer], and so to all of
-## theirs.
+## theirs — those there now and those added later: a screen built in code calls this as
+## its _ready begins, before it has made a single one (the credits and the replays stood
+## in the engine's grey for it).
 static func apply_to(layer: CanvasLayer) -> void:
 	for child: Node in layer.get_children():
-		if child is Control:
-			(child as Control).theme = shared()
+		_theme(child)
+	if not layer.child_entered_tree.is_connected(_theme):
+		layer.child_entered_tree.connect(_theme)
+
+
+static func _theme(node: Node) -> void:
+	if node is Control:
+		(node as Control).theme = shared()
 
 
 ## [param text] — a name a server sent, as long as it likes — within [param width]

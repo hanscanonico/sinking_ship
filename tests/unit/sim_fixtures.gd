@@ -460,10 +460,13 @@ static func after_parting(schedule: SinkSchedule, seconds: float) -> int:
 
 
 ## The first of [param layout]'s bonus spots on the last piece [param schedule]'s sinking
-## ends in (ShipPieces.leaves_of) — the fore one, which the ship's own node does not
-## follow — [param clear] metres or more from where that piece breaks away.
+## ends in — the fore one, which the ship's own node does not follow — [param clear]
+## metres or more from where that piece breaks away. The pieces are read off the
+## timeline as the scene's ShipPieces.leaves_of reads them, and not through it: these
+## fixtures name nothing under scenes/, or every sim test would count as reaching the
+## art and run on each change to it (tools/test_changed.py).
 static func fore_spot(layout: ShipLayout, schedule: SinkSchedule, clear: float) -> int:
-	var leaves := ShipPieces.leaves_of(schedule)
+	var leaves := schedule.timeline().pieces_at(INF)
 	var cut := schedule.span_of(leaves[leaves.size() - 1]).x
 	for spot in layout.bonus_spots.size():
 		if layout.bonus_spots[spot].point.x >= cut + clear:

@@ -14,6 +14,15 @@ const TABLE := "res://tools/art_lint_costs.tsv"
 var costs := {}
 
 
+## Part K of N, as (K, N), of [param given] ("K/N"); Vector2i.ZERO when it names none.
+static func part_of(given: String) -> Vector2i:
+	var numbers := given.split("/")
+	if numbers.size() != 2 or not (numbers[0].is_valid_int() and numbers[1].is_valid_int()):
+		return Vector2i.ZERO
+	var part := Vector2i(numbers[0].to_int(), numbers[1].to_int())
+	return part if part.x >= 1 and part.x <= part.y else Vector2i.ZERO
+
+
 ## Every check art-lint deals of [param layout] (tools/art_lint.gd, _deal), as
 ## "kind\tindex": a platform's top and the floor past its edges, each ramp, blocker
 ## and ladder, each [param stretch]-long stretch of her length a face of
