@@ -52,3 +52,25 @@ func test_a_seat_out_in_a_room_went_out_aboard() -> void:
 	assert_true(rooms.out_aboard(sim, sim.snapshot(), 0), "kept: asked once a match")
 	rooms.forget()
 	assert_false(rooms.out_aboard(sim, sim.snapshot(), 0), "asked again for the next")
+
+
+## The ghost is in the room it walks, as a seat is, and on an open deck on its platform;
+## nowhere while the view is not its.
+func test_the_ghost_stands_in_the_room_it_walks() -> void:
+	var sim := SimFixtures.sim(1, null, SimFixtures.steamer())
+	var step := sim.config.rules.step_height
+	var snapshot := sim.snapshot()
+	var rooms := SeatRoom.new()
+	var ghost := GhostWalk.new(sim.config, sim.schedule)
+	assert_eq(rooms.ghost_place(null, sim.schedule, snapshot, step), "", "no ghost")
+	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), "", "not walking")
+	assert_true(ghost.start(snapshot, Vector3(9.0, -2.6, 0.0), 0, Vector3.RIGHT))
+	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), "forward hold")
+	# From high over the hold it is stood on the highest floor under it: her open deck.
+	assert_true(ghost.start(snapshot, Vector3(9.0, 30.0, 0.0), 0, Vector3.RIGHT))
+	assert_eq(sim.config.ship.room_at(ghost.body.pos, step), -1, "in no room")
+	var deck := String(sim.config.ship.platforms[ghost.body.surface].name)
+	assert_ne(deck, "")
+	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), deck, "its platform")
+	ghost.leave()
+	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), "", "the view left")
