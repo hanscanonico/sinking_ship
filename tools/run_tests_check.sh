@@ -62,7 +62,8 @@ run() {
 	shift
 	export RECORD="$WORK/$name"
 	: >"$RECORD"
-	make -s test GODOT="$STANDIN" "$@" >"$WORK/$name.out" 2>&1
+	# The engine here is a stand-in: the extension is none of its business.
+	NATIVE_ENSURE=0 make -s test GODOT="$STANDIN" "$@" >"$WORK/$name.out" 2>&1
 }
 
 # The scripts the stand-in was handed under record $1, sorted, as res:// paths.
