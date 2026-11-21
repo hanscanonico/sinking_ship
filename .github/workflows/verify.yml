@@ -349,17 +349,23 @@ jobs:
       # Every shard reports, so one red run names every failing script.
       fail-fast: false
       matrix:
-        # Change the 27 in the name and the command with this list.
+        # Change the 27 in the name and the command with this list. A runner takes
+        # shards nine apart, not three in a row: the first shards dealt are each one
+        # long script alone (tools/test_shards.py deals the longest first), and three
+        # of those on one runner each ran at the pace of three engines to the end —
+        # test_titanic_static.gd five and a half minutes beside two others of three
+        # (run 44945994128). Beside two shards of many short scripts, the long one has
+        # the runner to itself once they are done.
         shards:
-          - "1 2 3"
-          - "4 5 6"
-          - "7 8 9"
-          - "10 11 12"
-          - "13 14 15"
-          - "16 17 18"
-          - "19 20 21"
-          - "22 23 24"
-          - "25 26 27"
+          - "1 10 19"
+          - "2 11 20"
+          - "3 12 21"
+          - "4 13 22"
+          - "5 14 23"
+          - "6 15 24"
+          - "7 16 25"
+          - "8 17 26"
+          - "9 18 27"
     steps:
       - uses: actions/checkout@v4
 
