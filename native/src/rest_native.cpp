@@ -5,6 +5,7 @@
 // summed, and vectors are compared exactly. Contraction is off (SConstruct).
 
 #include "contacts_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -163,6 +164,8 @@ PackedByteArray NativeRest::turn() const {
 PackedByteArray NativeRest::aboard() const {
 	return aboard_;
 }
+
+SINKING_CLASS(NativeRest)
 
 void NativeRest::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "grips", "lifts"), &NativeRest::setup);

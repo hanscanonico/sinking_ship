@@ -202,6 +202,7 @@ const TRACED := {
 	&"second-class entrance, D deck, aft": RoomDressing.Kind.PUBLIC,
 	&"second-class library": RoomDressing.Kind.PUBLIC,
 	&"second-class pantry": RoomDressing.Kind.SERVICE,
+	&"second-class promenade vestibule, C deck": RoomDressing.Kind.PASSAGE,
 	&"servery, C deck": RoomDressing.Kind.SERVICE,
 	&"servery, D deck": RoomDressing.Kind.SERVICE,
 	&"servery, D deck aft of M": RoomDressing.Kind.SERVICE,

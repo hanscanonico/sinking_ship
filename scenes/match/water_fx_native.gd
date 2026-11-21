@@ -9,6 +9,6 @@ extends RefCounted
 
 ## A NativeWaterFx where the game's extension is loaded, else null.
 static func made() -> Object:
-	if not ClassDB.class_exists(&"NativeWaterFx"):
+	if not NativeVersion.has(&"NativeWaterFx"):
 		return null
 	return ClassDB.instantiate(&"NativeWaterFx")

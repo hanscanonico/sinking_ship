@@ -14,6 +14,11 @@ signal speed_requested(direction: int)
 signal seek_requested(tick: int)
 signal close_requested
 
+## Holds a hint's words together on one line: the line wraps between hints only.
+const NO_BREAK := "\u00a0"
+## Between two hints: its dot holds to the hint before it and the line wraps after it,
+## so no line starts or ends on a dot alone.
+const SEPARATOR := NO_BREAK + NO_BREAK + NO_BREAK + "\u00b7   "
 ## The controls and the words for them, in the order the hint line reads.
 const HINTS: Array[Array] = [
 	[&"replay_pause", "pause"],
@@ -110,10 +115,18 @@ func show_state(
 	_clock.text = "%s / %s" % [MatchTranscript.clock(tick), MatchTranscript.clock(_last_tick)]
 	_seat.text = "" if whose.is_empty() else whose[0].to_upper() + whose.substr(1)
 	_camera.text = camera
+	_hint.text = hint_line(prompts)
+
+
+## The keys' hints as one line, worded by [param prompts]: each hint's spaces are
+## no-break spaces, so the line wraps only between hints, never inside one, each
+## hint's dot going with it (SEPARATOR).
+static func hint_line(prompts: InputPrompts) -> String:
 	var words := PackedStringArray()
 	for hint: Array in HINTS:
-		words.append("%s %s" % [prompts.word(hint[0]), hint[1]])
-	_hint.text = "   ·   ".join(words)
+		var phrase := "%s %s" % [prompts.word(hint[0]), hint[1]]
+		words.append(phrase.replace(" ", NO_BREAK))
+	return SEPARATOR.join(words)
 
 
 func _on_drag_ended(changed: bool) -> void:

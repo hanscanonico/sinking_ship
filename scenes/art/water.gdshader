@@ -92,6 +92,10 @@ uniform float fine_share = 1.0;
 // Out past mirror_reach metres from the eye the sea mirrors the sky alone; nearer, as
 // far as the graphics preset marches a ray off it (water_mirror).
 uniform float mirror_reach = 90.0;
+// Metres the eye stands over the water it looks at, between which it fades in what
+// a ray off the sea meets: from a swimmer's eye the ray grazes the water and meets
+// the hull in steps, so the sea there mirrors the sky alone.
+uniform vec2 mirror_eye = vec2(0.5, 1.5);
 // How far up and down the screen the ripples draw a mirrored image out, as a share of
 // its height, and that much again for every ~7 metres the ray ran to meet it.
 uniform float mirror_blur = 0.004;
@@ -270,20 +274,27 @@ vec3 ceiling(float t, vec3 look, float dist, vec2 slope) {
 	return mix(colour, under_fog_colour.rgb, fog);
 }
 
-// Whether the world point [at] lies in one of her cells' boxes.
-bool in_cells(vec3 at) {
-	vec3 ship = (world_to_ship * vec4(at, 1.0)).xyz;
-	if (any(lessThan(ship, cells_low)) || any(greaterThan(ship, cells_high))) {
+// How far past a cell's box, at most, the sea is left out for the ground a pixel
+// covers, in metres.
+const float CELL_FOOTPRINT_MAX = 2.0;
+
+// Whether the ship-space point [ship] lies in one of her cells' boxes, each grown by
+// [reach] every way: the half of the ground its pixel covers, so where the eye nears the
+// sea's plane and a pixel spans metres of it, none of its samples in front of a wall
+// takes the sea's colour from a middle past it — at most a pixel's edge of the sea left
+// out beside her shell.
+bool in_cells(vec3 ship, vec3 reach) {
+	if (any(lessThan(ship, cells_low - reach)) || any(greaterThan(ship, cells_high + reach))) {
 		return false;
 	}
 	for (int i = 0; i < cell_count; i++) {
 		vec3 low = texelFetch(cells, ivec2(i * 2, 0), 0).xyz;
 		// In order along her: no box further on starts aft of this point.
-		if (low.x >= ship.x) {
+		if (low.x - reach.x >= ship.x) {
 			break;
 		}
 		vec3 high = texelFetch(cells, ivec2(i * 2 + 1, 0), 0).xyz;
-		if (all(greaterThan(ship, low)) && all(lessThan(ship, high))) {
+		if (all(greaterThan(ship, low - reach)) && all(lessThan(ship, high + reach))) {
 			return true;
 		}
 	}
@@ -291,7 +302,9 @@ bool in_cells(vec3 at) {
 }
 
 void fragment() {
-	if (cell_count > 0 && in_cells(world)) {
+	vec3 ship = (world_to_ship * vec4(world, 1.0)).xyz;
+	vec3 past_box = min(fwidth(ship) * 0.5, vec3(CELL_FOOTPRINT_MAX));
+	if (cell_count > 0 && in_cells(ship, past_box)) {
 		discard;
 	}
 	float t = TIME * SEA_RIPPLE_SPEED;
@@ -367,7 +380,9 @@ void fragment() {
 		vec3 mirrored = mix(body * 0.4, dusk_sky(mirror, sun), sky_over);
 		float facing = max(dot(normal, -look), 1e-3);
 		float mirroring = water_fresnel(facing);
-		if (water_mirror > 0 && dist < mirror_reach && mirroring > MIRROR_SEEN) {
+		float eye_over = CAMERA_POSITION_WORLD.y - world.y;
+		if (water_mirror > 0 && dist < mirror_reach && mirroring > MIRROR_SEEN
+				&& eye_over > mirror_eye.x) {
 			vec3 calm = normalize(vec3(-swell.x, 1.0, -swell.y));
 			vec3 ray = reflect(look, calm);
 			ray.y = abs(ray.y);
@@ -377,6 +392,7 @@ void fragment() {
 			);
 			float reach = 1.0 - smoothstep(mirror_reach * 0.6, mirror_reach, dist);
 			reach *= smoothstep(MIRROR_SEEN, MIRROR_SEEN * 2.0, mirroring);
+			reach *= smoothstep(mirror_eye.x, mirror_eye.y, eye_over);
 			if (found.z > 0.0) {
 				vec2 drawn_out = vec2(0.0, mirror_blur * (1.0 + found.w * 0.15));
 				vec3 image = water_screen(found.xy) * 0.5;

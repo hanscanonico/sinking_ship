@@ -67,6 +67,8 @@ const ADRIFT_TURNS := 6
 const ADRIFT_TOUCH := 0.05
 ## How long each sheet of spray a lurch slaps up the low side is, in metres.
 const LURCH_SPACING := 6.0
+## How far outside her shell a sheet of spray on the sea stands, in metres.
+const SHEET_CLEAR := 0.3
 ## The dust a deck giving way throws up billows from this far over it, in metres;
 ## the bits of it thrown up rain down this far round it.
 const CLOUD_LIFT := 0.8
@@ -537,7 +539,7 @@ func _lurch(heel_deg: float, pose: ShipPose, tick: int, cues: Array[FxCue]) -> v
 	var length := _hull.size.x / _sheets()
 	for index in _sheets():
 		var x := _hull.position.x + length * (index + 0.5)
-		var sheet := _side_sheet(x, length, side, tick)
+		var sheet := _side_sheet(x, length, side, pose, tick)
 		if sheet != null:
 			sheet.rise = LURCH_RISE
 			sheet.toward = Vector3(0.0, 2.0, side).normalized()
@@ -577,7 +579,7 @@ func _swallowing(pose: ShipPose, tick: int, cues: Array[FxCue]) -> void:
 			var above := _pieces.at(pose, edge).world_height(edge)
 			if above < SWALLOW.x or above > SWALLOW.y:
 				continue
-			var sheet := _side_sheet(x, length, side, tick)
+			var sheet := _side_sheet(x, length, side, pose, tick)
 			sheet.rise = PLUNGE_RISE
 			sheet.toward = Vector3(0.0, 2.0, -side * PLUNGE_LEAN).normalized()
 			cues.append(sheet)
@@ -596,21 +598,77 @@ func _sheets() -> int:
 
 ## A sheet of spray on the sea along [param side] (ship-local z, -1 or 1) of the ship,
 ## [param length] long round [param x], outboard of the widest the decks reach along
-## it; null where no deck stands at [param x].
-func _side_sheet(x: float, length: float, side: float, tick: int) -> FxCue:
+## it and of her shell (_shell_reach) — a hull wider than her decks would hold it
+## inside her rooms — and, laid down on the sea under [param pose], still clear of her
+## shell there (_off_shell); null where no deck stands at [param x].
+func _side_sheet(x: float, length: float, side: float, pose: ShipPose, tick: int) -> FxCue:
 	var outline := _space.envelope(x)
 	if outline.x == INF:
 		return null
 	var z := outline.y if side > 0.0 else outline.x
-	for end: float in [x - length * 0.5, x + length * 0.5]:
-		var reach := _space.envelope(end)
+	for along: float in [x - length * 0.5, x, x + length * 0.5]:
+		var reach := _space.envelope(along)
 		if reach.x != INF:
 			z = maxf(z, reach.y) if side > 0.0 else minf(z, reach.x)
-	z += side * 0.3
-	var sheet := FxCue.new(FxCue.Kind.SPRAY, tick, Vector3(x - length * 0.5, 0.0, z))
-	sheet.end = Vector3(x + length * 0.5, 0.0, z)
+		var shell := _shell_reach(_layout.structure, along, side)
+		z = maxf(z, shell) if side > 0.0 else minf(z, shell)
+	z += side * SHEET_CLEAR
+	var start := Vector3(x - length * 0.5, 0.0, z)
+	var finish := Vector3(x + length * 0.5, 0.0, z)
+	var push := _off_shell(_layout.structure, pose, [start, (start + finish) * 0.5, finish], side)
+	var sheet := FxCue.new(FxCue.Kind.SPRAY, tick, start + push)
+	sheet.end = finish + push
 	sheet.on_sea = true
 	return sheet
+
+
+## How far to move [param points] (ship-local) along the sea's surface, out [param side]
+## (ship-local z, -1 or 1), for each one laid straight down onto the sea under
+## [param pose] to stand SHEET_CLEAR outside her shell. Heeled hard over, her side
+## leans across the sea: a point clear of her shell in her own plane lies inside her
+## once laid down on the sea; zero where every point already lies clear.
+static func _off_shell(
+	structure: ShipStructure, pose: ShipPose, points: Array[Vector3], side: float
+) -> Vector3:
+	# The world's up in her plane: laying a point down on the sea moves it along this;
+	# moving it square to this, across her section, keeps it on the sea.
+	var up := pose.transform.basis.inverse() * Vector3.UP
+	var across := Vector2(up.y, -up.z)
+	if across.length() < 0.01:
+		return Vector3.ZERO
+	across = across.normalized()
+	if across.x * side < 0.0:
+		across = -across
+	var out := 0.0
+	for point in points:
+		var laid := point - up * (pose.transform * point).y / up.length_squared()
+		var section := structure.section_at(laid.x)
+		if section == null:
+			continue
+		var from := Vector2(laid.z, laid.y)
+		var shell := section.outline
+		for index in shell.size():
+			var a := shell[index]
+			var edge := shell[(index + 1) % shell.size()] - a
+			var square := across.cross(edge)
+			if absf(square) < 0.000001:
+				continue
+			var t := (a - from).cross(across) / square
+			if t < 0.0 or t > 1.0:
+				continue
+			out = maxf(out, (a - from).cross(edge) / square + SHEET_CLEAR)
+	return Vector3(0.0, across.y, across.x) * out
+
+
+## Where her shell stands out farthest on [param side] (ship-local z, -1 or 1) of her
+## section at [param x], anywhere up her side, as a z; 0 where she has no section.
+static func _shell_reach(structure: ShipStructure, x: float, side: float) -> float:
+	var section := structure.section_at(x)
+	var reach := 0.0
+	if section != null:
+		for point in section.outline:
+			reach = maxf(reach, point.x * side)
+	return reach * side
 
 
 ## Loose gear sliding [param downhill] (ship plane, unit) down every deck still

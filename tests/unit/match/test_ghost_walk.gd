@@ -52,6 +52,31 @@ func test_water_neither_slows_nor_drowns_it() -> void:
 	assert_eq(sunk.body.body, PlayerState.Body.GROUNDED, "on its feet, never swimming")
 
 
+## On her deck heeled past a seat's grip and past its stand limit, dry or awash, it never
+## slides (#655): left alone it stays where it stood, a walk across the slope is not bent
+## downhill, and let go it stops as on a level deck and stays stopped.
+func test_a_heeled_deck_never_slides_it() -> void:
+	for heel: float in [25.0, 40.0]:
+		for sink: float in [0.0, 4.0]:
+			var label := "heel %s, sink %s" % [heel, sink]
+			var sim := SimFixtures.sim(2, SimFixtures.scenario([[0.0, sink, 0.0, heel]]))
+			var ghost := _ghost(sim, Vector3.ZERO)
+			var stood := ghost.body.pos
+			for _tick in 60:
+				assert_true(ghost.walk(sim.snapshot(), _frame(Vector2.ZERO)))
+			assert_almost_eq(ghost.body.pos, stood, Vector3.ONE * 1e-4, label + ": left alone")
+			for _tick in 20:
+				assert_true(ghost.walk(sim.snapshot(), _frame(Vector2.RIGHT)))
+			assert_gt(ghost.body.pos.x, stood.x + 1.0, label + ": it walks")
+			assert_almost_eq(ghost.body.pos.z, stood.z, 1e-4, label + ": straight across")
+			for _tick in 10:
+				assert_true(ghost.walk(sim.snapshot(), _frame(Vector2.ZERO)))
+			var stopped := ghost.body.pos
+			for _tick in 30:
+				assert_true(ghost.walk(sim.snapshot(), _frame(Vector2.ZERO)))
+			assert_almost_eq(ghost.body.pos, stopped, Vector3.ONE * 1e-4, label + ": let go")
+
+
 ## A railing holds it as a wall does — it never vaults one, however it comes — and off the
 ## end of her deck it is done.
 func test_railings_hold_it_and_off_her_it_is_done() -> void:
