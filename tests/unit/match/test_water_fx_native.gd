@@ -229,7 +229,7 @@ func _edges(
 	var edges: Array[PackedFloat64Array] = []
 	for cell in base.levels.size():
 		edges.append(PackedFloat64Array([base.levels[cell]]))
-		if water._surfaces[cell] != null:
+		if water._boxes[cell].size != Vector3.ZERO:
 			var reach := CellSurface.reach(ship, water._boxes[cell])
 			edges[cell].append_array([reach.x + first, reach.y - InnerWater.SHOWS])
 	for stack: Array in water._stacks:

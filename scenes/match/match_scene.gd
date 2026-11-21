@@ -549,7 +549,7 @@ func _setup_view(
 	_planner = null
 	_kick = ViewKick.new(settings.view_kick)
 	_free = FreeCamera.new(settings)
-	_free.set_bounds(_deck_bounds(config.ship))
+	_free.set_bounds(_deck_bounds(config.ship), FreeCamera.floor_of(config.ship, config.scenario))
 	_ghost = GhostWalk.new(config, sim.schedule, settings)
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
@@ -971,7 +971,7 @@ func _fly(snapshot: Dictionary, viewed: int, delta: float) -> void:
 	_arms.visible = false
 	_eyes.global_transform = _free.transform()
 	var eye := _eyes.global_position
-	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye))
+	_underwater.show_eye(eye, _view.above_water(eye), _view.indoors(eye), false)
 	_eye_fill.show_eye(eye, _view.lit_at(eye), _underwater.is_under())
 	_lens_drops.show_eye(-1, _underwater.is_under())
 	_first_person_hud.show_view(snapshot, viewed, 0.0, _eyes, _view)

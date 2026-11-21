@@ -58,6 +58,9 @@ func test_each_water_reads_its_own_slot_and_gives_it_back() -> void:
 	assert_ne(second._slot, -1, "and another")
 	assert_ne(first._slot, second._slot, "each its own")
 	for water: InnerWater in [first, second]:
+		var pose := _pose(water)
+		water.show_water(pose, pose, 0.0)
+		assert_false(_shown(water).is_empty(), "its water shows")
 		for surface: MeshInstance3D in water._surfaces:
 			if surface != null:
 				assert_eq(_slot_of(surface), water._slot, "its surfaces read its slot")
