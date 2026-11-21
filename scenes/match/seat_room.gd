@@ -21,15 +21,23 @@ var _ghost_at := []
 
 ## The room of [param layout] holding [param feet] — a seat's, in the space of its
 ## piece of her, which [param pose] is that piece's — within [param step] of its floor
-## or afloat over it inside her; -1 in none: on an open deck, or out in the sea.
-func of(layout: ShipLayout, pose: ShipPose, feet: Vector3, step: float) -> int:
+## or, for a body [param afloat], over it inside her; -1 in none: on an open deck, or
+## out in the sea. A body on its feet is asked of no room under it: the deck over a hold
+## is inside her hull too (the trawler's, whose plate read "Fish Hold" on deck).
+func of(layout: ShipLayout, pose: ShipPose, feet: Vector3, step: float, afloat := true) -> int:
 	if not _indexes.has(layout):
 		_indexes[layout] = RoomIndex.new(layout)
 	var index: RoomIndex = _indexes[layout]
 	var room := index.room_at(feet, step)
-	if room == -1 and pose != null and pose.cell_at(feet) != CellMap.NONE:
+	if room == -1 and afloat and pose != null and pose.cell_at(feet) != CellMap.NONE:
 		room = index.room_around(feet, step)
 	return room
+
+
+## The room of [param layout] the seat of entry [param me] is in (of()): afloat only
+## while it swims.
+func of_seat(layout: ShipLayout, pose: ShipPose, me: Dictionary, step: float) -> int:
+	return of(layout, pose, me["pos"], step, me["state"] == PlayerState.Body.SWIMMING)
 
 
 ## What the HUD's plate calls a place of [param layout]: its room [param room], else,
@@ -58,7 +66,7 @@ func ghost_place(
 		_ghost_at = at
 		var layout := ghost.layout()
 		var pose := schedule.pose_at(snapshot["tick"]).of_piece(body.piece)
-		var room := of(layout, pose, body.pos, step)
+		var room := of(layout, pose, body.pos, step, body.body == PlayerState.Body.SWIMMING)
 		var decks := ghost.up() == Faces.Up.DECK
 		_ghost_place = named(layout, room, body.surface if decks else Surfaces.NONE)
 	return _ghost_place
