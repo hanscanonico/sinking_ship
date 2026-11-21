@@ -1,0 +1,51 @@
+# Main's verdict, a commit at a time. Nearly every commit here is the merge train's
+# (tools/merge_train.sh): a pull request squash-merged at a head that held main's
+# latest commit and was green, so the commit holds that head's tree, file for file,
+# and CI has passed it already. The `tree` job asks just that of the commit
+# (tools/ci_tree_verified.sh) and names the green run; .github/workflows/verify.yml
+# then skips its gates and only keeps the caches a pull request's run restores. Run
+# whole, the gate held 20 runners for six minutes, the next pull request's run queued
+# behind it: ten to thirteen minutes, not six and a half (runs 44921495286,
+# 44913311961, 44912089643).
+# Any other commit — pushed straight here, or merged at a head that lacked some of
+# main — gets the whole gate, as does any the `tree` job cannot answer for.
+name: main
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tree:
+    name: tree already verified?
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    # What the question reads: the commit, its pull requests, their runs.
+    permissions:
+      contents: read
+      pull-requests: read
+      actions: read
+    outputs:
+      verified: ${{ steps.ask.outputs.verified }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: tools/ci_tree_verified.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Ask
+        id: ask
+        run: tools/ci_tree_verified.sh "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # A `tree` job that failed outright has no answer either: the whole gate.
+  verify:
+    needs: tree
+    if: always()
+    uses: ./.github/workflows/verify.yml
+    with:
+      verified: ${{ needs.tree.outputs.verified == 'true' }}

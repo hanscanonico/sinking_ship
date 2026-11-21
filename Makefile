@@ -799,7 +799,8 @@ check:
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
 # fixture project, and its list of runtime-built loads, against the code; the worktree
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
-# gh's snapshots; the merge train, against a stand-in gh's pull requests, again on Perl's
+# gh's snapshots; main's question of whether CI has passed a commit's tree already, against
+# a stand-in gh's commits; the merge train, against a stand-in gh's pull requests, again on Perl's
 # lock; and art-lint-changed's selection, against a throwaway repo and a
 # stand-in make; verify-changed's guard-check and ship-gen-check, the same way; this list's own runner (tools/guard_checks.sh, which holds the list and runs GUARD_JOBS of them side by side), against stand-in lists; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
