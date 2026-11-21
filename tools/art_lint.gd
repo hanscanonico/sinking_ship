@@ -70,8 +70,10 @@ const OpenSpanCheck := preload("res://tools/open_span_check.gd")
 const ArtLintCosts := preload("res://tools/art_lint_costs.gd")
 const ShipFaces := preload("res://tools/ship_faces.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
-## The checks that play a match, in the order --match=K/N deals them (_check_match).
-const MATCH_CHECKS: PackedStringArray = ["seats", "collapse", "effects", "overhead"]
+## The checks that play a match, the dearest first, as --match=K/N deals them
+## (_check_match): the effects' whole match costs about what the other three do
+## between them (run 44903878057: 268 s, 98, 77 and 19 on a runner four engines shared).
+const MATCH_CHECKS: PackedStringArray = ["effects", "collapse", "seats", "overhead"]
 const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
 const SEED := 1701
@@ -194,17 +196,19 @@ func _initialize() -> void:
 
 
 ## What plays a match, or needs none of a ship's data: share [param part].x of
-## [param part].y. The four that play one are dealt in turn, MATCH_CHECKS' order, and
-## each says what it took; the quick ones before them go with the first share.
+## [param part].y. Of the four that play one the first share takes MATCH_CHECKS'
+## first alone and the other shares the rest in turn (every one, when there is one
+## share), and each says what it took; the quick ones before them go with the last.
 func _check_match(part: Vector2i) -> void:
-	if part.x == 1:
+	if part.x == part.y:
 		var named: Array = SnapshotOnlyCheck.check(ART_DIR)
 		_problems.append_array(named[0])
 		_checks += named[1]
 		_check_crew()
 		_check_sea_reach()
 	for index in MATCH_CHECKS.size():
-		if index % part.y != part.x - 1:
+		var share := 1 if index == 0 else 2 + (index - 1) % maxi(part.y - 1, 1)
+		if part.y > 1 and share != part.x:
 			continue
 		var since := Time.get_ticks_usec()
 		match MATCH_CHECKS[index]:

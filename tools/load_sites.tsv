@@ -110,9 +110,6 @@ tests/unit/match/test_room_outlets.gd	load("res://data/ships/%s.tres" % ship)	@s
 tests/unit/online/test_online_play.gd	FileAccess.file_exists(path)	-
 tools/arena.gd	FileAccess.get_file_as_string(path)	docs/arena*.md
 tools/arena.gd	FileAccess.open(path)	docs/arena*.md
-tools/art_lint.gd	DirAccess.get_directories_at(dir)	scenes/art/*
-tools/art_lint.gd	DirAccess.get_files_at(dir)	scenes/art/*
-tools/art_lint.gd	FileAccess.get_file_as_string(ART_DIR + file)	scenes/art/*
 tools/art_lint.gd	load(SHIPS_DIR + file)	data/ships/*
 tools/art_lint_costs.gd	FileAccess.file_exists(path)	tools/art_lint_costs.tsv
 tools/art_lint_costs.gd	FileAccess.get_file_as_string(path)	tools/art_lint_costs.tsv
@@ -132,3 +129,6 @@ tools/ship_scene_bake.gd	load(path)	authoring/*.tscn
 tools/ship_scene_draw.gd	FileAccess.file_exists(path)	authoring/*.tscn
 tools/ship_scene_draw.gd	FileAccess.get_file_as_string(path)	authoring/*.tscn
 tools/ship_scene_draw.gd	FileAccess.open(path)	authoring/*.tscn
+tools/snapshot_only_check.gd	DirAccess.get_directories_at(dir)	scenes/art/*
+tools/snapshot_only_check.gd	DirAccess.get_files_at(dir)	scenes/art/*
+tools/snapshot_only_check.gd	FileAccess.get_file_as_string(dir + file)	scenes/art/*
