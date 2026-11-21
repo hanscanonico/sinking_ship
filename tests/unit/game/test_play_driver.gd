@@ -32,3 +32,15 @@ func test_the_match_lines_say_the_seat_and_who_is_near() -> void:
 	assert_string_contains(lines[1], "me: GROUNDED")
 	assert_eq(lines.size(), 5, "the clock, the seat's two lines, and the two others")
 	assert_eq(PlayDriver.match_lines({}), PackedStringArray(), "no match, nothing to say")
+
+
+func test_an_answer_leaves_the_bots_own_brawl_out() -> void:
+	var theirs := SimEvent.new(SimEvent.Kind.SHOVE_LANDED, 45, 2)
+	theirs.target = 3
+	assert_false(PlayDriver.tells(theirs.to_dict()), "one bot shoving another")
+	theirs.target = MatchScene.LOCAL_SEAT
+	assert_true(PlayDriver.tells(theirs.to_dict()), "a shove on the local seat")
+	var out := SimEvent.new(SimEvent.Kind.SEAT_OUT, 45, 2)
+	assert_true(PlayDriver.tells(out.to_dict()), "anyone going out")
+	var flooding := SimEvent.new(SimEvent.Kind.CELL_FLOODING, 45, -1)
+	assert_true(PlayDriver.tells(flooding.to_dict()), "her sinking")

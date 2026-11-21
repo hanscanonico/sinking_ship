@@ -6,7 +6,8 @@ extends Node
 ## action presses injected as the events a keyboard and a mouse would send, frames let
 ## run, frames saved — and answers each in DIR/out/NNNN.txt with what a player would
 ## know then: the text on the screen, where each button is, the local seat as the
-## latest snapshot has it, what happened since, the frames saved (DIR/shots). Between
+## latest snapshot has it, what happened to her and to the seat since, the frames saved
+## (DIR/shots). Between
 ## batches nothing moves: the game is held on its frame until the next batch comes, so
 ## however long the player thinks, the match has not gone on without them. Launched with
 ## --fixed-fps, a frame is one tick, and `wait 30` is a second of the match.
@@ -468,10 +469,22 @@ func _gather_events() -> void:
 		return
 	_event_tick = snapshot["tick"]
 	for event: Dictionary in snapshot["events"]:
+		if not tells(event):
+			continue
 		if _events.size() >= EVENT_LINES:
 			_events_dropped += 1
 			continue
 		_events.append(event_line(event))
+
+
+## Whether an answer tells of [param event]: what happens to her, who goes out, how the
+## match ends, and whatever the local seat does or has done to it — never the bots'
+## brawl among themselves, a hundred shoves a minute.
+static func tells(event: Dictionary) -> bool:
+	if event["kind"] in [SimEvent.Kind.SEAT_OUT, SimEvent.Kind.MATCH_ENDED]:
+		return true
+	var local := MatchScene.LOCAL_SEAT
+	return event["seat"] < 0 or local in [event["seat"], event["target"], event["credit"]]
 
 
 ## One sim event as a line: its kind, then every field of it that says something.
