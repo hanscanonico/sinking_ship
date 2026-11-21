@@ -826,7 +826,8 @@ check:
 # against a stand-in build; make durations and make goldens, against
 # sample logs; make art-lint-costs, against made-up runs' tables; verify running the float test once, read off make -n; the gdtoolkit targets'
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
-# fixture project, and its list of runtime-built loads, against the code; the worktree
+# fixture project, and its list of runtime-built loads, against the code; the sim
+# tests' shared fixtures reaching nothing under scenes/, asked of that selection; the worktree
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
 # gh's snapshots; main's question of whether CI has passed a commit's tree already, against
 # a stand-in gh's commits; the merge train, against a stand-in gh's pull requests, again on Perl's
