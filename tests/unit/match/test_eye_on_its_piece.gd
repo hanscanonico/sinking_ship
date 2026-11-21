@@ -118,11 +118,18 @@ func test_the_free_camera_in_dry_air_under_the_waterline_is_not_under_water() ->
 	assert_ne(cell, -1, "a dry cell of her fore piece under the sea's surface")
 	if cell == -1:
 		return
-	var eye := _world(scene, _fore(scene), _fore_pose(scene).cells.box_of(cell).get_center())
+	var middle := _fore_pose(scene).cells.box_of(cell).get_center()
+	var eye := _world(scene, _fore(scene), middle)
 	_fly_to(scene, eye)
 	assert_true(scene._free.active, "a watcher flies the free camera")
 	assert_almost_eq(scene._eyes.global_position, eye, Vector3.ONE * 1e-4, "the view is its own")
 	assert_false(scene._underwater.is_under(), "in the cell's air")
+	# Where her aft piece would carry that cell, the fore piece gone its own way: the sea.
+	var left := _world(scene, ShipPieces.leaves_of(scene._driver.sim().schedule)[0], middle)
+	assert_lt(left.y, -PLAIN, "where the cell would be, under the sea's surface")
+	_fly_to(scene, left)
+	assert_almost_eq(scene._eyes.global_position, left, Vector3.ONE * 1e-4, "its box holds it")
+	assert_true(scene._underwater.is_under(), "in the sea, where the cell no longer is")
 
 
 func test_the_free_camera_under_the_sea_has_the_view_under_it_and_nobody_s_breath() -> void:
