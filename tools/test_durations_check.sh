@@ -58,6 +58,16 @@ got="$(tools/test_durations.py --log "$WORK/bare.log" --out - | grep -v '^#')"
 [[ "$got" == "$(grep -E 'stamina|olympic|brawl_marks' <<<"$expected")" ]] || fail "a bare job log read as:
 $got"
 
+# The two jobs as two shards side by side in one job (tools/test_parts.sh): their
+# lines as they came, each with its shard after its stamp. Each shard is read on its
+# own: read as one, a script of one would end at the other's next line.
+LC_ALL=C awk -F'\t' -v OFS='\t' '{ stamp = $3; sub(/ .*/, "", stamp); text = index($3, " ") ? substr($3, index($3, " ") + 1) : ""; shard = $1; sub(/^test /, "", shard); print "test 1/4", $2, stamp " [" shard "] " text }' "$SAMPLE" |
+	LC_ALL=C sort -s -t' ' -k3,3 >"$WORK/side.log"
+grep -q 'Z \[5/8\] res://' "$WORK/side.log" || fail "the side-by-side copy of the sample names no shard"
+got="$(tools/test_durations.py --log "$WORK/side.log" --out - | grep -v '^#')"
+[[ "$got" == "$expected" ]] || fail "two shards side by side in one job read as:
+$got"
+
 # The digests' run cut out, so the job meets that path only in its Run Summary,
 # reprinted just ahead of the Britannic's: read past the banner, the reprint
 # would open a script the next reprint closes at 0 s.
