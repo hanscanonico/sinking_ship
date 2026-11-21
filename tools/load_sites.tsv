@@ -40,6 +40,10 @@ scenes/game/bake_cache.gd	FileAccess.get_file_as_bytes(path)	-
 scenes/game/bake_cache.gd	FileAccess.open(aside)	-
 scenes/game/key_bindings.gd	FileAccess.open(path)	-
 scenes/game/language.gd	load(catalog_path(code))	locale/*.po
+scenes/game/play_driver.gd	DirAccess.get_files_at(_dir.path_join(sub))	-
+scenes/game/play_driver.gd	FileAccess.file_exists(path)	-
+scenes/game/play_driver.gd	FileAccess.get_file_as_string(path)	-
+scenes/game/play_driver.gd	FileAccess.open(path + ".part")	-
 scenes/match/bonus_icons.gd	load(DIR + String(kind.icon) + ".svg")	assets/ui/bonus/*.svg
 scenes/match/iceberg_planner.gd	load(path)	assets/models/*.glb
 scenes/match/view_settings.gd	ResourceLoader.exists(path)	-
