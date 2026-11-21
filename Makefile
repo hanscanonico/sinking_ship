@@ -531,11 +531,13 @@ verify:
 
 # The local bar for done: every gate verify runs, with art-lint-changed and
 # test-changed — the lint and the tests the branch's changes can reach — in place of
-# the whole lint and the whole suite. A branch that touches only tooling or docs starts
+# the whole lint and the whole suite, and guard-check-changed and ship-gen-check-changed,
+# which run those two only when the branch reaches the tooling, generators or data they
+# read (tools/gate_changed.sh, #721). A branch that touches only tooling or docs starts
 # no test engine. CI runs the full verify on every PR, and nothing merges until it is
 # green on the PR head. It ends as verify does: "verify-changed: PASS", or
 # "verify-changed: FAIL at STEP".
-verify-changed-steps = check guard-check ship-gen-check bake-check lint format-check art-lint-changed test-changed
+verify-changed-steps = check guard-check-changed ship-gen-check-changed bake-check lint format-check art-lint-changed test-changed
 verify-changed:
 	@for step in $(verify-changed-steps); do \
 		$(MAKE) --no-print-directory $$step || { echo "verify-changed: FAIL at $$step"; exit 1; }; \
@@ -796,7 +798,7 @@ check:
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
 # gh's snapshots; the merge train, against a stand-in gh's pull requests, again on Perl's
 # lock; and art-lint-changed's selection, against a throwaway repo and a
-# stand-in make; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
+# stand-in make; verify-changed's guard-check and ship-gen-check, the same way; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
 	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
 		echo "make-shell-check: make runs recipes in $(SHELL), which has no pipefail" >&2; exit 1; fi
@@ -820,8 +822,18 @@ guard-check:
 	tools/merge_train_check.sh
 	FD_LOCK=perl tools/merge_train_check.sh
 	tools/art_lint_changed_check.sh
+	tools/gate_changed_check.sh
 	tools/exactness_check.sh
 	python3 tools/titanic_plates/deck_check.py
+
+# verify-changed's guard-check and ship-gen-check (tools/gate_changed.sh): each whole
+# when the branch's changes reach what it reads, and none, saying so, otherwise — with
+# guard-check's runtime load sites still checked, as any script can add one.
+guard-check-changed:
+	tools/gate_changed.sh guard-check
+
+ship-gen-check-changed:
+	tools/gate_changed.sh ship-gen-check
 
 # Style and smells. Rule overrides live in gdlintrc.
 lint:
@@ -847,6 +859,6 @@ format-check:
 
 .PHONY: import native run replay match capture smoke flood-invariants net-bench sim-bench exactness bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
-	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
+	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check guard-check-changed ship ship-gen-check ship-gen-check-changed ship-check bake-ship \
 	bake-check ship-scene preview \
 	ship-blend bake-blend models model-sources sailor crew-capture lint format format-check

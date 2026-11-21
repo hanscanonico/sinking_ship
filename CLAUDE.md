@@ -30,7 +30,7 @@ Design of record: `.lavish/sinking-ship-plan.html` (rev 4)
 make import                                     # once per fresh checkout or worktree
 make native                                     # build the GDExtension (native/) for this machine: SCONS=, and on Windows LLVM_MINGW=; not in verify
 make verify                                     # the full gate: check, guard-check, ship-gen-check, bake-check, lint, format-check, art-lint, test
-make verify-changed                             # the local bar for done: every verify gate, art-lint-changed and test-changed in art-lint's and test's place
+make verify-changed                             # the local bar for done: every verify gate, with art-lint, test, guard-check and ship-gen-check cut to what the branch's changes reach
 make test TEST=tests/unit/core/test_ticks.gd    # one test script
 make test JOBS=8                                # the suite as 8 shards side by side (default 4; JOBS=1 for one engine)
 make test SHARD=2/8                             # one CI shard; tests/durations.tsv balances them
