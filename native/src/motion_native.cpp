@@ -5,6 +5,7 @@
 // last height gives what working it out again gives, so none is kept here.
 
 #include "motion_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -619,6 +620,8 @@ PackedFloat64Array NativeMotion::loaded(const PackedFloat64Array &p_rotation, co
 	}
 	return found;
 }
+
+SINKING_CLASS(NativeMotion)
 
 void NativeMotion::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "x", "length", "first", "count", "points", "whole", "corner_first",
