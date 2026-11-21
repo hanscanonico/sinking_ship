@@ -211,6 +211,21 @@ smoke:
 	@SEED="$(SEED)" SHIP="$(SHIP)" FAST="$(FAST)" MAX="$(MAX)" DRY="$(DRY)" OUT="$(OUT)" \
 		BAKE_CACHE="$(BAKE_CACHE)" GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
 
+# `make play [SHIP=] [SEED=] [SEATS=] [FAST=1] [GOAL=] [BONUSES=] [RES=960x540] [ARGS=]`: the
+# game played by turns by an agent with no hands on the keys — run it in the background,
+# then send each turn with `tools/play.sh '<commands>'`, which prints what a player would
+# know after it: the screen's words and buttons, the local seat, what happened, the
+# frames it saved. The menu opens as for a person; between turns the game stands still.
+# It keeps its own user folder under PLAY (captures/play), so the machine's owner's
+# settings and replays are never touched, and holds the window lock until it quits: on
+# `tools/play.sh quit`, after PLAY_IDLE seconds (600) with no turn, or PLAY_LIMIT (3600)
+# in all. Rules live in tools/play.sh and scenes/game/play_driver.gd. Not part of verify.
+PLAY ?= $(CURDIR)/captures/play
+PLAY_IDLE ?=
+PLAY_LIMIT ?=
+play:
+	@PLAY="$(PLAY)" PLAY_IDLE="$(PLAY_IDLE)" PLAY_LIMIT="$(PLAY_LIMIT)" RES="$(RES)" GODOT="$(GODOT)" 		tools/play.sh serve $(match-args) $(bake-cache-arg) $(ARGS)
+
 # `make net-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says
 # (NET= for the offline game's honest wire), timed beat by beat: ticks re-run, the
@@ -853,7 +868,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import native run replay match capture smoke flood-invariants net-bench sim-bench exactness bench serve-local online-e2e export-server \
+.PHONY: import native run replay match capture smoke play flood-invariants net-bench sim-bench exactness bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check guard-check-changed ship ship-gen-check ship-gen-check-changed ship-check bake-ship \
 	bake-check ship-scene preview \

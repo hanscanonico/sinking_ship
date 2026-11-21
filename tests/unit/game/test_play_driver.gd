@@ -1,0 +1,34 @@
+extends GutTest
+## The played session's driver (PlayDriver, make play): how a batch's lines become
+## commands, and what an answer says of the match and of its events.
+
+
+func test_a_line_is_its_words_and_a_quoted_one_stays_whole() -> void:
+	assert_eq(
+		PlayDriver.split_words('click "Play online" right'),
+		PackedStringArray(["click", "Play online", "right"])
+	)
+	assert_eq(PlayDriver.split_words("  wait   30 "), PackedStringArray(["wait", "30"]))
+	assert_eq(PlayDriver.split_words(""), PackedStringArray(), "a blank line is no command")
+
+
+func test_the_flags_name_the_session() -> void:
+	var args := MatchArgs.parse(PackedStringArray(["--play=/tmp/play", "--play-idle=30"]))
+	assert_eq(args.play_dir, "/tmp/play")
+	assert_eq(args.play_idle, 30.0)
+	assert_eq(MatchArgs.parse(PackedStringArray()).play_dir, "", "a person plays")
+
+
+func test_an_event_line_keeps_the_local_seat_and_drops_what_nobody_named() -> void:
+	var landed := SimEvent.new(SimEvent.Kind.SHOVE_LANDED, 45, 0)
+	landed.target = 3
+	assert_eq(PlayDriver.event_line(landed.to_dict()), "00:01.5 SHOVE_LANDED seat=0 target=3")
+
+
+func test_the_match_lines_say_the_seat_and_who_is_near() -> void:
+	var sim := SimFixtures.sim(3)
+	var lines := PlayDriver.match_lines(sim.snapshot())
+	assert_string_contains(lines[0], "3 of 3 in")
+	assert_string_contains(lines[1], "me: GROUNDED")
+	assert_eq(lines.size(), 5, "the clock, the seat's two lines, and the two others")
+	assert_eq(PlayDriver.match_lines({}), PackedStringArray(), "no match, nothing to say")
