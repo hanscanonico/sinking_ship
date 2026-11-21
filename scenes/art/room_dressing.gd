@@ -772,10 +772,11 @@ func _cabin(mesh: ShipMesh, room: ShipRoom, number: int, glass: Array[Array]) ->
 
 
 ## The room of [param space], by index, through the gap [param gap] along
-## [param side] of [param room]; -1 for none.
+## [param side] of [param room]; -1 for none, or with no way through (SignPool).
 static func _beyond(space: ShipSpace, room: ShipRoom, side: int, gap: Vector2) -> int:
 	var beyond := space.on_side(room, side, (gap.x + gap.y) * 0.5, -0.3)
-	return room_at(space, Vector3(beyond.x, room.floor_height + 1.0, beyond.y))
+	var open := SignPool.over_a_doorway(space, room, side, gap)
+	return room_at(space, Vector3(beyond.x, room.floor_height + 1.0, beyond.y)) if open else -1
 
 
 ## The gaps along [param side] of [param room] between its full walls, [param runs]

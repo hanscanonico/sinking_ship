@@ -153,3 +153,25 @@ func test_her_whole_art_cut_down_draws_what_her_stretch_built_to_it_does() -> vo
 	_whole.show_span(Vector2(-INF, INF))
 	for index in signs.size():
 		assert_true(_draws(_whole, index), "all of her again: %s" % signs[index].text)
+
+
+func test_no_sign_hangs_on_a_wall_with_no_way_through() -> void:
+	# A bulkhead shared with a deeper room stands on that room's floor, so it is none of
+	# the higher room's own runs (ShipSpace.wall_runs): her bosun's store read its aft
+	# bulkhead as one wide doorway and named the forward hold over it.
+	var space := ShipSpace.new(_layout)
+	for label: Label3D in _pool(_whole).signs():
+		var plate := _plate(label)
+		var into := label.basis.z
+		var here := plate + into * 0.3
+		var beyond := plate - into * 0.5
+		var floor := plate.y - RoomDressing.SIGN_HEIGHT
+		assert_false(
+			space.walled_between(
+				Vector2(here.x, here.z),
+				Vector2(beyond.x, beyond.z),
+				floor,
+				floor + ShipSpace.FULL_WALL
+			),
+			"%s, its plate at %s: a doorway under it" % [label.text, plate]
+		)
