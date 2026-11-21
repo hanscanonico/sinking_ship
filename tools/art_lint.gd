@@ -164,7 +164,7 @@ func _initialize() -> void:
 			for ship: String in arg.trim_prefix("--skip=").split(",", false):
 				skipped.append(ship + ".tres")
 		elif arg.begins_with("--part="):
-			_part = _part_of(arg.trim_prefix("--part="))
+			_part = ArtLintCosts.part_of(arg.trim_prefix("--part="))
 			if _part == Vector2i.ZERO:
 				printerr("art-lint: %s is no part — --part=K/N takes K from 1 to N" % arg)
 				quit(1)
@@ -175,7 +175,7 @@ func _initialize() -> void:
 			played = Vector2i.ZERO
 		elif arg.begins_with("--match="):
 			ships = false
-			played = _part_of(arg.trim_prefix("--match="))
+			played = ArtLintCosts.part_of(arg.trim_prefix("--match="))
 			if played == Vector2i.ZERO:
 				printerr(
 					"art-lint: %s is no part — --match takes no, or K/N with K from 1 to N" % arg
@@ -231,15 +231,6 @@ func _check_match(part: Vector2i) -> void:
 				_checks += overhead[1]
 		var took := (Time.get_ticks_usec() - since) / 1e6
 		print("art-lint: match part %d/%d: %s %.1f s" % [part.x, part.y, MATCH_CHECKS[index], took])
-
-
-## Part K of N, as (K, N), of [param given] ("K/N"); Vector2i.ZERO when it names none.
-static func _part_of(given: String) -> Vector2i:
-	var numbers := given.split("/")
-	if numbers.size() != 2 or not (numbers[0].is_valid_int() and numbers[1].is_valid_int()):
-		return Vector2i.ZERO
-	var part := Vector2i(numbers[0].to_int(), numbers[1].to_int())
-	return part if part.x >= 1 and part.x <= part.y else Vector2i.ZERO
 
 
 func _report() -> void:
@@ -339,7 +330,7 @@ func _check_ship(file: String, layout: ShipLayout) -> void:
 	if _part.x == _part.y:
 		var since := Time.get_ticks_usec()
 		var spans: Array = OpenSpanCheck.check(
-			root, file, layout, rules, _ship_faces, BLOCKER_TOLERANCE
+			root, file, layout, rules, ShipFaces.of, BLOCKER_TOLERANCE
 		)
 		_costs.timed("spans", 0, since)
 		_problems.append_array(spans[0])
@@ -362,7 +353,8 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 	art.build(layout, rules.railing_height, rules.body_radius)
 	_costs.timed("build", 0, since)
 	since = Time.get_ticks_usec()
-	var faces := _ship_faces(art)
+	var hidden := PackedByteArray()
+	var faces := ShipFaces.of(art, false, PackedInt32Array(), hidden)
 	var cells := FaceCells.file(faces)
 	var furnished := FurnishingCheck.furnishings(art)
 	_costs.timed("faces", 0, since)
@@ -404,12 +396,13 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 		)
 		_costs.timed("ramp", index, since)
 	# The hull ShipArt drew her with: a wall's side under its skin is left undrawn.
-	var hull := SectionHull.of(ShipSpace.new(layout), rules.railing_height)
+	var space := ShipSpace.new(layout)
+	var hull := SectionHull.of(space, rules.railing_height)
 	for index in layout.blockers.size():
 		if _mine("blocker", index):
 			since = Time.get_ticks_usec()
 			var blocker := layout.blockers[index]
-			_check_blocker(faces, cells, "%s blocker %d" % [file, index], blocker, layout, hull)
+			_check_blocker(faces, cells, "%s blocker %d" % [file, index], blocker, space, hull)
 			_costs.timed("blocker", index, since)
 	for index in layout.ladders.size():
 		if _mine("ladder", index):
@@ -426,7 +419,7 @@ func _check_drawn(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 		since = Time.get_ticks_usec()
 		_check_panes(file, layout, rules)
 		_costs.timed("panes", 0, since)
-	_check_false_floor(art, file, layout, rules)
+	_check_false_floor(faces, cells, hidden, file, layout, rules)
 	since = Time.get_ticks_usec()
 	if _mine("crate", 0):
 		_check_crate_light(file, layout, art)
@@ -577,12 +570,17 @@ func _check_panes(file: String, layout: ShipLayout, rules: BrawlRules) -> void:
 ## looks like deck a body could stand on where the rules have none (D6). Past an edge
 ## walled from the deck to over a jump no body goes, so nothing there is looked at: a
 ## space fitted in behind her hold's wall, or her hull behind a peak's (#148). Only the
-## platforms _mine() deals this part.
-func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: BrawlRules) -> void:
-	var since := Time.get_ticks_usec()
-	var faces := _ship_faces(art, true)
-	var cells := FaceCells.file(faces)
-	_costs.timed("shown", 0, since)
+## platforms _mine() deals this part. Of her [param faces], filed in [param cells],
+## those [param hidden] now are passed over (ShipFaces.of): what she shows.
+func _check_false_floor(
+	faces: PackedVector3Array,
+	cells: Dictionary,
+	hidden: PackedByteArray,
+	file: String,
+	layout: ShipLayout,
+	rules: BrawlRules
+) -> void:
+	var since := 0
 	var space := ShipSpace.new(layout)
 	var ends := Vector2(INF, -INF)
 	for platform: ShipPlatform in layout.platforms:
@@ -606,7 +604,8 @@ func _check_false_floor(art: ShipArt, file: String, layout: ShipLayout, rules: B
 					return StructureSteel.holds(layout, Vector3(point.x, y, point.y))
 			):
 				continue
-			var facing := _top_facing(faces, cells, Vector3(point.x, high, point.y), low)
+			var from := Vector3(point.x, high, point.y)
+			var facing := _top_facing(faces, cells, hidden, from, low)
 			if facing > FLOOR_FACING:
 				_problems.append(
 					(
@@ -685,12 +684,16 @@ func _floor_near(layout: ShipLayout, point: Vector2, low: float, high: float) ->
 	return false
 
 
-## How far up (its normal's y) the highest face straight under [param from] and over
-## [param low] faces; -1 when there is none.
-func _top_facing(faces: PackedVector3Array, cells: Dictionary, from: Vector3, low: float) -> float:
+## How far up (its normal's y) the highest face not [param hidden] straight under
+## [param from] and over [param low] faces; -1 when there is none.
+func _top_facing(
+	faces: PackedVector3Array, cells: Dictionary, hidden: PackedByteArray, from: Vector3, low: float
+) -> float:
 	var highest := -INF
 	var facing := -1.0
 	for index: int in FaceCells.at(cells, from):
+		if hidden[index / 3] != 0:
+			continue
 		var a := faces[index]
 		var b := faces[index + 1]
 		var c := faces[index + 2]
@@ -822,12 +825,11 @@ func _check_blocker(
 	cells: Dictionary,
 	what: String,
 	blocker: ShipBlocker,
-	layout: ShipLayout,
+	space: ShipSpace,
 	hull: ShipHull
 ) -> void:
 	_checks += 1
 	var probes: Array[Array] = []
-	var space := ShipSpace.new(layout)
 	# A deck laid on its top stands in its planks' depth there: the deck's to draw.
 	var top := blocker.top - (ShipArt.PLANK if space.deck_on(blocker) else 0.0)
 	var span := top - blocker.bottom
@@ -849,7 +851,7 @@ func _check_blocker(
 			probes.append([Vector3(point.x, blocker.top, point.y), Vector3.UP])
 		var middle := area.get_center()
 		var deck := -INF
-		for platform: ShipPlatform in layout.platforms:
+		for platform: ShipPlatform in space.layout.platforms:
 			if platform.height <= blocker.bottom and platform.contains(middle.x, middle.y):
 				deck = maxf(deck, platform.height)
 		if blocker.bottom > deck + 0.5:
@@ -880,11 +882,6 @@ func _check_blocker(
 		_problems.append(
 			"art-lint: %s: drawn face %.1f cm off its data at %s" % [what, worst * 100.0, worst_at]
 		)
-
-
-## Every triangle drawn under [param art] (ShipFaces.of).
-func _ship_faces(art: Node3D, shown := false, spans := PackedInt32Array()) -> PackedVector3Array:
-	return ShipFaces.of(art, shown, spans)
 
 
 func _samples(area: Rect2) -> PackedVector2Array:
@@ -1065,7 +1062,7 @@ func _check_collapse() -> void:
 		return
 	driver.previous = driver.current
 	await process_frame
-	var faces := _ship_faces(scene.get_node("MatchView/Ship/ShipArt"))
+	var faces := ShipFaces.of(scene.get_node("MatchView/Ship/ShipArt"))
 	var cells := FaceCells.file(faces)
 	var layout := sim.config.ship
 	for index in layout.platforms.size():
