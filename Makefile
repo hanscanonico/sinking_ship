@@ -433,10 +433,16 @@ census:
 # match (CI's art-lint fleet job runs the two side by side, tools/art_lint_fleet.sh). COSTS=FILE appends each ship check's microseconds
 # to FILE (tools/art_lint_costs.gd). Its engine takes a test slot (tools/test_slot.sh),
 # as bake-check's do: each dresses whole ships.
+# With none of PART, SKIP, MATCH and COSTS it is not one engine but several side by
+# side (tools/art_lint_all.sh): the whole lint as the fleet's ships, the match's two
+# shares and each Titanic's parts, or SHIP's alone in her parts — as many parts as the
+# machine's test slots are worth, the same checks each once. SHIP=NAME PART=1/1 is
+# her lint in one engine.
 art-lint: export TEST_SLOT_NAME = art-lint
 art-lint:
 	$(call require-godot)
-	@set -o pipefail; tools/engine_guard.sh tools/test_slot.sh $(GODOT) \
+	@$(if $(PART)$(SKIP)$(MATCH)$(COSTS),,exec tools/art_lint_all.sh $(SHIP);) \
+		set -o pipefail; tools/engine_guard.sh tools/test_slot.sh $(GODOT) \
 		--headless --no-header --path . --fixed-fps 60 \
 		-s res://tools/art_lint.gd $(if $(SHIP)$(SKIP)$(PART)$(MATCH)$(COSTS),--) \
 		$(if $(SHIP),--ship=$(SHIP)) $(if $(SKIP),--skip=$(SKIP)) $(if $(PART),--part=$(PART)) \
