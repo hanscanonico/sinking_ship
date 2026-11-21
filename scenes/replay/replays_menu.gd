@@ -143,9 +143,9 @@ static func _what(file: ReplayFile, reason: String) -> String:
 				[
 					Language.titled(String(file.ship).replace("_", " ")),
 					Language.t("Seed %d") % file.match_seed,
-					Language.t("%d seats") % file.seats,
+					Language.t(ReplayListing.seats_text(file.seats)) % file.seats,
 					MatchTranscript.clock(file.ticks),
-					_winner(file.winner, file.ended),
+					_winner(file.winner, file.ended, file.choices.watch),
 				]
 			)
 		)
@@ -154,10 +154,11 @@ static func _what(file: ReplayFile, reason: String) -> String:
 
 
 ## Who won (ReplayListing.winner_text), in the language in use.
-static func _winner(winner: int, ended: bool) -> String:
-	if ended and winner > 0:
-		return Language.t("Bot %d won") % winner
-	return Language.t(ReplayListing.winner_text(winner, ended))
+static func _winner(winner: int, ended: bool, watched: bool) -> String:
+	var bot := ReplayListing.bot_number(winner, watched)
+	if ended and bot > 0:
+		return Language.t("Bot %d won") % bot
+	return Language.t(ReplayListing.winner_text(winner, ended, watched))
 
 
 ## Delete asks once: the first press arms it, the second deletes.

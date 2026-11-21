@@ -394,6 +394,30 @@ msgid "Delete"
 msgstr "Suppr"
 
 msgctxt "key"
+msgid "Home"
+msgstr "Début"
+
+msgctxt "key"
+msgid "End"
+msgstr "Fin"
+
+msgctxt "key"
+msgid "PageUp"
+msgstr "Page préc."
+
+msgctxt "key"
+msgid "PageDown"
+msgstr "Page suiv."
+
+msgctxt "key"
+msgid "Insert"
+msgstr "Inser"
+
+msgctxt "key"
+msgid "CapsLock"
+msgstr "Verr. maj"
+
+msgctxt "key"
 msgid "Up"
 msgstr "Haut"
 
@@ -753,6 +777,9 @@ msgstr "Aucun replay pour l'instant : chaque partie jouée ici est gardée, les 
 
 msgid "%d seats"
 msgstr "%d joueurs"
+
+msgid "%d seat"
+msgstr "%d joueur"
 
 msgid "Bot %d won"
 msgstr "Bot %d a gagné"

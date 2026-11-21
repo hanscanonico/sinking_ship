@@ -453,7 +453,7 @@ func place() -> String:
 	var me := _answers.me
 	var decks := MatchState.up_of(_snapshot, me) == Faces.Up.DECK
 	var where := _answers.faces.layout(Faces.Up.DECK)
-	_room = _rooms.of(where, _answers.pose, me["pos"], _rules.step_height)
+	_room = _rooms.of_seat(where, _answers.pose, me, _rules.step_height)
 	return SeatRoom.named(where, _room, me["surface"] if decks else Surfaces.NONE)
 
 
