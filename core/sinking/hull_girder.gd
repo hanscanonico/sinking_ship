@@ -70,7 +70,7 @@ func _init(structure: ShipStructure, sea: SeaPhysics, motion: ShipMotion) -> voi
 		_counts.append(last - first + 1)
 		_starts.append(_shares.size())
 		_shares.append_array(shares.slice(first, last + 1))
-	if not native_off and ClassDB.class_exists(&"NativeGirder"):
+	if not native_off and NativeVersion.has(&"NativeGirder"):
 		_native = ClassDB.instantiate(&"NativeGirder")
 		_native.setup(_own, _first, _counts, _starts, _shares, _bounds, _hog, _sag)
 

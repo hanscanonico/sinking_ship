@@ -1,7 +1,7 @@
 extends GutTest
 ## Every brawler with a bonus wears its kind's mark (#313): a band round its chest in the
 ## kind's colour, lit from within as the bonus was. MatchView draws it from the snapshot on
-## every body it draws — through a seat's eyes every other seat's, from the orbit camera
+## every body it draws — through a seat's eyes every other seat's, from the free camera
 ## every seat's, as from the observer's — and draws a replay the same way; a seat without
 ## one wears none. The seat whose eyes the view is in is not drawn, mark and all (D14): its
 ## HUD shows its bonuses, by their kinds' badges (FirstPersonHud).
@@ -87,10 +87,10 @@ func test_each_kind_is_worn_in_its_own_colour() -> void:
 			assert_eq(material.emission, rules.kinds[kind].mark, "%s: lit from within" % title)
 
 
-func test_no_mark_through_the_seat_s_own_eyes_but_every_one_from_the_orbit_camera() -> void:
+func test_no_mark_through_the_seat_s_own_eyes_but_every_one_from_the_free_camera() -> void:
 	var scene := _match()
 	var seats: Array = scene._driver.current["seats"]
 	seats[0]["bonuses"] = [0]
 	assert_null(_mark(scene, 0), "through seat 0's own eyes: no body, so no mark")
 	scene.get_node("MatchView").look_out_of(-1)
-	assert_not_null(_mark(scene, 0), "from the orbit camera, as from the observer's: its mark")
+	assert_not_null(_mark(scene, 0), "from the free camera, as from the observer's: its mark")

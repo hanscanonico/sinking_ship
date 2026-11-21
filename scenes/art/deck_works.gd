@@ -87,6 +87,9 @@ const AERIAL_WIRES: Array[float] = [-0.6, -0.2, 0.2, 0.6]
 ## apart along it its points are tried for their clearance (rigging).
 const RIG_TOLERANCE := 0.12
 const RIG_STEP := 0.1
+## How far past a top's area _tops_along takes where a line crosses it: far past what
+## rounding moves a point of the line by.
+const CROSSING_SLACK := 0.001
 ## A cargo derrick on a mast (_derrick) works the hatch whose middle stands on her
 ## centreline DERRICK_REACH fore or aft of the mast, the nearest mast's: its boom
 ## DERRICK thick, heeled on a gooseneck band GOOSENECK proud of the mast and tall, and
@@ -568,6 +571,7 @@ static func _clears(layout: ShipLayout, rules: BrawlRules, line: RigLine) -> boo
 	var headroom := rules.body_height + rules.jump_height
 	var tops := _tops_under(layout, rules, line.from, line.to, line.spars)
 	var steps := maxi(1, ceili(line.from.distance_to(line.to) / RIG_STEP))
+	var highest := _tops_along(tops, line.from, line.to, steps)
 	for step in steps + 1:
 		var point := line.from.lerp(line.to, float(step) / steps)
 		var at := Vector2(point.x, point.z)
@@ -575,7 +579,7 @@ static func _clears(layout: ShipLayout, rules: BrawlRules, line: RigLine) -> boo
 		for spar in line.spars:
 			if at.distance_to(spar.centre) + half <= spar.radius + RIG_TOLERANCE:
 				held = true
-		if not held and point.y - half < _top_at(tops, at) + headroom:
+		if not held and point.y - half < highest[step] + headroom:
 			return false
 	return true
 
@@ -592,11 +596,11 @@ static func _tops_under(
 	var low := Vector2(minf(from.x, to.x), minf(from.z, to.z))
 	var high := Vector2(maxf(from.x, to.x), maxf(from.z, to.z))
 	var under := Rect2(low, high - low).grow(reach)
-	var tops: Array[Array] = []
+	var near: Array[Array] = []
 	for platform: ShipPlatform in layout.platforms:
-		tops.append([platform.area, platform.height])
+		_add_top(near, platform.area, platform.height, reach, under)
 	for ramp: ShipRamp in layout.ramps:
-		tops.append([ramp.area, maxf(ramp.start_height, ramp.end_height)])
+		_add_top(near, ramp.area, maxf(ramp.start_height, ramp.end_height), reach, under)
 	for blocker: ShipBlocker in layout.blockers:
 		if spars.has(blocker):
 			continue
@@ -606,19 +610,76 @@ static func _tops_under(
 		if blocker.shape == ShipBlocker.Shape.CYLINDER:
 			var round := Vector2.ONE * blocker.radius
 			area = Rect2(blocker.centre - round, round * 2.0)
-		tops.append([area, blocker.top])
-	var near: Array[Array] = []
-	for top in tops:
-		var area := (top[0] as Rect2).grow(reach)
-		if area.intersects(under, true):
-			near.append([area, top[1]])
+		_add_top(near, area, blocker.top, reach, under)
 	return near
 
 
-## The highest of [param tops] (_tops_under) over ship-plane point [param at], or -INF.
+## Adds [[param area] grown by [param reach], [param height]] to [param tops] when it
+## reaches [param under] (_tops_under).
+static func _add_top(
+	tops: Array[Array], area: Rect2, height: float, reach: float, under: Rect2
+) -> void:
+	var grown := area.grow(reach)
+	if grown.intersects(under, true):
+		tops.append([grown, height])
+
+
+## The highest of [param tops] (_tops_under) over ship-plane point [param at], or -INF:
+## what _tops_along answers of every point of a line, which test_mast_rigging holds it to.
 static func _top_at(tops: Array[Array], at: Vector2) -> float:
 	var highest := -INF
 	for top in tops:
 		if top[1] > highest and (top[0] as Rect2).has_point(at):
 			highest = top[1]
 	return highest
+
+
+## Per point of the line from [param from] to [param to] cut into [param steps] (_clears),
+## the highest of [param tops] over it (_top_at), or -INF: each top tried only at the
+## points by where the line crosses its area, a hair wider (CROSSING_SLACK) and a point
+## more either end, so a liner's stay the length of her is not tried against every top
+## under it at each of its thousand points (#411).
+static func _tops_along(
+	tops: Array[Array], from: Vector3, to: Vector3, steps: int
+) -> PackedFloat64Array:
+	var points := PackedVector2Array()
+	points.resize(steps + 1)
+	for step in steps + 1:
+		var point := from.lerp(to, float(step) / steps)
+		points[step] = Vector2(point.x, point.z)
+	var highest := PackedFloat64Array()
+	highest.resize(steps + 1)
+	highest.fill(-INF)
+	var start := Vector2(from.x, from.z)
+	var way := Vector2(to.x, to.z) - start
+	for top in tops:
+		var area: Rect2 = top[0]
+		var height: float = top[1]
+		var crossing := _crossing(start, way, area.grow(CROSSING_SLACK))
+		if crossing.x > crossing.y:
+			continue
+		var first := maxi(0, floori(crossing.x * steps) - 1)
+		var last := mini(steps, ceili(crossing.y * steps) + 1)
+		for step in range(first, last + 1):
+			if height > highest[step] and area.has_point(points[step]):
+				highest[step] = height
+	return highest
+
+
+## The stretch, as fractions from 0 to 1 of [param way] from [param start], of the line
+## over [param area]: x past y where it never crosses it.
+static func _crossing(start: Vector2, way: Vector2, area: Rect2) -> Vector2:
+	var enters := 0.0
+	var leaves := 1.0
+	for axis in 2:
+		var low := area.position[axis]
+		var high := area.end[axis]
+		if way[axis] == 0.0:
+			if start[axis] < low or start[axis] > high:
+				return Vector2(1.0, 0.0)
+			continue
+		var one := (low - start[axis]) / way[axis]
+		var other := (high - start[axis]) / way[axis]
+		enters = maxf(enters, minf(one, other))
+		leaves = minf(leaves, maxf(one, other))
+	return Vector2(enters, leaves)

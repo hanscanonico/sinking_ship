@@ -352,10 +352,13 @@ func clear(planner: FxPlanner = null) -> void:
 
 ## Plays [param cues] — FxPlanner's — with the ship drawn at [param ship], as seen
 ## by [param camera] (none: seen from everywhere) from the room [param eye_room], by
-## index in the layout, or from none.
-func play(cues: Array[FxCue], ship: Transform3D, camera: Camera3D, eye_room := -1) -> void:
+## index in the layout, or from none; and from inside her if [param eye_indoors] (by
+## her cells: on a ladder, a flight, swimming), or if in a room.
+func play(
+	cues: Array[FxCue], ship: Transform3D, camera: Camera3D, eye_room := -1, eye_indoors := false
+) -> void:
 	_pieces.follow(ship)
-	_eye_indoors = eye_room >= 0
+	_eye_indoors = eye_indoors or eye_room >= 0
 	_offered.fill(0)
 	for index in cues.size():
 		var cue := cues[index]
@@ -445,7 +448,11 @@ func _on_stepped(_events: Array[SimEvent]) -> void:
 	if _view.eye_seat() >= 0:
 		var feet: Vector3 = _driver.current["seats"][_view.eye_seat()]["pos"]
 		eye_room = _rooms.room_at(feet, _step)
-	play(cues, ship, get_viewport().get_camera_3d(), eye_room)
+	# Whether the eye is inside her at all, by her cells as the underwater view asks:
+	# no room's floor holds feet on a ladder, a flight, in mid-air or swimming.
+	var camera := get_viewport().get_camera_3d()
+	var eye_indoors := camera != null and _view.indoors(camera.global_position)
+	play(cues, ship, camera, eye_room, eye_indoors)
 	# Against the ship as stepped, not as last drawn: a deck righting under a piece
 	# sends it under before the deck is wadeable.
 	_pieces.sink_shallows(_flotsam, _schedule.pose_at(_driver.current["tick"]))
@@ -494,7 +501,9 @@ func _play(cue: FxCue, root: Transform3D, camera: Camera3D) -> void:
 				to.y = 0.0
 			if _seen((at + to) * 0.5, maxf(at.distance_to(to) * 0.5, 1.0), camera):
 				var burst := _burst_for(cue.kind)
-				_water_burst(burst, cue.kind, at, to, toward, cue.strength, cue.rise, camera)
+				_water_burst(
+					burst, cue.kind, at, to, toward, cue.strength, cue.rise, camera, cue.lit
+				)
 		FxCue.Kind.MIST:
 			# It hangs for seconds: one behind the eye is there when it turns round.
 			var middle := (at + ship * cue.end) * 0.5
@@ -624,7 +633,7 @@ func _burst_for(kind: FxCue.Kind) -> CPUParticles3D:
 
 ## White water or air thrown out of [param burst] from [param at] — or along to
 ## [param to], a sheet — [param toward], climbing [param rise] over where it starts;
-## near the eye low, small and faint.
+## near the eye low, small and faint; [param lit] of its white showing (FxCue.lit).
 func _water_burst(
 	burst: CPUParticles3D,
 	kind: FxCue.Kind,
@@ -633,7 +642,8 @@ func _water_burst(
 	toward: Vector3,
 	strength: float,
 	rise: float,
-	camera: Camera3D
+	camera: Camera3D,
+	lit := 1.0
 ) -> void:
 	var shows := 1.0
 	var top := rise
@@ -680,7 +690,7 @@ func _water_burst(
 		burst.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
 		burst.emission_sphere_radius = depth
 	burst.global_transform = Transform3D(basis, (at + to) * 0.5)
-	burst.color = Color(1.0, 1.0, 1.0, lerpf(SPECK_ALPHA, 1.0, shows))
+	burst.color = Color(lit, lit, lit, lerpf(SPECK_ALPHA, 1.0, shows))
 	burst.direction = basis.transposed() * direction
 	burst.scale_amount_max = grain / streak
 	burst.scale_amount_min = minf(0.6, burst.scale_amount_max)

@@ -72,6 +72,9 @@ var end: Vector3
 ## leaves the funnel; SLIDE: the deck's downhill; RENT: the way the plating it tears
 ## faces, into the room or out to the sea.
 var toward := Vector3.UP
+## SPRAY: how much of its white shows where it plays, 0…1 — all of it outdoors, less
+## in a room, which her lamps light far dimmer than the day (FailureFx.ROOM_LIGHT).
+var lit := 1.0
 ## 0…1.
 var strength := 1.0
 ## Metres it spreads over round its position. CHUNKS: how far they fall. SIFT: how

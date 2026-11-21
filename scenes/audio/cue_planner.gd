@@ -110,9 +110,14 @@ var _keel := INF
 ## How far through its stride each seat is, 0…1.
 var _stride := PackedFloat32Array()
 ## How far through its scrape each crate is, 0…1; and the entry each last stood still at,
-## as the step before had it and not moving, or null.
+## as the step before had it and not moving, or null: by run of QUIET_RUN crates, as
+## _cargo compares them.
 var _scrape := PackedFloat32Array()
-var _quiet: Array = []
+var _quiet: Array[Array] = []
+## The props the step before planned to, and 1 for each run of them that then stood still
+## as its _quiet has it: a run its next step finds still again need not be asked of twice.
+var _props_then: Array = []
+var _runs_still := PackedByteArray()
 ## Per cell of her structure, its floor's middle and its half extent along the floor.
 var _floors := PackedVector3Array()
 var _floor_halves := PackedVector3Array()
@@ -177,7 +182,11 @@ func _init(
 	_stride.resize(config.seats)
 	_stride.fill(0.5)
 	_scrape.resize(_layout.props.size())
-	_quiet.resize(_layout.props.size())
+	for first in range(0, _layout.props.size(), QUIET_RUN):
+		var run := []
+		run.resize(mini(QUIET_RUN, _layout.props.size() - first))
+		_quiet.append(run)
+	_runs_still.resize(_quiet.size())
 	var structure := _layout.structure
 	if structure != null:
 		_watch_structure(structure)
@@ -304,16 +313,25 @@ func _shove(then: Dictionary, now: Dictionary, tick: int, cues: Array[AudioCue])
 ## it goes into the sea. The water lifting one off the deck splashes soft — a flooding
 ## saloon's furniture one piece a tick at most; afloat it is silent, and drifting off
 ## adrift it makes no second splash. One still and as it was makes nothing, and QUIET_RUN
-## in a row so are passed over at once.
+## in a row so are passed over at once — the step before's own still runs not asked of again.
 func _cargo(then: Array, now: Array, tick: int, cues: Array[AudioCue]) -> void:
 	var furniture_lifted := false
-	for first in range(0, now.size(), QUIET_RUN):
+	var chained := is_same(then, _props_then)
+	_props_then = now
+	for run in _quiet.size():
+		var first := run * QUIET_RUN
 		var last := mini(first + QUIET_RUN, now.size())
-		var quiet := _quiet.slice(first, last)
-		if now.slice(first, last) == quiet and then.slice(first, last) == quiet:
+		var quiet := _quiet[run]
+		if (
+			now.slice(first, last) == quiet
+			and ((chained and _runs_still[run] == 1) or then.slice(first, last) == quiet)
+		):
+			_runs_still[run] = 1
 			continue
 		for index in range(first, last):
 			furniture_lifted = _crate(then[index], now[index], index, tick, cues, furniture_lifted)
+		# Still as now has it once every one of its crates stood still.
+		_runs_still[run] = 0 if quiet.has(null) else 1
 
 
 ## The cues of crate [param index], from [param before] to [param entry], as _cargo's;
@@ -327,10 +345,11 @@ func _crate(
 	cues: Array[AudioCue],
 	furniture_lifted: bool
 ) -> bool:
+	var quiet := _quiet[index / QUIET_RUN]
 	if entry == before and entry["vel"] == Vector3.ZERO:
-		_quiet[index] = entry
+		quiet[index % QUIET_RUN] = entry
 		return furniture_lifted
-	_quiet[index] = null
+	quiet[index % QUIET_RUN] = null
 	var state: PropState.Body = entry["state"]
 	var was_state: PropState.Body = before["state"]
 	if state == PropState.Body.LOST:

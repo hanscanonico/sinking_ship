@@ -1,7 +1,7 @@
 export const meta = {
 	name: 'improve',
 	description:
-		'Implement→adversarial-review pipeline: one PR per task via Opus subagents, one retry at high effort on a red gate or a reject',
+		'Implement→adversarial-review pipeline: one PR per task via Fable subagents, one retry at high effort on a red gate or a reject',
 	whenToUse:
 		'Delegated implementation of scouted task specs, ordered by after: and capped by concurrency; used by the /orchestrate skill',
 	phases: [
@@ -28,15 +28,15 @@ export const meta = {
 //   trailers        optional commit-trailer block; empty means no trailer at all
 //   footer          PR-body footer for this session (generated-with + session link)
 //
-// Every agent runs on the latest Opus available: the `opus` alias, never Fable, never a
-// dated Opus id. Effort lives on the agent definitions (implementer medium, reviewer
+// Every agent runs on Fable: the `fable` alias, never a
+// dated id. Effort lives on the agent definitions (implementer medium, reviewer
 // high); the one per-call override here is the retry, which runs the implementer at high.
 //
 // Returns { label, summary, results }. Each result: { slug, impl, review, retry, verdict } —
 // retry is null or a second { impl, review }; a skipped task carries { skipped: true, reason }
 // instead. verdict reads the last attempt: approve | reject | verify_failed | gate_timed_out |
 // abandoned | unreviewed | no_result | skipped | error.
-// impl.local_gate is the implementer's make verify-changed (completed | timed_out | failed);
+// impl.local_gate is the implementer's make test-changed (completed | timed_out | failed);
 // anything but completed is the red gate the retry answers. impl.ci_green is what it saw on
 // the PR head when it reported, and impl.verify_pass is derived here as local_gate ===
 // 'completed' for older readers. No verdict is a merge: the orchestrator checks CI's full
@@ -103,7 +103,7 @@ const IMPL = {
 			type: 'string',
 			enum: ['completed', 'timed_out', 'failed'],
 			description:
-				'make verify-changed plus any area gate in the worktree: completed = it ran to its end and passed; failed = it ran to its end and something was red; timed_out = it had not ended when you reported (slots held, machine loaded). Never completed for a gate you did not see end. Not read when abandoned.',
+				'make test-changed plus any area gate in the worktree: completed = it ran to its end and passed; failed = it ran to its end and something was red; timed_out = it had not ended when you reported (slots held, machine loaded). Never completed for a gate you did not see end. Not read when abandoned.',
 		},
 		ci_green: {
 			type: 'boolean',
@@ -197,7 +197,7 @@ const reviewBrief = (t, impl, bases, prior, priorSha) =>
 		: '') +
 	reviewTrailerNote
 
-const MODEL = 'opus' // the alias tracks the newest Opus release
+const MODEL = 'fable' // the alias tracks the newest Fable release
 
 // The concurrency cap: a FIFO semaphore every agent start goes through, and a start chain
 // that keeps any two starts stagger_seconds apart. The runtime does not promise setTimeout;

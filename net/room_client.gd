@@ -58,6 +58,11 @@ var _share: SharedTransport
 var _digest := ""
 var _timeline: SinkTimeline
 var _begun := false
+## Whether this client left its room and has asked for no other since: what the room
+## sent before the server read the leave is no longer this client's.
+var _left := false
+## The code of the room joined, until its first roster comes; "" when none is awaited.
+var _joining_code := ""
 
 
 ## A client over [param wire] of [param match_rules]' matches, played to
@@ -74,11 +79,15 @@ func _init(
 
 
 func create_room() -> void:
+	_left = false
+	_joining_code = ""
 	_send(_codec.encode_bare(WireCodec.Kind.CREATE))
 
 
 ## Joins the room [param code] names, however it is cased.
 func join_room(code: String) -> void:
+	_left = false
+	_joining_code = RoomCodec.normalize_code(code)
 	_send(_codec.encode_join(code))
 
 
@@ -97,6 +106,8 @@ func leave_room() -> void:
 	if state != State.ROOM and state != State.PLAYING:
 		return
 	_send(_codec.encode_bare(WireCodec.Kind.LEAVE))
+	_left = true
+	_joining_code = ""
 	_share = null
 	state = State.LOBBY
 	roster = null
@@ -157,6 +168,9 @@ func _read(packet: Transport.Packet) -> void:
 		WireCodec.Kind.REFUSED:
 			_refused(message.value)
 		WireCodec.Kind.ROSTER:
+			if _left or (not _joining_code.is_empty() and message.roster.code != _joining_code):
+				return
+			_joining_code = ""
 			roster = message.roster
 			if not roster.playing:
 				_share = null
@@ -165,9 +179,11 @@ func _read(packet: Transport.Packet) -> void:
 				state = State.ROOM
 			roster_changed.emit(roster)
 		WireCodec.Kind.BEGIN:
-			_begin(message)
+			if roster != null and not _left and _joining_code.is_empty():
+				_begin(message)
 		WireCodec.Kind.TIMELINE:
-			_take_timeline(message)
+			if not _left and _joining_code.is_empty():
+				_take_timeline(message)
 		WireCodec.Kind.SNAPSHOT:
 			if _share != null:
 				_share.deliver(packet)
@@ -180,6 +196,8 @@ func _refused(reason: int) -> void:
 		_wire.close(_server)
 		_close(reason)
 		return
+	# A join refused is a join no longer awaited.
+	_joining_code = ""
 	if reason == RoomCodec.Refusal.ROOM_CLOSED:
 		_share = null
 		state = State.LOBBY
@@ -188,10 +206,13 @@ func _refused(reason: int) -> void:
 	refused.emit(reason)
 
 
-## Takes up the match BEGIN announces, when it is one this client's data can play.
+## Takes up the match BEGIN announces, when it is one this client's data can play; one
+## it cannot is refused — DATA — and the connection let go, so the server waits on no
+## load that will never come.
 func _begin(message: RoomCodec.Message) -> void:
 	var seats := message.seats
 	if seats < _match_rules.ship.min_seats or seats > _match_rules.ship.max_seats:
+		_refused(RoomCodec.Refusal.DATA)
 		return
 	_config = RoomServer.config_for(
 		_match_rules, message.value, message.fast, message.bonuses, seats

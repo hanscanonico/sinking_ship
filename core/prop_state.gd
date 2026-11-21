@@ -103,8 +103,11 @@ static func some_of(snapshot: Dictionary, indices: PackedInt32Array) -> Array[Pr
 
 
 ## The crates [param snapshot] holds: each of [param kept] — the crates a match had till
-## now — whose entry is the snapshot's own as it stands, every other made anew.
-static func from_snapshot(snapshot: Dictionary, kept: Array[PropState] = []) -> Array[PropState]:
+## now — whose entry is the snapshot's own as it stands, every other made anew and put in
+## [param made] too.
+static func from_snapshot(
+	snapshot: Dictionary, kept: Array[PropState] = [], made: Array[PropState] = []
+) -> Array[PropState]:
 	var entries: Array = snapshot["props"]
 	var props: Array[PropState] = []
 	props.resize(entries.size())
@@ -114,6 +117,7 @@ static func from_snapshot(snapshot: Dictionary, kept: Array[PropState] = []) -> 
 			props[index] = kept[index]
 		else:
 			props[index] = from_dict(entry)
+			made.append(props[index])
 	return props
 
 

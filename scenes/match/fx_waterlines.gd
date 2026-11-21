@@ -14,6 +14,16 @@ const _CORNERS: Array[Vector3] = [
 	Vector3(0.0, 0.0, 0.0), Vector3(1.0, 0.0, 0.0), Vector3(1.0, 0.0, 1.0), Vector3(0.0, 0.0, 1.0)
 ]
 
+## How many platforms a block of _whole holds.
+const BLOCK := 16
+## How far past FxPlanner.CLEAR_OF_SEA a whole block must be, in metres: wide of any
+## rounding between its bound and the per-deck test it stands in for.
+const BLOCK_MARGIN := 0.05
+
+## Whether _whole passes over the blocks clear of the sea; off, it reads every deck, as
+## it did before the blocks (test_fx_waterlines holds the two to the same effects).
+var blocks := true
+
 var _layout: ShipLayout
 var _space: ShipSpace
 var _pieces: PieceViews
@@ -30,6 +40,20 @@ var _heights := PackedFloat32Array([0.0, 0.0, 0.0, 0.0])
 var _least := PackedVector3Array()
 var _size_x := PackedFloat64Array()
 var _size_z := PackedFloat64Array()
+## Her platforms in blocks of BLOCK, laid by height and then along her, so a block's least
+## corners lie close: per block its members, the box round their least corners and their
+## largest sizes along x and z, and whether a member's spray may be other than 0 — what
+## lets _whole pass over a block clear of the sea without reading a deck of it.
+var _members: Array[PackedInt32Array] = []
+var _block_low := PackedVector3Array()
+var _block_high := PackedVector3Array()
+var _block_x := PackedFloat64Array()
+var _block_z := PackedFloat64Array()
+var _sprayed := PackedByteArray()
+## Per platform asked about, the platforms level with it (_level_with).
+var _level := {}
+## Per platform crossed, the rooms its deck stands in, grown (DeckWetness.rooms_grown_on).
+var _grown := {}
 
 
 func _init(layout: ShipLayout, space: ShipSpace, pieces: PieceViews) -> void:
@@ -41,6 +65,47 @@ func _init(layout: ShipLayout, space: ShipSpace, pieces: PieceViews) -> void:
 		_size_x.append(deck.area.size.x)
 		_size_z.append(deck.area.size.y)
 	_spray.resize(layout.platforms.size() * 2 * maxi(pieces.leaves.size(), 1))
+	_lay_blocks()
+
+
+## Lays her platforms in blocks of [param size] (_members), none passed over yet.
+func _lay_blocks(size := BLOCK) -> void:
+	_members.clear()
+	_block_low.clear()
+	_block_high.clear()
+	_block_x.clear()
+	_block_z.clear()
+	var order: Array[int] = []
+	for index in _least.size():
+		order.append(index)
+	order.sort_custom(
+		func(a: int, b: int) -> bool:
+			if _least[a].y != _least[b].y:
+				return _least[a].y < _least[b].y
+			if _least[a].x != _least[b].x:
+				return _least[a].x < _least[b].x
+			return a < b
+	)
+	for first in range(0, order.size(), size):
+		var members := PackedInt32Array()
+		var low := Vector3.INF
+		var high := -Vector3.INF
+		var most_x := 0.0
+		var most_z := 0.0
+		for at in range(first, mini(first + size, order.size())):
+			var index := order[at]
+			members.append(index)
+			low = low.min(_least[index])
+			high = high.max(_least[index])
+			most_x = maxf(most_x, _size_x[index])
+			most_z = maxf(most_z, _size_z[index])
+		_members.append(members)
+		_block_low.append(low)
+		_block_high.append(high)
+		_block_x.append(most_x)
+		_block_z.append(most_z)
+	_sprayed.resize(_members.size())
+	_sprayed.fill(1)
 
 
 ## The waterlines of the step from [param pose_then] to [param pose_now], at [param tick],
@@ -53,6 +118,7 @@ func plan(
 		_whole(pose_then, pose_now, tick, plunging, cues)
 		return
 	# Broken: every stretch of a deck on a piece, as that piece stands.
+	_sprayed.fill(1)
 	var platforms := _layout.platforms.size()
 	for place in views.size():
 		var view := views[place]
@@ -83,12 +149,55 @@ func plan(
 func _whole(
 	pose_then: ShipPose, pose_now: ShipPose, tick: int, plunging: bool, cues: Array[FxCue]
 ) -> void:
-	var basis := pose_now.transform.basis
-	var lows := pose_now.transform * _least
+	var transform := pose_now.transform
+	var basis := transform.basis
 	var size_x := _size_x
 	var size_z := _size_z
-	for index in lows.size():
-		var low := lows[index].y
+	# A block whose every least corner is clear of the sea, over or under it, by more than
+	# the steepest rise across any of its decks is passed over: each of its decks would be
+	# (below). The rest are read deck by deck, in the platforms' order.
+	var up := Vector3(basis.x.y, basis.y.y, basis.z.y)
+	var tilt_x := absf(basis.x.y)
+	var tilt_z := absf(basis.z.y)
+	var asked := PackedInt32Array()
+	for block in _members.size():
+		var low := _block_low[block]
+		var high := _block_high[block]
+		var least := (
+			transform.origin.y
+			+ minf(up.x * low.x, up.x * high.x)
+			+ minf(up.y * low.y, up.y * high.y)
+			+ minf(up.z * low.z, up.z * high.z)
+		)
+		var most := (
+			transform.origin.y
+			+ maxf(up.x * low.x, up.x * high.x)
+			+ maxf(up.y * low.y, up.y * high.y)
+			+ maxf(up.z * low.z, up.z * high.z)
+		)
+		var clear := (
+			tilt_x * _block_x[block]
+			+ tilt_z * _block_z[block]
+			+ FxPlanner.CLEAR_OF_SEA
+			+ BLOCK_MARGIN
+		)
+		if blocks and (least > clear or most < -clear):
+			if _sprayed[block] == 1:
+				for index: int in _members[block]:
+					_spray[index * 2] = 0.0
+					_spray[index * 2 + 1] = 0.0
+				_sprayed[block] = 0
+			continue
+		_sprayed[block] = 1
+		asked.append_array(_members[block])
+	asked.sort()
+	var corners := PackedVector3Array()
+	for index: int in asked:
+		corners.append(_least[index])
+	var lows := transform * corners
+	for at in asked.size():
+		var index := asked[at]
+		var low := lows[at].y
 		# Every corner clear of the sea, over or under it, by more than its plane rises
 		# across it: no line to find (_crossing), on most of the Titanic's 1,349 decks —
 		# told from the packed arrays alone, no deck read.
@@ -122,7 +231,10 @@ func _crossed(
 	var middle := (_line[0] + _line[1]) * 0.5
 	var climbing := (pose_then.world_height(middle) - pose_now.world_height(middle)) * Ticks.RATE
 	var strength := clampf(absf(climbing) / FxPlanner.RUSH_SPEED * boost, FxPlanner.WASH_LEAST, 1.0)
-	for run: Vector2 in DeckWetness.out_on_deck_along(_layout, index, _line[0], _line[1]):
+	if not _grown.has(index):
+		_grown[index] = DeckWetness.rooms_grown_on(_layout, index)
+	var runs := DeckWetness.out_of(_grown[index], _line[0], _line[1])
+	for run: Vector2 in runs:
 		var wash := FxCue.new(FxCue.Kind.WASH, tick, _line[0].lerp(_line[1], run.x))
 		wash.end = _line[0].lerp(_line[1], run.y)
 		wash.toward = uphill
@@ -185,7 +297,20 @@ func _crossing_area(area: Rect2, height: float, pose: ShipPose, low: float) -> b
 ## no deck of the same height carries on past it.
 func _at_edge(platform: ShipPlatform, point: Vector3) -> bool:
 	var past := point + FxPlanner._edge_outward(platform.area, point) * 0.3
-	for other: ShipPlatform in _layout.platforms:
-		if absf(other.height - platform.height) < 0.05 and other.contains(past.x, past.z):
+	for other: ShipPlatform in _level_with(platform):
+		if other.contains(past.x, past.z):
 			return false
 	return true
+
+
+## The platforms of the same height as [param platform], within 0.05, in the layout's
+## order: found the first time asked, rather than walking all of hers each burst of spray.
+func _level_with(platform: ShipPlatform) -> Array[ShipPlatform]:
+	if _level.has(platform):
+		return _level[platform]
+	var found: Array[ShipPlatform] = []
+	for other: ShipPlatform in _layout.platforms:
+		if absf(other.height - platform.height) < 0.05:
+			found.append(other)
+	_level[platform] = found
+	return found

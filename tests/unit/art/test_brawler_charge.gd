@@ -5,6 +5,8 @@ extends GutTest
 ## through. Read off a real held shove, tick by tick, as the view reads the snapshots.
 
 const SEAT := 1
+## The first-person camera's near plane (FirstPersonCamera.NEAR).
+const EYE_NEAR := 0.05
 
 
 func test_a_charge_fills_from_the_threshold_to_full() -> void:
@@ -75,9 +77,32 @@ func test_your_own_arms_heat_up_but_throw_no_sparks() -> void:
 	var body := Brawler.new()
 	add_child_autofree(body)
 	body.setup(SEAT, SimFixtures.rules(), false)
-	body.show_as_own_arms(BrawlerAnimation.CLIPS, FirstPersonArms.POSES, FirstPersonArms.ELBOWS)
+	body.show_as_own_arms(
+		BrawlerAnimation.CLIPS, FirstPersonArms.POSES, FirstPersonArms.ELBOWS, EYE_NEAR
+	)
 	await get_tree().process_frame
 	assert_null(body.find_child("Charge", true, false), "nothing streams up past the crosshair")
+
+
+func test_your_own_arms_draw_ahead_of_the_wall_they_reach_past() -> void:
+	var crew := Brawler.new()
+	add_child_autofree(crew)
+	crew.setup(SEAT, SimFixtures.rules(), false)
+	var own := Brawler.new()
+	add_child_autofree(own)
+	own.setup(SEAT, SimFixtures.rules(), false)
+	own.show_as_own_arms(
+		BrawlerAnimation.CLIPS, FirstPersonArms.POSES, FirstPersonArms.ELBOWS, EYE_NEAR
+	)
+	for material: ShaderMaterial in [_clothes(own), _outline(own)]:
+		assert_eq(material.get_shader_parameter("eye_squash"), Brawler.OWN_DEPTH)
+		assert_eq(material.get_shader_parameter("eye_near"), EYE_NEAR)
+	for material: ShaderMaterial in [_clothes(crew), _outline(crew)]:
+		assert_ne(
+			material.get_shader_parameter("eye_squash"),
+			Brawler.OWN_DEPTH,
+			"the crew stand in the world"
+		)
 
 
 func _entry(sim: MatchSim) -> Dictionary:

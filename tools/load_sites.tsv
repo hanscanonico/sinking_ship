@@ -20,12 +20,15 @@ core/match_choices.gd	ResourceLoader.exists(path)	tests/fixtures/sinking/*.tres
 core/match_choices.gd	ResourceLoader.exists(scenario)	tests/fixtures/sinking/*.tres
 core/match_choices.gd	load(path)	tests/fixtures/sinking/*.tres
 core/match_choices.gd	load(scenario)	tests/fixtures/sinking/*.tres
+core/native_version.gd	DirAccess.open(folder)	native/src/*
+core/native_version.gd	FileAccess.get_file_as_bytes(folder.path_join(name))	native/src/*
 core/prop_kind.gd	ResourceLoader.exists(path)	data/props/*.tres
 core/prop_kind.gd	load(path)	data/props/*.tres
 scenes/art/ship_model.gd	load(MODELS.path_join(name).path_join(name + ".glb"))	assets/models/*.glb
 scenes/audio/audio_settings.gd	ResourceLoader.exists(path)	-
 scenes/audio/audio_settings.gd	ResourceLoader.load(path)	-
 scenes/audio/match_audio.gd	load(SoundBank.DIR + file)	assets/audio/*
+scenes/audio/match_audio.gd	load(SoundBank.DIR + SoundBank.files(AudioCue.Kind.SEEK)[0])	assets/audio/bonus/seek.wav
 scenes/audio/music_player.gd	load(path)	assets/audio/music/*
 scenes/audio/sound_bank.gd	load(DIR + file)	assets/audio/*
 scenes/audio/ui_sounds.gd	load(path)	assets/audio/ui/*
@@ -56,7 +59,9 @@ tests/unit/ai/test_walk_search_native.gd	load(path)	data/ships/steamer.tres data
 tests/unit/ai/test_way_through.gd	load("res://data/ships/%s.tres" % ship)	data/ships/steamer.tres data/ships/trawler.tres data/ships/tug.tres data/ships/barque.tres data/ships/ferry.tres data/ships/freighter.tres
 tests/unit/art/test_committed_models.gd	ResourceLoader.exists(MODELS.path_join(model).path_join(model + ".glb"))	assets/models/*.glb
 tests/unit/art/test_committed_models.gd	load("res://data/ships".path_join(file))	data/ships/*
+tests/unit/art/test_deck_under.gd	load(ship)	data/ships/*.tres
 tests/unit/art/test_deck_works.gd	load("res://data/ships/%s.tres" % ship)	@ship
+tests/unit/art/test_funnel_rest.gd	load(SHIPS + file)	data/ships/*.tres
 tests/unit/art/test_liner_boiler.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_room_dressing.gd	load("res://data/ships/%s.tres" % ship_name)	@ship
 tests/unit/art/test_sea_haze.gd	load("res://data/ships/%s.tres" % ship)	@ship
@@ -67,6 +72,7 @@ tests/unit/core/test_match_choices.gd	load(HITS % "titanic_night")	tests/fixture
 tests/unit/core/test_match_end.gd	load(path)	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_must_sink.gd	load(SINKING_HITS[1])	tests/fixtures/sinking/hits/*.tres
 tests/unit/core/test_must_sink.gd	load(path)	tests/fixtures/sinking/hits/*.tres
+tests/unit/core/test_native_version.gd	FileAccess.open(SCRATCH.path_join(name))	-
 tests/unit/core/test_replay_file.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
 tests/unit/core/test_replay_listing.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
 tests/unit/core/test_replay_timeline.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
@@ -113,6 +119,7 @@ tools/art_lint_costs.gd	FileAccess.get_file_as_string(path)	tools/art_lint_costs
 tools/art_lint_costs.gd	FileAccess.open(path)	tools/art_lint_costs.tsv
 tools/census.gd	FileAccess.open(OUT if ship == DEFAULT_SHIP else SHIP_OUT % ship)	docs/census*.md
 tools/census.gd	load(RunMatch.DEFAULT_MATCH)	data/match/default.tres
+tools/exactness.gd	FileAccess.open(out)	-
 tools/online_e2e.gd	FileAccess.file_exists(_settings)	-
 tools/ship_bake.gd	FileAccess.file_exists(scene)	authoring/* data/ships/* tests/fixtures/ships/*
 tools/ship_bake.gd	FileAccess.open(json)	-

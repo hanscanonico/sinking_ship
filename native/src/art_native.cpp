@@ -5,6 +5,7 @@
 // minf, maxf, clampi and floori are the engine's, and bsearch its bisection.
 
 #include "art_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/error_macros.hpp>
@@ -680,6 +681,8 @@ const int32_t *NativeIndoorGrid::rooms_over(double p_x, double p_z, int64_t &r_c
 	return _columns.data() + _columns_from[square];
 }
 
+SINKING_CLASS(NativeIndoorGrid)
+
 void NativeIndoorGrid::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "origin", "size", "low", "bands", "bounds", "cells_from", "cells",
 								 "ceiling_at", "edges_of"),
@@ -778,6 +781,8 @@ int32_t NativeLining::lining(const Vector3 &p_point, int64_t p_part) const {
 const NativeLining::Paint &NativeLining::paint(int32_t p_id) const {
 	return _paints[p_id];
 }
+
+SINKING_CLASS(NativeLining)
 
 void NativeLining::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "grid", "lined", "boxes", "areas", "floors", "parts", "paints"),
@@ -1629,6 +1634,8 @@ Array NativeShipMesh::needed(const Vector3 &p_origin, const Vector3 &p_u, const 
 	kept.push_back(packed_of(kept_v));
 	return kept;
 }
+
+SINKING_CLASS(NativeShipMesh)
 
 void NativeShipMesh::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "cuts", "outdoors"), &NativeShipMesh::setup);

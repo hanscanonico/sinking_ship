@@ -126,25 +126,36 @@ _Avoid_: extra life, respawn
 
 **Replay**:
 A finished local match watched again: the sim run from its input log (D4) and drawn as it
-was played, through any seat's eyes or from the orbit camera, paused, sped up or sought to
+was played, through any seat's eyes or from the free camera, paused, sped up or sought to
 any tick. Nothing of what happened is kept — the seed and the frames make it again.
 _Avoid_: recording, video, save
 
-**Orbit camera**:
-The replay viewer's and a watcher's elevated view: an eye orbiting a pivot — the seat
-watched, or wherever it was panned — over the sea and outside her hull. The one elevated
-view a player ever gets (D14); the observer camera stays a tool, and the free camera is an
-out seat's, or a watcher's, in play.
-_Avoid_: spectator camera, overhead, drone
+**Free camera**:
+The one detached view a player ever gets (D14): an out seat's in play, a watcher's and the
+replay viewer's. Flown by hand over the sea and round the decks, through anything; a
+watcher's and a replay's opens framing the whole ship. **Following**, it trails the seat
+watched at the offset it locked on at, until flown by hand or let go. The observer camera
+stays a tool.
+_Avoid_: orbit camera, spectator camera, overhead, drone
+
+**Ghost**:
+The view that walks her decks as a seat in the match does, for whoever may fly the free
+camera: an out seat, a watcher, the replay viewer. Its body moves by the living seat's own
+rules through Surfaces — it walks, jumps, takes the stairs, is held by walls, doors and
+railings and stands on the tilting deck, with a seat's eyes — but water neither slows nor
+drowns it. It starts where the out seat went out while that spot is still on her, else at
+the seat watched. Presentation only: never in the sim, a snapshot, a digest, a replay or on
+the wire; nobody sees it, no rule or bot reads it, and it shoves and is shoved by nothing.
+Off her, or once she is gone, the view falls back to the free camera.
+_Avoid_: noclip, phantom, spirit
 
 **Watch**:
 A local match nobody plays, chosen from the menu in place of Play: bots take every seat,
-and the watcher looks through any dry seat's eyes, from the orbit camera or from the free
-camera, switching at will all match long — for a stream, say. Its results name who won;
-it is kept in the replays like a match played. A member of an online room may watch
-too: they take no seat when the host starts, bots and the other members play, and they
-see the room's match with the same views and results; they count toward the room's
-players_per_room.
+and the watcher looks through any dry seat's eyes or from the free camera, switching at
+will all match long — for a stream, say. Its results name who won; it is kept in the
+replays like a match played. A member of an online room may watch too: they take no seat
+when the host starts, bots and the other members play, and they see the room's match
+with the same views and results; they count toward the room's players_per_room.
 _Avoid_: observer (the observer camera is a tool), spectator (an out seat spectates)
 
 ### Her hull and the ways into her

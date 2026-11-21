@@ -181,22 +181,19 @@ func reopen(beat: int) -> void:
 	since = beat
 
 
-## The roster as [param peer] is shown it.
+## The roster as [param peer] is shown it: a watcher who went is left out, having no
+## seat to hand a bot.
 func roster_for(peer: int) -> RoomRoster:
 	var roster := RoomRoster.new()
 	roster.code = code
 	roster.playing = phase != Phase.WAITING
 	var hosting := host_peer()
-	for index in members.size():
-		var player := members[index]
-		roster.players.append(
-			RoomRoster.Player.new(
-				player.name,
-				player.peer == hosting,
-				player.gone and not player.watching,
-				player.watching
-			)
-		)
+	for player: Member in members:
+		if player.gone and player.watching:
+			continue
 		if player.peer == peer:
-			roster.you = index
+			roster.you = roster.players.size()
+		roster.players.append(
+			RoomRoster.Player.new(player.name, player.peer == hosting, player.gone, player.watching)
+		)
 	return roster

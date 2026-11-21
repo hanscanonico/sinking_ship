@@ -133,10 +133,13 @@ bake-cache-arg = $(if $(filter 0,$(BAKE_CACHE)),,--bake-cache)
 # coming aboard, in either goal (the menu's Bonuses, unticked); without it, or with
 # BONUSES=1, bonuses come as the match data's bonus rules bring them, for a player and a
 # tool alike. A SEED= that is not a
-# whole number of 0 or more is refused, as the menu refuses it.
+# whole number of 0 or more is refused, as the menu refuses it. run and replay name their
+# log: project.godot turns the shared user://logs/godot.log off for the editor binary, as
+# engines run side by side (gates, shards, captures) rotate it under each other and fill
+# it with NUL bytes (test_file_logging).
 run:
 	$(call require-godot)
-	$(GODOT) --path . -- $(match-args) $(bake-cache-arg) $(ARGS)
+	$(GODOT) --path . --log-file user://logs/godot.log -- $(match-args) $(bake-cache-arg) $(ARGS)
 
 # `make replay FILE=path/to/one.replay` watches a saved replay — one the game wrote
 # under user://replays, or any path — in the replay viewer (R4–R6); the game quits with
@@ -144,7 +147,7 @@ run:
 replay:
 	$(call require-godot)
 	@test -n "$(FILE)" || { echo "replay: FILE=<path to a .replay> is required" >&2; exit 1; }
-	$(GODOT) --path . -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
+	$(GODOT) --path . --log-file user://logs/godot.log -- --replay="$(FILE)" $(bake-cache-arg) $(ARGS)
 
 # Every headless tool target, and capture, runs the engine through tools/engine_guard.sh:
 # the engine exits 0 after a SCRIPT ERROR or a renderer ERROR, so the guard fails the run
@@ -204,7 +207,7 @@ smoke:
 	@SEED="$(SEED)" SHIP="$(SHIP)" FAST="$(FAST)" MAX="$(MAX)" DRY="$(DRY)" OUT="$(OUT)" \
 		BAKE_CACHE="$(BAKE_CACHE)" GODOT="$(GODOT)" MAKE="$(MAKE)" tools/smoke.sh
 
-# `make net-bench [SEED=] [SEATS=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
+# `make net-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says
 # (NET= for the offline game's honest wire), timed beat by beat: ticks re-run, the
 # client's and the host's time, packet sizes (R7). Rules live in tools/net_bench.gd.
@@ -300,7 +303,7 @@ serve-web-local: export-web export-server-mac
 serve-web-local-stop:
 	tools/serve_web_local.sh stop
 
-# `make sim-bench [SEED=] [SEATS=]`: one bots-only match recorded through the local
+# `make sim-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=]`: one bots-only match recorded through the local
 # host, its input log replayed through a bare MatchSim, no bots, timed step by step,
 # with snapshot() and restore() beside it and the load average (R7). Rules live in
 # tools/sim_bench.gd.
@@ -308,6 +311,16 @@ sim-bench:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/sim_bench.gd \
 		-- $(match-args) | grep -v '^\[godot_ai'
+
+# `make exactness [BASE=origin/main] [SEED=1701] [SHIP=steamer] [TICKS=1200] [FAST=1] [NATIVE=0] [LIMIT=1800]`:
+# does this checkout simulate bit for bit like BASE? One bots-only match stepped TICKS
+# ticks on each side, a hash of every tick's whole snapshot compared: `exactness: PASS
+# <ticks> ticks`, or `exactness: FAIL first differing tick N` and a non-zero exit. BASE
+# runs in a detached worktree of its own beside the others, its hashes kept under
+# ~/.cache/sinking_ship/exactness; NATIVE=0 runs the GDScript on both sides. Rules live
+# in tools/exactness.sh.
+exactness:
+	@GODOT="$(GODOT)" BASE="$(BASE)" SEED="$(SEED)" SHIP="$(SHIP)" TICKS="$(TICKS)" FAST="$(FAST)" 		NATIVE="$(NATIVE)" LIMIT="$(LIMIT)" tools/exactness.sh
 
 # `make bench [SEATS=64] [SHIP=] [SECONDS=60] [SEED=1]`: MatchSim.step timed with many bodies
 # on a huge hull (SH18, R7) — seats played by seeded wanderers, no bots, on the
@@ -786,8 +799,9 @@ check:
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
 # fixture project, and its list of runtime-built loads, against the code; the worktree
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
-# gh's snapshots; and art-lint-changed's selection, against a throwaway repo and a
-# stand-in make; and every deck traced off the Titanic's plates (#360), holding together.
+# gh's snapshots; the merge train, against a stand-in gh's pull requests, again on Perl's
+# lock; and art-lint-changed's selection, against a throwaway repo and a
+# stand-in make; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
 	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
 		echo "make-shell-check: make runs recipes in $(SHELL), which has no pipefail" >&2; exit 1; fi
@@ -808,7 +822,10 @@ guard-check:
 	tools/test_changed.py --check-sites
 	tools/prune_worktrees_check.sh
 	tools/ci_wait_check.sh
+	tools/merge_train_check.sh
+	FD_LOCK=perl tools/merge_train_check.sh
 	tools/art_lint_changed_check.sh
+	tools/exactness_check.sh
 	python3 tools/titanic_plates/deck_check.py
 
 # Style and smells. Rule overrides live in gdlintrc.
@@ -833,7 +850,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import native run replay match capture smoke flood-invariants net-bench sim-bench bench serve-local online-e2e export-server \
+.PHONY: import native run replay match capture smoke flood-invariants net-bench sim-bench exactness bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene preview \

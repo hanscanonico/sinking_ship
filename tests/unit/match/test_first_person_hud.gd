@@ -23,6 +23,14 @@ func test_the_height_reads_above_or_under_the_sea() -> void:
 	assert_eq(FirstPersonHud.height_words(0.0), "At the waterline")
 
 
+func test_a_level_heel_or_trim_reads_plus_nought() -> void:
+	assert_eq(FirstPersonHud.degrees_words(0.0), "+0.0°")
+	assert_eq(FirstPersonHud.degrees_words(-0.01), "+0.0°", "not -0.0°")
+	assert_eq(FirstPersonHud.degrees_words(-0.049), "+0.0°")
+	assert_eq(FirstPersonHud.degrees_words(-0.06), "-0.1°")
+	assert_eq(FirstPersonHud.degrees_words(2.34), "+2.3°")
+
+
 ## A funnel straining at its stays is named on its chip in words, by its number when
 ## she has several — never by its data name, as "THE FUNNEL_4 IS STRAINING" was.
 func test_a_straining_funnel_is_named_in_words() -> void:

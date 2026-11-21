@@ -611,6 +611,12 @@ static func _opened(structure: ShipStructure, cell: FloodCell, shells: Shells) -
 	return found
 
 
+## [param box] held inside [param structure]'s shell athwartships (_held): the sea's
+## boxes grown past their sides (SeaAndSky.left_out) never reach out of her through it.
+static func held(structure: ShipStructure, box: AABB) -> AABB:
+	return _held(structure, box)
+
+
 ## [param box] held inside [param structure]'s shell athwartships: no wider to either
 ## side than her shell stands at its narrowest over it — read over the sections it
 ## stands in, not one past an end it shares with a section's, which her sections'

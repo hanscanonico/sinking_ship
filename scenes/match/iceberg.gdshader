@@ -210,7 +210,14 @@ void fragment() {
 	NORMAL = normalize(abs(det) * view_normal - slope);
 
 	if (under) {
-		FOG = vec4(under_fog_colour.rgb, pow(clamp(dist / under_fog_end, 0.0, 1.0), under_fog_curve));
+		// Fogged by hand, not through FOG: this renderer draws FOG's colour paler than
+		// the same colour given anywhere else, so a far berg stood out pale against the
+		// water it should be lost in.
+		float fog = pow(clamp(dist / under_fog_end, 0.0, 1.0), under_fog_curve);
+		ALBEDO *= 1.0 - fog;
+		SPECULAR *= 1.0 - fog;
+		EMISSION = mix(EMISSION, under_fog_colour.rgb, fog);
+		FOG = vec4(0.0);
 	} else {
 		float haze = pow(smoothstep(haze_begin, haze_end, dist), 0.55);
 		float fog = pow(clamp((dist - fog_begin) / max(fog_end - fog_begin, 0.001), 0.0, 1.0), fog_curve);

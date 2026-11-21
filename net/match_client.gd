@@ -243,7 +243,7 @@ func _reconcile(newest: Dictionary) -> void:
 		sim.restore(newest)
 		_reset_from = from
 		_predicted.clear()
-		_note_prediction()
+		_note_prediction(newest["props"])
 		for tick in range(from, reached):
 			if sim.is_over():
 				break
@@ -319,12 +319,18 @@ func _step_prediction(tick: int) -> void:
 	_note_prediction()
 
 
-func _note_prediction() -> void:
+## Notes the prediction at its tick; its crates [param restored], the entries of the
+## snapshot it was just reset to, when it was — each is what that crate's to_dict() hands
+## out as it stands (MatchState.from_dict), so they are not asked again one by one.
+func _note_prediction(restored: Array = []) -> void:
 	if seat < 0:
 		return
 	var crates: Array[Dictionary] = []
-	for crate: PropState in sim.state.props:
-		crates.append(crate.to_dict())
+	if not restored.is_empty():
+		crates.assign(restored)
+	else:
+		for crate: PropState in sim.state.props:
+			crates.append(crate.to_dict())
 	var bonuses: Array[Dictionary] = []
 	for bonus: BonusState in sim.state.bonuses:
 		bonuses.append(bonus.to_dict())
