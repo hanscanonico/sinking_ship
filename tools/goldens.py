@@ -9,7 +9,9 @@ it as tests/golden/FILE. A log that holds none means every golden it ran matched
 
 `gh run view ID --log` puts the job, the step and a timestamp before each line's
 text, and GUT's colour escapes come either as the escape character or written out
-as `^[`; all are cut. Two blocks for one file that disagree stop the run: runs of
+as `^[`; all are cut. A job that runs several shards side by side
+(tools/test_parts.sh) prints their lines as they come, each with its shard before it
+("[2/21] "): a block is read from its own shard's lines alone. Two blocks for one file that disagree stop the run: runs of
 one build on one platform that disagree are a determinism bug (D4), not a golden.
 
 Usage:  tools/goldens.py --run ID     # a CI verify run's logs, fetched with gh: CI's goldens
@@ -36,32 +38,38 @@ TESTS = [
 
 STAMP = re.compile(r"^\ufeff?\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z ?(.*)$")
 ANSI = re.compile(r"(?:\x1b|\^\[)\[[0-9;]*m")
+SHARD = re.compile(r"^(\[\d+/\d+\]) ?(.*)$")
 # A golden's file name is a plain NAME.PLATFORM.txt: nothing that leaves the folder.
 BEGIN = re.compile(r"^golden ([a-z0-9_]+\.[a-z0-9_]+-[a-z0-9_]+\.txt) begin (\d+) ([0-9a-f]{64})$")
 
 
-def text_of(line: str) -> str:
-    """A log line's own text: job and step columns, timestamp and colour escapes cut."""
+def text_of(line: str) -> tuple[str, str]:
+    """A log line's shard ("" when its job runs one) and its own text: job and step
+    columns, timestamp, shard and colour escapes cut."""
     fields = line.rstrip("\r\n").split("\t", 2)
     text = fields[2] if len(fields) == 3 else line.rstrip("\r\n")
     stamped = STAMP.match(text)
     if stamped:
         text = stamped.group(1)
-    return ANSI.sub("", text).strip()
+    shard = SHARD.match(text)
+    if shard:
+        return shard.group(1), ANSI.sub("", shard.group(2)).strip()
+    return "", ANSI.sub("", text).strip()
 
 
 def blocks(lines) -> dict[str, bytes]:
     """Every golden the lines carry, by file name, each checked against its header."""
     found: dict[str, bytes] = {}
-    current = None
+    # The block each shard is inside: side by side, their lines interleave.
+    inside: dict[str, tuple] = {}
     for line in lines:
-        text = text_of(line)
-        if current is None:
+        shard, text = text_of(line)
+        if shard not in inside:
             begin = BEGIN.match(text)
             if begin:
-                current = (begin.group(1), int(begin.group(2)), begin.group(3), [])
+                inside[shard] = (begin.group(1), int(begin.group(2)), begin.group(3), [])
             continue
-        name, size, digest, chunks = current
+        name, size, digest, chunks = inside[shard]
         if text != f"golden {name} end":
             chunks.append(text)
             continue
@@ -74,9 +82,9 @@ def blocks(lines) -> dict[str, bytes]:
         if name in found and found[name] != data:
             sys.exit(f"goldens: two runs printed {name} differently, a determinism bug (D4)")
         found[name] = data
-        current = None
-    if current is not None:
-        sys.exit(f"goldens: the log ends inside {current[0]}'s block")
+        del inside[shard]
+    for name, *_ in inside.values():
+        sys.exit(f"goldens: the log ends inside {name}'s block")
     return found
 
 

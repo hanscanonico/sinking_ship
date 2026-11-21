@@ -70,6 +70,10 @@ const OpenSpanCheck := preload("res://tools/open_span_check.gd")
 const ArtLintCosts := preload("res://tools/art_lint_costs.gd")
 const ShipFaces := preload("res://tools/ship_faces.gd")
 const MATCH_SCENE := "res://scenes/match/match.tscn"
+## The checks that play a match, the dearest first, as --match=K/N deals them
+## (_check_match): the effects' whole match costs about what the other three do
+## between them (run 44903878057: 268 s, 98, 77 and 19 on a runner four engines shared).
+const MATCH_CHECKS: PackedStringArray = ["effects", "collapse", "seats", "overhead"]
 const SHIPS_DIR := "res://data/ships/"
 const ART_DIR := "res://scenes/art/"
 const SEED := 1701
@@ -122,25 +126,6 @@ const CYLINDER_RAYS := 8
 ## How long a stretch of her the furnishings go to one part in (--part, _dealt), in
 ## metres.
 const DEALT_STRETCH := 8.0
-## What art may not name: the live match and the queries only rules make. Enum
-## reads off PlayerState are allowed, a PlayerState itself is not.
-const LIVE: PackedStringArray = [
-	"MatchSim",
-	"MatchState",
-	"MatchRunner",
-	"MatchHost",
-	"MatchClient",
-	"PlayedMatch",
-	"LoopbackMatch",
-	"RemoteMatch",
-	"SimDriver",
-	"InputSource",
-	"BotView",
-	"Surfaces",
-	"SinkSchedule",
-	"ShoveResolver",
-]
-const LIVE_PLAYER := "\\bPlayerState\\b(?!\\.(Body|Action|Cause)\\b)"
 
 var _problems := PackedStringArray()
 var _checks := 0
@@ -160,8 +145,13 @@ func _initialize() -> void:
 	# every ship but those, and what plays a match too: CI checks the biggest ships beside
 	# the rest (.github/workflows/verify.yml). --part=K/N, with --ship, checks her share K
 	# of N alone (_check_ship): CI lints the traced Titanic in parts side by side.
+	# --match=no checks the ships and plays no match; --match=K/N checks no ship, only
+	# share K of N of what plays a match (_check_match): CI runs the fleet's ships and
+	# the match's parts side by side, the match being four fifths of the two together.
 	var only := ""
 	var skipped := PackedStringArray()
+	var ships := true
+	var played := Vector2i.ONE
 	for arg: String in OS.get_cmdline_user_args():
 		if arg.begins_with("--ship="):
 			only = arg.trim_prefix("--ship=") + ".tres"
@@ -176,30 +166,66 @@ func _initialize() -> void:
 				return
 		elif arg.begins_with("--costs="):
 			_costs_file = arg.trim_prefix("--costs=")
+		elif arg == "--match=no":
+			played = Vector2i.ZERO
+		elif arg.begins_with("--match="):
+			ships = false
+			played = _part_of(arg.trim_prefix("--match="))
+			if played == Vector2i.ZERO:
+				printerr(
+					"art-lint: %s is no part — --match takes no, or K/N with K from 1 to N" % arg
+				)
+				quit(1)
+				return
 	if _part.y > 1 and only.is_empty():
 		printerr("art-lint: --part deals one ship's checks — name her with --ship=NAME")
 		quit(1)
 		return
+	if not ships and not only.is_empty():
+		printerr("art-lint: --match=K/N checks no ship — leave --ship out")
+		quit(1)
+		return
 	for file: String in DirAccess.get_files_at(SHIPS_DIR):
-		if not file.ends_with(".tres") or file in skipped:
+		if not ships or not file.ends_with(".tres") or file in skipped:
 			continue
 		if only.is_empty() or file == only:
 			_check_ship(file, load(SHIPS_DIR + file))
-	if not only.is_empty():
-		_report()
-		return
-	_check_snapshot_only()
-	_check_crew()
-	_check_sea_reach()
-	await _check_seats()
-	await _check_collapse()
-	var effects: Array = await SinkingFxCheck.check(root, SinkingFxCheck.SEED, SEATS)
-	_problems.append_array(effects[0])
-	_checks += effects[1]
-	var overhead: Array = await OverheadCheck.check(root, SEED, SEATS)
-	_problems.append_array(overhead[0])
-	_checks += overhead[1]
+	if only.is_empty() and played != Vector2i.ZERO:
+		await _check_match(played)
 	_report()
+
+
+## What plays a match, or needs none of a ship's data: share [param part].x of
+## [param part].y. Of the four that play one the first share takes MATCH_CHECKS'
+## first alone and the other shares the rest in turn (every one, when there is one
+## share), and each says what it took; the quick ones before them go with the last.
+func _check_match(part: Vector2i) -> void:
+	if part.x == part.y:
+		var named: Array = SnapshotOnlyCheck.check(ART_DIR)
+		_problems.append_array(named[0])
+		_checks += named[1]
+		_check_crew()
+		_check_sea_reach()
+	for index in MATCH_CHECKS.size():
+		var share := 1 if index == 0 else 2 + (index - 1) % maxi(part.y - 1, 1)
+		if part.y > 1 and share != part.x:
+			continue
+		var since := Time.get_ticks_usec()
+		match MATCH_CHECKS[index]:
+			"seats":
+				await _check_seats()
+			"collapse":
+				await _check_collapse()
+			"effects":
+				var effects: Array = await SinkingFxCheck.check(root, SinkingFxCheck.SEED, SEATS)
+				_problems.append_array(effects[0])
+				_checks += effects[1]
+			"overhead":
+				var overhead: Array = await OverheadCheck.check(root, SEED, SEATS)
+				_problems.append_array(overhead[0])
+				_checks += overhead[1]
+		var took := (Time.get_ticks_usec() - since) / 1e6
+		print("art-lint: match part %d/%d: %s %.1f s" % [part.x, part.y, MATCH_CHECKS[index], took])
 
 
 ## Part K of N, as (K, N), of [param given] ("K/N"); Vector2i.ZERO when it names none.
@@ -219,26 +245,6 @@ func _report() -> void:
 		return
 	print("art-lint: %d checks OK" % _checks)
 	quit()
-
-
-func _check_snapshot_only() -> void:
-	var live := RegEx.create_from_string("\\b(%s)\\b" % "|".join(LIVE))
-	var live_player := RegEx.create_from_string(LIVE_PLAYER)
-	for file: String in _scripts_under(ART_DIR):
-		_checks += 1
-		var lines := FileAccess.get_file_as_string(ART_DIR + file).split("\n")
-		for index in lines.size():
-			var code := lines[index].get_slice("#", 0)
-			var found := live.search(code)
-			if found == null:
-				found = live_player.search(code)
-			if found != null:
-				_problems.append(
-					(
-						"art-lint: %s:%d names %s — art reads snapshots only (D5)"
-						% [file, index + 1, found.get_string()]
-					)
-				)
 
 
 func _check_crew() -> void:
@@ -315,18 +321,6 @@ func _check_sea_reach() -> void:
 				)
 			)
 	scene.free()
-
-
-## Every .gd under [param dir] and its subfolders, as paths relative to it.
-func _scripts_under(dir: String) -> PackedStringArray:
-	var found := PackedStringArray()
-	for file: String in DirAccess.get_files_at(dir):
-		if file.ends_with(".gd"):
-			found.append(file)
-	for sub: String in DirAccess.get_directories_at(dir):
-		for file: String in _scripts_under(dir + sub + "/"):
-			found.append(sub + "/" + file)
-	return found
 
 
 ## [param layout]'s art against her data: the ship as drawn, then her railings' open

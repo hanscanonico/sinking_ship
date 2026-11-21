@@ -424,7 +424,9 @@ census:
 # every ship but those, and the match too (CI's art-lint jobs). PART=K/N with SHIP checks
 # her share K of N alone, each building her once: the last part her railings' open
 # spans, the others the rest dealt between them by cost (tools/art_lint_costs.tsv); the
-# N parts' checks are her whole lint (CI's art-lint titanic K/N jobs). COSTS=FILE appends each ship check's microseconds
+# N parts' checks are her whole lint (CI's art-lint titanic K/N jobs). MATCH=no checks the
+# ships and plays no match; MATCH=K/N checks no ship, only share K of N of what plays a
+# match (CI's art-lint fleet job runs the two side by side, tools/art_lint_fleet.sh). COSTS=FILE appends each ship check's microseconds
 # to FILE (tools/art_lint_costs.gd). Its engine takes a test slot (tools/test_slot.sh),
 # as bake-check's do: each dresses whole ships.
 art-lint: export TEST_SLOT_NAME = art-lint
@@ -432,8 +434,9 @@ art-lint:
 	$(call require-godot)
 	@set -o pipefail; tools/engine_guard.sh tools/test_slot.sh $(GODOT) \
 		--headless --no-header --path . --fixed-fps 60 \
-		-s res://tools/art_lint.gd $(if $(SHIP)$(SKIP)$(PART)$(COSTS),--) \
+		-s res://tools/art_lint.gd $(if $(SHIP)$(SKIP)$(PART)$(MATCH)$(COSTS),--) \
 		$(if $(SHIP),--ship=$(SHIP)) $(if $(SKIP),--skip=$(SKIP)) $(if $(PART),--part=$(PART)) \
+		$(if $(MATCH),--match=$(MATCH)) \
 		$(if $(COSTS),--costs=$(abspath $(COSTS))) \
 		| grep -v -e '^\[godot_ai' -e '^match seed'
 
@@ -798,33 +801,11 @@ check:
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
 # gh's snapshots; the merge train, against a stand-in gh's pull requests, again on Perl's
 # lock; and art-lint-changed's selection, against a throwaway repo and a
-# stand-in make; verify-changed's guard-check and ship-gen-check, the same way; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
+# stand-in make; verify-changed's guard-check and ship-gen-check, the same way; this list's own runner (tools/guard_checks.sh, which holds the list and runs GUARD_JOBS of them side by side), against stand-in lists; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
 	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
 		echo "make-shell-check: make runs recipes in $(SHELL), which has no pipefail" >&2; exit 1; fi
-	tools/engine_guard_check.sh
-	tools/window_lock_check.sh
-	tools/test_slot_check.sh
-	FD_LOCK=perl tools/window_lock_check.sh
-	FD_LOCK=perl tools/test_slot_check.sh
-	tools/fps_split_check.sh
-	tools/fps_samples_check.sh
-	tools/run_tests_check.sh
-	tools/ship_check_once.sh
-	tools/test_durations_check.sh
-	tools/art_lint_costs_check.sh
-	tools/goldens_check.sh
-	tools/lint_warmup_check.sh
-	tools/test_changed_check.sh
-	tools/test_changed.py --check-sites
-	tools/prune_worktrees_check.sh
-	tools/ci_wait_check.sh
-	tools/merge_train_check.sh
-	FD_LOCK=perl tools/merge_train_check.sh
-	tools/art_lint_changed_check.sh
-	tools/gate_changed_check.sh
-	tools/exactness_check.sh
-	python3 tools/titanic_plates/deck_check.py
+	@tools/guard_checks.sh
 
 # verify-changed's guard-check and ship-gen-check (tools/gate_changed.sh): each whole
 # when the branch's changes reach what it reads, and none, saying so, otherwise — with
