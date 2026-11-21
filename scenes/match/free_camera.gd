@@ -116,8 +116,12 @@ static func floor_under(reach: float, sea_depth: float) -> float:
 ## hull stands farther under her highest than her two farthest points stand apart,
 ## however she trims and heels: no farther than the diagonal of the box her sections
 ## fill, which a liner going down on end all but reaches — her bow her whole length
-## under her stern. So her lowest point is never deeper than the two together, but by
-## what the bake's last step carries her past gone_depth: a metre or so, well within
+## under her stern. A piece that breaks away already deeper than that — the low half of
+## a hull that parts on end, its own highest point tens of metres under — is held where
+## its first step leaves it: every point of it was a point of her as she parted, her
+## highest not yet gone_depth under, so it is her whole span that bounds it, never its
+## own. So her lowest point is never deeper than the two together, but by what the
+## bake's last step carries her, or such a piece, past it: a metre or so, well within
 ## the [constant MARGIN] floor_under adds. 0 for a ship without a structure, which the
 ## physics never sinks.
 static func reach_of(structure: ShipStructure, gone_depth: float) -> float:
