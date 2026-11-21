@@ -778,6 +778,9 @@ msgstr "Aún no hay repeticiones: se guarda cada partida jugada aquí, las %d m�
 msgid "%d seats"
 msgstr "%d jugadores"
 
+msgid "%d seat"
+msgstr "%d jugador"
+
 msgid "Bot %d won"
 msgstr "Ganó Bot %d"
 

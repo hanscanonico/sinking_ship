@@ -36,6 +36,30 @@ func test_who_won_is_worded_for_the_local_seat_the_sea_and_a_match_left_early() 
 	assert_eq(ReplayListing.winner_text(-1, false), "Left unfinished")
 
 
+func test_a_watched_match_names_its_bots_as_the_match_did() -> void:
+	# Nobody played it: Bot 1 sat on the first seat, and no seat is "you".
+	assert_eq(ReplayListing.winner_text(0, true, true), "Bot 1 won")
+	assert_eq(ReplayListing.winner_text(6, true, true), "Bot 7 won")
+	assert_eq(ReplayListing.winner_text(-1, true, true), "The sea won")
+	var file := _file()
+	file.choices.watch = true
+	file.winner = 6
+	file.ended = true
+	assert_eq(ReplayListing.row(file)["winner"], "Bot 7 won")
+	assert_eq(ReplaysMenu._what(file, ""), "Steamer · Seed 1701 · 8 seats · 02:14.0 · Bot 7 won")
+	file.winner = 0
+	assert_eq(ReplaysMenu._what(file, "").get_slice(" · ", 4), "Bot 1 won")
+	file.choices.watch = false
+	assert_eq(ReplaysMenu._what(file, "").get_slice(" · ", 4), "You won")
+
+
+func test_one_seat_is_a_seat() -> void:
+	var file := _file()
+	file.seats = 1
+	assert_eq(ReplayListing.row(file)["seats"], "1 seat")
+	assert_eq(ReplaysMenu._what(file, "").get_slice(" · ", 2), "1 seat")
+
+
 func test_a_file_that_cannot_be_played_says_why() -> void:
 	var rules: MatchRules = load(RunMatch.DEFAULT_MATCH)
 	assert_eq(ReplayListing.reason(_file(), rules), "", "as recorded")

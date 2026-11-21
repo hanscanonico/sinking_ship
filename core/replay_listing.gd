@@ -15,21 +15,35 @@ static func row(file: ReplayFile, reason: String = "") -> Dictionary:
 	return {
 		"ship": String(file.ship).capitalize(),
 		"seed": "Seed %d" % file.match_seed,
-		"seats": "%d seats" % file.seats,
+		"seats": seats_text(file.seats) % file.seats,
 		"length": MatchTranscript.clock(file.ticks),
-		"winner": winner_text(file.winner, file.ended),
+		"winner": winner_text(file.winner, file.ended, file.choices.watch),
 		"reason": reason,
 	}
 
 
-## Who won: the local seat is "you", the rest bots by seat; the sea when the match
-## ended with nobody dry; nobody yet when it was left before its end.
-static func winner_text(winner: int, ended: bool) -> String:
+## Who won: the local seat is "you", the rest bots by their number (bot_number); the
+## sea when the match ended with nobody dry; nobody yet when it was left before its
+## end. In a match only [param watched] no seat is "you".
+static func winner_text(winner: int, ended: bool, watched := false) -> String:
 	if not ended:
 		return "Left unfinished"
 	if winner < 0:
 		return "The sea won"
-	return "You won" if winner == 0 else "Bot %d won" % winner
+	var bot := bot_number(winner, watched)
+	return "You won" if bot == 0 else "Bot %d won" % bot
+
+
+## The number the bot on [param seat] goes by, as the match named it: its seat after
+## the local one, and in a match only [param watched] Bot 1 on from the first seat.
+## 0 for the local seat, which is no bot.
+static func bot_number(seat: int, watched: bool) -> int:
+	return seat + 1 if watched else seat
+
+
+## The words for [param seats] seats, the count still to be put in.
+static func seats_text(seats: int) -> String:
+	return "%d seat" if seats == 1 else "%d seats"
 
 
 ## Why [param file] cannot be played under [param match_rules], or "" when it can.
