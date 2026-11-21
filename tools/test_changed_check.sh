@@ -5,8 +5,9 @@
 # .tres, a uid, a %s pattern, a listed runtime load, a ship's generator and
 # authoring scene, a ship loaded by a name its test can spell — prints the chain that
 # pulled each in, selects nothing for docs and shell, falls back to the whole suite
-# naming why, reads the change set off git against the merge-base with origin/main, and
-# --check-sites fails on a runtime load the list does not hold. Against a small
+# naming why, reads the change set off git against the merge-base with origin/main,
+# takes a Makefile whose test targets run as the merge-base's for no change to the
+# tests, and --check-sites fails on a runtime load the list does not hold. Against a small
 # fixture project written here into a scratch git repo rather than committed under
 # tests/: its scripts would join the real project's, and its class_names with them.
 # No engine runs.
@@ -470,6 +471,45 @@ python3 "$SELECT" --root "$TREE" --check-sites >"$WORK/stale.out" 2>&1 &&
 	fail "a listed site the code lost passed"
 grep -qF 'lists scenes/screens.gd: load(path), which the code no longer has' "$WORK/stale.out" ||
 	fail "the lost site was not named: $(cat "$WORK/stale.out")"
+
+# The Makefile is the test runner only where it runs the tests: with its test targets'
+# commands, its shell, its exports and its test hulls as the merge-base's, a change to
+# it selects nothing; with any of them changed, the whole suite.
+g reset -q --hard
+rm -f "$TREE/scenes/screens.gd.bak"
+g checkout -q main
+cat >>"$TREE/Makefile" <<'EOF'
+SHELL := /bin/bash
+JOBS ?= 2
+test test-changed:
+	tools/run_tests.sh --jobs $(JOBS)
+lint: export NAME = lint
+lint:
+	tools/lint.sh
+EOF
+g commit -q -am "test targets"
+g update-ref refs/remotes/origin/main HEAD
+g checkout -q -B makefile main
+makefile_change() {
+	g reset -q --hard
+	sed -i.bak "$2" "$TREE/Makefile" && rm -f "$TREE/Makefile.bak"
+	run "$1" git
+}
+printf '# How the lint runs.\nformat:\n\ttools/format.sh\n' >>"$TREE/Makefile"
+sed -i.bak 's|tools/lint.sh|tools/lint.sh --all|' "$TREE/Makefile" && rm -f "$TREE/Makefile.bak"
+run makealike git
+expect makealike
+says makealike "Makefile: its test targets run as the merge-base's — no test loads it"
+makefile_change makerecipe 's|run_tests.sh --jobs|run_tests.sh --shards|'
+makefile_change makejobs 's|^JOBS ?= 2|JOBS ?= 3|'
+makefile_change makeexport 's|export NAME = lint|export NAME = style|'
+makefile_change makeshell 's|^SHELL := /bin/bash|SHELL := /bin/sh|'
+makefile_change makehulls 's|brig_weak|brig_weaker|'
+for name in makerecipe makejobs makeexport makeshell makehulls; do
+	[[ "$(cat "$WORK/$name.list")" == ALL ]] || fail "$name: did not fall back to the whole suite"
+	says "$name" "    Makefile: the test runner"
+done
+g reset -q --hard
 
 ((fails == 0)) && echo "test-changed-check: ok"
 exit "$fails"

@@ -77,6 +77,17 @@ func test_the_name_rule_is_shown_and_held_to() -> void:
 	assert_eq(_asked, [] as Array[OnlineLink], "nothing asked for")
 
 
+## The screen is ready before the game picks its language: the rule stood in English on
+## a French game (seen played, 2026-11-21).
+func test_the_name_rule_follows_the_language() -> void:
+	_open()
+	Language.use("fr")
+	var rule := (_node("%NameRule") as Label).text
+	Language.use(Language.SOURCE)
+	assert_string_contains(rule, "lettres", "worded again as the language changed")
+	assert_string_contains((_node("%NameRule") as Label).text, "letters", "and back")
+
+
 func test_a_room_is_created_and_the_choices_remembered() -> void:
 	_open()
 	(_node("%Name") as LineEdit).text = " Ada "

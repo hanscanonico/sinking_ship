@@ -177,3 +177,12 @@ func test_watch_plays_the_choices_watched() -> void:
 	assert_eq(heard[0].ship, &"trawler", "on the choices as they stand")
 	assert_eq(heard[0].seats, 3)
 	assert_false(heard[1].watch, "Play: played")
+
+
+## The panel grows up toward the title as the custom match unfolds: in the default
+## window it reached over it (seen played, 2026-11-21).
+func test_the_wordmark_shrinks_into_the_room_a_tall_panel_leaves() -> void:
+	assert_eq(MainMenu.wordmark_scale(400.0, 160.0), 1.0, "room to spare: whole")
+	assert_almost_eq(MainMenu.wordmark_scale(80.0, 160.0), 0.5, 0.001, "half the room, half")
+	assert_eq(MainMenu.wordmark_scale(-20.0, 160.0), MainMenu.WORDMARK_LEAST, "never gone")
+	assert_eq(MainMenu.wordmark_scale(INF, 160.0), 1.0, "no panel showing")

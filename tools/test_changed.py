@@ -34,7 +34,10 @@ reaches can name.
 Nothing runs when no GDScript, resource or scene changed. The full suite runs, and
 the report says why, when a change touches project settings, addons/, the test
 runner or its config, a file the graph cannot place, or a file under data/ or
-authoring/ that no edge reaches.
+authoring/ that no edge reaches. The Makefile is the test runner only where it runs
+the tests: a branch's Makefile whose test targets would run the very commands the
+merge-base's would (make -n), with the same shell, exports and test hulls, selects
+nothing — a new target or a comment is most of what changes there.
 
 A load whose path is built at runtime hides its target from the literals, so every
 such call — load, ResourceLoader, FileAccess and DirAccess with an argument that is
@@ -59,6 +62,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from collections import deque
 from pathlib import Path
 
@@ -108,6 +112,15 @@ FLEET = "core/fleet.gd"
 BY_NAME = "@ship"
 # The test hulls the generators write, as the Makefile lists them: SHIP:FIXTURE:FLAG.
 TEST_HULLS = re.compile(r"^TEST_HULLS\s*:?=((?:[^\n]*\\\n)*[^\n]*)", re.M)
+# The Makefile's targets that run the tests, and its lines that set every recipe's
+# shell and environment, a test engine's among them.
+MAKEFILE = "Makefile"
+MAKE_TEST_TARGETS = ("test", "test-changed")
+MAKE_WIDE = re.compile(
+    r"^(?:(?:un)?export\b(?!-)|[^#\t\n=]*:\s*(?:un)?export\s|SHELL\b|\.SHELLFLAGS\b"
+    r"|\.ONESHELL\b|\.EXPORT_ALL_VARIABLES\b)[^\n]*",
+    re.M,
+)
 WORD = re.compile(r"[a-z0-9_]+")
 QUOTED = re.compile(r'"((?:[^"\\\n]|\\.)*)"')
 
@@ -558,6 +571,44 @@ def old_classes(root: Path, merge_base: str | None, path: str) -> list[str]:
         return []
 
 
+def _make_would_run(root: Path, makefile: Path, target: str) -> str:
+    """What make would run for a target by a makefile, from the root: make -n."""
+    return subprocess.run(
+        ["make", "-n", "--no-print-directory", "-f", str(makefile), target],
+        cwd=root, check=True, capture_output=True, text=True,
+    ).stdout
+
+
+def makefile_runs_tests_alike(root: Path, merge_base: str | None) -> bool:
+    """Whether the Makefile runs the tests as the merge-base's did: its test targets
+    the same commands, its shell, exports and test hulls the same lines. False when
+    that cannot be told — no merge-base, no make, a target either of them lacks."""
+    if merge_base is None:
+        return False
+    now = root / MAKEFILE
+    old = None
+    try:
+        then = git(root, "show", f"{merge_base}:{MAKEFILE}")
+        text = now.read_text(encoding="utf-8")
+        for wide in (MAKE_WIDE, TEST_HULLS):
+            if wide.findall(then) != wide.findall(text):
+                return False
+        with tempfile.NamedTemporaryFile(
+            "w", suffix=".mk", delete=False, encoding="utf-8", newline="\n"
+        ) as file:
+            file.write(then)
+            old = Path(file.name)
+        return all(
+            _make_would_run(root, old, target) == _make_would_run(root, now, target)
+            for target in MAKE_TEST_TARGETS
+        )
+    except (OSError, subprocess.CalledProcessError, UnicodeDecodeError):
+        return False
+    finally:
+        if old is not None:
+            old.unlink(missing_ok=True)
+
+
 def full_suite_reason(path: str) -> str | None:
     if path in FULL_SUITE_FILES:
         return FULL_SUITE_FILES[path]
@@ -579,9 +630,10 @@ def no_test_file(path: str) -> bool:
 def select(root: Path, changed: list[str], merge_base: str | None = None) -> dict:
     """The selection: {"all": [reasons]} or {"tests": {test: chain}, "notes": [...]}."""
     reasons, notes = [], []
+    alike = MAKEFILE in changed and makefile_runs_tests_alike(root, merge_base)
     for path in changed:
         reason = full_suite_reason(path)
-        if reason:
+        if reason and not (alike and path == MAKEFILE):
             reasons.append(f"{path}: {reason}")
     tree = Tree(root, extra=set(changed))
     sites = read_sites(root)
@@ -594,6 +646,9 @@ def select(root: Path, changed: list[str], merge_base: str | None = None) -> dic
     engine_wide = tree.reach(tree.autoloads)
     starts = []
     for path in changed:
+        if alike and path == MAKEFILE:
+            notes.append(f"{path}: its test targets run as the merge-base's — no test loads it")
+            continue
         if full_suite_reason(path):
             continue
         if path in engine_wide:

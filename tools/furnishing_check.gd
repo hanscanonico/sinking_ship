@@ -20,6 +20,10 @@ const CELL := 1.0
 ## How far past a box blocker's sides, top and bottom a face still stands inside it.
 const INSIDE := 0.002
 
+## _ring_offsets' answer, and the reach it is for.
+static var _offsets := PackedVector2Array()
+static var _offsets_reach := -1.0
+
 
 ## Every face of the rooms' furnishings (RoomDressing) [param art] draws, under its
 ## Dressing node, in the ship's space: their meshes and their signs' letters — packed
@@ -234,27 +238,44 @@ static func _spread(triangle: PackedVector3Array) -> PackedVector3Array:
 ## of [param point] across the ship plane and whose height takes it in — over a step
 ## above its feet and under its head — or Vector3.INF when none of the centres tried
 ## does. [param standing] keeps, per grid centre, what stands under it (_stood_on).
+## Asked of every sample of every face, millions on a liner: the centres' offsets are
+## worked out once (_ring_offsets), and a body's measures read once a call.
 static func _body_round(
 	surfaces: Surfaces, rules: BrawlRules, standing: Dictionary, point: Vector3, reach: float
 ) -> Vector3:
-	for ring: float in RINGS:
-		var spokes := 1 if ring == 0.0 else SPOKES
-		for spoke in spokes:
-			var turn := TAU * spoke / spokes
-			var at := Vector2(point.x, point.z) + Vector2(cos(turn), sin(turn)) * reach * ring
-			var cell := Vector2i(roundi(at.x / GRID), roundi(at.y / GRID))
-			var centre := Vector2(cell) * GRID
-			if centre.distance_to(Vector2(point.x, point.z)) >= reach:
+	var flat := Vector2(point.x, point.z)
+	var step := rules.step_height
+	var height := rules.body_height
+	for offset: Vector2 in _ring_offsets(reach):
+		var at := flat + offset
+		var cell := Vector2i(roundi(at.x / GRID), roundi(at.y / GRID))
+		var centre := Vector2(cell) * GRID
+		if centre.distance_to(flat) >= reach:
+			continue
+		if not standing.has(cell):
+			standing[cell] = _stood_on(surfaces, rules, centre)
+		for under: Vector2 in standing[cell]:
+			var over := point.y - under.x
+			if over < step:
 				continue
-			if not standing.has(cell):
-				standing[cell] = _stood_on(surfaces, rules, centre)
-			for under: Vector2 in standing[cell]:
-				if point.y - under.x < rules.step_height:
-					continue
-				if point.y - under.x <= rules.body_height and under.y == 1.0:
-					return Vector3(centre.x, under.x, centre.y)
-				break
+			if over <= height and under.y == 1.0:
+				return Vector3(centre.x, under.x, centre.y)
+			break
 	return Vector3.INF
+
+
+## Where round a point the centres _body_round tries stand, for [param reach]: on
+## rings of RINGS shares of it, SPOKES to a ring and the middle once.
+static func _ring_offsets(reach: float) -> PackedVector2Array:
+	if _offsets_reach != reach:
+		_offsets_reach = reach
+		_offsets = PackedVector2Array()
+		for ring: float in RINGS:
+			var spokes := 1 if ring == 0.0 else SPOKES
+			for spoke in spokes:
+				var turn := TAU * spoke / spokes
+				_offsets.append(Vector2(cos(turn), sin(turn)) * reach * ring)
+	return _offsets
 
 
 ## Every surface Surfaces has under ship-plane point [param centre], from the top
