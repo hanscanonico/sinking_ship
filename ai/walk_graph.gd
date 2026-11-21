@@ -1035,8 +1035,7 @@ func _shut_every_portal(pose: ShipPose) -> void:
 	_know(pose)
 	if _shut_known:
 		return
-	for index in _portal_shut.size():
-		_shut(index, pose)
+	_door_leaves.shut_all(_surfaces, _portal_shut, _step)
 	_shut_known = true
 
 
