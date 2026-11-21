@@ -30,6 +30,11 @@ signal quit_requested
 ## under it, and the pixels kept between the two.
 const WORDMARK_LEAST := 0.35
 const WORDMARK_GAP := 12.0
+## The tagline drawn no smaller than this share of its size: under it its letters are a
+## strip nobody reads, so it goes and the title has the room it took.
+const TAGLINE_LEAST := 0.6
+## The most digits the seed field takes: every such number is a seed (MatchChoices).
+const SEED_DIGITS := 18
 
 @onready var _ship: OptionButton = %Ship
 @onready var _seats: OptionButton = %Seats
@@ -45,6 +50,7 @@ const WORDMARK_GAP := 12.0
 @onready var _custom_choices: Control = %CustomChoices
 @onready var _panel: PanelContainer = $Panel
 @onready var _wordmark: Control = $Wordmark
+@onready var _tagline: Label = $Wordmark/Tagline
 @onready var _backdrop: MenuBackdrop = $Backdrop
 ## The choices the menu was set up with: what it offers no picker for — the command
 ## line's scenario and hit — travels on with every Play.
@@ -68,6 +74,7 @@ func _ready() -> void:
 	_watch.pressed.connect(_on_watch)
 	_ship.item_selected.connect(_on_ship_picked)
 	_seed.text_submitted.connect(func(_text: String) -> void: _on_play())
+	_seed.text_changed.connect(_on_seed_typed)
 	_seed.gui_input.connect(leave_field.bind(_seed))
 	%Online.pressed.connect(online_requested.emit)
 	%Replays.pressed.connect(replays_requested.emit)
@@ -250,7 +257,39 @@ func _fit_wordmark() -> void:
 	var room := INF
 	if is_instance_valid(_front):
 		room = _front.global_position.y - WORDMARK_GAP - _wordmark.global_position.y
-	_wordmark.scale = Vector2.ONE * wordmark_scale(room, _wordmark.size.y)
+	# Its height with the tagline, shown or not: the answer never hangs on the last one.
+	var gap := _wordmark.get_theme_constant(&"separation")
+	var tagline := _tagline.get_combined_minimum_size().y + gap
+	var whole := _wordmark.get_combined_minimum_size().y + (0.0 if _tagline.visible else tagline)
+	_tagline.visible = tagline_shown(room, whole)
+	var tall := whole if _tagline.visible else whole - tagline
+	_wordmark.scale = Vector2.ONE * wordmark_scale(room, tall)
+
+
+## Whether the tagline is drawn under the title, the wordmark with it [param whole] pixels
+## tall and [param room] pixels to stand in: while it would be drawn at TAGLINE_LEAST of
+## its size or more.
+static func tagline_shown(room: float, whole: float) -> bool:
+	return whole <= 0.0 or room / whole >= TAGLINE_LEAST
+
+
+## What the seed field keeps of [param text] as typed or pasted: its digits, SEED_DIGITS
+## at the most — a whole number of 0 or more, or blank for a seed still to be drawn.
+static func seed_typed(text: String) -> String:
+	var digits := ""
+	for index in text.length():
+		if text[index] >= "0" and text[index] <= "9" and digits.length() < SEED_DIGITS:
+			digits += text[index]
+	return digits
+
+
+func _on_seed_typed(text: String) -> void:
+	var kept := seed_typed(text)
+	if kept == text:
+		return
+	var caret := seed_typed(text.left(_seed.caret_column)).length()
+	_seed.text = kept
+	_seed.caret_column = caret
 
 
 ## Opens or folds the seed, the pace and the bonuses, the fold's mark and the way down
