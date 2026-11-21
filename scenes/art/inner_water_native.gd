@@ -59,12 +59,11 @@ static func made() -> InnerWaterNative:
 	return InnerWaterNative.new(fx) if fx != null else null
 
 
-## Lays out her cells in [param boxes], their surfaces [param surfaces],
-## and [param stacks] (InnerWater._stacks), each run of them a cell of
-## [param stack_cells] in [param stack_bounds].
+## Lays out her cells in [param boxes] — a surface each but where a box is zero — and
+## [param stacks] (InnerWater._stacks), each run of them a cell of [param stack_cells] in
+## [param stack_bounds].
 func lay_out(
 	boxes: Array[AABB],
-	surfaces: Array[MeshInstance3D],
 	stacks: Array,
 	stack_cells: PackedInt32Array,
 	cell_stacks: Array[PackedInt32Array],
@@ -74,7 +73,7 @@ func lay_out(
 	_surface_middles.clear()
 	_surface_halves.clear()
 	for cell in boxes.size():
-		if surfaces[cell] != null:
+		if boxes[cell].size != Vector3.ZERO:
 			_surface_cells.append(cell)
 			_surface_middles.append(boxes[cell].get_center())
 			_surface_halves.append(boxes[cell].size * 0.5)

@@ -1,5 +1,5 @@
 // core/prop_stands.gd, Surfaces.obstacle_contacts, rail_contacts,
-// airborne_rail_contacts and line_of_sight (with SpatialIndex.near and along,
+// airborne_rail_contacts, line_of_sight and blocked (with SpatialIndex.near and along,
 // PlaneShapes, DoorLeaves.contacts and crossed and FallenFunnels.contacts and crossed)
 // and Hazards._move's contact passes, operation for operation:
 // a GDScript float is a double and a Vector2 or Vector3 floats, so a component read out
@@ -9,6 +9,7 @@
 // (SConstruct).
 
 #include "contacts_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/string_name.hpp>
@@ -247,6 +248,23 @@ bool segments_cross(const Vector2 &p_from_a, const Vector2 &p_to_a, const Vector
 	}
 	const real_t position = d.x + (c.x - d.x) * d.y / (d.y - c.y);
 	return !(position < 0 || position > 1);
+}
+
+// Geometry2D.get_closest_point_to_segment, the engine's (core/math/geometry_2d.h).
+Vector2 closest_on_segment(const Vector2 &p_point, const Vector2 &p_a, const Vector2 &p_b) {
+	const Vector2 p = p_point - p_a;
+	const Vector2 n = p_b - p_a;
+	const real_t l2 = n.length_squared();
+	if (l2 < real_t(1e-20)) {
+		return p_a;
+	}
+	const real_t d = n.dot(p) / l2;
+	if (d <= real_t(0.0)) {
+		return p_a;
+	} else if (d >= real_t(1.0)) {
+		return p_b;
+	}
+	return p_a + n * d;
 }
 
 // PlaneShapes.segment_meets_rect.
@@ -545,6 +563,8 @@ PackedByteArray NativeStands::gone_of(const PackedInt32Array &p_props) const {
 	}
 	return out;
 }
+
+SINKING_CLASS(NativeStands)
 
 void NativeStands::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "radii", "heights", "origin", "columns", "rows"), &NativeStands::setup);
@@ -1334,6 +1354,68 @@ bool NativeSurfaces::line_of_sight(const Vector3 &p_from, const Vector3 &p_to, c
 	return true;
 }
 
+void NativeSurfaces::standing_tops(const PackedFloat64Array &p_tops) {
+	standing_tops_.assign(p_tops.ptr(), p_tops.ptr() + p_tops.size());
+}
+
+// Surfaces.blocked of each line from p_lines[index * 2] to p_lines[index * 2 + 1] that
+// p_ask has a 1 for: 1 where a shut leaf, a fallen funnel or a blocker (as it was made)
+// stands across it, rising into bodies p_body_height tall with their feet at either end.
+PackedByteArray NativeSurfaces::blocked_all(const PackedVector3Array &p_lines, const PackedByteArray &p_ask,
+		double p_body_height, double p_step) const {
+	PackedByteArray found;
+	found.resize(p_ask.size());
+	found.fill(0);
+	std::vector<int32_t> &near = along_found;
+	for (int64_t index = 0; index < p_ask.size(); index++) {
+		if (p_ask[index] != 1) {
+			continue;
+		}
+		const Vector3 &from_point = p_lines[index * 2];
+		const Vector3 &to_point = p_lines[index * 2 + 1];
+		const Vector2 start(from_point.x, from_point.z);
+		const Vector2 end(to_point.x, to_point.z);
+		const double from_y = double(from_point.y);
+		const double to_y = double(to_point.y);
+		const double feet = min_f(from_y, to_y) + p_step;
+		const double head = max_f(from_y, to_y) + p_body_height;
+		if (doors_cross(start, end, feet, head) || falls_cross(start, end, feet, head)) {
+			found.set(index, 1);
+			continue;
+		}
+		grid_.along(start, end, feet, head, near);
+		for (int32_t surface : near) {
+			if (surface < first_top_ || surface >= first_lid_) {
+				continue;
+			}
+			const int32_t blocker = surface - first_top_;
+			const double bottom = bottoms_[surface];
+			const double top = standing_tops_[blocker];
+			// PlaneShapes.overlaps, at either end.
+			if (!(from_y + p_step < top && from_y + p_body_height > bottom)) {
+				continue;
+			}
+			if (!(to_y + p_step < top && to_y + p_body_height > bottom)) {
+				continue;
+			}
+			bool across;
+			if (round_[blocker] == 1) {
+				const Vector2 nearest = closest_on_segment(centres_[blocker], start, end);
+				across = double(nearest.distance_to(centres_[blocker])) < radii_[blocker];
+			} else {
+				across = segment_meets_rect(start, end, Rect2(area_position_[surface], area_size_[surface]));
+			}
+			if (across) {
+				found.set(index, 1);
+				break;
+			}
+		}
+	}
+	return found;
+}
+
+SINKING_CLASS(NativeSurfaces)
+
 void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "firsts", "areas", "bottoms", "tops", "gone", "round", "centres", "radii",
 								 "ramp_x", "ramp_heights", "grid", "stands"),
@@ -1363,6 +1445,9 @@ void NativeSurfaces::_bind_methods() {
 			&NativeSurfaces::walked_rail_contacts);
 	ClassDB::bind_method(D_METHOD("named", "names"), &NativeSurfaces::named);
 	ClassDB::bind_method(D_METHOD("line_of_sight", "from", "to", "collapsed"), &NativeSurfaces::line_of_sight);
+	ClassDB::bind_method(D_METHOD("standing_tops", "tops"), &NativeSurfaces::standing_tops);
+	ClassDB::bind_method(
+			D_METHOD("blocked_all", "lines", "ask", "body_height", "step"), &NativeSurfaces::blocked_all);
 	ClassDB::bind_method(D_METHOD("floors", "from", "floors", "clearances"), &NativeSurfaces::floors);
 	ClassDB::bind_method(D_METHOD("under", "ship_point", "step", "except_prop"), &NativeSurfaces::under);
 	ClassDB::bind_method(D_METHOD("floor_way", "from", "end", "keep", "rules"), &NativeSurfaces::floor_way);
@@ -1672,6 +1757,8 @@ PackedVector2Array NativeCrates::came_from() const {
 	}
 	return out;
 }
+
+SINKING_CLASS(NativeCrates)
 
 void NativeCrates::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "surfaces", "at_rest", "radii", "heights", "masses", "solid", "harmless",

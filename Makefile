@@ -312,6 +312,16 @@ sim-bench:
 	@set -o pipefail; tools/engine_guard.sh $(GODOT) --headless --no-header --path . -s res://tools/sim_bench.gd \
 		-- $(match-args) | grep -v '^\[godot_ai'
 
+# `make exactness [BASE=origin/main] [SEED=1701] [SHIP=steamer] [TICKS=1200] [FAST=1] [NATIVE=0] [LIMIT=1800]`:
+# does this checkout simulate bit for bit like BASE? One bots-only match stepped TICKS
+# ticks on each side, a hash of every tick's whole snapshot compared: `exactness: PASS
+# <ticks> ticks`, or `exactness: FAIL first differing tick N` and a non-zero exit. BASE
+# runs in a detached worktree of its own beside the others, its hashes kept under
+# ~/.cache/sinking_ship/exactness; NATIVE=0 runs the GDScript on both sides. Rules live
+# in tools/exactness.sh.
+exactness:
+	@GODOT="$(GODOT)" BASE="$(BASE)" SEED="$(SEED)" SHIP="$(SHIP)" TICKS="$(TICKS)" FAST="$(FAST)" 		NATIVE="$(NATIVE)" LIMIT="$(LIMIT)" tools/exactness.sh
+
 # `make bench [SEATS=64] [SHIP=] [SECONDS=60] [SEED=1]`: MatchSim.step timed with many bodies
 # on a huge hull (SH18, R7) — seats played by seeded wanderers, no bots, on the
 # Titanic-scale fixture or on SHIP — with the spatial index and without it, taking turns:
@@ -789,8 +799,9 @@ check:
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
 # fixture project, and its list of runtime-built loads, against the code; the worktree
 # pruner, against a throwaway repo and a stand-in gh; the CI waiter, against a stand-in
-# gh's snapshots; and art-lint-changed's selection, against a throwaway repo and a
-# stand-in make; and every deck traced off the Titanic's plates (#360), holding together.
+# gh's snapshots; the merge train, against a stand-in gh's pull requests, again on Perl's
+# lock; and art-lint-changed's selection, against a throwaway repo and a
+# stand-in make; make exactness, against a throwaway repo and a stand-in engine; and every deck traced off the Titanic's plates (#360), holding together.
 guard-check:
 	@if (set -o pipefail) 2>/dev/null; then echo "make-shell-check: ok"; else \
 		echo "make-shell-check: make runs recipes in $(SHELL), which has no pipefail" >&2; exit 1; fi
@@ -811,7 +822,10 @@ guard-check:
 	tools/test_changed.py --check-sites
 	tools/prune_worktrees_check.sh
 	tools/ci_wait_check.sh
+	tools/merge_train_check.sh
+	FD_LOCK=perl tools/merge_train_check.sh
 	tools/art_lint_changed_check.sh
+	tools/exactness_check.sh
 	python3 tools/titanic_plates/deck_check.py
 
 # Style and smells. Rule overrides live in gdlintrc.
@@ -836,7 +850,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import native run replay match capture smoke flood-invariants net-bench sim-bench bench serve-local online-e2e export-server \
+.PHONY: import native run replay match capture smoke flood-invariants net-bench sim-bench exactness bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check ship ship-gen-check ship-check bake-ship \
 	bake-check ship-scene preview \

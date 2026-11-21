@@ -43,6 +43,7 @@ make replay FILE=path/to/one.replay             # watch a saved replay (every lo
 make match SEED=1701                            # one bots-only match, headless, as a transcript
 make match SEED=1701 FAST=1                     # the same, her sinking on the fast clock (FAST=1 works for run too)
 make match SEED=1701 GOAL=survival              # survival: everyone stays in as long as she lasts (GOAL= works for run too)
+make exactness TICKS=1200                       # does the branch simulate bit for bit like BASE=origin/main? a hash of every tick's snapshot, both sides (SEED=, SHIP=, FAST=1, NATIVE=0)
 make smoke                                      # the water capture sweep for QA: shots at the transcript's water moments into captures/smoke/ (MAX=3, DRY=1)
 make preview SHIP=steamer                       # her dressed art as a PNG, no game window: headless dress, Blender Workbench render (SPAN=, EYE= AT=; needs Blender)
 make ship                                       # regenerate data/ships/NAME.tres from tools/gen_NAME.py; SHIP=trawler for one
@@ -65,10 +66,11 @@ to make; memory keeps only what no fix can change.
 
 Finished work ships without being asked. Push the branch and open its PR as a draft at
 the first commit, so the work outlives a session that stops; once the change is done,
-`gh pr ready` it, wait for CI (`tools/ci_wait.sh N` in the background reports only what
-failed), and merge it yourself when it is green on the PR head. When main has moved
-since that run, `gh pr update-branch` first and merge on the new run's green: two PRs
-green apart can break main together. A red PR gets fixed, not merged. Ask first only
+`gh pr ready` it and merge it yourself with `tools/merge_train.sh N [N…]` in the
+background, never a loop of your own: the one train on this machine updates each PR onto
+main, waits for its CI and squash-merges it when green, one PR at a time, as two PRs
+green apart can break main together (`tools/ci_wait.sh N` only waits, and reports only
+what failed). A red PR gets fixed, not merged. Ask first only
 when the change is not what was asked for or a decision is genuinely the user's.
 
 Every session works in its own worktree, never in the main checkout: several sessions share
@@ -123,11 +125,10 @@ gate's engines wait in `tools/test_slot.sh` until there is memory for them.
 
 ## Model roles
 
-Fable orchestrates and does not implement, research or review a PR itself. Workers are the
-agents in `.claude/agents/`, every one on the latest Opus available (`model: opus` — the
-alias, never Fable, never a dated Opus id), effort set by role: `scout` low, `reviewer`
-high, `qa` low. `/orchestrate` carries the full loop. `qa` stays idle until the
-repo has a `make smoke` capture sweep.
+Workers are the agents in `.claude/agents/`, every one on Fable
+(`model: fable` — the alias, never a dated id), effort set by role:
+`scout` low, `reviewer` high, `qa` low. `/orchestrate` carries the full delegation loop.
+`qa` stays idle until the repo has a `make smoke` capture sweep.
 
 ## Agent skills
 

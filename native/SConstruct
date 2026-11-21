@@ -5,6 +5,7 @@
 # sinking_native.gdextension that loads it — written only once the library is built, so
 # a checkout that has not built it has no extension for Godot to miss and runs the
 # GDScript (ai/walk_search.gd).
+import hashlib
 import os
 
 env = Environment(tools=["default"], PLATFORM="")
@@ -19,7 +20,30 @@ else:
     env.Append(CCFLAGS=["-ffp-contract=off", "-fno-fast-math"])
 
 env.Append(CPPPATH=["src/"])
-sources = Glob("src/*.cpp")
+
+
+def source_digest(folder):
+    # Which sources the library is built from, as core/native_version.gd works it out
+    # beside it (NativeVersion.digest): SHA-256 over every .cpp and .h in the folder,
+    # by name, each as its name, a newline, its size in bytes, a newline, its bytes.
+    digest = hashlib.sha256()
+    names = sorted(n for n in os.listdir(folder) if n.endswith((".cpp", ".h")))
+    for name in names:
+        with open(os.path.join(folder, name), "rb") as source:
+            data = source.read()
+        digest.update("{}\n{}\n".format(name, len(data)).encode("utf-8"))
+        digest.update(data)
+    return digest.hexdigest()
+
+
+# Only register_types.cpp carries the digest (NativeAbi.source), so a change to one file
+# recompiles that file and this one, not every file.
+abi_env = env.Clone()
+abi_env.Append(CPPDEFINES=[("SINKING_NATIVE_SOURCE", source_digest(Dir("src").srcnode().abspath))])
+sources = [
+    abi_env.SharedObject(node) if node.name == "register_types.cpp" else node
+    for node in Glob("src/*.cpp")
+]
 
 # One library a platform and architecture, whatever the target: the editor and the
 # exports load the same optimized build.

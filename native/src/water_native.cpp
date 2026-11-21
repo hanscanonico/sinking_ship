@@ -3,6 +3,7 @@
 // minf and maxf are the engine's (a < b ? a : b, a > b ? a : b). Contraction is off.
 
 #include "water_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -526,6 +527,8 @@ Array NativeWater::lamps_shown(const PackedInt32Array &p_cells, const PackedByte
 	found.push_back(shown);
 	return found;
 }
+
+SINKING_CLASS(NativeWater)
 
 void NativeWater::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("lamps_shown", "cells", "lit", "levels", "world", "shown"),

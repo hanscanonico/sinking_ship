@@ -2,7 +2,7 @@
 name: qa
 description: Read-only visual QA at low effort — once the repo has a `make smoke` capture sweep, runs it on the named checkout, reads every captured frame as an image and reports what a player would notice. Not used until that target exists. Never edits.
 tools: Read, Bash, Grep, Glob, ToolSearch
-model: opus
+model: fable
 effort: low
 ---
 
