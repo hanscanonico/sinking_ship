@@ -7,7 +7,8 @@ the bots' reads of the water (`core/still_points.gd`, `ai/walk_graph.gd`,
 (`core/sinking/sink_stepper.gd`, #411), and around them each opening's share open, the
 cells a step holds stiff and her failures' heads across what can give way
 (`core/sinking/sink_failures.gd`, #411), her lift and her water's load as she moves
-(`core/sinking/ship_motion.gd`, #411), her level hull's build and her girder's bending
+(`core/sinking/ship_motion.gd`, #411), each piece's cells' water and light as her pose is
+read off the timeline (`SinkSchedule._piece_pose`), her level hull's build and her girder's bending
 (`core/sinking/level_hull.gd`, `core/sinking/hull_girder.gd`, #492) and where her shell
 stands at a height (`HullSection.shell_at`, `core/sinking/hull_section.gd`), the floating furniture's contacts: where her
 props stand (`core/prop_stands.gd`), what holds a circle back
@@ -27,7 +28,7 @@ cells a point lies in (`CellMap.cell_at`, `core/sinking/cell_map.gd`).
 
 - `src/` — the extension's sources: `walk_search_native.{h,cpp}` (`NativeWalkGraph`,
   `NativeWalkSearch`), `water_native.{h,cpp}` (`NativeWater`), `sink_native.{h,cpp}`
-  and `sink_step_native.cpp` (`NativeSink`), `motion_native.{h,cpp}` (`NativeMotion`), `hull_native.{h,cpp}` (`NativeLevelHull`,
+  and `sink_step_native.cpp` (`NativeSink`), `pose_native.{h,cpp}` (`NativePose`), `motion_native.{h,cpp}` (`NativeMotion`), `hull_native.{h,cpp}` (`NativeLevelHull`,
   `NativeGirder`, `NativeShell`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
   `NativeCrates`, `NativeRest`) with `rest_native.cpp` (`NativeRest`), `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`) and
   `bot_stepped_native.cpp` (`NativeSurfaces.stepped`, a bot's reckoning by its walks), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
@@ -63,7 +64,7 @@ an artifact of the run:
 - `native (linux)` — `native-linux`, the `.so` the ten test shards load
   (`SINKING_NATIVE_REQUIRED=1`).
 - `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
-  runner, where the fifteen cross-check scripts run against it: arm64 is where a compiler
+  runner, where the sixteen cross-check scripts run against it: arm64 is where a compiler
   contracts `a * b + c` by default, so a difference from the engine's own GDScript
   arithmetic would show there first.
 - `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with
@@ -140,7 +141,8 @@ and `test_native_version` fails there when it was built from other sources.
   godot-cpp's objects as for ours.
 - `tests/unit/ai/test_walk_search_native.gd`, `tests/unit/ai/test_water_native.gd`,
   `tests/unit/core/test_sink_native.gd`, `tests/unit/core/test_sink_native_stages.gd`,
-  `tests/unit/core/test_motion_native.gd`, `tests/unit/core/test_shell_native.gd`,
+  `tests/unit/core/test_motion_native.gd`, `tests/unit/core/test_pose_native.gd`,
+  `tests/unit/core/test_shell_native.gd`,
   `tests/unit/core/test_contacts_native.gd`,
   `tests/unit/ai/test_floor_way_native.gd`, `tests/unit/art/test_ship_mesh_native.gd`,
   `tests/unit/match/test_water_fx_native.gd`, `tests/unit/art/test_lamp_sight.gd`,
@@ -148,4 +150,4 @@ and `test_native_version` fails there when it was built from other sources.
   `tests/unit/core/test_rest_native.gd` and `tests/unit/ai/test_bot_stepped_native.gd`
   ask both sides the same questions and fail on any difference. CI sets
   `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load fails too — on Linux
-  across the suite, on macOS (arm64) for those fifteen scripts.
+  across the suite, on macOS (arm64) for those sixteen scripts.
