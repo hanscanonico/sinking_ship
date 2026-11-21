@@ -391,6 +391,26 @@ func seat_to_world(seat: int) -> Transform3D:
 	return _worlds[seat]
 
 
+## Holds [param eyes] — looking out of [param seat] from over its feet, as placed — short
+## of the wall its lean on a listing ship would stand it in (EyeHold), on the faces the
+## seat stands on; -1 for eyes in no seat's place, left where they are. Where they stand
+## now, in the world.
+func hold_eye(eyes: Camera3D, seat: int) -> Vector3:
+	if seat < 0 or _driver.current["seats"][seat]["out"]:
+		return eyes.global_position
+	var entry: Dictionary = _driver.current["seats"][seat]
+	var piece: int = entry["piece"]
+	var up := MatchState.up_of(_driver.current, entry)
+	var faces := _faces if piece == 0 else _pieces.faces(piece)
+	var pose := _schedule.pose_at(_driver.current["tick"]).of_piece(piece)
+	var to_frame := Transform3D(Faces.to_frame(up)) * _worlds[seat].affine_inverse()
+	var held := EyeHold.held(
+		faces.surfaces(up), pose, Faces.to_frame(up) * _feet[seat], to_frame * eyes.global_position
+	)
+	eyes.global_position = to_frame.affine_inverse() * held
+	return eyes.global_position
+
+
 ## Where piece [param piece] of her is drawn now: its space to the world, as a seat on it
 ## is drawn (seat_to_world) — ship_to_world's for the whole ship.
 func piece_world(piece: int) -> Transform3D:
