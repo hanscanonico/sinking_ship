@@ -135,8 +135,9 @@ var _rules: BrawlRules
 ## The ship's layout: what each prop is (#273); and the props a hand may hold
 ## (GrabReach.holdable_of).
 var _layout: ShipLayout
-## The room the eye's seat is in, on its feet or afloat (SeatRoom).
+## The room the eye's seat is in, on its feet or afloat (SeatRoom): place()'s last.
 var _rooms := SeatRoom.new()
+var _room := -1
 var _holdable := PackedInt32Array()
 ## How the match's bonuses come and what each kind is (#307), null for none; and what a
 ## Grab press does, which the prompt names (GrabReach).
@@ -147,6 +148,10 @@ var _eyes: bool
 ## Whether the view is the free camera rather than the seat's eyes: drawn as the
 ## observer's is.
 var flying := false
+## The match's ghost, and where it stands while the view is its (GhostWalk.active): what
+## the plate names then, not where the seat watched is (place).
+var ghost: GhostWalk
+var _walked := ""
 ## What is drawn of a snapshot alone — the dials, the chips, the banner, the plate and
 ## its readouts, the crosshair and the grab prompt — drawn again only once the snapshot,
 ## the seat, the view or a prompt's words change (#410); over it, what moves with the
@@ -242,7 +247,8 @@ func show_view(
 	_camera = camera
 	_view = view
 	_show_frost()
-	var with := [flying, _canvas.size, _prompts.word(&"grab"), _prompts.word(&"brace")]
+	_walked = _rooms.ghost_place(ghost, _schedule, snapshot, _rules.step_height)
+	var with := [flying, _canvas.size, _prompts.word(&"grab"), _prompts.word(&"brace"), _walked]
 	if _answers.ask(snapshot, seat, with):
 		_canvas.queue_redraw()
 	_live.queue_redraw()
@@ -258,15 +264,12 @@ func _draw_hud() -> void:
 	_draw_inclinometer(answers.pose)
 	_draw_warnings(answers.pose, tick)
 	_draw_phase(tick)
-	if not answers.is_in:
+	var where := place()
+	if answers.is_in or not where.is_empty():
+		_draw_where(where)
+	if not answers.is_in or not _eyes or flying:
 		return
 	var me := answers.me
-	var decks := MatchState.up_of(_snapshot, me) == Faces.Up.DECK
-	var where := answers.faces.layout(Faces.Up.DECK)
-	var room := _rooms.of(where, answers.pose, me["pos"], _rules.step_height)
-	_draw_where(where, room, me["surface"] if decks else Surfaces.NONE)
-	if not _eyes or flying:
-		return
 	_draw_crosshair(ShoveResolver.would_hit(answers.framed, _seat, _rules, answers.here))
 	if me["state"] != PlayerState.Body.SWIMMING:
 		var grab := _prompts.word(&"grab")
@@ -280,7 +283,7 @@ func _draw_hud() -> void:
 				var size := _font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
 				var badge := at + Vector2(-size.x * 0.5 - PROMPT_BADGE, -FONT_SIZE * 0.35)
 				BonusIcons.draw(_drawing, kind, badge, BONUS_RADIUS)
-	_draw_readouts(me, answers.pose.world_height(me["pos"]), room != -1)
+	_draw_readouts(me, answers.pose.world_height(me["pos"]), _room != -1)
 
 
 ## What moves with the eye frame by frame, over the rest (_live): the climb prompt, the
@@ -347,9 +350,9 @@ func _draw_inclinometer(pose: ShipPose) -> void:
 	var below := Vector2(0.0, r + 22.0)
 	var under := Vector2(0.0, r + 42.0)
 	_text(heel_at + below, Language.t("Heel %s") % degrees_words(pose.heel_deg), colour, DIAL_TEXT)
-	_text(heel_at + under, _low(pose.heel_deg, "starboard low", "port low"), colour, DIAL_TEXT)
+	_text(heel_at + under, low_words(pose.heel_deg, "starboard low", "port low"), colour, DIAL_TEXT)
 	_text(trim_at + below, Language.t("Trim %s") % degrees_words(pose.trim_deg), colour, DIAL_TEXT)
-	_text(trim_at + under, _low(pose.trim_deg, "bow low", "stern low"), colour, DIAL_TEXT)
+	_text(trim_at + under, low_words(pose.trim_deg, "bow low", "stern low"), colour, DIAL_TEXT)
 
 
 func _draw_dial(centre: Vector2, hull: PackedVector2Array, angle: float, colour: Color) -> void:
@@ -438,15 +441,24 @@ func _draw_crosshair(lit: bool) -> void:
 		_drawing.draw_arc(centre, 16.0, 0.0, TAU, 32, colour, 2.5, true)
 
 
-## Bottom left, over the readouts and on their plate: the name of [param room] of
-## [param layout], the one the seat is in (SeatRoom) — afloat in it too — else, for -1,
-## of the platform [param surface] is.
-func _draw_where(layout: ShipLayout, room: int, surface: int) -> void:
-	var where := ""
-	if room != -1:
-		where = layout.rooms[room].name
-	elif surface >= 0 and surface < layout.platforms.size():
-		where = layout.platforms[surface].name
+## The place the plate names (SeatRoom.named): where the ghost stands while the view is
+## its, else the room the seat shown is in — afloat in it too — else the platform under
+## it on her decks; "" for none, and for a seat out of the match.
+func place() -> String:
+	_room = -1
+	if ghost != null and ghost.active:
+		return _walked
+	if _over() or not _answers.is_in:
+		return ""
+	var me := _answers.me
+	var decks := MatchState.up_of(_snapshot, me) == Faces.Up.DECK
+	var where := _answers.faces.layout(Faces.Up.DECK)
+	_room = _rooms.of_seat(where, _answers.pose, me, _rules.step_height)
+	return SeatRoom.named(where, _room, me["surface"] if decks else Surfaces.NONE)
+
+
+## Bottom left, over the readouts and on their plate: [param where], the place's name.
+func _draw_where(where: String) -> void:
 	var lines := place_lines(Language.titled(where), _font, FONT_SIZE, READOUT_TEXT)
 	_draw_plate(not where.is_empty(), lines.size())
 	var at := Vector2(24.0, _canvas.size.y - 150.0 - PLACE_LEADING * (lines.size() - 1))
@@ -1078,7 +1090,7 @@ static func degrees_words(signed_deg: float) -> String:
 	return "%+.1f°" % signed_deg
 
 
-static func _low(signed_deg: float, positive: String, negative: String) -> String:
+static func low_words(signed_deg: float, positive: String, negative: String) -> String:
 	if absf(signed_deg) < 0.05:
 		return Language.t("level")
 	return Language.t(positive if signed_deg > 0.0 else negative)
