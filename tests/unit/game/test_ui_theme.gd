@@ -174,3 +174,25 @@ func test_a_control_added_after_the_theme_was_asked_for_has_it_too() -> void:
 	layer.add_child(after)
 	assert_eq(before.theme, UiTheme.shared(), "one there as it was asked")
 	assert_eq(after.theme, UiTheme.shared(), "one made afterwards")
+
+
+func test_a_choices_list_reads_as_the_choice_it_drops_from() -> void:
+	var theme := UiTheme.shared()
+	assert_eq(
+		theme.get_font("font", "PopupMenu"),
+		theme.get_font("font", "OptionButton"),
+		"the list in the choice's own type"
+	)
+	assert_eq(
+		theme.get_font_size("font_size", "PopupMenu"),
+		theme.get_font_size("font_size", "OptionButton")
+	)
+	# The engine's own radio marks are dark discs, lost on the dark plate.
+	for mark: String in ["radio_checked", "radio_unchecked"]:
+		assert_true(theme.has_icon(mark, "PopupMenu"), "%s is the theme's" % mark)
+	var chosen: Image = theme.get_icon("radio_checked", "PopupMenu").get_image()
+	var other: Image = theme.get_icon("radio_unchecked", "PopupMenu").get_image()
+	var middle: Vector2i = chosen.get_size() / 2
+	assert_gt(chosen.get_pixelv(middle).a, 0.9, "the one chosen: filled")
+	assert_lt(other.get_pixelv(middle).a, 0.1, "the others: a ring")
+	assert_gt(other.get_pixel(middle.x, 1).a, 0.5, "a ring that shows")
