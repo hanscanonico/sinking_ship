@@ -8,6 +8,11 @@ extends RefCounted
 ## (ShipPose.cell_at), as the sim asks of a seat going down with her
 ## (MatchVerdict.gone_with). The ghost stands in a room as a seat does (ghost_place).
 
+## How near its surface, in metres, the feet of a seat out of the match are for it to
+## have gone out standing there: a body wading keeps its feet on the deck it wades, and
+## one afloat over a sunk deck has them off it.
+const STOOD := 0.02
+
 ## Per layout asked of, its rooms indexed (RoomIndex).
 var _indexes := {}
 ## Per seat out of the match asked of, whether it went out inside one of her rooms
@@ -73,7 +78,8 @@ func ghost_place(
 
 
 ## Whether [param seat], out of [param sim]'s match in [param snapshot], lies inside one
-## of her rooms: the cold put it out aboard, never overboard (Hud.out_word). Asked once
+## of her rooms or stands on one of her decks, where the water came up to it (STOOD):
+## the cold put it out aboard, never overboard (Hud.out_word). Asked once
 ## per seat until forget() — one out of the match stays where it went out, in its piece's
 ## space, which is her ship space — and false for no seat, or one still in.
 func out_aboard(sim: MatchSim, snapshot: Dictionary, seat: int) -> bool:
@@ -83,7 +89,9 @@ func out_aboard(sim: MatchSim, snapshot: Dictionary, seat: int) -> bool:
 	if mine.is_empty() or not mine["out"]:
 		return false
 	var pose := sim.schedule.pose_at(snapshot["tick"]).of_piece(mine["piece"])
-	_aboard[seat] = of(sim.config.ship, pose, mine["pos"], sim.config.rules.step_height) != -1
+	var stood := sim.surfaces.under(mine["pos"], STOOD) != Surfaces.NONE
+	var room := of(sim.config.ship, pose, mine["pos"], sim.config.rules.step_height)
+	_aboard[seat] = stood or room != -1
 	return _aboard[seat]
 
 
