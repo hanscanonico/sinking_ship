@@ -472,16 +472,16 @@ msgid "Trim %s"
 msgstr "Assiette %s"
 
 msgid "starboard low"
-msgstr "tribord enfoncé"
+msgstr "tribord bas"
 
 msgid "port low"
-msgstr "bâbord enfoncé"
+msgstr "bâbord bas"
 
 msgid "bow low"
-msgstr "proue enfoncée"
+msgstr "proue basse"
 
 msgid "stern low"
-msgstr "poupe enfoncée"
+msgstr "poupe basse"
 
 msgid "LURCH TO STARBOARD — BRACE (%s)"
 msgstr "EMBARDÉE SUR TRIBORD — TENEZ BON (%s)"

@@ -472,16 +472,16 @@ msgid "Trim %s"
 msgstr "Asiento %s"
 
 msgid "starboard low"
-msgstr "estribor hundido"
+msgstr "estribor bajo"
 
 msgid "port low"
-msgstr "babor hundido"
+msgstr "babor bajo"
 
 msgid "bow low"
-msgstr "proa hundida"
+msgstr "proa baja"
 
 msgid "stern low"
-msgstr "popa hundida"
+msgstr "popa baja"
 
 msgid "LURCH TO STARBOARD — BRACE (%s)"
 msgstr "BANDAZO A ESTRIBOR — AGUANTA (%s)"
