@@ -347,9 +347,9 @@ func _draw_inclinometer(pose: ShipPose) -> void:
 	var below := Vector2(0.0, r + 22.0)
 	var under := Vector2(0.0, r + 42.0)
 	_text(heel_at + below, Language.t("Heel %s") % degrees_words(pose.heel_deg), colour, DIAL_TEXT)
-	_text(heel_at + under, _low(pose.heel_deg, "starboard low", "port low"), colour, DIAL_TEXT)
+	_text(heel_at + under, low_words(pose.heel_deg, "starboard low", "port low"), colour, DIAL_TEXT)
 	_text(trim_at + below, Language.t("Trim %s") % degrees_words(pose.trim_deg), colour, DIAL_TEXT)
-	_text(trim_at + under, _low(pose.trim_deg, "bow low", "stern low"), colour, DIAL_TEXT)
+	_text(trim_at + under, low_words(pose.trim_deg, "bow low", "stern low"), colour, DIAL_TEXT)
 
 
 func _draw_dial(centre: Vector2, hull: PackedVector2Array, angle: float, colour: Color) -> void:
@@ -1078,7 +1078,7 @@ static func degrees_words(signed_deg: float) -> String:
 	return "%+.1f°" % signed_deg
 
 
-static func _low(signed_deg: float, positive: String, negative: String) -> String:
+static func low_words(signed_deg: float, positive: String, negative: String) -> String:
 	if absf(signed_deg) < 0.05:
 		return Language.t("level")
 	return Language.t(positive if signed_deg > 0.0 else negative)
