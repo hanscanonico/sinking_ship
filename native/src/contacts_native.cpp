@@ -1453,6 +1453,9 @@ void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("floor_way", "from", "end", "keep", "rules"), &NativeSurfaces::floor_way);
 	ClassDB::bind_method(D_METHOD("stands_grid", "origin", "width", "depth", "side", "height", "within", "rules"),
 			&NativeSurfaces::stands_grid);
+	ClassDB::bind_method(D_METHOD("stepped", "seen_pos", "seen_vel", "surface", "seen_tick", "moves", "ticks",
+								 "pace", "eased", "rules"),
+			&NativeSurfaces::stepped);
 }
 
 // --- Hazards._move's contact passes ---
