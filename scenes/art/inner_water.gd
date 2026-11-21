@@ -163,7 +163,7 @@ var _leaf_widths := {}
 ## is seen from every side; none yet for one shut until it fails (_pour_for). Per
 ## opening, worked out once: its two sides' cells (-1 for the sea) and floors, its box,
 ## and whether water through it is drawn pouring and blowing air — never through the
-## gash, a deck's gaps or a leak.
+## gash, a deck's gaps or a leak, nor down through a well's open top (_open_top).
 var _passages: Array[ShipOpening] = []
 var _pours: Array[WaterSheet] = []
 var _crossings: Array[WaterSheet] = []
@@ -341,7 +341,7 @@ func setup(
 		_spans.append(AABB(opening.centre - opening.size * 0.5, opening.size))
 		_centres.append(opening.centre)
 		_reaches.append(opening.size.length() * 0.5 + TICK_SLACK)
-		_drawn.append(0 if opening.kind in unseen else 1)
+		_drawn.append(0 if opening.kind in unseen or _open_top(opening) else 1)
 	if native != null:
 		native.lay_out_openings(structure, _passages, _spans, _floors)
 	_bursts.clear()
@@ -377,6 +377,15 @@ func setup(
 	_pocket_light.visible = false
 	add_child(_pocket_light)
 	set_process(false)
+
+
+## Whether [param opening] is a space's open top — a working deck between bulwarks, open
+## to the sky with nothing between them. The sea comes aboard such a well over its edges
+## (ShippedWater), never down through its sky: heeled, its top's low corner dips under the
+## sea long before its middle does, and a pour hung there would stand over the deck from
+## the height of its middle, metres up in the air.
+static func _open_top(opening: ShipOpening) -> bool:
+	return opening.kind == ShipOpening.Kind.OPEN and ShipOpening.SKY in opening.joins
 
 
 ## Draws rings in every cell's water round [param waders], the bodies in water nearest
