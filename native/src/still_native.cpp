@@ -1,11 +1,14 @@
 // See still_native.h.
 
 #include "still_native.h"
+#include "registry.h"
 
 #include <godot_cpp/classes/rendering_server.hpp>
 #include <godot_cpp/core/class_db.hpp>
 
 namespace godot {
+
+SINKING_CLASS(NativeStill)
 
 void NativeStill::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("hold", "instances"), &NativeStill::hold);
