@@ -11,23 +11,68 @@ const TRAWLER := "res://data/ships/trawler.tres"
 ## How far either side of a face a probe runs through it, in metres: past a wall's
 ## thickness, short of the next wall.
 const PROBE := 0.2
+## The side of the squares _crosses files an occluder's triangles by, in metres, how
+## many of them a triangle may reach and still be filed in each, and where the others go.
+const CELL := 2.0
+const BROAD_FROM := 64
+const BROAD := "broad"
+
+## Each occluder's triangles as _filed has them.
+var _files := {}
 
 
 ## Whether the segment from [param from] to [param to] crosses one of [param occluder]'s
 ## triangles.
-static func _crosses(occluder: ArrayOccluder3D, from: Vector3, to: Vector3) -> bool:
+## Only the triangles filed near the segment are asked (_filed): every one of the
+## Titanic's for each of her doorways' probes took a minute and a half.
+func _crosses(occluder: ArrayOccluder3D, from: Vector3, to: Vector3) -> bool:
 	var points := occluder.vertices
 	var order := occluder.indices
 	var reach := AABB(from, Vector3.ZERO).expand(to).grow(0.01)
-	for at in range(0, order.size(), 3):
-		var a := points[order[at]]
-		var b := points[order[at + 1]]
-		var c := points[order[at + 2]]
-		if not reach.intersects(AABB(a, Vector3.ZERO).expand(b).expand(c).grow(0.01)):
-			continue
-		if Geometry3D.segment_intersects_triangle(from, to, a, b, c) != null:
-			return true
+	var filed := _filed(occluder)
+	var low := Vector2i((Vector2(reach.position.x, reach.position.z) / CELL).floor())
+	var high := Vector2i((Vector2(reach.end.x, reach.end.z) / CELL).floor())
+	var near: Array[PackedInt32Array] = [filed[BROAD]]
+	for x in range(low.x, high.x + 1):
+		for z in range(low.y, high.y + 1):
+			near.append(filed.get(Vector2i(x, z), PackedInt32Array()))
+	for some: PackedInt32Array in near:
+		for at: int in some:
+			var a := points[order[at]]
+			var b := points[order[at + 1]]
+			var c := points[order[at + 2]]
+			if not reach.intersects(AABB(a, Vector3.ZERO).expand(b).expand(c).grow(0.01)):
+				continue
+			if Geometry3D.segment_intersects_triangle(from, to, a, b, c) != null:
+				return true
 	return false
+
+
+## [param occluder]'s triangles, each by the place of its first corner in its indices,
+## filed by the CELL squares of the ship plane its bounds reach — and under BROAD, the
+## ones that reach more than BROAD_FROM of them, which every segment asks.
+func _filed(occluder: ArrayOccluder3D) -> Dictionary:
+	if _files.has(occluder):
+		return _files[occluder]
+	var points := occluder.vertices
+	var order := occluder.indices
+	var filed := {BROAD: PackedInt32Array()}
+	for at in range(0, order.size(), 3):
+		var bounds := AABB(points[order[at]], Vector3.ZERO)
+		bounds = bounds.expand(points[order[at + 1]]).expand(points[order[at + 2]]).grow(0.02)
+		var low := Vector2i((Vector2(bounds.position.x, bounds.position.z) / CELL).floor())
+		var high := Vector2i((Vector2(bounds.end.x, bounds.end.z) / CELL).floor())
+		if (high.x - low.x + 1) * (high.y - low.y + 1) > BROAD_FROM:
+			(filed[BROAD] as PackedInt32Array).append(at)
+			continue
+		for x in range(low.x, high.x + 1):
+			for z in range(low.y, high.y + 1):
+				var cell := Vector2i(x, z)
+				var some: PackedInt32Array = filed.get(cell, PackedInt32Array())
+				some.append(at)
+				filed[cell] = some
+	_files[occluder] = filed
+	return filed
 
 
 ## The probe across wall [param wall] at [param along] of its length (0…1) and
@@ -44,7 +89,9 @@ static func _across(wall: ShipBlocker, along: float, height: float) -> Array[Vec
 
 ## Whether [param point] stands inside one of [param space]'s boxes.
 static func _solid(space: ShipSpace, point: Vector3) -> bool:
-	for blocker: ShipBlocker in space.layout.blockers:
+	var layout := space.layout
+	for index: int in space._blockers_near(Rect2(point.x, point.z, 0.0, 0.0)):
+		var blocker := layout.blockers[index]
 		var inside := blocker.area.grow(0.01).has_point(Vector2(point.x, point.z))
 		var between := point.y >= blocker.bottom - 0.01 and point.y <= blocker.top + 0.01
 		if blocker.shape == ShipBlocker.Shape.BOX and inside and between:
