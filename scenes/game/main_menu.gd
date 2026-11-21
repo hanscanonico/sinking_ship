@@ -26,6 +26,11 @@ signal credits_requested
 signal settings_requested
 signal quit_requested
 
+## The wordmark drawn no smaller than this share of its size, however tall the panel
+## under it, and the pixels kept between the two.
+const WORDMARK_LEAST := 0.35
+const WORDMARK_GAP := 12.0
+
 @onready var _ship: OptionButton = %Ship
 @onready var _seats: OptionButton = %Seats
 @onready var _tier: OptionButton = %Tier
@@ -39,6 +44,7 @@ signal quit_requested
 @onready var _custom: Button = %Custom
 @onready var _custom_choices: Control = %CustomChoices
 @onready var _panel: PanelContainer = $Panel
+@onready var _wordmark: Control = $Wordmark
 @onready var _backdrop: MenuBackdrop = $Backdrop
 ## The choices the menu was set up with: what it offers no picker for — the command
 ## line's scenario and hit — travels on with every Play.
@@ -52,6 +58,9 @@ func _ready() -> void:
 	%BootTop.color = UiTheme.RULE
 	%TrimBelow.color = UiTheme.TRIM
 	_backdrop.frame_beside(_panel)
+	_panel.item_rect_changed.connect(_fit_wordmark)
+	_panel.visibility_changed.connect(_fit_wordmark)
+	_wordmark.resized.connect(_fit_wordmark)
 	visibility_changed.connect(func() -> void: _backdrop.run(visible))
 	_play.pressed.connect(_on_play)
 	_watch.pressed.connect(_on_watch)
@@ -208,6 +217,24 @@ func _offer_seats(seats: int, otherwise: int) -> void:
 	if seat_index == -1:
 		seat_index = _seats.get_item_index(layout.seats_near(otherwise))
 	_seats.select(seat_index)
+
+
+## How small the wordmark is drawn to stand in [param room] pixels of height, itself
+## [param tall]: whole when it fits, never under WORDMARK_LEAST.
+static func wordmark_scale(room: float, tall: float) -> float:
+	if tall <= 0.0:
+		return 1.0
+	return clampf(room / tall, WORDMARK_LEAST, 1.0)
+
+
+## Keeps the wordmark clear of the panel: the panel grows up from the bottom as the
+## custom match unfolds or a problem shows, and in a small window it reaches the title,
+## which then shrinks into the room left above it.
+func _fit_wordmark() -> void:
+	var room := INF
+	if _panel.visible:
+		room = _panel.position.y - WORDMARK_GAP - _wordmark.position.y
+	_wordmark.scale = Vector2.ONE * wordmark_scale(room, _wordmark.size.y)
 
 
 ## Opens or folds the seed, the pace and the bonuses, the fold's mark and the way down
