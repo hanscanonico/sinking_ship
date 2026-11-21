@@ -43,6 +43,7 @@ FD_LOCK=perl tools/test_slot_check.sh
 tools/fps_split_check.sh
 tools/fps_samples_check.sh
 tools/run_tests_check.sh
+tools/native_ensure_check.sh
 tools/ship_check_once.sh
 tools/test_durations_check.sh
 tools/art_lint_costs_check.sh

@@ -25,8 +25,12 @@ require-gdtoolkit = @command -v $(1) >/dev/null || { \
 # Registers every class_name and imports assets. A fresh checkout or worktree
 # needs it once before anything else: until it runs, every script typing
 # against a project class fails `check` as if the code were broken.
+# It builds the game's GDExtension first where the machine can (tools/native_ensure.sh),
+# so the import registers it: without it every test runs the GDScript, several times
+# slower.
 import:
 	$(call require-godot)
+	@tools/native_ensure.sh --no-import
 	$(GODOT) --headless --path . --import
 
 # The game's GDExtension (native/, #410) for this machine: the bots' walk search in C++,
@@ -455,6 +459,9 @@ art-lint-changed:
 # A given list of scripts, exactly those, over JOBS shards or one SHARD the same way:
 #   make test TESTS="tests/unit/core/test_ticks.gd tests/unit/core/test_air.gd"
 # TESTS= with nothing in it runs nothing and passes; given at all, it wins over TEST.
+# test and test-changed first see that the GDExtension is built from this checkout's
+# native/src (tools/native_ensure.sh): a missing or stale one is built where the machine
+# can, and said in one line where it cannot. NATIVE_ENSURE=0 leaves it as it is.
 # tools/run_tests.sh hands any other GUT flag through (-gunit_test_name=...).
 # Every test engine, from any worktree or session, first takes one of TEST_SLOTS
 # machine-wide slots (tools/test_slot.sh), a kernel lock dropped however its engine
@@ -463,7 +470,11 @@ art-lint-changed:
 # says so in one line.
 TEST ?=
 SHARD ?=
-JOBS ?= 4
+# JOBS is as many shards as the machine has test slots: TEST_SLOTS, else half the cores,
+# as tools/test_slot.sh counts them. It was 4 whatever the machine until 2026-11-21, and
+# a gate alone on twenty cores left six of its ten slots idle. More shards than slots
+# would only wait on each other, and other sessions' engines share the same slots.
+JOBS ?= $(or $(TEST_SLOTS),$(shell n=$$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 8); echo $$((n / 2 > 1 ? n / 2 : 1))))
 # TESTS is left undeclared: its origin is what tells an empty list from none. Only
 # a list given on make's command line counts, so a stray TESTS in the environment
 # cannot cut make verify down to nothing.
@@ -471,6 +482,7 @@ test-list = $(filter command line,$(origin TESTS))
 test-split = $(if $(SHARD),--shard $(SHARD),$(if $(filter-out 1,$(JOBS)),--jobs $(JOBS)))
 test:
 	$(call require-godot)
+	@GODOT="$(GODOT)" tools/native_ensure.sh
 	$(if $(test-list),printf '%s\n' $(TESTS) | )GODOT="$(GODOT)" tools/run_tests.sh \
 		$(if $(test-list),--list - $(test-split),$(if $(TEST),-gselect=$(notdir $(TEST)),$(test-split)))
 
@@ -512,6 +524,7 @@ goldens:
 test-changed:
 	@list=$$(mktemp) || exit 1; trap 'rm -f "$$list"' EXIT; \
 	tools/test_changed.py --list "$$list" || exit 1; \
+	if [ -s "$$list" ]; then GODOT="$(GODOT)" tools/native_ensure.sh || exit 1; fi; \
 	if [ "$$(cat "$$list")" = ALL ]; then \
 		GODOT="$(GODOT)" tools/run_tests.sh $(test-split); \
 	elif [ -s "$$list" ]; then \
@@ -794,7 +807,8 @@ check:
 # sleeps on a private lock file; the test engine slots,
 # against sleeps on private ones — both again on Perl's lock, the one Git Bash on
 # Windows takes (tools/lib/fd_lock.sh); make fps's SPLIT, read off make -n, and the samples it keeps, against made-up logs; make test's
-# list of scripts, against a stand-in engine; make durations and make goldens, against
+# list of scripts, against a stand-in engine; the GDExtension kept built for the tests,
+# against a stand-in build; make durations and make goldens, against
 # sample logs; make art-lint-costs, against made-up runs' tables; verify running the float test once, read off make -n; the gdtoolkit targets'
 # warm-up and fan-out, against a stand-in tool; make test-changed's selection, against a
 # fixture project, and its list of runtime-built loads, against the code; the worktree
