@@ -7,23 +7,21 @@ extends RefCounted
 ## brace, frame by frame. Following, it trails the seat watched at the offset it stood
 ## from it as it locked on, until flown by hand or let go. It never touches the ship, and
 ## keeps inside a box round the decks, from under the sea — the world plane y = 0 (D7) —
-## to its ceiling: it dives under her keel and follows her down, the view under the water
-## Underwater's and MatchAudio's, as a seat's eyes have it, and a coast's bottom
-## (SinkScenario.sea_depth) stops it. It opens over the sea. Presentation only: nothing of it is
-## ever sent, and no rule reads it. Its state is world space; the scene reads transform().
+## to its ceiling: it dives under her keel and follows her down, its floor under the
+## deepest her hull goes while her sinking is followed (reach_of), or over a shallower
+## sea's bottom (SinkScenario.sea_depth). Under the water its view is Underwater's and
+## MatchAudio's, as a seat's eyes have it, but for a brawler's breath. It opens over the
+## sea. Presentation only: nothing of it is ever sent, and no rule reads it. Its state is
+## world space; the scene reads transform().
 
 ## How fast it flies level and climbs, in metres per second.
 const SPEED := 8.0
 const CLIMB_SPEED := 6.0
 ## How far it may look up or down, short of straight.
 const PITCH_LIMIT_DEG := 80.0
-## How far past the decks' edges it may fly, how deep under the sea and how high over it
-## it may go, and how far over a coast's bottom it keeps, in metres. DEPTH reaches under
-## the deepest keel of the fleet as her sinking ends — the Titanic's, 42 m under her
-## boat deck, once all of her is 10 m under (SeaPhysics.gone_depth) — so it gets under
-## her keel at rest (she draws 9.8 m) and stays with her all the way down.
+## How far past the decks' edges, and under the deepest her hull goes (floor_under), it
+## may fly; how high over the sea; and how far over a sea's bottom it keeps, in metres.
 const MARGIN := 20.0
-const DEPTH := 60.0
 const CEILING := 40.0
 const BED_CLEARANCE := 1.0
 ## How far over the sea it opens (start), whatever the seat it opens at.
@@ -47,8 +45,8 @@ var following := false
 var position := Vector3.ZERO
 var yaw := 0.0
 var pitch := 0.0
-## The world box it keeps inside: no deeper than DEPTH and nowhere else until set_bounds().
-var bounds := AABB(Vector3(-1e6, -DEPTH, -1e6), Vector3(2e6, 1e6 + DEPTH, 2e6))
+## The world box it keeps inside: over the sea and nowhere else until set_bounds().
+var bounds := AABB(Vector3(-1e6, SEA_CLEARANCE, -1e6), Vector3(2e6, 1e6, 2e6))
 ## The look's sensitivity and invert-Y, as the first-person look reads them.
 var settings: ViewSettings
 
@@ -81,23 +79,52 @@ func leave() -> void:
 
 ## Keeps it within [constant MARGIN] of [param deck] — every platform's area in the
 ## ship plane, taken as the world's x/z as ObserverCamera takes it — between its floor
-## (floor_under) in a sea [param sea_depth] deep and the ceiling.
-func set_bounds(deck: Rect2, sea_depth := INF) -> void:
+## (floor_under) round a hull that goes [param reach] metres under the sea (reach_of),
+## in a sea [param sea_depth] deep, and the ceiling.
+func set_bounds(deck: Rect2, reach := 0.0, sea_depth := INF) -> void:
 	var area := deck.grow(MARGIN)
-	var bottom := floor_under(sea_depth)
+	var bottom := floor_under(reach, sea_depth)
 	bounds = AABB(
 		Vector3(area.position.x, bottom, area.position.y),
 		Vector3(area.size.x, CEILING - bottom, area.size.y)
 	)
 
 
-## How low it may go, in the world, in a sea [param sea_depth] deep: [constant DEPTH]
-## under the surface, or [constant BED_CLEARANCE] over a shallower bottom — never over
-## the surface. A depth of 0 or less is no bottom (an authored fixture's).
-static func floor_under(sea_depth: float) -> float:
+## How low it may go, in the world, round a hull that goes [param reach] metres under the
+## sea (reach_of) where the sea is [param sea_depth] deep: [constant MARGIN] under the
+## deepest she goes, so it gets under her all the way down, or [constant BED_CLEARANCE]
+## over a shallower bottom — never over the surface. A depth of 0 or less is no bottom
+## (an authored fixture's).
+static func floor_under(reach: float, sea_depth: float) -> float:
+	var deepest := -(reach + MARGIN)
 	if sea_depth <= 0.0:
-		return -DEPTH
-	return minf(maxf(-DEPTH, BED_CLEARANCE - sea_depth), 0.0)
+		return deepest
+	return minf(maxf(deepest, BED_CLEARANCE - sea_depth), 0.0)
+
+
+## How far under the sea the lowest point of [param structure]'s hull can stand while the
+## physics follows her sinking, in metres. The bake follows her — every piece of her,
+## once she breaks — until its highest point is [param gone_depth] under
+## (SeaPhysics.gone_depth, BakePiece.follow) and then holds it there, and no point of a
+## hull stands farther under her highest than her two farthest points stand apart,
+## however she trims and heels: no farther than the diagonal of the box her sections
+## fill, which a liner going down on end all but reaches — her bow her whole length
+## under her stern. So her lowest point is never deeper than the two together, but by
+## what the bake's last step carries her past gone_depth: a metre or so, well within
+## the [constant MARGIN] floor_under adds. 0 for a ship without a structure, which the
+## physics never sinks.
+static func reach_of(structure: ShipStructure, gone_depth: float) -> float:
+	if structure == null or structure.sections.is_empty():
+		return 0.0
+	var low := Vector3(INF, INF, INF)
+	var high := -low
+	for section: HullSection in structure.sections:
+		low.x = minf(low.x, section.x - section.length * 0.5)
+		high.x = maxf(high.x, section.x + section.length * 0.5)
+		for point: Vector2 in section.outline:
+			low = low.min(Vector3(low.x, point.y, point.x))
+			high = high.max(Vector3(high.x, point.y, point.x))
+	return gone_depth + (high - low).length()
 
 
 ## Stands it behind and over [param target] — whose view looks along [param ahead],

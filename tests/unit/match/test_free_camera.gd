@@ -1,16 +1,21 @@
 extends GutTest
 ## The free camera — an out seat's, a watcher's and a replay's: level along its yaw, up and
-## down, its pitch short of straight, inside its box — under the sea down to its depth, or
-## a coast's bottom — the same whatever the frame rate; opening over the sea; following
-## the seat watched at its offset, under the sea too, until flown or let go; framing the
-## whole ship where a watcher's and a replay's opens; and only ever while spectating.
+## down, its pitch short of straight, inside its box — under the sea down to its floor,
+## under the deepest her hull goes, or a shallower sea's bottom — the same whatever the
+## frame rate; opening over the sea; following the seat watched at its offset, under the
+## sea too, until flown or let go; framing the whole ship where a watcher's and a
+## replay's opens; and only ever while spectating. Its floor against her real sinkings
+## is test_free_camera_reach's.
 
 const DECK := Rect2(-30.0, -5.0, 60.0, 10.0)
+## How far under the sea the hull its box is set round goes (FreeCamera.reach_of).
+const REACH := 50.0
+const FLOOR := -(REACH + FreeCamera.MARGIN)
 
 
 func _camera() -> FreeCamera:
 	var camera := FreeCamera.new()
-	camera.set_bounds(DECK)
+	camera.set_bounds(DECK, REACH)
 	camera.position = Vector3(0.0, 10.0, 0.0)
 	return camera
 
@@ -74,19 +79,21 @@ func test_its_pitch_stops_short_of_straight_up_and_down() -> void:
 	assert_almost_eq(camera.yaw, -0.3, 1e-5, "the mouse right turns it right")
 
 
-func test_it_keeps_round_the_decks_and_between_its_depth_and_ceiling() -> void:
+func test_it_keeps_round_the_decks_and_between_its_floor_and_ceiling() -> void:
 	var camera := _camera()
 	camera.fly(Vector2(-1.0, 0.0), 0.0, 100.0)
 	assert_almost_eq(camera.position.x, DECK.position.x - FreeCamera.MARGIN, 1e-4)
 	camera.fly(Vector2(0.0, 1.0), 0.0, 100.0)
 	assert_almost_eq(camera.position.z, DECK.end.y + FreeCamera.MARGIN, 1e-4)
 	camera.fly(Vector2.ZERO, -1.0, 100.0)
-	assert_almost_eq(camera.position.y, -FreeCamera.DEPTH, 1e-4, "down to its depth")
+	assert_almost_eq(camera.position.y, FLOOR, 1e-4, "its margin under the deepest she goes")
 	camera.fly(Vector2.ZERO, 1.0, 100.0)
 	assert_almost_eq(camera.position.y, FreeCamera.CEILING, 1e-4)
 	var unbounded := FreeCamera.new()
 	unbounded.fly(Vector2.ZERO, -1.0, 100.0)
-	assert_almost_eq(unbounded.position.y, -FreeCamera.DEPTH, 1e-4, "no deeper unbounded")
+	assert_almost_eq(
+		unbounded.position.y, FreeCamera.SEA_CLEARANCE, 1e-4, "over the sea until it has a box"
+	)
 
 
 func test_the_brace_dives_it_under_the_sea() -> void:
@@ -101,38 +108,63 @@ func test_the_brace_dives_it_under_the_sea() -> void:
 	assert_almost_eq(camera.position.y, 2.0, 1e-4, "and back up out of it")
 
 
-func test_its_depth_reaches_under_every_keel_as_her_sinking_ends() -> void:
-	var sea: SeaPhysics = load("res://data/physics/sea.tres")
-	for ship: String in Fleet.names():
-		var layout := Fleet.layout(ship)
-		if layout.structure == null:
-			continue
-		var top := -INF
-		for platform: ShipPlatform in layout.platforms:
-			top = maxf(top, platform.height)
-		var keel_under_top := top - layout.structure.keel_y
-		assert_gt(
-			FreeCamera.DEPTH,
-			sea.gone_depth + keel_under_top,
-			"%s: her keel, her decks %.1f m under, as she is gone" % [ship, sea.gone_depth]
-		)
-		var draft := layout.structure.waterline_y - layout.structure.keel_y
-		assert_gt(FreeCamera.DEPTH, draft, "%s: under her keel at rest" % ship)
+func test_its_floor_is_her_reach_and_its_margin_under_the_sea() -> void:
+	assert_eq(FreeCamera.floor_under(REACH, INF), FLOOR, "the open sea")
+	assert_eq(FreeCamera.floor_under(REACH, 3800.0), FLOOR)
+	assert_eq(FreeCamera.floor_under(REACH, 0.0), FLOOR, "no bottom given")
+	assert_eq(FreeCamera.floor_under(0.0, INF), -FreeCamera.MARGIN, "no hull: its margin")
 
 
-func test_a_coasts_bottom_stops_it() -> void:
-	assert_eq(FreeCamera.floor_under(INF), -FreeCamera.DEPTH, "the open sea: its depth")
-	assert_eq(FreeCamera.floor_under(3800.0), -FreeCamera.DEPTH)
-	assert_eq(FreeCamera.floor_under(0.0), -FreeCamera.DEPTH, "no bottom given")
+func test_a_sea_s_bottom_stops_it() -> void:
 	assert_almost_eq(
-		FreeCamera.floor_under(6.0), FreeCamera.BED_CLEARANCE - 6.0, 1e-5, "over a coast's"
+		FreeCamera.floor_under(REACH, 6.0), FreeCamera.BED_CLEARANCE - 6.0, 1e-5, "over a coast's"
 	)
-	assert_eq(FreeCamera.floor_under(0.5), 0.0, "never over the surface")
+	assert_almost_eq(
+		FreeCamera.floor_under(REACH, -FLOOR - 0.5),
+		FLOOR + 0.5 + FreeCamera.BED_CLEARANCE,
+		1e-5,
+		"and over one just short of its floor"
+	)
+	assert_eq(FreeCamera.floor_under(REACH, -FLOOR + 2.0), FLOOR, "a deeper one never reached")
+	assert_eq(FreeCamera.floor_under(REACH, 0.5), 0.0, "never over the surface")
 	var camera := FreeCamera.new()
-	camera.set_bounds(DECK, 6.0)
+	camera.set_bounds(DECK, REACH, 6.0)
 	camera.position = Vector3(0.0, 2.0, 0.0)
 	camera.fly(Vector2.ZERO, -1.0, 100.0)
 	assert_almost_eq(camera.position.y, FreeCamera.BED_CLEARANCE - 6.0, 1e-4)
+
+
+func test_a_hull_s_reach_is_the_depth_she_is_followed_to_and_her_farthest_span() -> void:
+	# A box of a hull 40 m long, 9 m keel to top and 12 m across, cut in two sections.
+	var structure := ShipStructure.new()
+	for x: float in [-10.0, 10.0]:
+		var section := HullSection.new()
+		section.x = x
+		section.length = 20.0
+		section.outline = PackedVector2Array(
+			[Vector2(-6.0, -3.0), Vector2(6.0, -3.0), Vector2(6.0, 6.0), Vector2(-6.0, 6.0)]
+		)
+		structure.sections.append(section)
+	var span := Vector3(40.0, 9.0, 12.0).length()
+	assert_almost_eq(FreeCamera.reach_of(structure, 10.0), 10.0 + span, 1e-4)
+	assert_gt(span, 40.0, "longer than she is long: on end, heeled, her far corner is lowest")
+	assert_eq(FreeCamera.reach_of(null, 10.0), 0.0, "no structure, nothing the physics sinks")
+	assert_eq(FreeCamera.reach_of(ShipStructure.new(), 10.0), 0.0, "nor a hull with no sections")
+
+
+func test_every_ship_s_reach_is_past_her_length_under_the_depth_she_is_followed_to() -> void:
+	# She goes down on end (trim 72–91° through the fleet's sinkings): her whole length
+	# hangs under her highest point, itself gone_depth under as the bake lets her go —
+	# far deeper than her keel under her top deck, level.
+	var sea := SeaPhysics.load_default()
+	for ship: String in Fleet.names():
+		var structure := Fleet.layout(ship).structure
+		if structure == null:
+			continue
+		var reach := FreeCamera.reach_of(structure, sea.gone_depth)
+		assert_gt(reach, sea.gone_depth + structure.length(), "%s: on end" % ship)
+		var draft := structure.waterline_y - structure.keel_y
+		assert_lt(FreeCamera.floor_under(reach, INF), -draft, "%s: under her keel at rest" % ship)
 
 
 func test_it_starts_behind_and_over_the_seat_looking_at_it() -> void:
@@ -167,7 +199,7 @@ func test_following_trails_a_seat_down_under_the_sea() -> void:
 	assert_almost_eq(camera.position, seat + offset, Vector3.ONE * 1e-4, "down with it")
 	assert_lt(camera.position.y, 0.0, "under the sea")
 	camera.trail(Vector3(seat.x, -1e4, seat.z), 1.0)
-	assert_almost_eq(camera.position.y, -FreeCamera.DEPTH, 1e-4, "as deep as its floor")
+	assert_almost_eq(camera.position.y, FLOOR, 1e-4, "as deep as its floor")
 	assert_true(camera.following, "and on following")
 
 
