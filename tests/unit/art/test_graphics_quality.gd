@@ -12,6 +12,7 @@ func test_high_is_the_look_as_tuned() -> void:
 	var dusk: Environment = (scene.get_node("Environment") as WorldEnvironment).environment
 	assert_eq(high.shadow_mode, sun.directional_shadow_mode)
 	assert_eq(high.shadow_distance, sun.directional_shadow_max_distance)
+	assert_almost_eq(high.shadow_split, sun.directional_shadow_split_1, 1e-6)
 	assert_eq(high.glow, dusk.glow_enabled)
 	assert_eq(high.msaa, ProjectSettings.get_setting("rendering/anti_aliasing/quality/msaa_3d"))
 	assert_eq(
@@ -56,6 +57,13 @@ func test_each_cheaper_preset_costs_no_more() -> void:
 		assert_false(cheaper.glow and not dearer.glow)
 
 
+func test_the_finer_shadow_piece_stays_a_few_metres_from_the_eye() -> void:
+	# A deck shadow's edge went to a sawtooth with the finer piece at a tenth of 60 m.
+	for preset: int in GraphicsQuality.Preset.values():
+		var quality := GraphicsQuality.of(preset)
+		assert_lte(quality.shadow_split * quality.shadow_distance, 3.0 + 1e-4)
+
+
 func test_a_preset_out_of_range_is_held_to_the_ones_there_are() -> void:
 	assert_eq(GraphicsQuality.of(9).preset, GraphicsQuality.Preset.HIGH)
 	assert_eq(GraphicsQuality.of(-1).preset, GraphicsQuality.Preset.LOW)
@@ -72,6 +80,7 @@ func test_the_sea_and_the_sun_take_a_preset() -> void:
 	var sun: DirectionalLight3D = scene.get_node("Sun")
 	assert_eq(sun.directional_shadow_max_distance, low.shadow_distance)
 	assert_eq(sun.directional_shadow_mode, low.shadow_mode)
+	assert_almost_eq(sun.directional_shadow_split_1, low.shadow_split, 1e-6)
 	assert_eq(scene.dusk().glow_enabled, low.glow)
 	assert_eq(scene.water().get_shader_parameter(&"fine_share"), low.sea_detail)
 
