@@ -564,18 +564,13 @@ ship:
 		if [ -z "$(SHIP)" ] || [ "$(SHIP)" = $$ship ]; then \
 		python3 tools/gen_$$ship.py tests/fixtures/ships/$${rest%%:*}.tres $${rest#*:} || exit 1; fi; done
 
+# The generators run side by side, a core each (tools/ship_gen_check.sh): the Titanic's
+# takes a minute and a half, and she and her two sisters are three of the eleven.
+hull-part = $(word $(1),$(subst :, ,$(2)))
 ship-gen-check:
-	@for ship in $(GENERATED); do \
-		out=$$(mktemp) && python3 tools/gen_$$ship.py "$$out" >/dev/null \
-		&& cmp -s "$$out" data/ships/$$ship.tres; status=$$?; rm -f "$$out"; \
-		test $$status -eq 0 || { echo "ship-gen-check: data/ships/$$ship.tres differs from tools/gen_$$ship.py — run make ship SHIP=$$ship" >&2; exit 1; }; \
-	done
-	@for hull in $(TEST_HULLS); do ship=$${hull%%:*}; rest=$${hull#*:}; \
-		fixture=tests/fixtures/ships/$${rest%%:*}.tres; flag=$${rest#*:}; \
-		out=$$(mktemp) && python3 tools/gen_$$ship.py "$$out" $$flag >/dev/null \
-		&& cmp -s "$$out" $$fixture; status=$$?; rm -f "$$out"; \
-		test $$status -eq 0 || { echo "ship-gen-check: $$fixture differs from tools/gen_$$ship.py $$flag — run make ship SHIP=$$ship" >&2; exit 1; }; \
-	done
+	@NPROC=$(NPROC) tools/ship_gen_check.sh \
+		$(foreach ship,$(GENERATED),$(ship):data/ships/$(ship).tres) \
+		$(foreach hull,$(TEST_HULLS),$(call hull-part,1,$(hull)):tests/fixtures/ships/$(call hull-part,2,$(hull)).tres:$(call hull-part,3,$(hull)))
 
 ship-check: ship-gen-check
 	GODOT="$(GODOT)" tools/run_tests.sh -gselect=test_ship_check.gd
