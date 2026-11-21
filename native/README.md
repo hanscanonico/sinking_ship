@@ -139,7 +139,8 @@ and `test_native_version` fails there when it was built from other sources.
   `tests/unit/core/test_sink_native.gd`, `tests/unit/core/test_sink_native_stages.gd`,
   `tests/unit/core/test_motion_native.gd`, `tests/unit/core/test_contacts_native.gd`,
   `tests/unit/ai/test_floor_way_native.gd`, `tests/unit/art/test_ship_mesh_native.gd`,
-  `tests/unit/match/test_water_fx_native.gd` and `tests/unit/art/test_lamp_sight.gd`
+  `tests/unit/match/test_water_fx_native.gd`, `tests/unit/art/test_lamp_sight.gd`,
+  `tests/unit/core/test_cell_map_native.gd` and `tests/unit/ai/test_blocked_native.gd`
   ask both sides the same questions and fail on any difference. CI sets
   `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load fails too — on Linux
-  across the suite, on macOS (arm64) for those ten scripts.
+  across the suite, on macOS (arm64) for those twelve scripts.
