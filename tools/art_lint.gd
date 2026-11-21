@@ -594,7 +594,7 @@ func _check_false_floor(
 		var high := platform.height + rules.jump_height
 		_checks += 1
 		for point in _beyond(platform.area, ends):
-			if _floor_near(layout, point, low, high):
+			if _floor_near(space, point, low, high):
 				continue
 			var edge := point.clamp(platform.area.position, platform.area.end)
 			if space.walled_between(edge, point, platform.height, high):
@@ -655,18 +655,22 @@ func _beyond(area: Rect2, ends: Vector2) -> PackedVector2Array:
 	return points
 
 
-## Whether a platform of [param layout] stands over [param point] between
+## Whether a platform of [param space]'s ship stands over [param point] between
 ## [param low] and [param high], or a blocker's top does (Surfaces), or any ramp does:
-## a stair is floor the rules have, its stringers and all.
-func _floor_near(layout: ShipLayout, point: Vector2, low: float, high: float) -> bool:
-	for platform: ShipPlatform in layout.platforms:
+## a stair is floor the rules have, its stringers and all. Asked only of those filed
+## near the point: all the Titanic's for each was four fifths of her floors' time.
+func _floor_near(space: ShipSpace, point: Vector2, low: float, high: float) -> bool:
+	var layout := space.layout
+	for index: int in space._platforms_near(Rect2(point, Vector2.ZERO)):
+		var platform := layout.platforms[index]
 		if (
 			platform.contains(point.x, point.y)
 			and platform.height >= low
 			and platform.height <= high
 		):
 			return true
-	for blocker: ShipBlocker in layout.blockers:
+	for index: int in space._blockers_near(Rect2(point, Vector2.ZERO)):
+		var blocker := layout.blockers[index]
 		if blocker.top >= low and blocker.top <= high and ShipSpace.over(blocker, point):
 			return true
 	for ramp: ShipRamp in layout.ramps:
