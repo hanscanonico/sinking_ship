@@ -402,3 +402,77 @@ func test_the_warmth_reads_how_much_longer_a_ring_makes_it_last() -> void:
 		FirstPersonHud.warmth_words(sim.snapshot(), 0, layout, sim.config.rules),
 		"lifebuoy ×%d" % lasts
 	)
+
+
+## The steamer, seat 0 in her forward hold, and a HUD of that seat as a watcher sees it.
+func _hud_in_the_hold(sim: MatchSim) -> FirstPersonHud:
+	SimFixtures.place(sim, 0, Vector3(9.0, -2.6, 0.0))
+	var hud: FirstPersonHud = add_child_autofree(FirstPersonHud.new())
+	var prompts: InputPrompts = add_child_autofree(InputPrompts.new())
+	hud.setup(sim, PackedStringArray(["Ada", "Bo"]), false, prompts)
+	return hud
+
+
+## A ghost standing in the first room of [param sim]'s ship it can be stood in that is
+## not called [param but].
+func _ghost_in_a_room(sim: MatchSim, but: StringName) -> GhostWalk:
+	var ghost := GhostWalk.new(sim.config, sim.schedule)
+	for room: ShipRoom in sim.config.ship.rooms:
+		var centre := room.area.get_center()
+		var at := Vector3(centre.x, room.floor_height, centre.y)
+		if room.name != but and ghost.start(sim.snapshot(), at, 0, Vector3.RIGHT):
+			return ghost
+	fail_test("no room to stand a ghost in")
+	return ghost
+
+
+## While the view is the ghost's the plate names where the ghost stands — its room, as a
+## seat's — not where the seat watched does; and the seat's again once it is left. For a
+## seat out of the match the plate names nothing, and the ghost's place still.
+func test_the_plate_names_where_the_ghost_stands() -> void:
+	var sim := SimFixtures.sim(2, null, SimFixtures.steamer())
+	var hud := _hud_in_the_hold(sim)
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_eq(hud.place(), "forward hold", "the seat watched")
+	var ghost := _ghost_in_a_room(sim, &"forward hold")
+	var step := sim.config.rules.step_height
+	var room := sim.config.ship.room_at(ghost.body.pos, step)
+	var walked := String(sim.config.ship.rooms[room].name)
+	hud.ghost = ghost
+	hud.flying = true
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_eq(hud.place(), walked, "the ghost's room, not the seat's")
+	sim.state.seats[0].body = PlayerState.Body.OUT
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_eq(hud.place(), walked, "an out seat's ghost stands there still")
+	ghost.leave()
+	hud.flying = false
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_eq(hud.place(), "", "a seat out of the match is nowhere")
+
+
+## The plate is drawn again once the ghost stands somewhere else, and not for a frame it
+## stands where it did: the snapshot's layer is drawn only when what it shows changes.
+func test_the_plate_is_drawn_again_only_once_the_ghost_s_place_changes() -> void:
+	var sim := SimFixtures.sim(2, null, SimFixtures.steamer())
+	var hud := _hud_in_the_hold(sim)
+	var ghost := _ghost_in_a_room(sim, &"forward hold")
+	hud.ghost = ghost
+	hud.flying = true
+	var snapshot := sim.snapshot()
+	var draws := [0]
+	(hud.get_node("Canvas") as Control).draw.connect(func() -> void: draws[0] += 1)
+	hud.show_view(snapshot, 0, 0.0, null, null)
+	await wait_process_frames(2)
+	assert_eq(draws[0], 1, "drawn for the view")
+	var first := hud.place()
+	hud.show_view(snapshot, 0, 0.0, null, null)
+	await wait_process_frames(2)
+	assert_eq(draws[0], 1, "the ghost where it was: not drawn again")
+	var hold := Vector3(9.0, -2.6, 0.0)
+	assert_true(ghost.start(snapshot, hold, 0, Vector3.RIGHT), "it stands in the hold")
+	hud.show_view(snapshot, 0, 0.0, null, null)
+	await wait_process_frames(2)
+	assert_ne(hud.place(), first)
+	assert_eq(hud.place(), "forward hold")
+	assert_eq(draws[0], 2, "drawn again for its new place")
