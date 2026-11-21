@@ -79,18 +79,20 @@ func _ready() -> void:
 ## Shows [param stats] once they say the match has ended. [param names] labels
 ## each seat; [param match_seed] is printed so the match can be typed back in;
 ## [param survival] says the match was survival (MatchRules.Goal); [param session] is
-## the session it was counted in, if any (show_session).
+## the session it was counted in, if any (show_session); [param aboard] says the local
+## seat went out inside one of her rooms (Hud.out_word).
 func show_results(
 	stats: MatchStats,
 	local_seat: int,
 	names: PackedStringArray,
 	match_seed: int,
 	survival := false,
-	session: SessionTally = null
+	session: SessionTally = null,
+	aboard := false
 ) -> void:
 	if visible or not stats.ended:
 		return
-	_title.text = _title_of(stats, local_seat, names, survival)
+	_title.text = _title_of(stats, local_seat, names, survival, aboard)
 	for child in _table.get_children():
 		_table.remove_child(child)
 		child.queue_free()
@@ -123,13 +125,15 @@ func show_results(
 
 ## The results' title: how [param stats]' match ended for [param local_seat] — under
 ## survival, [param survival], how long it lasted —, or for a watcher (-1) who won it.
+## [param aboard] says the seat went out inside one of her rooms: frozen there by the
+## cold, never overboard (Hud.out_word).
 static func _title_of(
-	stats: MatchStats, local_seat: int, names: PackedStringArray, survival: bool
+	stats: MatchStats, local_seat: int, names: PackedStringArray, survival: bool, aboard := false
 ) -> String:
 	if local_seat < 0:
 		return watched_title(stats, names, survival)
 	var mine := stats.seats[local_seat]
-	var gone := Hud.out_word(mine.out_cause)
+	var gone := Hud.out_word(mine.out_cause, aboard)
 	if survival:
 		return survived(mine.dry_ticks, mine.place, mine.out_cause)
 	if stats.winner == local_seat:

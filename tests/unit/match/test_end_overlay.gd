@@ -69,6 +69,38 @@ func test_the_title_names_who_shoved_you() -> void:
 	assert_eq(titles, ["Overboard — 3rd of 3 — shoved by Bot 2", "Overboard — 3rd of 3"])
 
 
+## The cold putting the local seat out inside one of her rooms, the title says frozen —
+## it never left her; playing alone too, where the title tells how long it stayed dry.
+func test_the_title_says_frozen_for_a_seat_the_cold_put_out_aboard() -> void:
+	var names := PackedStringArray(["You", "Bot 1", "Bot 2"])
+	var out: Array[SimEvent] = [
+		SimEvent.seat_out(90, 0, 3, PlayerState.Cause.COLD, -1),
+		SimEvent.seat_out(120, 1, 2, PlayerState.Cause.COLD, -1),
+		SimEvent.match_ended(120, 2),
+	]
+	var stats := MatchStats.new(3, 0)
+	stats.add(out)
+	assert_eq(EndOverlay._title_of(stats, 0, names, false, true), "Frozen — 3rd of 3")
+	assert_eq(EndOverlay._title_of(stats, 0, names, false), "Overboard — 3rd of 3")
+	assert_eq(EndOverlay._title_of(stats, 2, names, false, true), "Last one dry!")
+	var alone: Array[SimEvent] = [
+		SimEvent.seat_out(90, 0, 1, PlayerState.Cause.COLD, -1), SimEvent.match_ended(90, -1)
+	]
+	var solo := MatchStats.new(1, 0)
+	solo.add(alone)
+	var scene: Node = MATCH_SCENE.instantiate()
+	add_child_autofree(scene)
+	var results: EndOverlay = scene.get_node("EndOverlay")
+	results.show_results(solo, 0, PackedStringArray(["You"]), 1701, false, null, true)
+	assert_eq((results.get_node("%Title") as Label).text, "Frozen — you stayed dry 00:03.0")
+	var sunk: Array[SimEvent] = [
+		SimEvent.seat_out(90, 0, 2, PlayerState.Cause.WITH_HER, -1), SimEvent.match_ended(90, 1)
+	]
+	var with_her := MatchStats.new(2, 0)
+	with_her.add(sunk)
+	assert_eq(EndOverlay._title_of(with_her, 0, names, false, true), "Sunk — 2nd of 2")
+
+
 ## Inside her as she went, the title says the local seat sank with her, never that it
 ## went overboard nor who shoved it last; under survival after the time it lasted —
 ## the last one in as she went is placed first, and nothing else would tell it why its
