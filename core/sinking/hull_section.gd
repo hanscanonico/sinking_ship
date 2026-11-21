@@ -7,6 +7,12 @@ extends Resource
 ## How many times any section's x or length has been set: a ShipStructure keeps its
 ## sections' ends for section_at() only while this stands still.
 static var edits := 0
+## For tests: shell_at() and shells_at() in GDScript, as where the game's extension is not
+## loaded (test_shell_native).
+static var native_off := false
+## The extension's NativeShell, asked for once: null where it is not loaded.
+static var _native: Object = null
+static var _asked := false
 
 ## Where along the ship it is cut, and the length of hull it stands for, centred on it.
 @export var x: float:
@@ -26,6 +32,38 @@ static var edits := 0
 ## starboard, -1 for port: where her shell stands there; NAN where the outline does not
 ## reach that height.
 func shell_at(y: float, side: int) -> float:
+	var native := _shell()
+	if native != null:
+		return native.shell_at(outline, y, side)
+	return _shell_at(y, side)
+
+
+## shell_at() at each of [param heights] on [param side], in one call to the extension
+## where it is loaded.
+func shells_at(heights: PackedFloat64Array, side: int) -> PackedFloat64Array:
+	var native := _shell()
+	if native != null:
+		return native.shells_at(outline, heights, side)
+	var found := PackedFloat64Array()
+	found.resize(heights.size())
+	for at in heights.size():
+		found[at] = _shell_at(heights[at], side)
+	return found
+
+
+## The extension's NativeShell, or null where it is not loaded or native_off.
+static func _shell() -> Object:
+	if native_off:
+		return null
+	if not _asked:
+		_asked = true
+		if NativeVersion.has(&"NativeShell"):
+			_native = ClassDB.instantiate(&"NativeShell")
+	return _native
+
+
+## shell_at() in GDScript, as NativeShell answers it.
+func _shell_at(y: float, side: int) -> float:
 	var outermost := -INF
 	for index in outline.size():
 		var a := outline[index]

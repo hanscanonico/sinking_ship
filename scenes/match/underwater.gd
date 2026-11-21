@@ -5,7 +5,8 @@ extends CanvasLayer
 ## the plunge — the fog draws in, a tint brighter toward the surface and darker below
 ## lies over the view, with shafts of light slanting down (underwater.gdshader), the
 ## surface overhead is a bright wobbling ceiling (water.gdshader), motes drift past and
-## the brawler's breath bubbles up. The fog is thin enough that the hull stays a dark
+## the brawler's breath bubbles up — a seat's eyes' and the ghost's; the free camera is
+## nobody's eyes, and breathes none. The fog is thin enough that the hull stays a dark
 ## shape some way off. Presentation only (D12): it reads where the eye is drawn and how
 ## far over its water that is, and nothing else. is_under() is the one answer anything
 ## else that changes under the water asks.
@@ -40,6 +41,8 @@ var _overlay: ShaderMaterial
 var _motes: CPUParticles3D
 var _bubbles: CPUParticles3D
 var _under := false
+## Whether the breath's bubbles rise: under the water, the eyes a brawler's.
+var _breath := false
 ## Whether the tint, or the line of the water over it, is drawn.
 var _meniscus := false
 ## How far the eye stood over its water when last shown.
@@ -106,8 +109,10 @@ func setup(sea_and_sky: SeaAndSky) -> void:
 	_world.environment = _above
 	_sky.set_shader_parameter(&"under", false)
 	_under = false
+	_breath = false
 	_meniscus = false
-	_show_under(false)
+	_emit(_motes, false)
+	_emit(_bubbles, false)
 	_tint.hide()
 
 
@@ -118,8 +123,10 @@ func show_graphics(quality: GraphicsQuality) -> void:
 
 ## Under the water or not, by the eye at [param eye] in the world standing
 ## [param above] over the water it is in (MatchView.above_water): below 0, under it —
-## inside one of her cells when [param indoors], where no sunlight slants down.
-func show_eye(eye: Vector3, above: float, indoors := false) -> void:
+## inside one of her cells when [param indoors], where no sunlight slants down. The eyes
+## are a brawler's, whose breath bubbles up there, when [param breathing]: not the free
+## camera, which is nobody's.
+func show_eye(eye: Vector3, above: float, indoors := false, breathing := true) -> void:
 	var under := above < 0.0
 	_overlay.set_shader_parameter(&"indoors", 1.0 if indoors else 0.0)
 	# Placed before they start, so the motes fill in round the eye, not where it
@@ -135,7 +142,11 @@ func show_eye(eye: Vector3, above: float, indoors := false) -> void:
 		_under = under
 		_world.environment = _below if under else _above
 		_sky.set_shader_parameter(&"under", under)
-		_show_under(under)
+		_emit(_motes, under)
+	var breath := under and breathing
+	if breath != _breath:
+		_breath = breath
+		_emit(_bubbles, breath)
 
 
 ## Whether the eye standing [param above] over its water is near enough it, or under
@@ -166,12 +177,13 @@ func _follow(eye: Vector3) -> void:
 	_bubbles.global_position = eye - basis.z * BREATH.x + Vector3.DOWN * BREATH.y
 
 
-func _show_under(under: bool) -> void:
-	for particles: CPUParticles3D in [_motes, _bubbles]:
-		particles.visible = under
-		particles.emitting = under
-		if under:
-			particles.restart()
+## Lets [param particles] go from where they stand when [param on], or stops and hides
+## them.
+func _emit(particles: CPUParticles3D, on: bool) -> void:
+	particles.visible = on
+	particles.emitting = on
+	if on:
+		particles.restart()
 
 
 ## A bounded cloud of [param amount] particles living [param lifetime] seconds, left

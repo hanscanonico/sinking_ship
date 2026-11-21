@@ -133,10 +133,15 @@ var _water: ShaderMaterial
 ## The bodies in water its rings are drawn round now (show_waders).
 var _waders := PackedVector4Array()
 var _boxes: Array[AABB] = []
-## Per cell, its surface, or null for a cell whose water is not drawn; and the rest of
-## a cell drawn in a stack of boxes (CellBoxes.stacked), each as [cell, box, surface].
+## Per cell, its surface, and the rest of a cell drawn in a stack of boxes
+## (CellBoxes.stacked), each as [cell, box, surface]: each made as it first shows water
+## (InnerWaterSheets), so null until then, as for a cell whose water is not drawn.
 var _surfaces: Array[MeshInstance3D] = []
 var _stacks: Array = []
+## Per cell, what its sheets were told (InnerWaterSheets.tell), told again to one made;
+## and the waders told every sheet, empty for none yet.
+var _told: Array[Dictionary] = []
+var _padded := PackedVector4Array()
 ## The cells drawn in stacks, ascending; per one, its stacks by index into _stacks, a box
 ## holding them all and how many of them show: a cell's stacks none of which shows, and
 ## none of which its water reaches in that box's span (_may_show), are passed over.
@@ -260,10 +265,11 @@ func setup(
 		_water.set_shader_parameter(colour, sea.get_shader_parameter(colour))
 	_boxes = CellBoxes.boxes(structure, rooms)
 	_surfaces.clear()
-	for cell in _boxes.size():
-		var box := _boxes[cell]
-		var under_sky := structure.cells[cell].kind == FloodCell.Kind.OPEN_WELL
-		_surfaces.append(null if box.size == Vector3.ZERO else _surface(box, under_sky))
+	_surfaces.resize(_boxes.size())
+	_told.clear()
+	for cell in structure.cells.size():
+		_told.append({})
+	_padded = PackedVector4Array()
 	_stacks.clear()
 	_stack_cells.clear()
 	_cell_stacks.clear()
@@ -277,12 +283,12 @@ func setup(
 			_stack_bounds.append(box)
 		_cell_stacks[-1].append(_stacks.size())
 		_stack_bounds[-1] = _stack_bounds[-1].merge(box)
-		_stacks.append([cell, box, _surface(box, false)])
+		_stacks.append([cell, box, null])
 	_stacks_shown.resize(_stack_cells.size())
 	_stacks_shown.fill(0)
 	_slosh = CellSlosh.new(structure, _boxes, _stacks)
 	if native != null:
-		native.lay_out(_boxes, _surfaces, _stacks, _stack_cells, _cell_stacks, _stack_bounds)
+		native.lay_out(_boxes, _stacks, _stack_cells, _cell_stacks, _stack_bounds)
 	_leaves.clear()
 	_leaf_widths.clear()
 	if not paints.is_empty():
@@ -379,19 +385,13 @@ func show_waders(waders: PackedVector4Array) -> void:
 	if waders == _waders:
 		return
 	_waders = waders
-	var padded := SeaAndSky.padded_waders(waders)
+	_padded = SeaAndSky.padded_waders(waders)
 	for surface: MeshInstance3D in _surfaces:
 		if surface != null:
-			_show_waders_on(surface, padded, waders.size())
+			InnerWaterSheets.show_waders_on(surface, _padded, waders.size())
 	for stack: Array in _stacks:
-		_show_waders_on(stack[2], padded, waders.size())
-
-
-static func _show_waders_on(
-	surface: MeshInstance3D, padded: PackedVector4Array, count: int
-) -> void:
-	_param(surface, &"waders", padded)
-	_param(surface, &"wader_count", count)
+		if stack[2] != null:
+			InnerWaterSheets.show_waders_on(stack[2], _padded, waders.size())
 
 
 ## Shows the water [param alpha] of the way from [param then] to [param now], on the
@@ -416,14 +416,16 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float, seconds := NAN) -> 
 		for each: int in found[0]:
 			var showing := each & 1 == 1
 			var cell := each >> 1
-			_place_at(_surfaces[cell], cell, showing, placed[shown] if showing else null, to_ship)
+			_place_at(cell, -1, showing, placed[shown] if showing else null, to_ship)
 			shown += 1 if showing else 0
 		placed = found[3]
 		shown = 0
 		for each: int in found[2]:
 			var showing := each & 1 == 1
-			var stack: Array = _stacks[each >> 1]
-			_place_at(stack[2], stack[0], showing, placed[shown] if showing else null, to_ship)
+			var stack := each >> 1
+			_place_at(
+				_stacks[stack][0], stack, showing, placed[shown] if showing else null, to_ship
+			)
 			shown += 1 if showing else 0
 		_stacks_shown = found[4]
 	else:
@@ -431,8 +433,8 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float, seconds := NAN) -> 
 		for cell in _surfaces.size():
 			var level := lerpf(_level_of(then, cell), _level_of(now, cell), alpha)
 			_levels[cell] = level
-			if _surfaces[cell] != null:
-				_show_surface(_surfaces[cell], cell, _boxes[cell], level, to_ship)
+			if _boxes[cell].size != Vector3.ZERO:
+				_show_surface(cell, -1, _boxes[cell], level, to_ship)
 		for at in _stack_cells.size():
 			var level := _levels[_stack_cells[at]]
 			if (
@@ -443,9 +445,7 @@ func show_water(then: ShipPose, now: ShipPose, alpha: float, seconds := NAN) -> 
 			var shown := 0
 			for index: int in _cell_stacks[at]:
 				var stack: Array = _stacks[index]
-				var surface: MeshInstance3D = stack[2]
-				_show_surface(surface, stack[0], stack[1], level, to_ship)
-				shown += 1 if surface.visible else 0
+				shown += 1 if _show_surface(stack[0], index, stack[1], level, to_ship) else 0
 			_stacks_shown[at] = shown
 	if not _masked.is_empty() or not now.spread_cells.is_empty():
 		_mask_fronts(then, now, alpha)
@@ -635,40 +635,24 @@ func _at_height(point: Vector3, height: float) -> Vector3:
 	return point + _up * (height - (_ship * point).y)
 
 
-## A cell's surface over [param box] (CellSurface), told the box it is clipped to and
-## whether it lies [param under_sky], as an open well's does, lit by the sun.
-func _surface(box: AABB, under_sky: bool) -> MeshInstance3D:
-	var surface := MeshInstance3D.new()
-	surface.mesh = CellSurface.sheet()
-	surface.material_override = _water.duplicate()
-	surface.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_param(surface, &"clip_low", box.position)
-	_param(surface, &"clip_high", box.end)
-	_param(surface, &"outdoor", 1.0 if under_sky else 0.0)
-	surface.visible = false
-	# Hidden, it stands apart from her (top level), so her moving every frame spends
-	# nothing on it: on the Titanic most of her two thousand sheets are dry.
-	surface.top_level = true
-	add_child(surface)
-	return surface
-
-
-## Shows [param surface] of [param cell], drawn in [param box], at world height
-## [param level] while it stands between the box's lowest corner and its highest as she
-## leans, else hides it.
-func _show_surface(
-	surface: MeshInstance3D, cell: int, box: AABB, level: float, to_ship: Transform3D
-) -> void:
+## Shows [param cell]'s surface — or its stack [param stack]'s — drawn in [param box], at
+## world height [param level] while it stands between the box's lowest corner and its
+## highest as she leans, else hides it; whether it shows.
+func _show_surface(cell: int, stack: int, box: AABB, level: float, to_ship: Transform3D) -> bool:
 	var showing := shows(level, CellSurface.reach(_ship, box))
 	var placed: Variant = CellSurface.placed(_ship, _level, box, level) if showing else null
-	_place_at(surface, cell, showing, placed, to_ship)
+	_place_at(cell, stack, showing, placed, to_ship)
+	return showing
 
 
-## Shows [param surface] of [param cell] placed at [param placed] (CellSurface.placed),
-## tilted by its slosh, where [param showing], else hides it.
-func _place_at(
-	surface: MeshInstance3D, cell: int, showing: bool, placed: Variant, to_ship: Transform3D
-) -> void:
+## Shows [param cell]'s surface — or its stack [param stack]'s — placed at [param placed]
+## (CellSurface.placed), tilted by its slosh, where [param showing], else hides it: one
+## not made yet (InnerWaterSheets) is hidden already.
+func _place_at(cell: int, stack: int, showing: bool, placed: Variant, to_ship: Transform3D) -> void:
+	var made: MeshInstance3D = _surfaces[cell] if stack == -1 else _stacks[stack][2]
+	if made == null and not showing:
+		return
+	var surface := InnerWaterSheets.made(self, cell, stack)
 	if surface.visible != showing:
 		surface.visible = showing
 		surface.top_level = not showing
@@ -739,10 +723,7 @@ func _show_inflows(then: ShipPose, now: ShipPose) -> void:
 ## Tells [param cell]'s sheets their water churns [param churn] hard.
 func _churn(cell: int, churn: float) -> void:
 	_inflows[cell] = churn
-	if _surfaces[cell] != null:
-		_param(_surfaces[cell], &"inflow", churn)
-	for index: int in _stacks_of(cell):
-		_param(_stacks[index][2], &"inflow", churn)
+	InnerWaterSheets.tell(self, cell, &"inflow", churn)
 
 
 ## Draws each cell's water spreading at [param now] only inside its fronts, [param alpha]
@@ -752,8 +733,7 @@ func _churn(cell: int, churn: float) -> void:
 func _mask_fronts(then: ShipPose, now: ShipPose, alpha: float) -> void:
 	for cell: int in _masked:
 		if not now.spread_cells.has(cell) and cell < _surfaces.size():
-			for sheet: MeshInstance3D in _sheets_of(cell):
-				_param(sheet, &"front_count", 0)
+			InnerWaterSheets.tell(self, cell, &"front_count", 0)
 	var was := _masked
 	_masked = now.spread_cells.duplicate()
 	for cell: int in _masked:
@@ -762,22 +742,12 @@ func _mask_fronts(then: ShipPose, now: ShipPose, alpha: float) -> void:
 		var mask := FrontMask.of(now, cell, then, alpha)
 		var rects: PackedVector4Array = mask[0]
 		var fresh := not was.has(cell)
-		for sheet: MeshInstance3D in _sheets_of(cell):
-			if fresh:
-				_param(sheet, &"front_count", rects.size())
-				_param(sheet, &"front_rects", rects)
+		if fresh:
+			InnerWaterSheets.tell(self, cell, &"front_count", rects.size())
+			InnerWaterSheets.tell(self, cell, &"front_rects", rects)
+		for sheet: MeshInstance3D in InnerWaterSheets.of(self, cell):
 			if fresh or sheet.visible:
 				_param(sheet, &"front_reaches", mask[1])
-
-
-## Every sheet cell [param cell]'s water is drawn in: its surface and its stacks'.
-func _sheets_of(cell: int) -> Array[MeshInstance3D]:
-	var sheets: Array[MeshInstance3D] = []
-	if _surfaces[cell] != null:
-		sheets.append(_surfaces[cell])
-	for index: int in _stacks_of(cell):
-		sheets.append(_stacks[index][2])
-	return sheets
 
 
 ## The stacks [param cell] is drawn in, by index into _stacks: none for most.

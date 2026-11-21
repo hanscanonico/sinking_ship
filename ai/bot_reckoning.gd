@@ -14,6 +14,9 @@ var _surfaces: Surfaces
 ## what it pressed and has yet to see itself do. A tick of -1 is none.
 var _sent_moves := PackedVector2Array()
 var _sent_ticks := PackedInt32Array()
+## What the extension's walk is told of the rules (NativeSurfaces.stepped): ground_accel,
+## ground_friction, the tick's seconds, body_radius, step_height and railing_height.
+var _asked := PackedFloat64Array()
 
 
 func _init(profile: BotProfile, rules: BrawlRules) -> void:
@@ -22,6 +25,16 @@ func _init(profile: BotProfile, rules: BrawlRules) -> void:
 	_sent_moves.resize(maxi(profile.reaction_ticks, 1))
 	_sent_ticks.resize(_sent_moves.size())
 	_sent_ticks.fill(-1)
+	_asked = PackedFloat64Array(
+		[
+			rules.ground_accel,
+			rules.ground_friction,
+			Ticks.SECONDS_PER_TICK,
+			rules.body_radius,
+			rules.step_height,
+			rules.railing_height,
+		]
+	)
 
 
 ## It stands on floors [param footing] reads, and their [param surfaces], from now.
@@ -81,10 +94,29 @@ func _stepped(me: Dictionary, seen_tick: int, reckoned: Vector3, eased: bool) ->
 	var seen_vel: Vector3 = me["vel"]
 	var height := _rules.height_at(_surfaces, seen_pos)
 	var pace := _pace(height)
+	var surface: int = me["surface"]
+	var at: Vector3
+	# The extension's twin is held to this GDScript (test_bot_stepped_native).
+	var mirror := _surfaces.native
+	if mirror != null:
+		at = mirror.stepped(
+			seen_pos, seen_vel, surface, seen_tick, _sent_moves, _sent_ticks, pace, eased, _asked
+		)
+	else:
+		at = _walked(seen_pos, seen_vel, surface, seen_tick, pace, eased)
+	if _surfaces.blocked(seen_pos, at, height, _rules.step_height):
+		return reckoned
+	return at
+
+
+## Where the walks sent since [param seen_tick] take a body seen at [param seen_pos] going
+## [param seen_vel] on [param surface], at [param pace], as _stepped steps them.
+func _walked(
+	seen_pos: Vector3, seen_vel: Vector3, surface: int, seen_tick: int, pace: float, eased: bool
+) -> Vector3:
 	var dt := Ticks.SECONDS_PER_TICK
 	var vel := Vector2(seen_vel.x, seen_vel.z)
 	var at := seen_pos
-	var surface: int = me["surface"]
 	for tick in range(seen_tick, seen_tick + _sent_ticks.size()):
 		var index := tick % _sent_ticks.size()
 		if _sent_ticks[index] != tick:
@@ -108,8 +140,6 @@ func _stepped(me: Dictionary, seen_tick: int, reckoned: Vector3, eased: bool) ->
 		if under != Surfaces.NONE:
 			surface = under
 			at.y = _surfaces.height_at(under, at)
-	if _surfaces.blocked(seen_pos, at, height, _rules.step_height):
-		return reckoned
 	return at
 
 
