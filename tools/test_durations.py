@@ -21,6 +21,10 @@ script with a pending or failing test, and that reprint is no run.
 
 `gh run view ID --log` prefixes each line with its job and step, tab-separated;
 each job is read on its own. A bare log, one job's lines as they are, reads too.
+A job that runs several shards side by side (tools/test_parts.sh) prints their lines
+as they come, each with its shard before it ("[2/21] "): each shard of a job is read
+on its own as a job is, so one's lines between another's neither end its script nor
+open one.
 GUT paints its lines with colour escapes, which a log carries either as the escape
 character or written out as the two characters `^[` (as `gh run view --log` prints
 them by October 2026); both are cut before a line is read. Left in, a written-out
@@ -45,6 +49,7 @@ DURATIONS = ROOT / "tests" / "durations.tsv"
 
 STAMP = re.compile(r"^\ufeff?(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?)Z ?(.*)$")
 ANSI = re.compile(r"(?:\x1b|\^\[)\[[0-9;]*m")
+SHARD = re.compile(r"^(\[\d+/\d+\]) ?(.*)$")
 HEADER = re.compile(r"^res://(tests/unit/\S+/test_\w+\.gd)\s*$")
 END = re.compile(r"^\d+/\d+ (?:passed|failed)")
 SUMMARY = "= Run Summary"
@@ -71,9 +76,13 @@ def parse(lines) -> tuple[dict[str, float], str]:
             continue
         when = stamp(match.group(1))
         first_day = first_day or when.date().isoformat()
+        text = match.group(2)
+        shard = SHARD.match(text)
+        if shard:
+            job, text = f"{job} {shard.group(1)}", shard.group(2)
         if job in finished:
             continue
-        text = ANSI.sub("", match.group(2)).strip()
+        text = ANSI.sub("", text).strip()
         header = HEADER.match(text)
         summary = text.startswith(SUMMARY)
         if (header or summary or END.match(text)) and job in open_scripts:
