@@ -443,7 +443,8 @@ func _draw_crosshair(lit: bool) -> void:
 
 ## The place the plate names (SeatRoom.named): where the ghost stands while the view is
 ## its, else the room the seat shown is in — afloat in it too — else the platform under
-## it on her decks; "" for none, and for a seat out of the match.
+## it on her decks, kept over a stair and through a jump (SeatRoom.held); "" for none,
+## and for a seat out of the match.
 func place() -> String:
 	_room = -1
 	if ghost != null and ghost.active:
@@ -454,7 +455,8 @@ func place() -> String:
 	var decks := MatchState.up_of(_snapshot, me) == Faces.Up.DECK
 	var where := _answers.faces.layout(Faces.Up.DECK)
 	_room = _rooms.of_seat(where, _answers.pose, me, _rules.step_height)
-	return SeatRoom.named(where, _room, me["surface"] if decks else Surfaces.NONE)
+	var named := SeatRoom.named(where, _room, me["surface"] if decks else Surfaces.NONE)
+	return _rooms.held(named, me, decks)
 
 
 ## Bottom left, over the readouts and on their plate: [param where], the place's name.
