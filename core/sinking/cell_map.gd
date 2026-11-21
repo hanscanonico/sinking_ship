@@ -30,6 +30,9 @@ var _structure: ShipStructure
 ## From the frame's points to ship-local ones, and whether it is any other than hers.
 var _to_ship := Basis.IDENTITY
 var _framed := false
+## cell_at's loop in the extension (NativeCellMap), set up once with these cells; null
+## without it (the web build, a stale library), where the GDScript answers.
+var _native: Object = null
 
 
 ## [param structure]'s cells, read in the frame [param to_ship] takes to ship space.
@@ -57,6 +60,27 @@ func _init(structure: ShipStructure, to_ship := Basis.IDENTITY) -> void:
 			if _low[index].x < from + SLOT and _high[index].x > from:
 				reaching.append(index)
 		_slots.append(reaching)
+	if NativeVersion.has(&"NativeCellMap"):
+		_native = ClassDB.instantiate(&"NativeCellMap")
+		var flat := _flattened()
+		_native.setup(
+			_low,
+			_high,
+			_bounds.position,
+			_bounds.end,
+			SLOT,
+			flat[0],
+			flat[1],
+			_poking,
+			_inside_port,
+			_inside_starboard,
+			flat[2],
+			flat[3],
+			flat[4],
+			flat[5],
+			_to_ship,
+			_framed
+		)
 
 
 ## How many cells there are.
@@ -66,6 +90,13 @@ func count() -> int:
 
 ## The index of the cell [param ship_point] lies in, or NONE outside every one.
 func cell_at(ship_point: Vector3) -> int:
+	if _native != null:
+		return _native.cell_at(ship_point)
+	return cell_at_by_script(ship_point)
+
+
+## cell_at in GDScript, whether or not the extension answers it (test_cell_map_native).
+func cell_at_by_script(ship_point: Vector3) -> int:
 	var from := _bounds.position
 	var to := _bounds.end
 	if ship_point.x < from.x or ship_point.x >= to.x or ship_point.y < from.y:

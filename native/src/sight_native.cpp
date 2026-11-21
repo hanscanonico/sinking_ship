@@ -1,6 +1,7 @@
 // See sight_native.h.
 
 #include "sight_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/variant/rect2.hpp>
@@ -10,6 +11,8 @@
 #include <limits>
 
 namespace godot {
+
+SINKING_CLASS(NativeSight)
 
 void NativeSight::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("lay_out", "box_positions", "box_sizes", "area_positions", "area_sizes",

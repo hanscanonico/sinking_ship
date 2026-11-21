@@ -4,6 +4,7 @@
 // one), then the keys are sorted: here equal heights are dropped after their first.
 
 #include "hull_native.h"
+#include "registry.h"
 
 #include <godot_cpp/core/class_db.hpp>
 
@@ -168,6 +169,8 @@ PackedFloat64Array NativeLevelHull::build(const PackedVector2Array &p_points, co
 	return found;
 }
 
+SINKING_CLASS(NativeLevelHull)
+
 void NativeLevelHull::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("build", "points", "first", "length"), &NativeLevelHull::build);
 }
@@ -190,6 +193,8 @@ PackedFloat64Array NativeShell::shells_at(const PackedVector2Array &p_outline, c
 	}
 	return found;
 }
+
+SINKING_CLASS(NativeShell)
 
 void NativeShell::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("shell_at", "outline", "y", "side"), &NativeShell::shell_at);
@@ -263,6 +268,8 @@ PackedFloat64Array NativeGirder::measure(const PackedFloat64Array &p_lift, const
 	made[1] = where;
 	return found;
 }
+
+SINKING_CLASS(NativeGirder)
 
 void NativeGirder::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("setup", "own", "first", "counts", "starts", "shares", "bounds", "hog", "sag"),

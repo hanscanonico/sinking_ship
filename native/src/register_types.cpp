@@ -1,66 +1,74 @@
 // The extension's entry (sinking_native.gdextension): registers its classes at scene
-// level, before any script that asks ClassDB for them runs.
+// level, before any script that asks ClassDB for them runs. Each class is listed by its
+// own file (SINKING_CLASS, registry.h), so adding one never edits this file.
 
-#include "art_native.h"
-#include "contacts_native.h"
-#include "hull_native.h"
-#include "motion_native.h"
-#include "sight_native.h"
-#include "sink_native.h"
-#include "still_native.h"
-#include "walk_search_native.h"
-#include "water_fx_native.h"
-#include "water_native.h"
+#include "registry.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/classes/ref_counted.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
+#include <godot_cpp/variant/string.hpp>
+
+#include <vector>
 
 using namespace godot;
 
+// The digest of native/src this library was built from: native/SConstruct works it out
+// and defines SINKING_NATIVE_SOURCE for this file alone.
+#define SINKING_TEXT_(m_token) #m_token
+#define SINKING_TEXT(m_token) SINKING_TEXT_(m_token)
+
 namespace godot {
 
-// The version of this library's classes as the GDScript calls them, read by
-// core/native_version.gd, which treats a library of any other version as absent and runs
-// the GDScript instead. Bump it, and NativeVersion.VERSION with it, in every change that
-// adds, removes or changes a method or class the GDScript calls: a library built before
-// the change then falls back with a warning to run make native, never a script error.
+// Which sources this library was built from, read by core/native_version.gd: it works
+// out the same digest of the native/src it runs beside and treats a library built from
+// any other sources as absent, running the GDScript instead with a warning to run make
+// native. Nothing is bumped by hand: a change to any file in native/src changes it.
 class NativeAbi : public RefCounted {
 	GDCLASS(NativeAbi, RefCounted)
 
 public:
-	enum : int64_t { VERSION = 2 };
+	String source() const { return SINKING_TEXT(SINKING_NATIVE_SOURCE); }
 
 protected:
-	static void _bind_methods() { BIND_CONSTANT(VERSION); }
+	static void _bind_methods() { ClassDB::bind_method(D_METHOD("source"), &NativeAbi::source); }
 };
 
 } // namespace godot
+
+namespace sinking {
+
+namespace {
+
+// Made on first use, so a file's static that lists a class never finds it unbuilt.
+std::vector<Registration> &listed() {
+	static std::vector<Registration> registrations;
+	return registrations;
+}
+
+} // namespace
+
+bool list_class(Registration p_registration) {
+	listed().push_back(p_registration);
+	return true;
+}
+
+void register_classes() {
+	for (Registration registration : listed()) {
+		registration();
+	}
+}
+
+} // namespace sinking
 
 static void initialize_sinking_native(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
 	GDREGISTER_CLASS(NativeAbi);
-	GDREGISTER_CLASS(NativeWalkGraph);
-	GDREGISTER_CLASS(NativeWalkSearch);
-	GDREGISTER_CLASS(NativeWater);
-	GDREGISTER_CLASS(NativeSight);
-	GDREGISTER_CLASS(NativeSink);
-	GDREGISTER_CLASS(NativeMotion);
-	GDREGISTER_CLASS(NativeLevelHull);
-	GDREGISTER_CLASS(NativeGirder);
-	GDREGISTER_CLASS(NativeShell);
-	GDREGISTER_CLASS(NativeIndoorGrid);
-	GDREGISTER_CLASS(NativeLining);
-	GDREGISTER_CLASS(NativeShipMesh);
-	GDREGISTER_CLASS(NativeStands);
-	GDREGISTER_CLASS(NativeSurfaces);
-	GDREGISTER_CLASS(NativeCrates);
-	GDREGISTER_CLASS(NativeWaterFx);
-	GDREGISTER_CLASS(NativeStill);
+	sinking::register_classes();
 }
 
 static void uninitialize_sinking_native(ModuleInitializationLevel p_level) {
