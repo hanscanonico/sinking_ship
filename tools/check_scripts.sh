@@ -14,6 +14,11 @@
 #
 # Much faster than `make test` for "does what I just wrote compile?": it skips
 # booting the scene tree and GUT.
+#
+# The whole project is first loaded in one engine (tools/check_all.gd), which runs
+# the same analyser on every script and takes seconds where an engine per file took
+# minutes; only the scripts that pass leaves in doubt are then checked alone, and
+# what is reported is what those say. Named files are checked alone from the start.
 
 set -uo pipefail
 
@@ -157,6 +162,37 @@ else
 	project_scripts >"$queue"
 fi
 
+# The whole project, loaded in one engine: the scripts it leaves in doubt replace the
+# queue, so a clean project is done here and a broken one checks only what broke. A
+# script is in doubt when it did not load or the engine said anything of an error
+# while loading it — a dependency's error is printed under whichever script first
+# asked for it. A pass that did not get through its queue, or that erred before its
+# first script, settles nothing, and every file is checked alone as before.
+total=0
+if (($# == 0)); then
+	total="$(tr -cd '\0' <"$queue" | wc -c | tr -d ' ')"
+	# Under .godot/, which every checkout has and git ignores: a path the engine
+	# reads as it stands on every platform, where a temp folder's is the shell's.
+	pass_queue=".godot/check-queue.$$"
+	cp "$queue" "$pass_queue"
+	# Windows' engine ends its lines with a carriage return.
+	TEST_SLOT_NAME=check tools/test_slot.sh "$GODOT" --headless --path . \
+		-s res://tools/check_all.gd -- "--queue=$pass_queue" 2>&1 | tr -d '\r' >"$WORK/pass"
+	rm -f "$pass_queue"
+	if grep -qx "check-done: $total" "$WORK/pass" &&
+		awk -v errors='SCRIPT ERROR|Parse Error' '
+			/^check-file: [0-9]+$/ { at = $2; started = 1; next }
+			/^check-bad: [0-9]+$/ { print $2; next }
+			$0 ~ errors { if (!started) exit 1; print at }
+		' "$WORK/pass" | sort -un >"$WORK/doubt"; then
+		# The pass numbers the queue's scripts from 0, in its order.
+		tr '\0' '\n' <"$queue" |
+			awk 'FILENAME == ARGV[1] { doubt[$1 + 1]; next } FNR in doubt' "$WORK/doubt" - |
+			tr '\n' '\0' >"$WORK/suspects"
+		queue="$WORK/suspects"
+	fi
+fi
+
 # CHECK_JOBS batches side by side, as many as test_slot.sh gives slots by default; one
 # that waits for a slot or for memory says so once for the whole run. A batch that
 # could not run at all is a failure: its files went unchecked.
@@ -289,6 +325,9 @@ if (($# == 0)); then
 		failed=$((failed + 1))
 	fi
 fi
+
+# What the one-engine pass cleared was checked too.
+((checked >= total)) || checked=$total
 
 if ((failed > 0)); then
 	echo "check: $failed failure(s) across $checked file(s)" >&2
