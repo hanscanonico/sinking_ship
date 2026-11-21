@@ -124,25 +124,6 @@ const CYLINDER_RAYS := 8
 ## How long a stretch of her the furnishings go to one part in (--part, _dealt), in
 ## metres.
 const DEALT_STRETCH := 8.0
-## What art may not name: the live match and the queries only rules make. Enum
-## reads off PlayerState are allowed, a PlayerState itself is not.
-const LIVE: PackedStringArray = [
-	"MatchSim",
-	"MatchState",
-	"MatchRunner",
-	"MatchHost",
-	"MatchClient",
-	"PlayedMatch",
-	"LoopbackMatch",
-	"RemoteMatch",
-	"SimDriver",
-	"InputSource",
-	"BotView",
-	"Surfaces",
-	"SinkSchedule",
-	"ShoveResolver",
-]
-const LIVE_PLAYER := "\\bPlayerState\\b(?!\\.(Body|Action|Cause)\\b)"
 
 var _problems := PackedStringArray()
 var _checks := 0
@@ -189,7 +170,9 @@ func _initialize() -> void:
 			ships = false
 			played = _part_of(arg.trim_prefix("--match="))
 			if played == Vector2i.ZERO:
-				printerr("art-lint: %s is no part — --match takes no, or K/N with K from 1 to N" % arg)
+				printerr(
+					"art-lint: %s is no part — --match takes no, or K/N with K from 1 to N" % arg
+				)
 				quit(1)
 				return
 	if _part.y > 1 and only.is_empty():
@@ -215,7 +198,9 @@ func _initialize() -> void:
 ## each says what it took; the quick ones before them go with the first share.
 func _check_match(part: Vector2i) -> void:
 	if part.x == 1:
-		_check_snapshot_only()
+		var named: Array = SnapshotOnlyCheck.check(ART_DIR)
+		_problems.append_array(named[0])
+		_checks += named[1]
 		_check_crew()
 		_check_sea_reach()
 	for index in MATCH_CHECKS.size():
@@ -256,26 +241,6 @@ func _report() -> void:
 		return
 	print("art-lint: %d checks OK" % _checks)
 	quit()
-
-
-func _check_snapshot_only() -> void:
-	var live := RegEx.create_from_string("\\b(%s)\\b" % "|".join(LIVE))
-	var live_player := RegEx.create_from_string(LIVE_PLAYER)
-	for file: String in _scripts_under(ART_DIR):
-		_checks += 1
-		var lines := FileAccess.get_file_as_string(ART_DIR + file).split("\n")
-		for index in lines.size():
-			var code := lines[index].get_slice("#", 0)
-			var found := live.search(code)
-			if found == null:
-				found = live_player.search(code)
-			if found != null:
-				_problems.append(
-					(
-						"art-lint: %s:%d names %s — art reads snapshots only (D5)"
-						% [file, index + 1, found.get_string()]
-					)
-				)
 
 
 func _check_crew() -> void:
@@ -352,18 +317,6 @@ func _check_sea_reach() -> void:
 				)
 			)
 	scene.free()
-
-
-## Every .gd under [param dir] and its subfolders, as paths relative to it.
-func _scripts_under(dir: String) -> PackedStringArray:
-	var found := PackedStringArray()
-	for file: String in DirAccess.get_files_at(dir):
-		if file.ends_with(".gd"):
-			found.append(file)
-	for sub: String in DirAccess.get_directories_at(dir):
-		for file: String in _scripts_under(dir + sub + "/"):
-			found.append(sub + "/" + file)
-	return found
 
 
 ## [param layout]'s art against her data: the ship as drawn, then her railings' open
