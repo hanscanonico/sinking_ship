@@ -114,3 +114,24 @@ func test_the_last_device_used_wins() -> void:
 	prompts._input(InputEventMouseMotion.new())
 	assert_false(prompts.pad, "and the mouse takes it back")
 	prompts.free()
+
+
+## The replay's keys to its start and its end, and the others a keyboard names in
+## words, read in the language in use as its arrows do: French said "Home au début".
+func test_a_key_named_in_words_reads_in_the_language_in_use() -> void:
+	var words := {
+		KEY_HOME: ["Home", "Début", "Inicio"],
+		KEY_END: ["End", "Fin", "Fin"],
+		KEY_PAGEUP: ["PageUp", "Page préc.", "Re Pág"],
+		KEY_PAGEDOWN: ["PageDown", "Page suiv.", "Av Pág"],
+		KEY_LEFT: ["Left", "Gauche", "Izquierda"],
+	}
+	for keycode: Key in words:
+		var key := InputEventKey.new()
+		key.keycode = keycode
+		var events: Array[InputEvent] = [key]
+		var languages := ["en", "fr", "es"]
+		for index in languages.size():
+			Language.use(languages[index])
+			assert_eq(InputPrompts.word_for(events, false), words[keycode][index])
+	Language.use(Language.SOURCE)

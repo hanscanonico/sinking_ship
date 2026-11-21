@@ -394,6 +394,30 @@ msgid "Delete"
 msgstr "Suppr"
 
 msgctxt "key"
+msgid "Home"
+msgstr "Début"
+
+msgctxt "key"
+msgid "End"
+msgstr "Fin"
+
+msgctxt "key"
+msgid "PageUp"
+msgstr "Page préc."
+
+msgctxt "key"
+msgid "PageDown"
+msgstr "Page suiv."
+
+msgctxt "key"
+msgid "Insert"
+msgstr "Inser"
+
+msgctxt "key"
+msgid "CapsLock"
+msgstr "Verr. maj"
+
+msgctxt "key"
 msgid "Up"
 msgstr "Haut"
 
