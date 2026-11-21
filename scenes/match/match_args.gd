@@ -17,6 +17,7 @@ extends RefCounted
 ##   --frame-split=S  --match-seconds=S  --language=en|fr|es
 ##   --replay=PATH
 ##   --bake-cache
+##   --play=DIR  --play-idle=S
 ## --seed, --seats, --ship, --scenario, --hit, --fast, --goal and --bonuses are the match
 ## choices (MatchChoices), each one not given the match data's — --ship a ship of
 ## the Fleet, by name, played in her open-sea scenario, or in --scenario's, one of hers
@@ -70,6 +71,9 @@ extends RefCounted
 ## with the reason when it cannot be played. --bake-cache takes a sinking baked before
 ## for the very same code, data, seed and clock from the BakeCache rather than baking it
 ## again, and keeps each one baked — the make targets pass it (BAKE_CACHE=0 drops it).
+## --play has the game played by batches of commands left in DIR (PlayDriver, make play):
+## the menu opens as for a person, the game held between batches, and it quits once no
+## batch has come for --play-idle seconds.
 ## No menu reaches any of them (D14). --server serves
 ## rooms over WebSocket, headless, on --port and --bind (ServerRules' unless given),
 ## its matches' seeds drawn from --seed when given — its rooms' codes never are — until
@@ -162,6 +166,10 @@ var replay_path: String = ""
 ## Sinkings baked before taken from the BakeCache, and each one baked kept there: a dev
 ## tool's, never a player's (--bake-cache).
 var bake_cache := false
+## The folder a played session takes its batches from and answers in (--play, PlayDriver);
+## "" when a person plays. The seconds it waits for a batch before it quits.
+var play_dir: String = ""
+var play_idle := PlayDriver.DEFAULT_IDLE_SECONDS
 
 
 ## The seconds [param text] says: mm:ss, h:mm:ss or plain seconds.
@@ -251,6 +259,10 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.replay_path = value
 			"--bake-cache":
 				parsed.bake_cache = true
+			"--play":
+				parsed.play_dir = value
+			"--play-idle":
+				parsed.play_idle = value.to_float()
 			"--net-sim":
 				var conditions := NetConditions.parse(value)
 				if conditions == null:
