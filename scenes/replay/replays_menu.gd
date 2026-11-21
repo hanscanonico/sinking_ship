@@ -1,14 +1,15 @@
 class_name ReplaysMenu
 extends CanvasLayer
 ## The saved replays (R6, #214), newest first, on a plate over the menu's backdrop:
-## when each was played, its ship, seed, seats, length and who won (ReplayListing),
+## its ship, seats, length and who won (ReplayListing) over when it was played and
+## its seed — two lines, so a row reads whole in every language —
 ## with Watch and Delete for each — one that can no longer be played greyed, with
 ## the reason — and Back. Watch hands the ReplayFile on; nothing of it plays here.
 
 signal watch_requested(file: ReplayFile)
 signal back_requested
 
-const PLATE_SIZE := Vector2(760, 400)
+const PLATE_SIZE := Vector2(900, 400)
 ## The plate's inset from the bottom-left corner, as the menu's own plate stands.
 const PLATE_INSET := Vector2(64, 48)
 const ROW_GAP := 6
@@ -102,16 +103,22 @@ func _add_row(path: String, file: ReplayFile, reason: String) -> void:
 	row.add_theme_constant_override("separation", 12)
 	_rows.add_child(row)
 	var colour := UiTheme.TEXT if reason.is_empty() else UiTheme.MUTED
-	var when := Label.new()
-	when.text = _when(file, path)
-	when.add_theme_color_override("font_color", colour)
-	row.add_child(when)
+	var about := VBoxContainer.new()
+	about.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	about.add_theme_constant_override("separation", 0)
+	row.add_child(about)
 	var what := Label.new()
-	what.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	what.name = "What"
 	what.text = _what(file, reason)
 	what.add_theme_color_override("font_color", colour)
 	what.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	row.add_child(what)
+	about.add_child(what)
+	var more := Label.new()
+	more.name = "More"
+	more.theme_type_variation = UiTheme.HINT_LABEL
+	more.text = _more(_when(file, path), file, reason)
+	more.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	about.add_child(more)
 	var watch := Button.new()
 	watch.text = "Watch"
 	watch.disabled = not reason.is_empty()
@@ -132,17 +139,18 @@ func _when(file: ReplayFile, path: String) -> String:
 	return Time.get_datetime_string_from_unix_time(file.recorded_at + bias_minutes * 60, true)
 
 
+## A row's first line: [param file]'s ship, seats, length and who won — or, for a file
+## that cannot be read, [param reason] why.
 static func _what(file: ReplayFile, reason: String) -> String:
-	var why := Language.t(reason)
 	if file == null:
+		var why := Language.t(reason)
 		return why[0].to_upper() + why.substr(1)
-	var words := (
+	return (
 		" · "
 		. join(
 			PackedStringArray(
 				[
 					Language.titled(String(file.ship).replace("_", " ")),
-					Language.t("Seed %d") % file.match_seed,
 					Language.t(ReplayListing.seats_text(file.seats)) % file.seats,
 					MatchTranscript.clock(file.ticks),
 					_winner(file.winner, file.ended, file.choices.watch),
@@ -150,7 +158,15 @@ static func _what(file: ReplayFile, reason: String) -> String:
 			)
 		)
 	)
-	return words if reason.is_empty() else "%s — %s" % [words, why]
+
+
+## A row's second line, under its first and smaller: [param when] it was played and its
+## seed, and [param reason] why it can no longer be played, when there is one.
+static func _more(when: String, file: ReplayFile, reason: String) -> String:
+	if file == null:
+		return when
+	var words := "%s · %s" % [when, Language.t("Seed %d") % file.match_seed]
+	return words if reason.is_empty() else "%s — %s" % [words, Language.t(reason)]
 
 
 ## Who won (ReplayListing.winner_text), in the language in use.
