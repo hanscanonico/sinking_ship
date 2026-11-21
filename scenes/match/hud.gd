@@ -49,7 +49,7 @@ func show_snapshot(snapshot: Dictionary) -> void:
 	for entry: Dictionary in seats:
 		if not entry["out"]:
 			left += 1
-	_seats_left.text = "Seats left %d / %d" % [left, seats.size()]
+	_seats_left.text = Language.t("Seats left %d / %d") % [left, seats.size()]
 	_clock.text = MatchTranscript.clock(snapshot["tick"])
 	var ended: bool = snapshot["phase"] == MatchState.Phase.ENDED
 	_seats_left.visible = not ended
@@ -71,15 +71,17 @@ static func goal_text(goal: MatchRules.Goal) -> String:
 ## seat's own (a capture may look through another seat while its own plays on).
 static func whose_view(name: String, own: bool, observer: bool) -> String:
 	if observer:
-		return "watching you" if own else "watching %s" % name
-	return "through your own eyes" if own else "through %s's eyes" % name
+		return Language.t("watching you") if own else Language.t("watching %s") % name
+	if own:
+		return Language.t("through your own eyes")
+	return Language.t("through %s's eyes") % name
 
 
 ## How a seat out of the match went, as the spectating line and the results' title say
 ## it: sunk when it was inside her as she went ([param cause]), else overboard — a word
 ## no wider than overboard, as the line has no room for more.
 static func out_word(cause: PlayerState.Cause) -> String:
-	return "Sunk" if cause == PlayerState.Cause.WITH_HER else "Overboard"
+	return Language.t("Sunk" if cause == PlayerState.Cause.WITH_HER else "Overboard")
 
 
 ## The spectating line: how the local seat went out by [param cause] (out_word), its
@@ -105,21 +107,21 @@ static func spectating_text(
 	ghost := false
 ) -> String:
 	if free:
-		whose = FREE_VIEW
+		whose = Language.t(FREE_VIEW)
 	elif ghost:
-		whose = GHOST_VIEW
+		whose = Language.t(GHOST_VIEW)
 	var text := (
-		"%s — %s of %d   ·   %s\n%s / %s to switch"
+		Language.t("%s — %s of %d   ·   %s\n%s / %s to switch")
 		% [out_word(cause), place, seats, whose, previous, next]
 	)
 	if not free_key.is_empty():
-		text += "   ·   %s %s" % [free_key, "eyes" if free else "free camera"]
+		text += "   ·   %s %s" % [free_key, Language.t("eyes" if free else "free camera")]
 	return text + _last_line(free, follow_key, following, ghost_key, ghost)
 
 
 ## What [param ghost_key] does: into the ghost, or back to the eyes while [param ghost].
 static func ghost_text(ghost_key: String, ghost: bool) -> String:
-	return "%s %s" % [ghost_key, "eyes" if ghost else "ghost"]
+	return "%s %s" % [ghost_key, Language.t("eyes" if ghost else "ghost")]
 
 
 ## The spectating and the watcher's lines' last: from the free camera ([param free]) its
@@ -139,7 +141,7 @@ static func _last_line(
 ## What [param follow_key] does from the free camera: has it follow the seat watched, or
 ## lets go of it while [param following].
 static func follow_text(follow_key: String, following: bool) -> String:
-	return "%s %s" % [follow_key, "let go" if following else "follow"]
+	return "%s %s" % [follow_key, Language.t("let go" if following else "follow")]
 
 
 ## The watcher's line (GLOSSARY: Watch), along the bottom all match long: whose view it
@@ -162,12 +164,12 @@ static func watching_text(
 	var ghost := camera == Camera.GHOST
 	var whose := whose_view(seat_name, false, false)
 	if free:
-		whose = "following %s" % seat_name if following else FREE_VIEW
+		whose = Language.t("following %s") % seat_name if following else Language.t(FREE_VIEW)
 	elif ghost:
-		whose = GHOST_VIEW
+		whose = Language.t(GHOST_VIEW)
 	var text := (
-		"Watching   ·   %s\n%s / %s to switch   ·   %s %s"
-		% [whose, previous, next, free_key, "eyes" if free else "free camera"]
+		Language.t("Watching   ·   %s\n%s / %s to switch   ·   %s %s")
+		% [whose, previous, next, free_key, Language.t("eyes" if free else "free camera")]
 	)
 	return text + _last_line(free, follow_key, following, ghost_key, ghost)
 

@@ -345,10 +345,10 @@ func _draw_inclinometer(pose: ShipPose) -> void:
 	_draw_dial(trim_at, profile, deg_to_rad(pose.trim_deg), colour)
 	var below := Vector2(0.0, r + 22.0)
 	var under := Vector2(0.0, r + 42.0)
-	_text(heel_at + below, "Heel %s" % degrees_words(pose.heel_deg), colour, DIAL_TEXT)
-	_text(heel_at + under, _low(pose.heel_deg, "starboard", "port"), colour, DIAL_TEXT)
-	_text(trim_at + below, "Trim %s" % degrees_words(pose.trim_deg), colour, DIAL_TEXT)
-	_text(trim_at + under, _low(pose.trim_deg, "bow", "stern"), colour, DIAL_TEXT)
+	_text(heel_at + below, Language.t("Heel %s") % degrees_words(pose.heel_deg), colour, DIAL_TEXT)
+	_text(heel_at + under, _low(pose.heel_deg, "starboard low", "port low"), colour, DIAL_TEXT)
+	_text(trim_at + below, Language.t("Trim %s") % degrees_words(pose.trim_deg), colour, DIAL_TEXT)
+	_text(trim_at + under, _low(pose.trim_deg, "bow low", "stern low"), colour, DIAL_TEXT)
 
 
 func _draw_dial(centre: Vector2, hull: PackedVector2Array, angle: float, colour: Color) -> void:
@@ -369,10 +369,13 @@ func _draw_dial(centre: Vector2, hull: PackedVector2Array, angle: float, colour:
 func _draw_warnings(pose: ShipPose, tick: int) -> void:
 	var warnings := PackedStringArray()
 	if pose.lurch_warning != 0.0:
-		var side := "STARBOARD" if pose.lurch_warning > 0.0 else "PORT"
-		warnings.append("LURCH TO %s — BRACE (%s)" % [side, _prompts.word(&"brace")])
+		var lurch := "LURCH TO STARBOARD — BRACE (%s)"
+		if pose.lurch_warning < 0.0:
+			lurch = "LURCH TO PORT — BRACE (%s)"
+		warnings.append(Language.t(lurch) % _prompts.word(&"brace"))
 	for going: StringName in pose.collapsing:
-		warnings.append("THE %s IS GOING" % String(going).to_upper())
+		var deck := Language.named(String(going)).to_upper()
+		warnings.append(Language.t("THE %s IS GOING") % deck)
 	for fall: FunnelFall in pose.falls:
 		if tick < fall.falls_at:
 			warnings.append(straining_words(fall.fitting.name))
@@ -390,10 +393,11 @@ func _draw_warnings(pose: ShipPose, tick: int) -> void:
 ## The chip for the funnel fitting [param named] straining at its stays: one of her
 ## funnels by its number when she has several (funnel_4: FUNNEL 4), else by what it is.
 static func straining_words(named: StringName) -> String:
-	var words := String(named).replace("_", " ").to_upper()
+	var words := String(named).replace("_", " ")
+	var said := Language.numbered(words).to_upper()
 	if words.get_slice(" ", words.get_slice_count(" ") - 1).is_valid_int():
-		return "%s IS STRAINING" % words
-	return "THE %s IS STRAINING" % words
+		return Language.t("%s IS STRAINING") % said
+	return Language.t("THE %s IS STRAINING") % said
 
 
 ## Under the clock, the name of the sinking's phase for BANNER_SECONDS after it
@@ -402,6 +406,7 @@ func _draw_phase(tick: int) -> void:
 	var phase := _schedule.phase_at(tick)
 	if phase == "" or phase == _schedule.phase_at(tick - Ticks.from_seconds(BANNER_SECONDS)):
 		return
+	phase = Language.t(phase)
 	var left := Vector2(_canvas.size.x * 0.5 - READOUT_TEXT, 110.0)
 	_drawing.draw_string_outline(
 		_font,
@@ -443,7 +448,7 @@ func _draw_where(layout: ShipLayout, feet: Vector3, surface: int) -> void:
 		where = layout.rooms[room].name
 	elif surface >= 0 and surface < layout.platforms.size():
 		where = layout.platforms[surface].name
-	var lines := place_lines(where.capitalize(), _font, FONT_SIZE, READOUT_TEXT)
+	var lines := place_lines(Language.titled(where), _font, FONT_SIZE, READOUT_TEXT)
 	_draw_plate(not where.is_empty(), lines.size())
 	var at := Vector2(24.0, _canvas.size.y - 150.0 - PLACE_LEADING * (lines.size() - 1))
 	for line in lines:
@@ -509,11 +514,11 @@ func _draw_readouts(me: Dictionary, above_sea: float) -> void:
 	var colour := LOW if above_sea < 1.0 else TEXT
 	var height := height_words(above_sea)
 	if me["state"] == PlayerState.Body.SWIMMING:
-		height = "In the sea"
+		height = Language.t("In the sea")
 	_text(at, height, colour, READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 	for slot: String in ["Stamina", "Warmth"]:
 		at.y += 30.0
-		_text(at, slot, Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
+		_text(at, Language.t(slot), Color(TEXT, 0.6), READOUT_TEXT, HORIZONTAL_ALIGNMENT_LEFT)
 		var bar := Rect2(at + Vector2(88.0, -13.0), Vector2(140.0, 14.0))
 		_drawing.draw_rect(bar, INK)
 		var share := _stamina(me) if slot == "Stamina" else _cold(me)
@@ -566,11 +571,13 @@ static func grab_words(
 		press = reach.would_press(snapshot, seat, surfaces)
 	if press.aboard != -1:
 		var kind: int = snapshot["bonuses"][press.aboard]["kind"]
-		return "%s — take %s" % [key, reach.kinds[kind].title]
+		return Language.t("%s — take %s") % [key, Language.t(reach.kinds[kind].title)]
 	if press.let_go != -1:
-		return "%s — let go of the %s" % [key, _prop_name(reach.ship, press.let_go)]
+		var held := Language.with_article(_prop_name(reach.ship, press.let_go))
+		return Language.t("%s — let go of the %s") % [key, held]
 	if press.prop != -1:
-		return "%s — grab the %s" % [key, _prop_name(reach.ship, press.prop)]
+		var near := Language.with_article(_prop_name(reach.ship, press.prop))
+		return Language.t("%s — grab the %s") % [key, near]
 	return ""
 
 
@@ -591,7 +598,7 @@ static func warmth_words(
 	var rate := SeatRules.of(rules, layout.props[held].prop_kind()).sea_cold_rate
 	if rate == 1.0:
 		return ""
-	return "%s ×%d" % [_prop_name(layout, held), roundi(1.0 / rate)]
+	return "%s ×%d" % [Language.t(_prop_name(layout, held)), roundi(1.0 / rate)]
 
 
 ## The bonuses [param seat] has in [param snapshot] of a match played with
@@ -627,10 +634,10 @@ static func _prop_name(layout: ShipLayout, prop: int) -> String:
 ## or at the waterline when it rounds to nothing.
 static func height_words(above_sea: float) -> String:
 	if absf(above_sea) < 0.05:
-		return "At the waterline"
+		return Language.t("At the waterline")
 	if above_sea < 0.0:
-		return "%.1f m under the sea" % -above_sea
-	return "%.1f m above the sea" % above_sea
+		return Language.t("%.1f m under the sea") % -above_sea
+	return Language.t("%.1f m above the sea") % above_sea
 
 
 ## A chevron in seat colour, ringed by its stamina, and the seat's name over every
@@ -1000,7 +1007,7 @@ func _draw_climb_prompt(me: Dictionary, here: Surfaces, pose: ShipPose) -> void:
 	if here.climb_out(me["pos"], toward, pose, _rules, _seat_rules().climb_reach) == null:
 		return
 	var at := _canvas.size * 0.5 + PROMPT_BELOW
-	_text(at, "Hold %s to climb" % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
+	_text(at, Language.t("Hold %s to climb") % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
 
 
 ## The frost's crystals: the edges between the cells of a seamless cellular noise,
@@ -1067,5 +1074,5 @@ static func degrees_words(signed_deg: float) -> String:
 
 static func _low(signed_deg: float, positive: String, negative: String) -> String:
 	if absf(signed_deg) < 0.05:
-		return "level"
-	return "%s low" % (positive if signed_deg > 0.0 else negative)
+		return Language.t("level")
+	return Language.t(positive if signed_deg > 0.0 else negative)

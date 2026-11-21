@@ -36,6 +36,9 @@ const HINTS: Array[Array] = [
 	[&"ui_cancel", "back"],
 ]
 const PLATE_MARGIN := 12
+## The context the catalogs know the play button's word under (Language.t): to play a
+## replay on is not to play a match.
+const ON_REPLAY: StringName = &"replay"
 
 var _play: Button
 var _speed: Label
@@ -110,7 +113,7 @@ func show_state(
 ) -> void:
 	if not _dragging:
 		_bar.set_value_no_signal(tick)
-	_play.text = "Play" if paused else "Pause"
+	_play.text = Language.t("Play", ON_REPLAY) if paused else "Pause"
 	_speed.text = "%s×" % String.num(speed, 2)
 	_clock.text = "%s / %s" % [MatchTranscript.clock(tick), MatchTranscript.clock(_last_tick)]
 	_seat.text = "" if whose.is_empty() else whose[0].to_upper() + whose.substr(1)
@@ -124,7 +127,7 @@ func show_state(
 static func hint_line(prompts: InputPrompts) -> String:
 	var words := PackedStringArray()
 	for hint: Array in HINTS:
-		var phrase := "%s %s" % [prompts.word(hint[0]), hint[1]]
+		var phrase := "%s %s" % [prompts.word(hint[0]), Language.t(hint[1])]
 		words.append(phrase.replace(" ", NO_BREAK))
 	return SEPARATOR.join(words)
 

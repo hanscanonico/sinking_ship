@@ -14,7 +14,7 @@ extends RefCounted
 ##   --capture-screen=SCREEN  --capture-from=X,Y,Z,YAW[,PITCH]  --capture-look=X,Y,Z
 ##   --capture-sway=S  --capture-wet=S
 ##   --quality=low|medium|high  --render-scale=F  --bake-budget=MS  --phys=H:MM:SS  --jump
-##   --frame-split=S  --match-seconds=S
+##   --frame-split=S  --match-seconds=S  --language=en|fr|es
 ##   --replay=PATH
 ##   --bake-cache
 ## --seed, --seats, --ship, --scenario, --hit, --fast, --goal and --bonuses are the match
@@ -141,6 +141,9 @@ var capture_wet := NAN
 ## The graphics preset and render scale this run draws with whatever is saved;
 ## ViewSettings.AUTOMATIC when not given.
 var quality: int = ViewSettings.AUTOMATIC
+## The language this run speaks whatever is saved (Language), by its code; empty when
+## not given.
+var language := ""
 var render_scale: float = ViewSettings.AUTOMATIC
 ## Milliseconds of each frame a held countdown's bake may take on its thread; 0 for its full pace.
 var bake_budget_ms := 0.0
@@ -230,6 +233,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.quality = GraphicsQuality.Preset.keys().find(value.to_upper())
 				if parsed.quality == ViewSettings.AUTOMATIC:
 					push_warning("--quality takes low, medium or high, not %s" % value)
+			"--language":
+				parsed.language = value
 			"--render-scale":
 				parsed.render_scale = value.to_float()
 			"--bake-budget":
