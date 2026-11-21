@@ -59,6 +59,11 @@ func honour(pose: ShipPose) -> bool:
 	return true
 
 
+## Whether any of her funnels is down: none, and every blocker stands to its own top.
+func any_down() -> bool:
+	return not _down.is_empty()
+
+
 ## The top blocker [param blocker] of the layout stands to now: a fallen funnel's, its
 ## foot; any other's, [param top].
 func top_of(blocker: int, top: float) -> float:

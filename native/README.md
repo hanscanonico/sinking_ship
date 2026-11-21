@@ -7,14 +7,16 @@ the bots' reads of the water (`core/still_points.gd`, `ai/walk_graph.gd`,
 (`core/sinking/sink_stepper.gd`, #411), and around them each opening's share open, the
 cells a step holds stiff and her failures' heads across what can give way
 (`core/sinking/sink_failures.gd`, #411), her lift and her water's load as she moves
-(`core/sinking/ship_motion.gd`, #411), her level hull's build and her girder's bending
-(`core/sinking/level_hull.gd`, `core/sinking/hull_girder.gd`, #492), the floating furniture's contacts: where her
+(`core/sinking/ship_motion.gd`, #411), each piece's cells' water and light as her pose is
+read off the timeline (`SinkSchedule._piece_pose`), her level hull's build and her girder's bending
+(`core/sinking/level_hull.gd`, `core/sinking/hull_girder.gd`, #492) and where her shell
+stands at a height (`HullSection.shell_at`, `core/sinking/hull_section.gd`), the floating furniture's contacts: where her
 props stand (`core/prop_stands.gd`), what holds a circle back
 (`Surfaces.obstacle_contacts` and the railings' contacts, `core/surfaces.gd`), who sees
 whom (`Surfaces.line_of_sight`, the bots' view and the HUD's marks), and the
 cargo's contact passes and its rest test (`Hazards._move`, `_stirring`, `core/hazards.gd`), a bot's search for a way
 round by the floor and the surface under each square it asks of (`ai/bot_floor_way.gd`,
-`Surfaces.under`), the dressed ship's face
+`Surfaces.under`) and its reckoning by the walks it has sent (`ai/bot_reckoning.gd`), the dressed ship's face
 emission — her faces cut at the chunk and room lines, judged indoors or out and gathered
 into batches (`scenes/art/ship_mesh.gd`, `scenes/art/indoor_grid.gd`, #411) — the
 water's effects' walks of her cells, openings and decks (`scenes/art/inner_water.gd`,
@@ -26,9 +28,10 @@ cells a point lies in (`CellMap.cell_at`, `core/sinking/cell_map.gd`).
 
 - `src/` — the extension's sources: `walk_search_native.{h,cpp}` (`NativeWalkGraph`,
   `NativeWalkSearch`), `water_native.{h,cpp}` (`NativeWater`), `sink_native.{h,cpp}`
-  and `sink_step_native.cpp` (`NativeSink`), `motion_native.{h,cpp}` (`NativeMotion`), `hull_native.{h,cpp}` (`NativeLevelHull`,
-  `NativeGirder`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
-  `NativeCrates`, `NativeRest`) with `rest_native.cpp` (`NativeRest`) and `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
+  and `sink_step_native.cpp` (`NativeSink`), `pose_native.{h,cpp}` (`NativePose`), `motion_native.{h,cpp}` (`NativeMotion`), `hull_native.{h,cpp}` (`NativeLevelHull`,
+  `NativeGirder`, `NativeShell`), `contacts_native.{h,cpp}` (`NativeStands`, `NativeSurfaces`,
+  `NativeCrates`, `NativeRest`) with `rest_native.cpp` (`NativeRest`), `floor_way_native.cpp` (`NativeSurfaces.under` and `floor_way`) and
+  `bot_stepped_native.cpp` (`NativeSurfaces.stepped`, a bot's reckoning by its walks), `art_native.{h,cpp}` (`NativeShipMesh`, `NativeIndoorGrid`,
   `NativeLining`), `water_fx_native.{h,cpp}` (`NativeWaterFx`), `sight_native.{h,cpp}`
   (`NativeSight`), `cell_map_native.{h,cpp}` (`NativeCellMap`), `register_types.cpp` (the
   entry, `sinking_native_init`, and `NativeAbi`), `registry.h` (`SINKING_CLASS`, which
@@ -61,7 +64,7 @@ an artifact of the run:
 - `native (linux)` — `native-linux`, the `.so` the ten test shards load
   (`SINKING_NATIVE_REQUIRED=1`).
 - `native (macos)` — `native-macos`, the universal `.dylib`, built on an Apple-silicon
-  runner, where the thirteen cross-check scripts run against it: arm64 is where a compiler
+  runner, where the seventeen cross-check scripts run against it: arm64 is where a compiler
   contracts `a * b + c` by default, so a difference from the engine's own GDScript
   arithmetic would show there first.
 - `native (windows)` — `native-windows`, the `.dll`, cross-compiled on Linux with
@@ -93,7 +96,8 @@ every question to a `NativeWalkSearch`. Otherwise it answers itself. Each
 `SinkStepper` asks `SinkNative.made()` for its loops the same way, null without a
 `NativeSink`: the stepper keeps every state and hands the extension her layout once and
 what its loops read at each turn and step; its `SinkFailures` asks it for the same
-`SinkNative` (`native()`) for the heads across what can give way. Each `ShipMotion` makes a `NativeMotion` the
+`SinkNative` (`native()`) for the heads across what can give way. `HullSection` asks `NativeVersion.has` for a `NativeShell` once, in a static var, and hands it
+her outline at each `shell_at` (`Faces` asks `shells_at` for a band's heights at once). Each `ShipMotion` makes a `NativeMotion` the
 same way and hands it her sections, and her cells' boxes the first time it loads them;
 its memo of the last lift stays GDScript's. `ContactsNative.loaded()` decides the same
 for the contacts as each `PropStands`, `Surfaces` and `Hazards` is made: a `PropStands`
@@ -137,11 +141,14 @@ and `test_native_version` fails there when it was built from other sources.
   godot-cpp's objects as for ours.
 - `tests/unit/ai/test_walk_search_native.gd`, `tests/unit/ai/test_water_native.gd`,
   `tests/unit/core/test_sink_native.gd`, `tests/unit/core/test_sink_native_stages.gd`,
-  `tests/unit/core/test_motion_native.gd`, `tests/unit/core/test_contacts_native.gd`,
+  `tests/unit/core/test_motion_native.gd`, `tests/unit/core/test_pose_native.gd`,
+  `tests/unit/core/test_shell_native.gd`,
+  `tests/unit/core/test_contacts_native.gd`,
   `tests/unit/ai/test_floor_way_native.gd`, `tests/unit/art/test_ship_mesh_native.gd`,
   `tests/unit/match/test_water_fx_native.gd`, `tests/unit/art/test_lamp_sight.gd`,
-  `tests/unit/core/test_cell_map_native.gd`, `tests/unit/ai/test_blocked_native.gd` and
-  `tests/unit/core/test_rest_native.gd`
+  `tests/unit/core/test_cell_map_native.gd`, `tests/unit/ai/test_blocked_native.gd`,
+  `tests/unit/core/test_rest_native.gd`, `tests/unit/ai/test_bot_stepped_native.gd` and
+  `tests/unit/core/test_clear_stretches_native.gd`
   ask both sides the same questions and fail on any difference. CI sets
   `SINKING_NATIVE_REQUIRED=1`, so a library that fails to load fails too — on Linux
-  across the suite, on macOS (arm64) for those thirteen scripts.
+  across the suite, on macOS (arm64) for those seventeen scripts.

@@ -91,6 +91,24 @@ void breadth_lines(const Vector2 *p_outline, int64_t p_size, std::vector<double>
 	r_line.push_back(0.0);
 }
 
+// HullSection.shell_at: the z of p_outline's outermost point at height p_y on p_side; NAN
+// where it does not reach that height. Its maxf is the engine's.
+double shell(const Vector2 *p_outline, int64_t p_size, double p_y, int64_t p_side) {
+	const double side = (double)p_side;
+	double outermost = -INFINITY;
+	for (int64_t index = 0; index < p_size; index++) {
+		const Vector2 a = p_outline[index];
+		const Vector2 b = p_outline[(index + 1) % p_size];
+		if (a.y == b.y || ((double)a.y - p_y) * ((double)b.y - p_y) > 0.0) {
+			continue;
+		}
+		const double z = (double)a.x + ((double)b.x - (double)a.x) * (p_y - (double)a.y) / ((double)b.y - (double)a.y);
+		const double turned = z * side;
+		outermost = outermost > turned ? outermost : turned;
+	}
+	return outermost > -INFINITY ? outermost * side : NAN;
+}
+
 } // namespace
 
 // LevelHull._init: the sections' points one after another, section s's from p_first[s] to
@@ -155,6 +173,32 @@ SINKING_CLASS(NativeLevelHull)
 
 void NativeLevelHull::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("build", "points", "first", "length"), &NativeLevelHull::build);
+}
+
+double NativeShell::shell_at(const PackedVector2Array &p_outline, double p_y, int64_t p_side) const {
+	return shell(p_outline.ptr(), p_outline.size(), p_y, p_side);
+}
+
+PackedFloat64Array NativeShell::shells_at(const PackedVector2Array &p_outline, const PackedFloat64Array &p_heights,
+		int64_t p_side) const {
+	const Vector2 *outline = p_outline.ptr();
+	const int64_t size = p_outline.size();
+	const int64_t count = p_heights.size();
+	const double *heights = p_heights.ptr();
+	PackedFloat64Array found;
+	found.resize(count);
+	double *made = found.ptrw();
+	for (int64_t at = 0; at < count; at++) {
+		made[at] = shell(outline, size, heights[at], p_side);
+	}
+	return found;
+}
+
+SINKING_CLASS(NativeShell)
+
+void NativeShell::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("shell_at", "outline", "y", "side"), &NativeShell::shell_at);
+	ClassDB::bind_method(D_METHOD("shells_at", "outline", "heights", "side"), &NativeShell::shells_at);
 }
 
 void NativeGirder::setup(const PackedFloat64Array &p_own, const PackedInt32Array &p_first,

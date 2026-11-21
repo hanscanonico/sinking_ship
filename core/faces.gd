@@ -278,14 +278,18 @@ func _hull(structure: ShipStructure) -> void:
 			low = minf(low, point.y)
 		for side: int in [-1, 1]:
 			var edge := _deck_edge(section, side)
+			var heights := PackedFloat64Array([low])
+			while heights[-1] < edge:
+				heights.append(minf(heights[-1] + BAND, edge))
+			var shells := section.shells_at(heights, side)
 			var from := low
 			var inner := INF
 			var outer := -INF
 			var y := low
-			while y < edge:
-				var next := minf(y + BAND, edge)
-				var at := absf(section.shell_at(y, side))
-				var to := absf(section.shell_at(next, side))
+			for band in heights.size() - 1:
+				var next := heights[band + 1]
+				var at := absf(shells[band])
+				var to := absf(shells[band + 1])
 				if is_nan(at) or is_nan(to):
 					break
 				var band_in := minf(at, to)

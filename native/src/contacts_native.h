@@ -146,6 +146,10 @@ public:
 			double p_step, double p_railing_height, std::vector<ContactHit> &r_found) const;
 	int64_t landing(const Vector3 &p_ship_point, int64_t p_except_prop) const;
 	double ceiling(const Vector3 &p_ship_point, double p_clearance) const;
+	// Surfaces.clear_stretches, whose blockers stand to the tops they were made with: asked
+	// only while none of her funnels is down.
+	PackedVector2Array clear_stretches(
+			const Vector3 &p_from, const Vector3 &p_to, double p_body_height, double p_step) const;
 	NativeStands *stands() const { return stands_.ptr(); }
 
 	// Surfaces.under and BotFloorWay._find (floor_way_native.cpp).
@@ -157,6 +161,10 @@ public:
 	// WalkPieces._read's squares (floor_way_native.cpp).
 	PackedByteArray stands_grid(const Vector2 &p_origin, int64_t p_width, int64_t p_depth, double p_side,
 			double p_height, const Rect2 &p_within, const PackedFloat64Array &p_rules) const;
+	// BotReckoning._stepped's walk, tick by tick (bot_stepped_native.cpp).
+	Vector3 stepped(const Vector3 &p_seen_pos, const Vector3 &p_seen_vel, int64_t p_surface, int64_t p_seen_tick,
+			const PackedVector2Array &p_moves, const PackedInt32Array &p_ticks, double p_pace, bool p_eased,
+			const PackedFloat64Array &p_rules) const;
 
 protected:
 	static void _bind_methods();

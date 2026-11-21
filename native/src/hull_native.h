@@ -2,7 +2,9 @@
 // as straight lines between its corner heights, and the volume under every corner height
 // of all of them — and HullGirder.measure — the loads on her stations, the bending they
 // give and her worst station —, each giving the GDScript's answers bit for bit. Both
-// grow with her sections: a hull cut fine where she tapers has hundreds (#492).
+// grow with her sections: a hull cut fine where she tapers has hundreds (#492). And
+// HullSection.shell_at — where her shell stands at a height on a side —, asked of one
+// height or of a run of them: a Titanic's load asks it hundreds of thousands of times.
 
 #pragma once
 
@@ -21,6 +23,18 @@ class NativeLevelHull : public RefCounted {
 public:
 	PackedFloat64Array build(const PackedVector2Array &p_points, const PackedInt32Array &p_first,
 			const PackedFloat64Array &p_length) const;
+
+protected:
+	static void _bind_methods();
+};
+
+class NativeShell : public RefCounted {
+	GDCLASS(NativeShell, RefCounted)
+
+public:
+	double shell_at(const PackedVector2Array &p_outline, double p_y, int64_t p_side) const;
+	PackedFloat64Array shells_at(const PackedVector2Array &p_outline, const PackedFloat64Array &p_heights,
+			int64_t p_side) const;
 
 protected:
 	static void _bind_methods();
