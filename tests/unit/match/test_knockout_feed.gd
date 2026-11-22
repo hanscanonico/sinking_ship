@@ -178,3 +178,36 @@ func _colours(feed: KnockoutFeed) -> Array[Color]:
 	for label: Label in feed.get_node("Lines").get_children():
 		colours.append(label.get_theme_color(&"font_color"))
 	return colours
+
+
+## A seat the cold put out in a room of hers, no shove to thank, went into no sea: the
+## feed says the cold got it — it read "You went into the sea" for a seat frozen in the
+## galley — and one out in the sea alongside goes into the sea as before.
+func test_a_seat_out_aboard_is_the_cold_s() -> void:
+	var cold := PlayerState.Cause.COLD
+	assert_eq(KnockoutFeed.feed_line(NAMES, 0, -1, 0, cold, true), "The cold got you")
+	assert_eq(KnockoutFeed.feed_line(NAMES, 1, -1, 0, cold, true), "The cold got %s" % NAMES[1])
+	assert_eq(KnockoutFeed.feed_line(NAMES, 0, -1, 0, cold, false), "You went into the sea")
+	var shoved := KnockoutFeed.feed_line(NAMES, 0, 1, 0, cold, true)
+	assert_eq(shoved, KnockoutFeed.feed_line(NAMES, 0, 1, 0), "a shove keeps its credit")
+	var scenario: SinkScenario = load(SimFixtures.STEAMER_SINKING)
+	var sim := MatchSim.create(SimFixtures.config(3, scenario, 1701, SimFixtures.steamer()))
+	sim.state.tick = sim.schedule.hit_tick()
+	var spots: Array[Vector3] = [Vector3(9.0, -1.2, 0.0), Vector3(9.0, -1.2, 8.0)]
+	for seat in spots.size():
+		sim.state.seats[seat].pos = spots[seat]
+		sim.state.seats[seat].body = PlayerState.Body.OUT
+		sim.state.seats[seat].out_cause = cold
+	var feed := KnockoutFeed.new()
+	add_child_autofree(feed)
+	feed.set_process(false)
+	feed.setup(PackedStringArray(NAMES), 2, sim.config.ship, null, sim)
+	var out: Array[SimEvent] = [
+		SimEvent.seat_out(sim.state.tick, 0, 3, cold, -1),
+		SimEvent.seat_out(sim.state.tick, 1, 2, cold, -1)
+	]
+	feed.add(out)
+	var lines := _lines(feed)
+	assert_eq(lines.size(), 2)
+	assert_true(lines.has("The cold got %s" % NAMES[0]), "out in her hold: %s" % [lines])
+	assert_true(lines.has("%s went into the sea" % NAMES[1]), "out in the sea: %s" % [lines])
