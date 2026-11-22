@@ -118,6 +118,7 @@ text = "Seats"
 
 [node name="Seats" type="OptionButton" parent="MainMenu/Panel/Box/Choices"]
 unique_name_in_owner = true
+tooltip_text = "How many play, you included: bots take the other seats"
 size_flags_horizontal = 3
 
 [node name="TierLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
@@ -125,6 +126,7 @@ text = "Bots"
 
 [node name="Tier" type="OptionButton" parent="MainMenu/Panel/Box/Choices"]
 unique_name_in_owner = true
+tooltip_text = "How hard the bots fight"
 size_flags_horizontal = 3
 
 [node name="GoalLabel" type="Label" parent="MainMenu/Panel/Box/Choices"]
@@ -132,6 +134,7 @@ text = "Goal"
 
 [node name="Survival" type="CheckButton" parent="MainMenu/Panel/Box/Choices"]
 unique_name_in_owner = true
+tooltip_text = "Off: the last one dry wins. On: nobody wins, stay aboard as long as she floats"
 focus_neighbor_bottom = NodePath("../../Custom")
 size_flags_horizontal = 3
 text = "Survival"
@@ -156,6 +159,7 @@ text = "Seed"
 
 [node name="Seed" type="LineEdit" parent="MainMenu/Panel/Box/CustomChoices"]
 unique_name_in_owner = true
+tooltip_text = "The same seed gives the same hit and the same sinking; empty, each match has its own"
 focus_neighbor_top = NodePath("../../Custom")
 focus_neighbor_bottom = NodePath("../Rules/Fast")
 size_flags_horizontal = 3
@@ -170,6 +174,7 @@ theme_override_constants/separation = 18
 
 [node name="Fast" type="CheckButton" parent="MainMenu/Panel/Box/CustomChoices/Rules"]
 unique_name_in_owner = true
+tooltip_text = "She goes down several times faster"
 focus_neighbor_right = NodePath("../Bonuses")
 focus_neighbor_bottom = NodePath("../../../Buttons/Play")
 size_flags_horizontal = 3
@@ -177,6 +182,7 @@ text = "Fast sinking"
 
 [node name="Bonuses" type="CheckButton" parent="MainMenu/Panel/Box/CustomChoices/Rules"]
 unique_name_in_owner = true
+tooltip_text = "Bonuses come aboard during the match: walk up to one and grab it"
 focus_neighbor_left = NodePath("../Fast")
 focus_neighbor_bottom = NodePath("../../../Buttons/Play")
 size_flags_horizontal = 3
