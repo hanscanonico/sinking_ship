@@ -374,6 +374,10 @@ msgid "d-pad right"
 msgstr "cruceta derecha"
 
 msgctxt "key"
+msgid "Esc"
+msgstr "Esc"
+
+msgctxt "key"
 msgid "Space"
 msgstr "Espacio"
 
@@ -636,6 +640,10 @@ msgstr "Tú"
 msgid "Bot %d"
 msgstr "Bot %d"
 
+# A bonus come aboard, and the room it lies in.
+msgid "%s: %s"
+msgstr "%s: %s"
+
 msgid "You took %s"
 msgstr "Has tomado %s"
 
@@ -647,6 +655,12 @@ msgstr "Te has hundido con el barco"
 
 msgid "%s went down with her"
 msgstr "%s se ha hundido con el barco"
+
+msgid "The cold got you"
+msgstr "El frío pudo contigo"
+
+msgid "The cold got %s"
+msgstr "El frío pudo con %s"
 
 msgid "You went into the sea"
 msgstr "Has caído al mar"

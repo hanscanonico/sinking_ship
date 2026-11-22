@@ -528,7 +528,7 @@ func _setup_view(
 	_rooms.forget()
 	_order = SpectateOrder.new(-1 if _watcher else _eye_seat, _stats)
 	_names = names
-	_feed.setup(names, _local_seat, config.ship, config.bonus_rules)
+	_feed.setup(names, _local_seat, config.ship, config.bonus_rules, sim)
 	_greybox.cut_above = cut_of(observer, observer_cut)
 	_ship_art.cut_above = _greybox.cut_above
 	_greybox.visible = greybox

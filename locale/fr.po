@@ -374,6 +374,10 @@ msgid "d-pad right"
 msgstr "croix droite"
 
 msgctxt "key"
+msgid "Esc"
+msgstr "Échap"
+
+msgctxt "key"
 msgid "Space"
 msgstr "Espace"
 
@@ -538,7 +542,7 @@ msgid "%.1f m under the sea"
 msgstr "%.1f m sous la mer"
 
 msgid "%.1f m above the sea"
-msgstr "%.1f m au-dessus de la mer"
+msgstr "%.1f m au-dessus de l'eau"
 
 msgid "Stamina"
 msgstr "Souffle"
@@ -599,7 +603,7 @@ msgid "Strong arms"
 msgstr "Bras costauds"
 
 msgid "Sure footing"
-msgstr "Pas assuré"
+msgstr "Pied sûr"
 
 msgid "Holed"
 msgstr "Coque percée"
@@ -636,6 +640,10 @@ msgstr "Vous"
 msgid "Bot %d"
 msgstr "Bot %d"
 
+# A bonus come aboard, and the room it lies in.
+msgid "%s: %s"
+msgstr "%s : %s"
+
 msgid "You took %s"
 msgstr "Vous avez pris %s"
 
@@ -647,6 +655,12 @@ msgstr "Vous avez coulé avec le navire"
 
 msgid "%s went down with her"
 msgstr "%s a coulé avec le navire"
+
+msgid "The cold got you"
+msgstr "Le froid vous a eu"
+
+msgid "The cold got %s"
+msgstr "Le froid a eu %s"
 
 msgid "You went into the sea"
 msgstr "Vous êtes tombé à la mer"

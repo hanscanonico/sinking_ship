@@ -920,6 +920,18 @@ func _swim_step(feet: Vector3, sea: float) -> float:
 	return maxf(_rules.step_height, minf(sea - _rules.wade_depth, overhead) - feet.y)
 
 
+## [param feet], or the point over them on the surface they went under this tick, come
+## from [param feet_before]'s height: under a flooded room's floor lies another cell, with
+## its own water or none, and a swimmer sunk a hair under that floor is in the room's.
+func _over_floor(feet: Vector3, feet_before: float) -> Vector3:
+	if feet.y >= feet_before:
+		return feet
+	var crossed := _surfaces.landing(Vector3(feet.x, feet_before, feet.z))
+	if crossed == Surfaces.NONE:
+		return feet
+	return Vector3(feet.x, maxf(feet.y, _surfaces.height_at(crossed, feet)), feet.z)
+
+
 ## Whether [param player], not swimming, is in the sea: in the air, its feet under
 ## it over a bottom wade_depth deep or more — it lands on a shallower one; on a
 ## surface, wade_depth under it or more.
@@ -993,9 +1005,10 @@ func _blast(player: PlayerState) -> Vector3:
 
 
 ## After this tick's move: on the bottom, if it went under it; at rest, if it rose
-## to it, or sank onto it no faster than the water floats a body.
+## to it, or sank onto it no faster than the water floats a body. The water it is in is
+## the one over the floor it went under (_over_floor), never the cell's under that floor.
 func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
-	var sea := pose_now.water_height(player.pos)
+	var sea := pose_now.water_height(_over_floor(player.pos, feet_before))
 	var bottom := _bottom(player.pos, feet_before, sea)
 	var height := height_of(player)
 	var headroom := _headroom(player.pos, feet_before, _heading(player), sea, bottom, height)
