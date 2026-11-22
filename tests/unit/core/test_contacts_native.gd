@@ -6,15 +6,16 @@ extends GutTest
 ## crates touching, stacked on lids and astride the grids' cells — and on her real ships,
 ## their doors half shut and a funnel down, every obstacle, railing and airborne-railing
 ## contact — a body's on its feet, walked there across railings, and in the air, stepping
-## onto nothing — and every crate near a point, asked at corners, edges and a hair either
-## side of them, at ±0 and from heights a step either side of every surface and a hair and
-## half a step under it — and where a falling body lands there and its ceiling; then
-## matches stepped tick by tick, one natively and one in GDScript, their snapshots byte
-## for byte — a saloon's tables and chairs afloat as she settles and heels, and the
-## steamer's crates sliding hard into railings that break; and who sees whom on each of
-## them, through doorways open, half shut and shut, over and under decks and stairs, past
-## round tops, across a funnel down, under a pose whose decks are gone or not. Where the
-## extension is not loaded there is nothing to hold it to; CI sets
+## onto nothing, each obstacle contact asked of a place and of a body there already, which
+## a slab holds at its edge only (#792) — and every crate near a point, asked at corners,
+## edges and a hair either side of them, at ±0 and from heights a step either side of every
+## surface and a hair and half a step under it — and where a falling body lands there and
+## its ceiling; then matches stepped tick by tick, one natively and one in GDScript, their
+## snapshots byte for byte — a saloon's tables and chairs afloat as she settles and heels,
+## and the steamer's crates sliding hard into railings that break; and who sees whom on
+## each of them, through doorways open, half shut and shut, over and under decks and
+## stairs, past round tops, across a funnel down, under a pose whose decks are gone or not.
+## Where the extension is not loaded there is nothing to hold it to; CI sets
 ## SINKING_NATIVE_REQUIRED, so a missing library there fails.
 
 const STEAMER := "res://data/ships/steamer.tres"
@@ -38,6 +39,9 @@ var _differences: Array[String] = []
 var _asked := 0
 ## How many bodies walked onto her stairs were held by a railing.
 var _walked_held := 0
+## How many bodies there already were held by fewer than a place there is: wholly in under
+## a slab.
+var _under_slabs := 0
 
 
 func before_each() -> void:
@@ -45,6 +49,7 @@ func before_each() -> void:
 	_differences.clear()
 	_asked = 0
 	_walked_held = 0
+	_under_slabs = 0
 	ContactsNative.off = false
 
 
@@ -104,6 +109,7 @@ func test_her_ships_answer_alike_doors_half_shut_and_a_funnel_down() -> void:
 			crates.append(_rng.randi_range(0, props.size() - 1))
 		_ask_all(layout, pose, props, surfaces, crates)
 		_assert_none(path)
+	assert_gt(_under_slabs, 100, "bodies wholly in under her decks, held by none of their edges")
 
 
 func test_the_railings_along_her_stairs_answer_alike() -> void:
@@ -408,14 +414,22 @@ func _obstacles(
 	crawl_height: float,
 	crawl_reach: float
 ) -> void:
-	_asked += 1
-	var mine := native.obstacle_contacts(
-		point, shape.x, shape.y, step, except, crawl_height, crawl_reach
-	)
-	var theirs := reference.obstacle_contacts(
-		point, shape.x, shape.y, step, except, crawl_height, crawl_reach
-	)
-	_same_contacts(mine, theirs, "obstacles at %s of %s" % [point, shape])
+	# Of a place a body might stand, then of a body there already, as all that move one ask.
+	var placed := 0
+	for there: bool in [false, true]:
+		_asked += 1
+		var mine := native.obstacle_contacts(
+			point, shape.x, shape.y, step, except, crawl_height, crawl_reach, there
+		)
+		var theirs := reference.obstacle_contacts(
+			point, shape.x, shape.y, step, except, crawl_height, crawl_reach, there
+		)
+		var what := "obstacles at %s of %s%s" % [point, shape, ", there" if there else ""]
+		_same_contacts(mine, theirs, what)
+		if not there:
+			placed = theirs.size()
+		elif theirs.size() < placed:
+			_under_slabs += 1
 
 
 func _rails(
