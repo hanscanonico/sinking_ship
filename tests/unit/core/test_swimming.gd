@@ -603,6 +603,40 @@ func test_a_swimmer_with_no_water_under_it_falls_to_the_floor() -> void:
 	assert_almost_eq(swimmer.pos.y, stood, 0.0001, "on what stood under it")
 
 
+## The trawler dry, and a seat off its feet lying on the lower deck of her fish hold, as one
+## whose water has run out from under it — the sea over that deck outside her, or under it.
+## That deck is 2.2 m down, a height a body's feet keep a hair under (a Vector3 rounds it
+## down): the deck they lie on is still the floor under them. It stands where it lies, over
+## her double bottom as beside it — not sunk through the deck onto the crawl space's floor.
+func test_a_swimmer_lying_on_a_dry_floor_stands_on_it() -> void:
+	var deck := SimFixtures.platform_named(TRAWLER, &"lower deck")
+	var lower_deck := TRAWLER.platforms[deck].height
+	assert_lt(float(Vector3(0.0, lower_deck, 0.0).y), lower_deck, "feet on it are a hair under")
+	for z: float in [-1.8, -0.8]:
+		for sea: float in [-0.5, -3.0]:
+			var sim := SimFixtures.sim(2, null, TRAWLER)
+			HeldPose.hold(sim, HeldPose.flooded(TRAWLER, sea, {}))
+			SimFixtures.place(sim, 1, Vector3(9.0, 2.3, 0.0))
+			SimFixtures.swim(sim, 0, Vector3(2.0, lower_deck, z))
+			var swimmer := sim.state.seats[0]
+			swimmer.pos.y = lower_deck
+			var where := "z %.1f, the sea at %.1f" % [z, sea]
+			assert_false(
+				BodyWater.outside(sim.surfaces, sim.pose(), swimmer.pos), where + ": inside her"
+			)
+			for tick in Ticks.RATE / 2:
+				SimFixtures.step(sim)
+				assert_almost_eq(
+					swimmer.pos.y, lower_deck, 0.0001, "%s, tick %d: on the deck" % [where, tick]
+				)
+			assert_eq(swimmer.body, PlayerState.Body.GROUNDED, where + ": on its feet")
+			assert_eq(
+				SimFixtures.name_of(TRAWLER, swimmer.surface),
+				&"lower deck",
+				where + ": on the deck"
+			)
+
+
 ## The tug level with the sea at her main deck, dry inside (seed 3, 1:04): a seat in the sea
 ## alongside her engine room, past the wall of it and inside her shell's line, has its feet
 ## in that cell's box. The cell's want of water is not the swimmer's: it floats at the sea's

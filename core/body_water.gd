@@ -7,11 +7,22 @@ extends RefCounted
 ## That body is outside her walls, in the sea, and the cell's water — or its want of any —
 ## is not its own. Nor is the water of the cell under a floor it lies on (over_floor).
 
+## How far over a body's feet the floor under them is looked for, in metres (est.): feet
+## lying on a floor are at its height as a Vector3 keeps it, which may round to a hair
+## under the floor — the trawler's lower deck, 2.2 m down — and that floor is theirs still.
+const ON_FLOOR := 0.001
+
 
 ## Whether [param feet] are outside her walls though in one of her cells' boxes under
 ## [param pose]: in a cell, with no floor of [param surfaces] under them.
 static func outside(surfaces: Surfaces, pose: ShipPose, feet: Vector3) -> bool:
-	return pose.cell_at(feet) != CellMap.NONE and surfaces.landing(feet) == Surfaces.NONE
+	return pose.cell_at(feet) != CellMap.NONE and floor_under(surfaces, feet) == Surfaces.NONE
+
+
+## The floor of [param surfaces] under [param feet], or the one they lie on
+## (Surfaces.landing, from ON_FLOOR over them): Surfaces.NONE where there is none.
+static func floor_under(surfaces: Surfaces, feet: Vector3) -> int:
+	return surfaces.landing(Vector3(feet.x, feet.y + ON_FLOOR, feet.z))
 
 
 ## The ship-local height the water [param feet] are in stands at over them
@@ -36,7 +47,7 @@ static func wet(surfaces: Surfaces, pose: ShipPose, feet: Vector3) -> bool:
 static func over_floor(surfaces: Surfaces, feet: Vector3, feet_before: float) -> Vector3:
 	if feet.y >= feet_before:
 		return feet
-	var crossed := surfaces.landing(Vector3(feet.x, feet_before, feet.z))
+	var crossed := floor_under(surfaces, Vector3(feet.x, feet_before, feet.z))
 	if crossed == Surfaces.NONE:
 		return feet
 	return Vector3(feet.x, maxf(feet.y, surfaces.height_at(crossed, feet)), feet.z)
@@ -52,7 +63,7 @@ static func dry_floor(
 	surfaces: Surfaces, rules: BrawlRules, pose: ShipPose, feet: Vector3, feet_before: float
 ) -> int:
 	var at := over_floor(surfaces, feet, feet_before)
-	var under := surfaces.landing(Vector3(at.x, maxf(at.y, feet_before), at.z))
+	var under := floor_under(surfaces, Vector3(at.x, maxf(at.y, feet_before), at.z))
 	if under == Surfaces.NONE or wet(surfaces, pose, at):
 		return Surfaces.NONE
 	var depth := pose.water_height(at) - surfaces.height_at(under, at)
