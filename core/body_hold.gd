@@ -32,8 +32,10 @@ static func contacts(
 ## [param surfaces] holds it there but a crate (those part from it in their own turn):
 ## a wall, a blocker, a deck edge, a shut door. What the wall gives back the crate takes:
 ## it is moved out of the body, and keeps no more speed toward the body than the body
-## keeps of its own once the wall has taken what goes into it — against a body a wall
-## holds, the crate stops as against the wall. A body no wall holds is left as it is.
+## keeps going on from it once the wall has taken what goes into it — against a body a
+## wall holds, the crate stops as against the wall, and as against a wall it is given no
+## speed: a body the wall leaves going at the crate meets it in its own move, as any body
+## does (Movement). A body no wall holds is left as it is.
 static func walled(
 	surfaces: Surfaces, rules: BrawlRules, player: PlayerState, crate: PropState, reach: float
 ) -> void:
@@ -57,7 +59,7 @@ static func walled(
 	var normal := offset / distance
 	crate.pos -= Vector3(normal.x, 0.0, normal.y) * (reach - distance)
 	var planar := Vector2(crate.vel.x, crate.vel.z)
-	var faster := planar.dot(normal) - kept.dot(normal)
+	var faster := planar.dot(normal) - maxf(kept.dot(normal), 0.0)
 	if faster > 0.0:
 		planar -= normal * faster
 		crate.vel = Vector3(planar.x, crate.vel.y, planar.y)
