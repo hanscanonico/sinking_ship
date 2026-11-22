@@ -147,6 +147,24 @@ func test_the_watcher_walks_the_ghost() -> void:
 	assert_string_starts_with(_line(scene), "Watching   ·   through Bot 3's eyes")
 
 
+## Nobody plays a watched match, so nothing prompts for a key: its lurch warned "BRACE
+## (Shift)" from the free camera. A played one prompts its own seat while it is in, and
+## not through the eyes of the bot watched once it is out.
+func test_only_a_seat_played_is_prompted_for_its_keys() -> void:
+	var scene := _started(_watched())
+	assert_false(scene._first_person_hud.prompted(), "a watcher has no keys in the match")
+	var played := _watched()
+	played.watch = false
+	scene = _started(played)
+	assert_true(scene._first_person_hud.prompted(), "your own seat, in the match")
+	var seat: Dictionary = scene.current()["seats"][MatchScene.LOCAL_SEAT]
+	seat["out"] = true
+	seat["place"] = 3
+	scene._process(0.0)
+	assert_ne(scene._viewed(), MatchScene.LOCAL_SEAT, "through a bot's eyes")
+	assert_false(scene._first_person_hud.prompted(), "its prompts are not yours")
+
+
 ## An out seat's ghost starts where it went out while that is on her; a dry seat has none.
 func test_an_out_seat_s_ghost_starts_where_it_went_out() -> void:
 	var played := _watched()

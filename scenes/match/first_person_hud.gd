@@ -17,7 +17,9 @@ extends CanvasLayer
 ## All of it reads the snapshot, SinkSchedule's pose, Surfaces, the ship's rooms and
 ## the bodies as drawn (D5), and none of it stays up over the results. From the
 ## observer camera only the inclinometer, the sinking's chips and banner, and where the
-## watched seat stands show; from the free camera, too.
+## watched seat stands show; from the free camera those but the place, which names nowhere
+## (D14) — the ghost's names where it stands. The prompts that name a key — the lurch's
+## brace, the grab's, the climb's — are the local seat's alone (prompted).
 
 ## How far under the crosshair a prompt stands: the climb's, in the sea, and the grab's
 ## on deck (#273).
@@ -147,6 +149,9 @@ var _bonus_rules: BonusRules
 var _reach: GrabReach
 var _names := PackedStringArray()
 var _eyes: bool
+## The seat whose eyes the view is first in — the local seat, or a capture's — -1 for
+## none: prompted()'s.
+var own := -1
 ## Whether the view is the free camera rather than the seat's eyes: drawn as the
 ## observer's is.
 var flying := false
@@ -273,7 +278,7 @@ func _draw_hud() -> void:
 		return
 	var me := answers.me
 	_draw_crosshair(ShoveResolver.would_hit(answers.framed, _seat, _rules, answers.here))
-	if me["state"] != PlayerState.Body.SWIMMING:
+	if prompted() and me["state"] != PlayerState.Body.SWIMMING:
 		var grab := _prompts.word(&"grab")
 		var press := _reach.would_press(answers.framed, _seat, answers.here)
 		var words := grab_words(answers.framed, _seat, _reach, answers.here, grab, press)
@@ -296,7 +301,7 @@ func _draw_live() -> void:
 		return
 	_drawing = _live
 	var mine: Dictionary = answers.framed["seats"][_seat]
-	if answers.me["state"] == PlayerState.Body.SWIMMING:
+	if prompted() and answers.me["state"] == PlayerState.Body.SWIMMING:
 		_draw_climb_prompt(mine, answers.here, answers.framed_pose)
 	_draw_chevrons(answers.seen, answers.me["pos"])
 	_draw_windup_wedges(mine["pos"], answers.framed["seats"])
@@ -370,21 +375,11 @@ func _draw_dial(centre: Vector2, hull: PackedVector2Array, angle: float, colour:
 	_drawing.draw_line(centre, centre + mast, colour, 2.0, true)
 
 
-## Over the crosshair, one chip per telegraph [param pose] runs — what a player who
-## cannot see the whole ship must not miss — blinking with [param tick].
+## Over the crosshair, one chip per telegraph [param pose] runs (WarningChips) — what a
+## player who cannot see the whole ship must not miss — blinking with [param tick].
 func _draw_warnings(pose: ShipPose, tick: int) -> void:
-	var warnings := PackedStringArray()
-	if pose.lurch_warning != 0.0:
-		var lurch := "LURCH TO STARBOARD — BRACE (%s)"
-		if pose.lurch_warning < 0.0:
-			lurch = "LURCH TO PORT — BRACE (%s)"
-		warnings.append(Language.t(lurch) % _prompts.word(&"brace"))
-	for going: StringName in pose.collapsing:
-		var deck := Language.named(String(going)).to_upper()
-		warnings.append(Language.t("THE %s IS GOING") % deck)
-	for fall: FunnelFall in pose.falls:
-		if tick < fall.falls_at:
-			warnings.append(straining_words(fall.fitting.name))
+	var brace := _prompts.word(&"brace") if prompted() else ""
+	var warnings := WarningChips.words(pose, tick, brace)
 	if warnings.is_empty() or tick / BLINK_TICKS % 2 == 1:
 		return
 	var at := Vector2(_canvas.size.x * 0.5, _canvas.size.y * 0.5 - 90.0)
@@ -396,14 +391,11 @@ func _draw_warnings(pose: ShipPose, tick: int) -> void:
 		at.y -= 44.0
 
 
-## The chip for the funnel fitting [param named] straining at its stays: one of her
-## funnels by its number when she has several (funnel_4: FUNNEL 4), else by what it is.
-static func straining_words(named: StringName) -> String:
-	var words := String(named).replace("_", " ")
-	var said := Language.numbered(words).to_upper()
-	if words.get_slice(" ", words.get_slice_count(" ") - 1).is_valid_int():
-		return Language.t("%s IS STRAINING") % said
-	return Language.t("THE %s IS STRAINING") % said
+## Whether the prompts name the local player's keys: the view its own seat's eyes, in the
+## match — not a watcher's, an out seat's through another's eyes, the free camera's, the
+## ghost's or a replay's, where no press of them does anything.
+func prompted() -> bool:
+	return _eyes and not flying and _seat == own and _answers.is_in
 
 
 ## Under the clock, the name of the sinking's phase for BANNER_SECONDS after it
@@ -446,12 +438,12 @@ func _draw_crosshair(lit: bool) -> void:
 ## The place the plate names (SeatRoom.named): where the ghost stands while the view is
 ## its, else the room the seat shown is in — afloat in it too — else the platform under
 ## it on her decks, kept over a stair and through a jump (SeatRoom.held); "" for none,
-## and for a seat out of the match.
+## for a seat out of the match and from the free camera, which stands nowhere of her.
 func place() -> String:
 	_room = -1
 	if ghost != null and ghost.active:
 		return _walked
-	if _over() or not _answers.is_in:
+	if flying or _over() or not _answers.is_in:
 		return ""
 	var me := _answers.me
 	var decks := MatchState.up_of(_snapshot, me) == Faces.Up.DECK

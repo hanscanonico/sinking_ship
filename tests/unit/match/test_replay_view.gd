@@ -45,6 +45,46 @@ func test_a_replay_draws_no_spectating_line_over_its_controls() -> void:
 	assert_false(scene._hud._spectating.visible, "the replay's controls name whose eyes")
 
 
+## Once the seat a replay is seen through is out, the view moves on to a seat still in,
+## as the match's did, and the controls say whose eyes: it stayed "Through your own eyes"
+## from wherever the out seat's body was last drawn — its spawn, after a seek. Sought back
+## to before it went out, the view is its own again; and the eyes cycle past a seat out.
+func test_a_replay_s_eyes_leave_a_seat_that_is_out() -> void:
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	var config := SimFixtures.config(3)
+	config.bot_tier = (load(MATCH_DATA) as MatchRules).bot_tier
+	var played := RunMatch.bots_only(config)
+	played.run(Ticks.RATE)
+	scene.start_replay(ReplayFile.record(MatchChoices.new(), played.input_log, 0), config)
+	scene._process(0.0)
+	var whose: Label = scene._replay_hud._seat
+	var first := scene._driver.timeline().first_tick()
+	var last := scene._driver.timeline().last_tick()
+	assert_eq(scene._viewed(), MatchScene.LOCAL_SEAT)
+	assert_eq(whose.text, "Through your own eyes")
+	scene.replay_seek(last)
+	_seat_out(scene)
+	assert_eq(scene._viewed(), 1, "a seat still in")
+	assert_eq(whose.text, "Through Bot 1's eyes")
+	assert_eq(scene._first_person_hud._seat, 1, "and the HUD is of that seat")
+	scene.replay_seek(first)
+	scene._process(0.0)
+	assert_eq(scene._viewed(), MatchScene.LOCAL_SEAT, "sought back, its own eyes")
+	assert_eq(whose.text, "Through your own eyes")
+	scene.replay_seek(last)
+	_seat_out(scene)
+	_press(scene, &"spectate_next")
+	assert_eq(scene._viewed(), 2)
+	_press(scene, &"spectate_next")
+	assert_eq(scene._viewed(), 1, "round the seats still in, past the one out")
+	scene.replay_seek(first)
+	scene._process(0.0)
+	assert_eq(scene._viewed(), 1, "the seat cycled to is kept through a seek")
+	_press(scene, &"spectate_previous")
+	assert_eq(scene._viewed(), MatchScene.LOCAL_SEAT, "in the match, any seat's eyes")
+
+
 ## A replay is watched from the free camera too (R5): it opens framing the whole ship,
 ## follows the seat watched on its key, and the plate names it.
 func test_a_replay_is_watched_from_the_free_camera() -> void:

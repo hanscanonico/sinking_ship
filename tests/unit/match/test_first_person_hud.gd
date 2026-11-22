@@ -60,9 +60,9 @@ func test_a_level_heel_or_trim_reads_plus_nought() -> void:
 ## A funnel straining at its stays is named on its chip in words, by its number when
 ## she has several — never by its data name, as "THE FUNNEL_4 IS STRAINING" was.
 func test_a_straining_funnel_is_named_in_words() -> void:
-	assert_eq(FirstPersonHud.straining_words(&"funnel_4"), "FUNNEL 4 IS STRAINING")
-	assert_eq(FirstPersonHud.straining_words(&"funnel"), "THE FUNNEL IS STRAINING")
-	assert_eq(FirstPersonHud.straining_words(&"stack"), "THE STACK IS STRAINING")
+	assert_eq(WarningChips.straining_words(&"funnel_4"), "FUNNEL 4 IS STRAINING")
+	assert_eq(WarningChips.straining_words(&"funnel"), "THE FUNNEL IS STRAINING")
+	assert_eq(WarningChips.straining_words(&"stack"), "THE STACK IS STRAINING")
 
 
 ## A place's name too long for the plate is parted onto a line over it where a comma,
@@ -449,6 +449,53 @@ func test_the_plate_names_where_the_ghost_stands() -> void:
 	hud.flying = false
 	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
 	assert_eq(hud.place(), "", "a seat out of the match is nowhere")
+
+
+## The free camera is the observer's tool and stands nowhere of her (D14): flown, the
+## plate names no place — it read the watched seat's, "Forward Hold" from high over her —
+## and the seat's again once the view is back in its eyes.
+func test_the_plate_names_no_place_from_the_free_camera() -> void:
+	var sim := SimFixtures.sim(2, null, SimFixtures.steamer())
+	var hud := _hud_in_the_hold(sim)
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_eq(hud.place(), "forward hold", "from the seat's eyes")
+	hud.ghost = GhostWalk.new(sim.config, sim.schedule)
+	hud.flying = true
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_eq(hud.place(), "", "the free camera stands nowhere")
+	hud.flying = false
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_eq(hud.place(), "forward hold", "back in the seat's eyes")
+
+
+## The prompts that name a key — the lurch's brace, the grab's, the climb's — are for the
+## seat whose eyes the view is its own, in the match: watching through a bot's eyes showed
+## "F — let go of the lifebuoy", and a bots-only match "BRACE (Shift)" from the free camera.
+func test_only_the_view_s_own_seat_in_the_match_is_prompted() -> void:
+	var sim := SimFixtures.sim(2)
+	var hud: FirstPersonHud = add_child_autofree(FirstPersonHud.new())
+	var prompts: InputPrompts = add_child_autofree(InputPrompts.new())
+	var names := PackedStringArray(["Ada", "Bo"])
+	hud.setup(sim, names, true, prompts)
+	hud.own = 0
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_true(hud.prompted(), "its own seat's eyes, in the match")
+	hud.show_view(sim.snapshot(), 1, 0.0, null, null)
+	assert_false(hud.prompted(), "through another seat's eyes")
+	hud.flying = true
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_false(hud.prompted(), "from the free camera or the ghost")
+	hud.flying = false
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_true(hud.prompted(), "back in its own eyes")
+	# A watcher's, the observer's and a replay's: nobody's eyes are their own.
+	hud.setup(sim, names, false, prompts)
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_false(hud.prompted(), "nobody plays")
+	hud.setup(sim, names, true, prompts)
+	sim.state.seats[0].body = PlayerState.Body.OUT
+	hud.show_view(sim.snapshot(), 0, 0.0, null, null)
+	assert_false(hud.prompted(), "out of the match")
 
 
 ## The plate is drawn again once the ghost stands somewhere else, and not for a frame it
