@@ -4,8 +4,8 @@ extends GutTest
 ## (ReplayHud.hint_text).
 
 const FONT_SIZE := UiTheme.HINT_FONT_SIZE
-## The plate's width in a window 1152 wide: its margins off.
-const AT_1152 := 1152.0 - ReplayHud.PLATE_MARGIN * 2.0
+## The plate's width in a window 1152 wide: from past the seat's own plate to its margin.
+const AT_1152 := 1152.0 - 276.0 - ReplayHud.PLATE_MARGIN
 
 
 func _widths(of: Array) -> PackedFloat32Array:
@@ -51,9 +51,17 @@ func test_no_line_starts_or_ends_on_a_dot() -> void:
 	Language.use(Language.SOURCE)
 
 
-## In a window 1152 wide the hints take two lines at the most, in every language, on the
-## keys and on a pad.
-func test_the_hints_take_two_lines_at_the_most_at_1152() -> void:
+## The bar stands beside the watched seat's plate, never over it.
+func test_the_bar_leaves_the_seat_s_plate_in_sight() -> void:
+	for size: Vector2 in [Vector2(1152.0, 648.0), Vector2(1152.0, 864.0), Vector2(1536.0, 648.0)]:
+		var seat := FirstPersonHud.plate_rect(size, 2)
+		assert_gte(ReplayHud.plate_left(), seat.end.x + ReplayHud.PLATE_MARGIN, str(size))
+	assert_eq(1152.0 - ReplayHud.plate_left() - ReplayHud.PLATE_MARGIN, AT_1152)
+
+
+## In a window 1152 wide the hints take three lines at the most, in every language, on
+## the keys and on a pad.
+func test_the_hints_take_three_lines_at_the_most_at_1152() -> void:
 	var font := UiTheme.shared().get_font(&"font", UiTheme.HINT_LABEL)
 	var panel := UiTheme.shared().get_stylebox(&"panel", &"PanelContainer")
 	var width := AT_1152 - panel.get_minimum_size().x
@@ -63,7 +71,7 @@ func test_the_hints_take_two_lines_at_the_most_at_1152() -> void:
 			var prompts: InputPrompts = autofree(InputPrompts.new())
 			prompts.pad = pad
 			var text := ReplayHud.hint_text(ReplayHud.hints(prompts), font, FONT_SIZE, width)
-			assert_lte(text.split("\n").size(), 2, "%s, pad %s:\n%s" % [language, pad, text])
+			assert_lte(text.split("\n").size(), 3, "%s, pad %s:\n%s" % [language, pad, text])
 	Language.use(Language.SOURCE)
 
 

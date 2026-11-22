@@ -57,7 +57,7 @@ func _ready() -> void:
 	var plate := PanelContainer.new()
 	plate.name = "Plate"
 	plate.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	plate.offset_left = PLATE_MARGIN
+	plate.offset_left = plate_left()
 	plate.offset_right = -PLATE_MARGIN
 	plate.offset_bottom = -PLATE_MARGIN
 	plate.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -96,6 +96,13 @@ func _ready() -> void:
 	# Its lines are broken here, between hints (hint_text): it never asks for their width.
 	_hint.clip_text = true
 	_hint.resized.connect(_lay_out_hints)
+
+
+## Where the plate begins from the window's left: past the watched seat's own plate,
+## bottom left (FirstPersonHud.plate_rect) — its place, how high it stands, its stamina
+## and its warmth — which the bar stood over, so a replay never showed them.
+static func plate_left() -> float:
+	return FirstPersonHud.plate_rect(Vector2.ZERO).end.x + PLATE_MARGIN
 
 
 ## The replay's span: the seek bar runs from [param first_tick] to [param last_tick].
