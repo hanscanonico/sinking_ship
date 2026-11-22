@@ -21,6 +21,9 @@ var _aboard := {}
 ## Where the ghost last asked of stood, and the tick, its piece and its feet that was
 ## asked for (ghost_place).
 var _ghost_place := ""
+## The last place the plate showed for a seat, and which seat (held).
+var _held := ""
+var _held_seat := -1
 var _ghost_at := []
 
 
@@ -53,6 +56,19 @@ static func named(layout: ShipLayout, room: int, surface: int) -> String:
 	if surface >= 0 and surface < layout.platforms.size():
 		return layout.platforms[surface].name
 	return ""
+
+
+## The place a seat's plate shows: [param place], what named() calls where the seat of
+## entry [param me] is — or, while that is nothing and the seat is on its feet or in the
+## air with her [param decks] still up, the last place it had: a stair, a crate's lid
+## and the air over a deck have no name, and the plate went blank at every jump. A
+## swimmer keeps none, nor does another seat's.
+func held(place: String, me: Dictionary, decks: bool) -> String:
+	var afloat: bool = me["state"] == PlayerState.Body.SWIMMING
+	if not place.is_empty() or afloat or not decks or me["seat"] != _held_seat:
+		_held = place
+		_held_seat = me["seat"]
+	return _held
 
 
 ## Where [param ghost] stands on her as [param snapshot] has her under [param schedule],
