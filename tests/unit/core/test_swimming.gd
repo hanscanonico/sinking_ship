@@ -4,6 +4,7 @@ extends GutTest
 ## Just past the starboard edge of the flat deck, outside its hull.
 const OUTSIDE_Z := 4.6
 const TOWARD_PORT := Vector2(0.0, -1.0)
+const FERRY: ShipLayout = preload("res://data/ships/ferry.tres")
 
 
 func _rules() -> BrawlRules:
@@ -512,3 +513,32 @@ func test_swimmer_climbs_onto_a_dry_face_in_a_pocket() -> void:
 	var cold := swimmer.cold
 	SimFixtures.step(sim, {}, Ticks.RATE)
 	assert_almost_eq(swimmer.cold, cold + rules.cold_regen, 0.0001, "refilling as on any deck")
+
+
+## The ferry's crew quarters 0.4 m deep in their own water, the bilge under their floor and
+## the wing tanks past their side walls dry, as her heel pools it there (seed 23, a minute
+## in): a seat off its feet in it lies on the room's floor. Under that floor is another cell,
+## and its water is not the swimmer's: read there, the room's floor was no bottom, the
+## swimmer sank through it, and the deck's edge threw it out sideways, through the room's
+## side wall into the wing tank.
+func test_a_swimmer_in_a_shallow_flooded_room_stays_on_its_floor() -> void:
+	var rules := _rules()
+	var structure := FERRY.structure
+	var quarters := structure.cell_named(&"crew_quarters")
+	var floor_height := structure.cells[quarters].low.y
+	var sim := SimFixtures.sim(2, null, FERRY)
+	HeldPose.hold(sim, HeldPose.flooded(FERRY, -4.0, {&"crew_quarters": [floor_height + 0.4]}))
+	SimFixtures.place(sim, 1, Vector3(0.0, 0.0, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(-2.4, floor_height, 3.0))
+	var swimmer := sim.state.seats[0]
+	swimmer.pos.y = floor_height
+	var cells := sim.pose().cells
+	assert_eq(cells.cell_at(swimmer.pos), quarters, "in the crew quarters")
+	for tick in Ticks.RATE:
+		var before := swimmer.pos
+		SimFixtures.step(sim)
+		var moved := Vector2(swimmer.pos.x - before.x, swimmer.pos.z - before.z).length()
+		assert_lt(moved, rules.body_radius, "tick %d: never thrown sideways" % tick)
+		assert_almost_eq(swimmer.pos.y, floor_height, 0.0001, "tick %d: on the floor" % tick)
+		assert_eq(cells.cell_at(swimmer.pos), quarters, "tick %d: in the room" % tick)
+	assert_eq(swimmer.body, PlayerState.Body.SWIMMING, "too deep to stand in")
