@@ -194,13 +194,13 @@ func test_the_hud_s_lines_read_in_the_language_in_use() -> void:
 	assert_eq(Hud.whose_view("Bot 3", false, false), "par les yeux de Bot 3")
 	assert_eq(Hud.out_word(PlayerState.Cause.WITH_HER), "Coulé")
 	assert_eq(FirstPersonHud.height_words(2.04), "2.0 m au-dessus de l'eau")
-	assert_eq(FirstPersonHud.straining_words(&"funnel_4"), "CHEMINÉE 4 VA CÉDER")
-	assert_eq(FirstPersonHud.straining_words(&"funnel"), "LA CHEMINÉE VA CÉDER")
+	assert_eq(WarningChips.straining_words(&"funnel_4"), "CHEMINÉE 4 VA CÉDER")
+	assert_eq(WarningChips.straining_words(&"funnel"), "LA CHEMINÉE VA CÉDER")
 	assert_eq(EndOverlay.survived(Ticks.from_seconds(134.0), 3), "Survie 02:14.0 · 3e")
 	assert_string_contains(InputPrompts.controls_for(false), "— sauter")
 	Language.use("es")
 	assert_eq(Hud.whose_view("Bot 3", true, false), "por tus propios ojos")
-	assert_eq(FirstPersonHud.straining_words(&"funnel_2"), "CHIMENEA 2 VA A CEDER")
+	assert_eq(WarningChips.straining_words(&"funnel_2"), "CHIMENEA 2 VA A CEDER")
 
 
 func test_the_settings_screen_picks_the_language_and_saves_it() -> void:
