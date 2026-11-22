@@ -5,6 +5,8 @@ extends GutTest
 const OUTSIDE_Z := 4.6
 const TOWARD_PORT := Vector2(0.0, -1.0)
 const FERRY: ShipLayout = preload("res://data/ships/ferry.tres")
+const TRAWLER: ShipLayout = preload("res://data/ships/trawler.tres")
+const TUG: ShipLayout = preload("res://data/ships/tug.tres")
 
 
 func _rules() -> BrawlRules:
@@ -542,3 +544,58 @@ func test_a_swimmer_in_a_shallow_flooded_room_stays_on_its_floor() -> void:
 		assert_almost_eq(swimmer.pos.y, floor_height, 0.0001, "tick %d: on the floor" % tick)
 		assert_eq(cells.cell_at(swimmer.pos), quarters, "tick %d: in the room" % tick)
 	assert_eq(swimmer.body, PlayerState.Body.SWIMMING, "too deep to stand in")
+
+
+## The trawler's working deck a quarter of a metre under, the wing under it dry (seed 10,
+## 5:40): a seat off its feet in that water swims over the head of the companionway down to
+## the side passage. There its feet are in the wing's cell, which holds no water: it is out
+## of the water over the stair, stands on it and walks down it. Left a swimmer, it fell — nothing under a
+## swimmer is its bottom but what its water covers — through the stair, the passage and
+## every floor under them, out of her bottom into the sea under her keel.
+func test_a_swimmer_carried_over_a_dry_compartment_lands_on_its_floor() -> void:
+	var rules := _rules()
+	var sim := SimFixtures.sim(2, null, TRAWLER)
+	HeldPose.hold(sim, HeldPose.flooded(TRAWLER, 0.25, {&"working_deck": [0.25]}))
+	SimFixtures.place(sim, 1, Vector3(9.0, 2.3, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(5.2, 0.0, -2.8))
+	var swimmer := sim.state.seats[0]
+	swimmer.pos.y = 0.0
+	var stair := sim.surfaces.ramp_surface(14)
+	var passage := SimFixtures.platform_named(TRAWLER, &"side passage")
+	var passage_height := TRAWLER.platforms[passage].height
+	var aft := {0: SimFixtures.frame(0, Vector2(-1.0, 0.0))}
+	SimFixtures.step(sim, aft)
+	assert_eq(swimmer.body, PlayerState.Body.SWIMMING, "off its feet on the flooded deck")
+	for tick in Ticks.RATE:
+		var before := swimmer.pos.y
+		SimFixtures.step(sim, aft)
+		assert_gt(swimmer.pos.y, before - rules.step_height, "tick %d: no drop" % tick)
+		assert_gt(swimmer.pos.y, passage_height - 0.001, "tick %d: never under her floors" % tick)
+	assert_eq(swimmer.body, PlayerState.Body.GROUNDED, "on its feet, out of the water")
+	var under := sim.surfaces.under(swimmer.pos, rules.step_height)
+	assert_true(under == stair or under == passage, "on the stair or the passage at its foot")
+	var wing := TRAWLER.structure.cell_named(&"hold_wing_p")
+	assert_eq(sim.pose().cell_at(swimmer.pos), wing, "in the wing, which is dry")
+
+
+## The tug level with the sea at her main deck, dry inside (seed 3, 1:04): a seat in the sea
+## alongside her engine room, past the wall of it and inside her shell's line, has its feet
+## in that cell's box. The cell's want of water is not the swimmer's: it floats at the sea's
+## level. Read as in the dry cell, its water stood at the cell's floor: it dropped until its
+## feet left the box, floated back up into it, and was put down again, over and over.
+func test_a_swimmer_alongside_her_keeps_the_seas_level() -> void:
+	var rules := _rules()
+	var sim := SimFixtures.sim(2, null, TUG)
+	HeldPose.hold(sim, HeldPose.flooded(TUG, 0.0, {}))
+	SimFixtures.place(sim, 1, Vector3(0.0, 0.0, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(-2.4, -8.0, 4.0))
+	var swimmer := sim.state.seats[0]
+	var afloat := -rules.swim_depth
+	assert_almost_eq(swimmer.pos.y, afloat, 0.0001, "afloat in the sea")
+	var engine_room := TUG.structure.cell_named(&"engine_room")
+	assert_eq(sim.pose().cell_at(swimmer.pos), engine_room, "its feet in the cell's box")
+	assert_eq(sim.surfaces.landing(swimmer.pos), Surfaces.NONE, "and outside its walls")
+	for tick in 3 * Ticks.RATE:
+		SimFixtures.step(sim)
+		assert_almost_eq(swimmer.pos.y, afloat, 0.0001, "tick %d: at the sea's level" % tick)
+		assert_eq(swimmer.body, PlayerState.Body.SWIMMING, "tick %d: in the sea" % tick)

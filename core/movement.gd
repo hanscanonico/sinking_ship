@@ -551,7 +551,7 @@ func _blockers(
 func _held_by(player: PlayerState, feet: Vector3, pose_now: ShipPose) -> Array[Surfaces.Contact]:
 	var swim_step := 0.0
 	if player.body == PlayerState.Body.SWIMMING:
-		swim_step = _swim_step(feet, pose_now.water_height(feet))
+		swim_step = _swim_step(feet, BodyWater.height(_surfaces, pose_now, feet))
 	return BodyHold.contacts(_surfaces, _rules, player, feet, swim_step)
 
 
@@ -812,7 +812,7 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 		return
 	var dt := Ticks.SECONDS_PER_TICK
 	var planar := Vector2(player.vel.x, player.vel.z)
-	var wet := _surfaces.wet(player.pos, pose_now)
+	var wet := BodyWater.wet(_surfaces, pose_now, player.pos)
 	var flowing := _current(player) if wet else Vector2.ZERO
 	_flowing[player.seat] = flowing
 	var dive := 0.0
@@ -848,7 +848,7 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 ## water it is in — its cell's, so it surfaces in a pocket (SH29) — or a crawler's, in
 ## a crawl space (BrawlRules.swim_depth_of); or on the bottom there when that is higher.
 func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose, heading: Vector2) -> float:
-	var sea := pose_now.water_height(feet)
+	var sea := BodyWater.height(_surfaces, pose_now, feet)
 	var bottom := _bottom(feet, feet_before, sea)
 	var height := _rules.height_at(_surfaces, feet)
 	var rest := maxf(sea - _rules.swim_depth_of(height), bottom)
@@ -920,26 +920,14 @@ func _swim_step(feet: Vector3, sea: float) -> float:
 	return maxf(_rules.step_height, minf(sea - _rules.wade_depth, overhead) - feet.y)
 
 
-## [param feet], or the point over them on the surface they went under this tick, come
-## from [param feet_before]'s height: under a flooded room's floor lies another cell, with
-## its own water or none, and a swimmer sunk a hair under that floor is in the room's.
-func _over_floor(feet: Vector3, feet_before: float) -> Vector3:
-	if feet.y >= feet_before:
-		return feet
-	var crossed := _surfaces.landing(Vector3(feet.x, feet_before, feet.z))
-	if crossed == Surfaces.NONE:
-		return feet
-	return Vector3(feet.x, maxf(feet.y, _surfaces.height_at(crossed, feet)), feet.z)
-
-
 ## Whether [param player], not swimming, is in the sea: in the air, its feet under
 ## it over a bottom wade_depth deep or more — it lands on a shallower one; on a
 ## surface, wade_depth under it or more.
 func in_the_sea(player: PlayerState, pose_now: ShipPose) -> bool:
 	if player.body == PlayerState.Body.AIRBORNE:
-		var sea := pose_now.water_height(player.pos)
+		var sea := BodyWater.height(_surfaces, pose_now, player.pos)
 		var depth := sea - _bottom(player.pos, player.pos.y, sea)
-		return _surfaces.wet(player.pos, pose_now) and depth >= _rules.wade_depth
+		return BodyWater.wet(_surfaces, pose_now, player.pos) and depth >= _rules.wade_depth
 	return sea_over(player.surface, player.pos, pose_now) >= _rules.wade_depth
 
 
@@ -1006,9 +994,11 @@ func _blast(player: PlayerState) -> Vector3:
 
 ## After this tick's move: on the bottom, if it went under it; at rest, if it rose
 ## to it, or sank onto it no faster than the water floats a body. The water it is in is
-## the one over the floor it went under (_over_floor), never the cell's under that floor.
+## its own (BodyWater): the one over the floor it went under, never the cell's under that
+## floor, and the sea's outside her walls.
 func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
-	var sea := pose_now.water_height(_over_floor(player.pos, feet_before))
+	var over := BodyWater.over_floor(_surfaces, player.pos, feet_before)
+	var sea := BodyWater.height(_surfaces, pose_now, over)
 	var bottom := _bottom(player.pos, feet_before, sea)
 	var height := height_of(player)
 	var headroom := _headroom(player.pos, feet_before, _heading(player), sea, bottom, height)
@@ -1029,6 +1019,25 @@ func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -
 		player.pos.y = rest
 		rise = 0.0
 	player.vel.y = rise
+
+
+## A swimmer whose feet, come from [param feet_before]'s height, are out of the water over
+## a floor of hers (BodyWater.dry_floor) is in the sea no more: it stands on that floor
+## within a step of it, and falls to it from higher, as any body in the air. True when so.
+func leaves_water(
+	player: PlayerState, feet_before: float, pose_now: ShipPose, tick: int, events: Array[SimEvent]
+) -> bool:
+	var dry := BodyWater.dry_floor(_surfaces, _rules, pose_now, player.pos, feet_before)
+	if dry == Surfaces.NONE:
+		return false
+	var floor_height := _surfaces.height_at(dry, player.pos)
+	if player.pos.y - floor_height <= _rules.step_height:
+		stand(player, dry, tick, events)
+		return true
+	player.body = PlayerState.Body.AIRBORNE
+	player.jumped = false
+	player.fall_from = player.pos.y
+	return true
 
 
 ## A swimmer pressing toward a way out that Surfaces finds (climb_out) within its climb
