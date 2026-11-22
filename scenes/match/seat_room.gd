@@ -80,6 +80,7 @@ func ghost_place(
 	ghost: GhostWalk, schedule: SinkSchedule, snapshot: Dictionary, step: float
 ) -> String:
 	if ghost == null or not ghost.active or snapshot.is_empty():
+		_ghost_place = ""
 		return ""
 	var body := ghost.body
 	var at := [snapshot["tick"], body.piece, body.pos, body.surface, ghost.up()]
@@ -87,9 +88,14 @@ func ghost_place(
 		_ghost_at = at
 		var layout := ghost.layout()
 		var pose := schedule.pose_at(snapshot["tick"]).of_piece(body.piece)
-		var room := of(layout, pose, body.pos, step, body.body == PlayerState.Body.SWIMMING)
+		var afloat := body.body == PlayerState.Body.SWIMMING
+		var room := of(layout, pose, body.pos, step, afloat)
 		var decks := ghost.up() == Faces.Up.DECK
-		_ghost_place = named(layout, room, body.surface if decks else Surfaces.NONE)
+		var place := named(layout, room, body.surface if decks else Surfaces.NONE)
+		# Kept over a stair and through a jump, as a seat's is (held): a stair between
+		# two decks is in no room, and the plate went blank down the boiler room's.
+		if not place.is_empty() or afloat or not decks:
+			_ghost_place = place
 	return _ghost_place
 
 
