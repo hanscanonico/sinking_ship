@@ -100,15 +100,16 @@ func setup(match_rules: MatchRules, choices: MatchChoices) -> void:
 	if not ships.has(String(full.ship)) and Fleet.layout(full.ship) != null:
 		ships.append(String(full.ship))
 	for offered: String in ships:
-		# Shown in words (small titanic), picked by her name.
-		_ship.add_item(offered.replace("_", " "))
+		# Shown in words (Small Titanic), picked by her name.
+		_ship.add_item(_shown(offered))
 		_ship.set_item_metadata(_ship.item_count - 1, offered)
 		if offered == full.ship:
 			_ship.select(_ship.item_count - 1)
 	_offer_seats(full.seats, match_rules.seats)
 	_tier.clear()
 	for offered: String in BotProfile.tiers():
-		_tier.add_item(offered)
+		_tier.add_item(_shown(offered))
+		_tier.set_item_metadata(_tier.item_count - 1, offered)
 		if offered == full.bot_tier:
 			_tier.select(_tier.item_count - 1)
 	_seed.text = full.seed_text
@@ -129,7 +130,7 @@ func choices() -> MatchChoices:
 	picked.ship = picked_ship()
 	picked.seats = _seats.get_selected_id()
 	picked.bot_tier = (
-		StringName(_tier.get_item_text(_tier.selected)) if _tier.selected != -1 else &""
+		StringName(_tier.get_item_metadata(_tier.selected)) if _tier.selected != -1 else &""
 	)
 	picked.fast = _fast.button_pressed
 	picked.bonuses = _bonuses.button_pressed
@@ -205,10 +206,21 @@ static func leave_field(event: InputEvent, field: LineEdit) -> void:
 	field.accept_event()
 
 
-## The fold's line is put together here, so a change of language words it again.
+## The fold's line and the lists' names are put together here, so a change of language
+## words them again.
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_TRANSLATION_CHANGED and is_node_ready():
 		_show_custom(_custom_choices.visible)
+		for list: OptionButton in [_ship, _tier]:
+			for index in list.item_count:
+				list.set_item_text(index, _shown(list.get_item_metadata(index)))
+
+
+## A ship's or a tier's name out of the data as its list shows it: in words, in the
+## player's language, a capital first as every other list's choices have ("Small
+## Titanic", "Facile" — they read "small titanic", "facile").
+static func _shown(named: String) -> String:
+	return Language.titled(named.replace("_", " "))
 
 
 ## The ship picked, by name; empty when none is.
