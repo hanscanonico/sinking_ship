@@ -137,5 +137,17 @@ func test_the_ghost_stands_in_the_room_it_walks() -> void:
 	var deck := String(sim.config.ship.platforms[ghost.body.surface].name)
 	assert_ne(deck, "")
 	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), deck, "its platform")
+	# On a stair or in the air over that deck it is on nothing named: the plate keeps
+	# the deck, and drops it for a ghost afloat there.
+	ghost.body.surface = Surfaces.NONE
+	ghost.body.pos.y += 0.8
+	ghost.body.body = PlayerState.Body.AIRBORNE
+	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), deck, "kept in the air")
+	ghost.body.pos.y += 0.01
+	ghost.body.body = PlayerState.Body.SWIMMING
+	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), "", "afloat: none")
+	ghost.body.pos.y += 0.01
+	ghost.body.body = PlayerState.Body.AIRBORNE
+	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), "", "and none to keep")
 	ghost.leave()
 	assert_eq(rooms.ghost_place(ghost, sim.schedule, snapshot, step), "", "the view left")
