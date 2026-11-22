@@ -187,20 +187,27 @@ func water_level(ship_point: Vector3) -> float:
 ## point there is wet below it — its cell's floor where that cell's first water has not
 ## yet run to it (reached). Its free surface: in a cell that is full, the surface
 ## over its ceiling — the water of the cell over it, so a swimmer under a flooded hold's
-## open top rises into the pocket over it (SH29) — or the sea's, where no cell is. An
-## answer at every attitude, for the sea outside her and the water in each of her cells
-## alike.
+## open top rises into the pocket over it (SH29) — or the sea's, where no cell is. Never
+## under the ceiling of a full cell it is over, though: where the cell over that one is
+## dry at this x/z — its water standing lower than its own floor here, as a trimmed
+## ship's does at her high end — or the sea stands lower than her topmost cell's ceiling,
+## the water tops at that ceiling. An answer at every attitude, for the sea outside her
+## and the water in each of her cells alike.
 func water_height(ship_point: Vector3) -> float:
 	var at := ship_point
 	var cell := cell_at(at)
+	# The ceiling of the last full cell walked up through: -INF before any, which
+	# leaves every answer as it is.
+	var full_to := -INF
 	while cell != CellMap.NONE:
 		at.y = cells.ceiling_of(cell)
 		if levels[cell] < world_height(at):
 			if not reached(cell, ship_point):
-				return cells.floor_of(cell)
-			return height_of(levels[cell], ship_point)
+				return maxf(cells.floor_of(cell), full_to)
+			return maxf(height_of(levels[cell], ship_point), full_to)
+		full_to = at.y
 		cell = cells.cell_at(at)
-	return height_of(0.0, ship_point)
+	return maxf(height_of(0.0, ship_point), full_to)
 
 
 ## The ship-local height over [param ship_point]'s x/z of water standing at world height
