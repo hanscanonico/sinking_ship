@@ -550,7 +550,7 @@ msgid "Hold %s to climb"
 msgstr "Mantén %s para trepar"
 
 msgid "%s — take %s"
-msgstr "%s — coger %s"
+msgstr "%s — tomar %s"
 
 msgid "%s — let go of the %s"
 msgstr "%s — soltar %s"
@@ -610,6 +610,12 @@ msgstr "Inundación"
 msgid "Listing"
 msgstr "Escora"
 
+msgid "By the head"
+msgstr "Hundido de proa"
+
+msgid "By the stern"
+msgstr "Hundido de popa"
+
 msgid "Capsizing"
 msgstr "Zozobra"
 
@@ -631,10 +637,10 @@ msgid "Bot %d"
 msgstr "Bot %d"
 
 msgid "You took %s"
-msgstr "Has cogido %s"
+msgstr "Has tomado %s"
 
 msgid "%s took %s"
-msgstr "%s ha cogido %s"
+msgstr "%s ha tomado %s"
 
 msgid "You went down with her"
 msgstr "Te has hundido con el barco"
@@ -684,7 +690,7 @@ msgid "Knock-outs"
 msgstr "Eliminaciones"
 
 msgid "Rank"
-msgstr "Rango"
+msgstr "Puesto"
 
 msgid "Points"
 msgstr "Puntos"
@@ -788,13 +794,13 @@ msgid "%d seat"
 msgstr "%d jugador"
 
 msgid "Bot %d won"
-msgstr "Ganó Bot %d"
+msgstr "Ha ganado Bot %d"
 
 msgid "You won"
 msgstr "Has ganado"
 
 msgid "The sea won"
-msgstr "Ganó el mar"
+msgstr "Ha ganado el mar"
 
 msgid "Left unfinished"
 msgstr "Sin terminar"

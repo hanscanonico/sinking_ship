@@ -13,7 +13,9 @@ extends CanvasLayer
 ## the table (SessionTally): each name's points and rank over its matches. Under the
 ## table one line tells the ship's fate (setup_fate, MatchTranscript.fate_line): her
 ## name, how her sinking ends and how much of it the match played. A watcher has no seat
-## (-1): the title names who won (watched_title) and no row is picked out.
+## (-1): the title names who won (watched_title) and no row is picked out. The plate
+## stands whole inside the view whatever the seats: its rows set tighter, its names cut
+## shorter, as it needs (_fit_plate).
 
 signal rematch_requested
 signal menu_requested
@@ -33,8 +35,27 @@ const LOCAL_COLOUR := Color(1.0, 0.85, 0.3)
 const PRESS_GUARD_SECONDS := 0.7
 ## The widest a seat's name is shown, in pixels: a server's may be far longer.
 const NAME_WIDTH := 200.0
-## The widest the fate line is shown, in pixels: inside the plate at its narrowest.
-const FATE_WIDTH := 520.0
+## The widths a name is cut to in turn, widest first, until the plate is no wider than
+## the view: the session's standings beside the table show every name twice.
+const NAME_WIDTHS: Array[float] = [NAME_WIDTH, 170.0, 140.0, 110.0]
+## The widest the fate line is shown, in pixels: the longest any ship's is, in any
+## language, with all of her sinking played — a narrower plate widens to it.
+const FATE_WIDTH := 640.0
+## The least of the view left clear around the plate, in pixels a side.
+const PLATE_MARGIN := 12.0
+## How tightly the standings are set, loosest first: the plate takes the first it stands
+## inside the view with (_fit_plate) — a small match the first, sixteen seats with the
+## fate line and the session's standings a far tighter one. Each is its rows' font size,
+## the gap between two rows and the gap between the plate's parts, in pixels.
+const DENSITIES: Array[Vector3i] = [
+	Vector3i(17, 6, 14),
+	Vector3i(16, 4, 12),
+	Vector3i(15, 3, 10),
+	Vector3i(15, 1, 8),
+	Vector3i(14, 0, 8),
+	Vector3i(13, 0, 6),
+	Vector3i(12, 0, 4),
+]
 
 var _guard := Timer.new()
 ## What the two buttons do, as the hint words them.
@@ -43,7 +64,11 @@ var _second_word := "menu"
 ## Whose fate the results tell, and the sinking that tells it (setup_fate).
 var _ship_name := ""
 var _schedule: SinkSchedule
+## Every name on the plate, whole, by the cell that shows it: cut to fit as the plate is.
+var _named: Dictionary[Label, String] = {}
 
+@onready var _plate: PanelContainer = $Panel
+@onready var _box: VBoxContainer = $Panel/Box
 @onready var _title: Label = %Title
 @onready var _table: GridContainer = %Table
 @onready var _session: VBoxContainer = %Session
@@ -94,6 +119,7 @@ func show_results(
 		return
 	_title.text = _title_of(stats, local_seat, names, survival, aboard)
 	for child in _table.get_children():
+		_named.erase(child)
 		_table.remove_child(child)
 		child.queue_free()
 	_table.columns = HEADINGS.size()
@@ -102,20 +128,14 @@ func show_results(
 	for line: MatchStats.SeatStats in stats.standings():
 		var colour := LOCAL_COLOUR if line.seat == local_seat else UiTheme.TEXT
 		_cell(ordinal(line.place), colour)
-		var name_cell := _cell(names[line.seat], colour)
-		name_cell.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-		name_cell.text = UiTheme.fit(
-			name_cell.text,
-			name_cell.get_theme_font(&"font"),
-			name_cell.get_theme_font_size(&"font_size"),
-			NAME_WIDTH
-		)
+		_name_cell(_table, names[line.seat], colour)
 		_cell(MatchTranscript.clock(line.dry_ticks), colour)
 		_cell(str(line.shoves_landed), colour)
 		_cell(str(line.knockouts), colour)
 	show_session(session, names[local_seat] if local_seat >= 0 else "")
 	_show_fate(stats.ended_tick)
 	_seed.text = Language.t("Seed %d") % match_seed
+	_fit_plate()
 	_rematch.disabled = true
 	_watch.disabled = true
 	_menu.disabled = true
@@ -189,12 +209,22 @@ static func fate_words(ship_name: String, schedule: SinkSchedule, tick: int) -> 
 	var timeline := schedule.timeline()
 	if timeline == null:
 		return ""
+	return fate_of(
+		ship_name,
+		MatchTranscript.founders(OutcomeClassifier.labels(timeline)),
+		MatchTranscript.share_played(schedule, tick)
+	)
+
+
+## The fate line of the ship by [param ship_name] whose sinking ends as [param ending]
+## says (MatchTranscript.founders), [param share] of it played, in the language in use.
+static func fate_of(ship_name: String, ending: String, share: float) -> String:
 	return (
 		Language.t("%s · %s · %.0f%% of her sinking played")
 		% [
 			Language.titled(ship_name.to_lower()),
-			Language.t(MatchTranscript.founders(OutcomeClassifier.labels(timeline))),
-			clampf(MatchTranscript.share_played(schedule, tick), 0.0, 1.0) * 100.0,
+			Language.t(ending),
+			clampf(share, 0.0, 1.0) * 100.0,
 		]
 	)
 
@@ -253,6 +283,7 @@ static func ordinal(place: int) -> String:
 ## counted two matches or more; hidden with none, or only the one this is.
 func show_session(session: SessionTally, local_name: String) -> void:
 	for child in _session_table.get_children():
+		_named.erase(child)
 		_session_table.remove_child(child)
 		child.queue_free()
 	_session.visible = session != null and session.matches >= 2
@@ -265,15 +296,54 @@ func show_session(session: SessionTally, local_name: String) -> void:
 	for line: SessionTally.Line in session.standings():
 		var colour := LOCAL_COLOUR if line.name == local_name else UiTheme.TEXT
 		_cell_in(_session_table, ordinal(line.rank), colour)
-		var name_cell := _cell_in(_session_table, line.name, colour)
-		name_cell.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
-		name_cell.text = UiTheme.fit(
-			name_cell.text,
-			name_cell.get_theme_font(&"font"),
-			name_cell.get_theme_font_size(&"font_size"),
-			NAME_WIDTH
-		)
+		_name_cell(_session_table, line.name, colour)
 		_cell_in(_session_table, str(line.points), colour)
+
+
+## Sets the plate inside the view: the standings as loosely as it stands no taller than
+## the view with (DENSITIES), then the names as wide as it stands no wider with
+## (NAME_WIDTHS). Twelve seats and up ran it off the top and the bottom of the screen,
+## its buttons with it; the session's standings beside sixteen long names off its sides.
+func _fit_plate() -> void:
+	var room := _plate.get_viewport_rect().size - Vector2.ONE * 2.0 * PLATE_MARGIN
+	for density: Vector3i in DENSITIES:
+		_set_density(density)
+		_fit_names(NAME_WIDTH)
+		if _plate.get_combined_minimum_size().y <= room.y:
+			break
+	for width: float in NAME_WIDTHS:
+		_fit_names(width)
+		if _plate.get_combined_minimum_size().x <= room.x:
+			break
+
+
+## Sets the standings as [param density] says (DENSITIES).
+func _set_density(density: Vector3i) -> void:
+	for grid: GridContainer in [_table, _session_table]:
+		grid.add_theme_constant_override("v_separation", density.y)
+		for cell: Node in grid.get_children():
+			(cell as Label).add_theme_font_size_override("font_size", density.x)
+	_session.add_theme_constant_override("separation", density.y)
+	_box.add_theme_constant_override("separation", density.z)
+
+
+## Cuts every name on the plate to [param width] pixels.
+func _fit_names(width: float) -> void:
+	for cell: Label in _named:
+		cell.text = UiTheme.fit(
+			_named[cell],
+			cell.get_theme_font(&"font"),
+			cell.get_theme_font_size(&"font_size"),
+			width
+		)
+
+
+## A cell of [param grid] for the name [param seat_name], shown as the server sent it
+## and cut to fit by _fit_plate.
+func _name_cell(grid: GridContainer, seat_name: String, colour: Color) -> void:
+	var cell := _cell_in(grid, seat_name, colour)
+	cell.auto_translate_mode = Node.AUTO_TRANSLATE_MODE_DISABLED
+	_named[cell] = seat_name
 
 
 func _cell(text: String, colour: Color) -> Label:
