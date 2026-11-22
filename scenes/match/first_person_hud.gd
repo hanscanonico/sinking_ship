@@ -124,6 +124,8 @@ const DIALS := Vector2(285.0, 145.0)
 const WARNING := Color(1.0, 0.25, 0.2)
 const BLINK_TICKS := 6
 const CHIP_TEXT := 420.0
+## The widest a prompt under the crosshair is drawn: nothing stands beside it.
+const PROMPT_TEXT := 420.0
 ## How long a phase's name stays up once it begins.
 const BANNER_SECONDS := 4.0
 const BANNER_FONT_SIZE := 30
@@ -277,7 +279,7 @@ func _draw_hud() -> void:
 		var words := grab_words(answers.framed, _seat, _reach, answers.here, grab, press)
 		if not words.is_empty():
 			var at := _canvas.size * 0.5 + PROMPT_BELOW
-			_text(at, words, TEXT, READOUT_TEXT)
+			_text(at, words, TEXT, PROMPT_TEXT)
 			if press.aboard != -1:
 				var kind := _reach.kinds[answers.framed["bonuses"][press.aboard]["kind"]]
 				var size := _font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
@@ -443,7 +445,8 @@ func _draw_crosshair(lit: bool) -> void:
 
 ## The place the plate names (SeatRoom.named): where the ghost stands while the view is
 ## its, else the room the seat shown is in — afloat in it too — else the platform under
-## it on her decks; "" for none, and for a seat out of the match.
+## it on her decks, kept over a stair and through a jump (SeatRoom.held); "" for none,
+## and for a seat out of the match.
 func place() -> String:
 	_room = -1
 	if ghost != null and ghost.active:
@@ -454,7 +457,8 @@ func place() -> String:
 	var decks := MatchState.up_of(_snapshot, me) == Faces.Up.DECK
 	var where := _answers.faces.layout(Faces.Up.DECK)
 	_room = _rooms.of_seat(where, _answers.pose, me, _rules.step_height)
-	return SeatRoom.named(where, _room, me["surface"] if decks else Surfaces.NONE)
+	var named := SeatRoom.named(where, _room, me["surface"] if decks else Surfaces.NONE)
+	return _rooms.held(named, me, decks)
 
 
 ## Bottom left, over the readouts and on their plate: [param where], the place's name.
@@ -1025,7 +1029,7 @@ func _draw_climb_prompt(me: Dictionary, here: Surfaces, pose: ShipPose) -> void:
 	if here.climb_out(me["pos"], toward, pose, _rules, _seat_rules().climb_reach) == null:
 		return
 	var at := _canvas.size * 0.5 + PROMPT_BELOW
-	_text(at, Language.t("Hold %s to climb") % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
+	_text(at, Language.t("Hold %s to climb") % _prompts.word(&"move_up"), TEXT, PROMPT_TEXT)
 
 
 ## The frost's crystals: the edges between the cells of a seamless cellular noise,

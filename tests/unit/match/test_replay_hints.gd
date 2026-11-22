@@ -35,7 +35,13 @@ func test_no_line_starts_or_ends_on_a_dot() -> void:
 			var prompts: InputPrompts = autofree(InputPrompts.new())
 			prompts.pad = pad
 			var hints := ReplayHud.hints(prompts)
-			assert_eq(hints.size(), ReplayHud.HINTS.size(), "one hint for each key")
+			var keyed := 0
+			for hint: Array in ReplayHud.HINTS:
+				keyed += 0 if prompts.word(hint[0]).is_empty() else 1
+			assert_eq(hints.size(), keyed, "one hint for each key the device has")
+			assert_gt(hints.size(), 5, "and it has most")
+			for hint: String in hints:
+				assert_gt(hint.split(" ").size(), 1, "a key and what it does: " + hint)
 			for width: float in [200.0, 480.0, 800.0, AT_1152, 1896.0, 4000.0]:
 				var text := ReplayHud.hint_text(hints, font, FONT_SIZE, width)
 				var found := PackedStringArray()
@@ -89,3 +95,17 @@ func test_the_plate_breaks_its_hints_to_its_width() -> void:
 	assert_gt(lines.size(), 2)
 	for line: String in lines:
 		assert_false(line.ends_with("·") or line.ends_with(" "), line)
+
+
+## A pad has no button to the replay's start or its end: it is told of neither, where it
+## read "to the start" with nothing to press.
+func test_a_pad_is_not_told_of_what_it_has_no_button_for() -> void:
+	var prompts: InputPrompts = autofree(InputPrompts.new())
+	prompts.pad = false
+	var keyboard := ReplayHud.hints(prompts)
+	assert_true(keyboard.has("Home to the start"), "a keyboard has the key")
+	prompts.pad = true
+	var pad := ReplayHud.hints(prompts)
+	assert_lt(pad.size(), keyboard.size())
+	for hint: String in pad:
+		assert_false(hint.ends_with("to the start") or hint.ends_with("to the end"), hint)

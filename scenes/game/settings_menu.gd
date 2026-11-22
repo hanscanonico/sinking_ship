@@ -41,6 +41,9 @@ var _opener: Control
 ## the exclusive mode, which would do nothing there, are not offered.
 var on_web := OS.has_feature("web")
 
+## The tallest of the pages so far, which every page is as tall as (show_page).
+var _tallest := 216.0
+
 @onready var _master: HSlider = %Master
 @onready var _music: HSlider = %Music
 @onready var _effects: HSlider = %Effects
@@ -146,7 +149,13 @@ func open(page := Page.SOUND) -> void:
 func show_page(page: Page) -> void:
 	_rebinding = &""
 	_show_keys()
+	# One height for every page, the tallest's: the plate, its title and its tabs
+	# stood higher or lower with each page clicked through.
+	for each: Control in _pages:
+		each.custom_minimum_size.y = 0.0
+		_tallest = maxf(_tallest, each.get_combined_minimum_size().y)
 	for index in _pages.size():
+		_pages[index].custom_minimum_size.y = _tallest
 		_pages[index].visible = index == page
 		_tabs[index].set_pressed_no_signal(index == page)
 
