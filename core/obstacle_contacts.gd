@@ -187,6 +187,14 @@ func contacts(
 		var top := s.height_at(surface, Vector3(closest.x, 0.0, closest.y))
 		if not (reach_up < top and head > bottoms[surface]):
 			continue
+		# A slab is all edge: a body wholly in under its area is through the deck — under it,
+		# or sunk into it — and at no edge of it, however far off the nearest one is.
+		if (
+			surface < first_ramp
+			and bottoms[surface] == top
+			and PlaneShapes.inside(area, point, radius)
+		):
+			continue
 		if stair == Surfaces.UNASKED:
 			stair = _stair_under(s, point, feet, step)
 		if surface < first_ramp and top <= _along(s, stair, closest, feet) + step:

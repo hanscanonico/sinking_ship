@@ -103,6 +103,13 @@ bool rect_contact(const Vector2 &p_position, const Vector2 &p_size, const Vector
 	return true;
 }
 
+// PlaneShapes.inside over the rectangle at p_position, p_size.
+bool inside(const Vector2 &p_position, const Vector2 &p_size, const Vector2 &p_point, double p_radius) {
+	const Vector2 end = p_position + p_size;
+	return double(p_point.x) - double(p_position.x) >= p_radius && double(end.x) - double(p_point.x) >= p_radius &&
+			double(p_point.y) - double(p_position.y) >= p_radius && double(end.y) - double(p_point.y) >= p_radius;
+}
+
 // PlaneShapes.circle_contact.
 bool circle_contact(const Vector2 &p_centre, double p_circle_radius, const Vector2 &p_point, double p_radius,
 		ContactHit &r_hit) {
@@ -952,6 +959,10 @@ void NativeSurfaces::obstacles(const Vector3 &p_ship_point, double p_radius, dou
 		const Vector2 closest = point.clamp(position, position + size);
 		const double top = height_at(surface, double(closest.x), double(closest.y));
 		if (!(reach_up < top && head > bottoms_[surface])) {
+			continue;
+		}
+		// A slab is all edge: a body wholly in under its area is at no edge of it.
+		if (surface < first_ramp_ && bottoms_[surface] == top && inside(position, size, point, p_radius)) {
 			continue;
 		}
 		if (stair == UNASKED) {
