@@ -549,17 +549,10 @@ func _blockers(
 ## What holds back [param player] with its feet at [param feet] — its height before this
 ## tick's move — as _blockers meets it.
 func _held_by(player: PlayerState, feet: Vector3, pose_now: ShipPose) -> Array[Surfaces.Contact]:
-	var step := _rules.step_height
-	var height := _rules.body_height
-	var crawl := _rules.crawl_height
-	if player.body != PlayerState.Body.GROUNDED:
-		height = height_of(player)
-		crawl = INF
-	if player.body == PlayerState.Body.AIRBORNE:
-		step = AIR_STEP
-	elif player.body == PlayerState.Body.SWIMMING:
-		step = _swim_step(feet, pose_now.water_height(feet))
-	return _surfaces.obstacle_contacts(feet, _rules.body_radius, height, step, Surfaces.NONE, crawl)
+	var swim_step := 0.0
+	if player.body == PlayerState.Body.SWIMMING:
+		swim_step = _swim_step(feet, pose_now.water_height(feet))
+	return BodyHold.contacts(_surfaces, _rules, player, feet, swim_step)
 
 
 ## A railing stops a grounded body crossing it slower than vault_speed — it loses
