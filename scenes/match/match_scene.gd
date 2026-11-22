@@ -780,7 +780,7 @@ func _show_replay(snapshot: Dictionary, viewed: int) -> void:
 ## from the snapshot (D5) — the standings, the sinking's effects and the cues.
 func _on_sought(_tick: int) -> void:
 	_stats = MatchStats.new(_config.seats, _config.countdown_ticks)
-	_order = (_order as ReplayEyes).again(_stats)
+	_order = (_order as ReplayEyes).again(_stats) if _order is ReplayEyes else _order
 	_feed.clear()
 	_fx.clear()
 	_audio.rewind()
