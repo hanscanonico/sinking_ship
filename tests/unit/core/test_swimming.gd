@@ -578,29 +578,36 @@ func test_a_swimmer_carried_over_a_dry_compartment_lands_on_its_floor() -> void:
 	assert_eq(sim.pose().cell_at(swimmer.pos), wing, "in the wing, which is dry")
 
 
-## The trawler dry, and a seat off its feet in the air of her fish hold, still on its way up,
-## as one whose water has gone from under it: it falls and lands on what stands under it, as
-## any body in the air — neither on through the lower deck as a swimmer over no water, nor
-## put down in one tick to where it would float in the water the dry hold has not got.
+## The trawler dry, the sea a metre under her main deck, and a seat off its feet in the air
+## over her working deck, the sky over it and nothing of hers about it, still on its way
+## up, as one whose water has gone from under it: it falls where it is and lands on the deck
+## under it, as any body in the air — neither on through that deck as a swimmer over no
+## water, nor put down in one tick to where it would float in the water the deck has not got.
 func test_a_swimmer_with_no_water_under_it_falls_to_the_floor() -> void:
 	var rules := _rules()
 	var sim := SimFixtures.sim(2, null, TRAWLER)
 	HeldPose.hold(sim, HeldPose.flooded(TRAWLER, -1.0, {}))
 	SimFixtures.place(sim, 1, Vector3(9.0, 2.3, 0.0))
-	SimFixtures.swim(sim, 0, Vector3(2.0, 0.0, -1.8))
+	var over := Vector3(5.0, 0.6, 0.0)
+	SimFixtures.swim(sim, 0, over)
 	var swimmer := sim.state.seats[0]
-	swimmer.pos.y = -0.5
+	swimmer.pos.y = over.y
 	swimmer.vel.y = 2.0
-	var lower_deck := TRAWLER.platforms[SimFixtures.platform_named(TRAWLER, &"lower deck")].height
+	var deck := SimFixtures.platform_named(TRAWLER, &"working deck")
+	var deck_height := TRAWLER.platforms[deck].height
+	var working_deck := TRAWLER.structure.cell_named(&"working_deck")
+	assert_eq(sim.pose().cell_at(swimmer.pos), working_deck, "in a cell of hers, which is dry")
 	for tick in Ticks.RATE:
 		var before := swimmer.pos.y
 		SimFixtures.step(sim)
 		assert_gt(swimmer.pos.y, before - rules.step_height, "tick %d: falls, is not put" % tick)
-		assert_gt(swimmer.pos.y, lower_deck - 0.001, "tick %d: never under the deck" % tick)
+		assert_gt(swimmer.pos.y, deck_height - 0.001, "tick %d: never under the deck" % tick)
 		assert_ne(swimmer.body, PlayerState.Body.SWIMMING, "tick %d: not in the sea" % tick)
+		var aside := Vector2(swimmer.pos.x - over.x, swimmer.pos.z - over.z).length()
+		assert_almost_eq(aside, 0.0, 0.001, "tick %d: thrown nowhere" % tick)
 	assert_eq(swimmer.body, PlayerState.Body.GROUNDED, "landed")
-	var stood := sim.surfaces.height_at(swimmer.surface, swimmer.pos)
-	assert_almost_eq(swimmer.pos.y, stood, 0.0001, "on what stood under it")
+	assert_eq(swimmer.surface, deck, "on the deck under it")
+	assert_almost_eq(swimmer.pos.y, deck_height, 0.0001, "at its height")
 
 
 ## The trawler dry, and a seat off its feet lying on the lower deck of her fish hold, as one
