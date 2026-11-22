@@ -240,6 +240,11 @@ extends Resource
 ## How deep the water over a floating crate's floor may stand where nothing roofs it
 ## before the sea sweeps it away, in metres: more than wade_depth, which lifts it.
 @export var crate_adrift_depth: float
+## How far short of the depth that lifted it the water over a floating crate's floor
+## must fall before it is set down again, in metres: one afloat where the water stands
+## at that very depth stays afloat as the water wavers, rather than standing and
+## lifting by turns. Less than wade_depth.
+@export var crate_aground_slack: float
 ## A falling funnel landing on a body (Hazards, SH31): the speed it sends it out of the
 ## strip it lands across, in m/s, and the seconds it is staggered — knocked down; no
 ## brace takes anything off a funnel.
@@ -398,6 +403,7 @@ func problems() -> PackedStringArray:
 		"crate_float_drag",
 		"crate_float_pull",
 		"crate_adrift_depth",
+		"crate_aground_slack",
 		"struck_knockback",
 		"struck_stagger",
 	]:
@@ -493,4 +499,6 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: crate_float_pull must not exceed 1")
 	if crate_adrift_depth <= wade_depth:
 		found.append("brawl rules: crate_adrift_depth must be more than wade_depth")
+	if crate_aground_slack >= wade_depth:
+		found.append("brawl rules: crate_aground_slack must be less than wade_depth")
 	return found
