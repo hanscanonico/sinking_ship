@@ -642,6 +642,12 @@ msgstr "Vous avez coulé avec le navire"
 msgid "%s went down with her"
 msgstr "%s a coulé avec le navire"
 
+msgid "The cold got you"
+msgstr "Le froid vous a eu"
+
+msgid "The cold got %s"
+msgstr "Le froid a eu %s"
+
 msgid "You went into the sea"
 msgstr "Vous êtes tombé à la mer"
 

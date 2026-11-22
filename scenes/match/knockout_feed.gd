@@ -24,6 +24,9 @@ const WIDTH := 420.0
 
 var _names := PackedStringArray()
 var _own_seat := -1
+## The match's sim, null for none, and which of its seats went out aboard (feed_line).
+var _sim: MatchSim
+var _rooms := SeatRoom.new()
 ## Her layout, whose bonus spots and rooms a bonus's line names, and the kinds the match's
 ## bonuses may be (BonusRules.kinds): none in a match without bonuses.
 var _layout: ShipLayout
@@ -52,8 +55,11 @@ func setup(
 	names: PackedStringArray,
 	own_seat: int,
 	layout: ShipLayout = null,
-	bonus_rules: BonusRules = null
+	bonus_rules: BonusRules = null,
+	sim: MatchSim = null
 ) -> void:
+	_sim = sim
+	_rooms.forget()
 	_own_seat = own_seat
 	_names = PackedStringArray()
 	for seat_name in names:
@@ -71,7 +77,11 @@ func add(events: Array[SimEvent]) -> void:
 	for event: SimEvent in events:
 		match event.kind:
 			SimEvent.Kind.SEAT_OUT:
-				_post(feed_line(_fitted(), event.seat, event.credit, _own_seat, event.cause))
+				var aboard := _sim != null and _rooms.out_aboard(_sim, _sim.snapshot(), event.seat)
+				var line := feed_line(
+					_fitted(), event.seat, event.credit, _own_seat, event.cause, aboard
+				)
+				_post(line)
 			SimEvent.Kind.BONUS_CAME:
 				var kind := _kinds[event.bonus]
 				var room := _layout.rooms[_layout.bonus_spots[event.spot].room].name
@@ -96,19 +106,25 @@ func clear() -> void:
 ## The feed's line for [param out_seat] going out by [param cause]: into the sea, with
 ## [param credit] the seat whose shove sent it, or -1 — or down with her, inside her as
 ## she went, whoever shoved it last; [param own_seat] is said as "You". [param names]
-## labels each seat.
+## labels each seat. A seat no shove sent, out [param aboard] — in a room of hers or on
+## a deck the water came over (SeatRoom.out_aboard) — went into no sea: the cold got it.
 static func feed_line(
 	names: PackedStringArray,
 	out_seat: int,
 	credit: int,
 	own_seat: int,
-	cause := PlayerState.Cause.COLD
+	cause := PlayerState.Cause.COLD,
+	aboard := false
 ) -> String:
 	var own_out := out_seat == own_seat
 	if cause == PlayerState.Cause.WITH_HER:
 		if own_out:
 			return Language.t("You went down with her")
 		return Language.t("%s went down with her") % names[out_seat]
+	if credit < 0 and aboard:
+		if own_out:
+			return Language.t("The cold got you")
+		return Language.t("The cold got %s") % names[out_seat]
 	if credit < 0:
 		if own_out:
 			return Language.t("You went into the sea")
