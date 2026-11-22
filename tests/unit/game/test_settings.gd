@@ -339,3 +339,33 @@ func test_a_run_can_be_drawn_at_chosen_graphics_to_measure_them() -> void:
 	var unset := MatchArgs.parse(PackedStringArray())
 	assert_eq(unset.quality, ViewSettings.AUTOMATIC)
 	assert_eq(unset.render_scale, float(ViewSettings.AUTOMATIC))
+
+
+## The plate's title and tabs stand where they stood whatever the page: the pages are
+## centred on the plate, and the Keys and Graphics pages being the taller, the title
+## stood higher or lower with each page clicked through.
+func test_the_title_keeps_its_place_from_page_to_page() -> void:
+	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
+	menu.audio_path = AUDIO_PATH
+	menu.view_path = VIEW_PATH
+	menu.keys_path = KEYS_PATH
+	add_child(menu)
+	var pages := [
+		SettingsMenu.Page.SOUND,
+		SettingsMenu.Page.KEYS,
+		SettingsMenu.Page.GRAPHICS,
+		SettingsMenu.Page.CONTROLS,
+		SettingsMenu.Page.SOUND,
+	]
+	menu.open(SettingsMenu.Page.GRAPHICS)
+	await wait_frames(2)
+	var title: Control = menu.get_node("Panel/Box/Title")
+	var panel: Control = menu.get_node("Panel")
+	var stood := title.global_position.y
+	assert_gt(stood, panel.global_position.y, "on the plate")
+	for page: SettingsMenu.Page in pages:
+		menu.show_page(page)
+		await wait_frames(2)
+		assert_eq(title.global_position.y, stood, "page %d" % page)
+		var box: Control = menu.get_node("Panel/Box")
+		assert_lte(box.size.y, panel.size.y, "and page %d fits the plate" % page)
