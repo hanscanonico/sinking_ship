@@ -75,10 +75,10 @@ native:
 #       at that moment of the sinking, in physics time after the hit, in place of AT;
 #       JUMP=1 bakes, seeks the timeline there and starts the match JUMP's lead before
 #       it, every seat on whatever is dry then — no hours of brawl first (§5b.4)
-#   make capture SCREEN=menu|settings|graphics|online|room [CAPTURE=]   the main menu,
+#   make capture SCREEN=menu|settings|graphics|online|room|replays|credits [CAPTURE=]   the main menu,
 #       the settings screen over it — on its Graphics page for graphics —, the Online
-#       screen, or a room — its players made up, no server asked — with no match
-#       started (no AT)
+#       screen, a room — its players made up, no server asked —, the replays list or
+#       the credits, with no match started (no AT)
 #   make capture SCREEN=hold [SEED=] [ARGS=--bake-budget=1]   the countdown held for a
 #       bake still running (R20), its bar half way; a slow slice budget makes one hold
 #   make capture SCREEN=pause AT=60 [EYE=]   the pause menu over the match at AT
@@ -168,7 +168,7 @@ match:
 
 # --fixed-fps steps one tick per drawn frame, so the capture lands on its exact
 # tick however fast the machine draws. A capture is silent: the Dummy driver.
-# SCREEN=menu, settings, graphics, online, room or replays starts no match, so it neither
+# SCREEN=menu, settings, graphics, online, room, replays or credits starts no match, so it neither
 # autoplays nor takes AT; pause, online-pause and online-settings stand over the match
 # at AT. One game window at a time on a shared machine: capture and fps take the window
 # lock themselves (tools/window_lock.sh), a kernel lock released on any exit, so never
@@ -182,14 +182,14 @@ match:
 # paced clock, and 120 more; CAPTURE_LIMIT=0 for none. It is also stopped the moment its
 # output shows its scripts failed to compile (a stale import, among the likely causes)
 # or one script error 100 times over.
-menu-screen = $(filter menu settings graphics online room replays,$(SCREEN))
+menu-screen = $(filter menu settings graphics online room replays credits,$(SCREEN))
 CAPTURE_LIMIT ?=
 capture-limit = $(or $(CAPTURE_LIMIT),$(shell awk -v at='$(AT)' -v phys='$(PHYS)' 'BEGIN { \
 	n = split(phys, p, ":"); s = 0; for (i = 1; i <= n; i++) s = s * 60 + p[i]; \
 	print int(600 + 10 * at + 2 * s + 120) }'))
 capture:
 	$(call require-godot)
-	@test -n "$(AT)$(PHYS)$(filter menu settings graphics online room replays results hold,$(SCREEN))" || \
+	@test -n "$(AT)$(PHYS)$(filter menu settings graphics online room replays credits results hold,$(SCREEN))" || \
 		{ echo "capture: AT=<seconds of match time> or PHYS=<h:mm:ss of physics> is required" >&2; exit 1; }
 	@mkdir -p "$(dir $(CAPTURE))"
 	ENGINE_GUARD_LIMIT=$(capture-limit) ENGINE_GUARD_EARLY=1 \
