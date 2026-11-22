@@ -17,7 +17,10 @@ const DUCK_LOOK := 0.1
 ## at [param sea] — nor one too low for a body over [param bottom]. Under a deck the sea is
 ## filling, it stays under that deck as the water closes over its head; a head pressed
 ## into the deck — by as little as its feet's height rounds up, CLEARANCE_SLACK under it —
-## would be pushed out sideways by it, through a wall or the hull.
+## would be pushed out sideways by it, through a wall or the hull. Its bottom is under it:
+## come from deeper water over the edge of a flooded deck, more than a step under that
+## deck's top, it is on that deck (Movement.come_to_rest lifts it there) and looks for what
+## is over its head from there — that deck is its floor, never a ceiling to be put under.
 static func swimming(
 	surfaces: Surfaces,
 	rules: BrawlRules,
@@ -28,13 +31,14 @@ static func swimming(
 	height: float
 ) -> float:
 	var body := height + Surfaces.CLEARANCE_SLACK
-	var room := surfaces.ceiling(from, rules.step_height) - body
+	var feet := Vector3(from.x, maxf(from.y, bottom), from.z)
+	var room := surfaces.ceiling(feet, rules.step_height) - body
 	if heading == Vector2.ZERO:
 		return room
 	var reach := rules.body_radius + rules.swim_speed * Ticks.SECONDS_PER_TICK
 	var looks := ceili(reach / DUCK_LOOK)
 	for look in range(1, looks + 1):
-		var ahead := from + Vector3(heading.x, 0.0, heading.y) * (reach * look / looks)
+		var ahead := feet + Vector3(heading.x, 0.0, heading.y) * (reach * look / looks)
 		var over := surfaces.ceiling(ahead, rules.step_height)
 		if over > sea - rules.wade_depth and over - body >= bottom:
 			room = minf(room, over - body)
