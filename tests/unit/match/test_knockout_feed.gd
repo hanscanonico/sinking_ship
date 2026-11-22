@@ -120,7 +120,7 @@ func test_a_bonus_coming_aboard_names_its_kind_and_its_room() -> void:
 			"Double life: hold",
 		]
 	)
-	var mark := SimFixtures.double_life().mark
+	var mark := KnockoutFeed.ink(SimFixtures.double_life())
 	assert_eq(_colours(feed), [mark, mark, mark, mark], "in its kind's colour")
 
 
@@ -138,7 +138,10 @@ func test_a_bonus_taken_names_who_took_which() -> void:
 	feed.add([SimEvent.bonus_taken(700, 3, 1, 0), SimEvent.bonus_lost(710, 0, 0)])
 	feed.add([SimEvent.double_life_spent(720, 3, 0), SimEvent.bonus_taken(730, 2, 0, 0)])
 	assert_eq(_lines(feed), ["Di took Plain", "You took Double life"])
-	assert_eq(_colours(feed), [Color.AQUAMARINE, kinds[0].mark], "each in its kind's colour")
+	var inks := [KnockoutFeed.ink(plain), KnockoutFeed.ink(kinds[0])]
+	assert_eq(_colours(feed), inks, "each in its kind's colour")
+	for kind: BonusKind in SimFixtures.bonus_rules(1.0).kinds:
+		assert_gt(KnockoutFeed.ink(kind).get_luminance(), 0.45, "read on the dark outline")
 
 
 ## The match hands the feed her layout and the bonus rules it plays (#313): a bonus coming
