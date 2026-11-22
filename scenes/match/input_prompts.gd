@@ -160,10 +160,10 @@ static func word_for(events: Array[InputEvent], on_pad: bool) -> String:
 	for event: InputEvent in events:
 		if on_pad and event is InputEventJoypadButton:
 			var button := (event as InputEventJoypadButton).button_index
-			return Language.t(PAD_BUTTONS.get(button, "Button %d" % button), ON_PAD)
+			return _numbered(PAD_BUTTONS, button, "Button %d", ON_PAD)
 		if on_pad and event is InputEventJoypadMotion:
 			var axis := (event as InputEventJoypadMotion).axis
-			return Language.t(PAD_AXES.get(axis, "Axis %d" % axis))
+			return _numbered(PAD_AXES, axis, "Axis %d")
 		if not on_pad and event is InputEventKey:
 			var key := event as InputEventKey
 			var keycode := key.keycode
@@ -173,8 +173,20 @@ static func word_for(events: Array[InputEvent], on_pad: bool) -> String:
 			return Language.t(named, ON_KEYBOARD)
 		if not on_pad and event is InputEventMouseButton:
 			var button := (event as InputEventMouseButton).button_index
-			return Language.t(MOUSE_BUTTONS.get(button, "Mouse %d" % button))
+			return _numbered(MOUSE_BUTTONS, button, "Mouse %d")
 	return ""
+
+
+## What [param names] calls button or axis [param index], in the player's language —
+## or, for one it has no name for, [param pattern] with its number: the pattern is
+## what the catalogs hold, so it is translated before it is filled ("Souris 8", where
+## "Mouse 8" was looked up whole and found nowhere).
+static func _numbered(
+	names: Dictionary, index: int, pattern: String, context: StringName = &""
+) -> String:
+	if names.has(index):
+		return Language.t(names[index], context)
+	return Language.t(pattern, context) % index
 
 
 ## The key [param physical] types on the keyboard's layout — Q on QWERTY, A on
