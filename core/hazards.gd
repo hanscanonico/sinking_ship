@@ -888,6 +888,8 @@ func _run_into_bodies(
 			var normal := offset / distance if distance > 0.0 else Vector2.RIGHT
 			_wake(crates, crate)
 			_collide(crate, player, normal, reach - distance, tick, events)
+			# Her walls hold the body the crate pushed, and the body the crate.
+			BodyHold.walled(_surfaces, _rules, player, crate, reach)
 			box = _box_of(bodies)
 			# The body moved: a later crate at rest it now reaches is asked in its turn.
 			_within_reach(visit, grid, player, crate.prop)
