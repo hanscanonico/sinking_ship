@@ -476,3 +476,33 @@ func test_the_plate_is_drawn_again_only_once_the_ghost_s_place_changes() -> void
 	assert_ne(hud.place(), first)
 	assert_eq(hud.place(), "forward hold")
 	assert_eq(draws[0], 2, "drawn again for its new place")
+
+
+## The prompts under the crosshair read whole in every language, on the keys and on a
+## pad: at the readouts' width, "Maintenez Stick gauche pour grimper" was cut at both
+## ends, and "G — let go of the dining table" too.
+func test_the_prompts_under_the_crosshair_fit() -> void:
+	var font := ThemeDB.fallback_font
+	var longest := ""
+	for language: String in Language.locales():
+		Language.use(language)
+		for pad: bool in [false, true]:
+			var prompts: InputPrompts = autofree(InputPrompts.new())
+			prompts.pad = pad
+			var said: Array[String] = [
+				Language.t("Hold %s to climb") % prompts.word(&"move_up"),
+				Language.t("%s — take %s") % [prompts.word(&"grab"), Language.t("Strong arms")],
+				(
+					Language.t("%s — let go of the %s")
+					% [prompts.word(&"grab"), Language.with_article("dining table")]
+				),
+			]
+			for words: String in said:
+				var wide := font.get_string_size(
+					words, HORIZONTAL_ALIGNMENT_LEFT, -1, FirstPersonHud.FONT_SIZE
+				)
+				assert_lte(wide.x, FirstPersonHud.PROMPT_TEXT, words)
+				if wide.x > FirstPersonHud.READOUT_TEXT:
+					longest = words
+	Language.use(Language.SOURCE)
+	assert_ne(longest, "", "and some are wider than the readouts")

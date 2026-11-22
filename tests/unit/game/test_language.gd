@@ -136,6 +136,7 @@ func test_every_name_out_of_the_data_has_its_line() -> void:
 	names.append_array(EndOverlay.SESSION_HEADINGS)
 	names.append_array(InputPrompts.PAD_AXES.values().filter(_is_words))
 	names.append_array(InputPrompts.MOUSE_BUTTONS.values())
+	names.append_array(SinkSchedule.PHASES)
 	for hint: Array in ReplayHud.HINTS:
 		names.append(hint[1])
 	for line: String in InputPrompts.pause_controls_for(false, true).split("\n"):
@@ -276,3 +277,22 @@ func _files(dir: String, extensions: Array) -> PackedStringArray:
 	for sub: String in DirAccess.get_directories_at(dir):
 		found.append_array(_files(dir.path_join(sub), extensions))
 	return found
+
+
+## A button or an axis the game has no name for is its kind and its number, in the
+## player's language: a mouse's thumb button read "Mouse 8" in French and Spanish.
+func test_a_button_with_no_name_is_numbered_in_the_language() -> void:
+	var thumb := InputEventMouseButton.new()
+	thumb.button_index = MOUSE_BUTTON_XBUTTON1
+	var paddle := InputEventJoypadButton.new()
+	paddle.button_index = JOY_BUTTON_PADDLE1
+	var axis := InputEventJoypadMotion.new()
+	axis.axis = 9 as JoyAxis
+	Language.use("fr")
+	assert_eq(InputPrompts.word_for([thumb], false), "Souris 8")
+	assert_eq(InputPrompts.word_for([paddle], true), "Bouton %d" % JOY_BUTTON_PADDLE1)
+	assert_eq(InputPrompts.word_for([axis], true), "Axe 9")
+	Language.use("es")
+	assert_eq(InputPrompts.word_for([thumb], false), "Ratón 8")
+	Language.use(Language.SOURCE)
+	assert_eq(InputPrompts.word_for([thumb], false), "Mouse 8")
