@@ -193,7 +193,7 @@ func test_the_hud_s_lines_read_in_the_language_in_use() -> void:
 	Language.use("fr")
 	assert_eq(Hud.whose_view("Bot 3", false, false), "par les yeux de Bot 3")
 	assert_eq(Hud.out_word(PlayerState.Cause.WITH_HER), "Coulé")
-	assert_eq(FirstPersonHud.height_words(2.04), "2.0 m au-dessus de la mer")
+	assert_eq(FirstPersonHud.height_words(2.04), "2.0 m au-dessus de l'eau")
 	assert_eq(FirstPersonHud.straining_words(&"funnel_4"), "CHEMINÉE 4 VA CÉDER")
 	assert_eq(FirstPersonHud.straining_words(&"funnel"), "LA CHEMINÉE VA CÉDER")
 	assert_eq(EndOverlay.survived(Ticks.from_seconds(134.0), 3), "Survie 02:14.0 · 3e")
@@ -296,3 +296,25 @@ func test_a_button_with_no_name_is_numbered_in_the_language() -> void:
 	assert_eq(InputPrompts.word_for([thumb], false), "Ratón 8")
 	Language.use(Language.SOURCE)
 	assert_eq(InputPrompts.word_for([thumb], false), "Mouse 8")
+
+
+## French as a player reads it: Esc is Échap as Space is Espace, a colon has its space
+## before it, and the height over the sea fits its plate with two digits of metres
+## ("13.3 m au-dessus de la mer" ran to the plate's edge on the Titanic's decks).
+func test_french_keys_colons_and_heights() -> void:
+	var escape := InputEventKey.new()
+	escape.keycode = KEY_ESCAPE
+	var room := FirstPersonHud.plate_rect(Vector2(1152.0, 648.0)).size.x - 2.0 * 12.0
+	for language: String in Language.locales():
+		Language.use(language)
+		var high := FirstPersonHud.height_words(99.9)
+		var wide := ThemeDB.fallback_font.get_string_size(
+			high, HORIZONTAL_ALIGNMENT_LEFT, -1, FirstPersonHud.FONT_SIZE
+		)
+		assert_lte(wide.x, room, high)
+	Language.use("fr")
+	assert_eq(InputPrompts.word_for([escape], false), "Échap")
+	assert_eq(Language.t("%s: %s") % ["Pied sûr", "cale"], "Pied sûr : cale")
+	assert_eq(Language.t("Sure footing"), "Pied sûr")
+	Language.use(Language.SOURCE)
+	assert_eq(InputPrompts.word_for([escape], false), "Esc")

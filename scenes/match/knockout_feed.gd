@@ -85,7 +85,8 @@ func add(events: Array[SimEvent]) -> void:
 			SimEvent.Kind.BONUS_CAME:
 				var kind := _kinds[event.bonus]
 				var room := _layout.rooms[_layout.bonus_spots[event.spot].room].name
-				_in_colour(_post("%s: %s" % [Language.t(kind.title), Language.named(room)]), kind)
+				var came := Language.t("%s: %s") % [Language.t(kind.title), Language.named(room)]
+				_in_colour(_post(came), kind)
 			SimEvent.Kind.BONUS_TAKEN:
 				var kind := _kinds[event.bonus]
 				var title := Language.t(kind.title)
