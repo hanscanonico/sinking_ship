@@ -374,6 +374,10 @@ msgid "d-pad right"
 msgstr "cruceta derecha"
 
 msgctxt "key"
+msgid "Esc"
+msgstr "Esc"
+
+msgctxt "key"
 msgid "Space"
 msgstr "Espacio"
 
@@ -635,6 +639,10 @@ msgstr "Tú"
 
 msgid "Bot %d"
 msgstr "Bot %d"
+
+# A bonus come aboard, and the room it lies in.
+msgid "%s: %s"
+msgstr "%s: %s"
 
 msgid "You took %s"
 msgstr "Has tomado %s"
