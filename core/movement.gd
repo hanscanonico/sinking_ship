@@ -995,25 +995,29 @@ func _blast(player: PlayerState) -> Vector3:
 ## After this tick's move: on the bottom, if it went under it; at rest, if it rose
 ## to it, or sank onto it no faster than the water floats a body. The water it is in is
 ## its own (BodyWater): the one over the floor it went under, never the cell's under that
-## floor, and the sea's outside her walls.
+## floor, and the sea's outside her walls. Over water standing far under it — past an edge,
+## another cell's — it has not risen to where it floats: it falls there, never put down.
 func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
 	var over := BodyWater.over_floor(_surfaces, player.pos, feet_before)
 	var sea := BodyWater.height(_surfaces, pose_now, over)
 	var bottom := _bottom(player.pos, feet_before, sea)
 	var height := height_of(player)
 	var headroom := _headroom(player.pos, feet_before, _heading(player), sea, bottom, height)
-	var rest := minf(maxf(sea - _rules.swim_depth_of(height), bottom), headroom)
+	var afloat := maxf(sea - _rules.swim_depth_of(height), bottom)
+	var rest := minf(afloat, headroom)
 	var rise := player.vel.y
 	if player.pos.y < bottom:
 		player.pos.y = bottom
 		rise = maxf(rise, 0.0)
 	var speed := _rules.float_speed
+	var dt := Ticks.SECONDS_PER_TICK
 	var risen := rise > 0.0 and player.pos.y >= rest
+	risen = risen and player.pos.y <= afloat + maxf(rise, speed) * dt
 	var settled := (
 		rise <= 0.0
 		and rise >= -speed
 		and player.pos.y <= rest
-		and player.pos.y >= rest - speed * Ticks.SECONDS_PER_TICK
+		and player.pos.y >= rest - speed * dt
 	)
 	if risen or settled:
 		player.pos.y = rest
