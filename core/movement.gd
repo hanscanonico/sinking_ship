@@ -44,9 +44,6 @@ extends RefCounted
 ## pressed into walls or railings by more than it gives had no room where it went
 ## (_unsqueeze).
 const CONTACT_PASSES := 4
-## How far apart a swimmer looks for a ceiling along the way it swims, out to where its
-## circle reaches next (_headroom): half the thinnest lintel, so none slips between.
-const DUCK_LOOK := 0.1
 ## How far one pass of _bodies may push a body before the pairs it took from the grid
 ## at its start may miss one (_pairs): a pair it skipped was more than four of these
 ## farther apart than touching then, and once it has pushed any body this far it scans
@@ -852,35 +849,8 @@ func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose, heading: Ve
 	var bottom := _bottom(feet, feet_before, sea)
 	var height := _rules.height_at(_surfaces, feet)
 	var rest := maxf(sea - _rules.swim_depth_of(height), bottom)
-	return minf(rest, _headroom(feet, feet_before, heading, sea, bottom, height))
-
-
-## The highest a swimmer's feet at [param feet]'s x/z, coming from
-## [param feet_before]'s height, may rest: its [param height] under the lowest deck over
-## its head (Surfaces.ceiling) — and, swimming [param heading], under the lowest along
-## the way to where its circle reaches next, so it ducks under a lintel or a deck's
-## edge it swims into: through a flooded doorway into the next cell, to surface there.
-## Not under one it floats over — wade_depth under its water at [param sea] — nor one
-## too low for a body over [param bottom]. Under a deck the sea is filling, it stays
-## under that deck as the water closes over its head; a head pressed into the deck — by
-## as little as its feet's height rounds up, CLEARANCE_SLACK under it — would be pushed
-## out sideways by it, through a wall or the hull.
-func _headroom(
-	feet: Vector3, feet_before: float, heading: Vector2, sea: float, bottom: float, height: float
-) -> float:
 	var from := Vector3(feet.x, feet_before, feet.z)
-	var body := height + Surfaces.CLEARANCE_SLACK
-	var room := _surfaces.ceiling(from, _rules.step_height) - body
-	if heading == Vector2.ZERO:
-		return room
-	var reach := _rules.body_radius + _rules.swim_speed * Ticks.SECONDS_PER_TICK
-	var looks := ceili(reach / DUCK_LOOK)
-	for look in range(1, looks + 1):
-		var ahead := from + Vector3(heading.x, 0.0, heading.y) * (reach * look / looks)
-		var over := _surfaces.ceiling(ahead, _rules.step_height)
-		if over > sea - _rules.wade_depth and over - body >= bottom:
-			room = minf(room, over - body)
-	return room
+	return minf(rest, BodyHeadroom.swimming(_surfaces, _rules, from, heading, sea, bottom, height))
 
 
 ## The way a swimmer presses, x/z, a unit vector — none while it presses none or is
@@ -997,12 +967,17 @@ func _blast(player: PlayerState) -> Vector3:
 ## its own (BodyWater): the one over the floor it went under, never the cell's under that
 ## floor, and the sea's outside her walls. Over water standing far under it — past an edge,
 ## another cell's — it has not risen to where it floats: it falls there, never put down.
+## Rising past where it floats — air going free lifts it faster than the water does
+## (_swim) — it stops with its head under the deck over it, as a body in the air does
+## (_ceilings), and loses its upward speed.
 func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
 	var over := BodyWater.over_floor(_surfaces, player.pos, feet_before)
 	var sea := BodyWater.height(_surfaces, pose_now, over)
 	var bottom := _bottom(player.pos, feet_before, sea)
 	var height := height_of(player)
-	var headroom := _headroom(player.pos, feet_before, _heading(player), sea, bottom, height)
+	var from := Vector3(player.pos.x, feet_before, player.pos.z)
+	var heading := _heading(player)
+	var headroom := BodyHeadroom.swimming(_surfaces, _rules, from, heading, sea, bottom, height)
 	var afloat := maxf(sea - _rules.swim_depth_of(height), bottom)
 	var rest := minf(afloat, headroom)
 	var rise := player.vel.y
@@ -1022,6 +997,13 @@ func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -
 	if risen or settled:
 		player.pos.y = rest
 		rise = 0.0
+	elif rise > 0.0:
+		var under := BodyHeadroom.swimming(
+			_surfaces, _rules, from, Vector2.ZERO, sea, bottom, height
+		)
+		if player.pos.y > under:
+			player.pos.y = under
+			rise = 0.0
 	player.vel.y = rise
 
 

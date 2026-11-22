@@ -665,3 +665,68 @@ func test_a_swimmer_alongside_her_keeps_the_seas_level() -> void:
 		SimFixtures.step(sim)
 		assert_almost_eq(swimmer.pos.y, afloat, 0.0001, "tick %d: at the sea's level" % tick)
 		assert_eq(swimmer.body, PlayerState.Body.SWIMMING, "tick %d: in the sea" % tick)
+
+
+## The flat deck [param depth] under the sea, a swimmer afloat over it — and, where
+## [param roof] is not INF, a deck that high over it, wide of it on every side.
+func _over_a_sunk_deck(depth: float, roof: float) -> MatchSim:
+	var layout := SimFixtures.crated([])
+	if roof != INF:
+		var over := ShipPlatform.new()
+		over.name = &"roof"
+		over.area = Rect2(-2.0, -4.0, 4.0, 8.0)
+		over.height = roof
+		layout.platforms = layout.platforms.duplicate()
+		layout.platforms.append(over)
+	var sea := SimFixtures.deck().freeboard + depth
+	var sinking := SimFixtures.scenario([[0.0, sea, 0.0, 0.0], [60.0, sea, 0.0, 0.0]])
+	var sim := SimFixtures.sim(1, sinking, layout)
+	SimFixtures.swim(sim, 0, Vector3(0.3, 0.0, 0.2))
+	SimFixtures.step(sim, {}, 5)
+	return sim
+
+
+## Air going free under a swimmer lifts it at up to blast_speed a pocket, faster than the
+## water floats it (Falls.blast_on): for as long as it blows the swimmer rises, and a deck
+## over it stops its head as it stops a body's in the air. Nothing else held it there: put
+## on its rest only within a tick's rise of where it floats (#791), it rose on through the
+## deck — a slab holds a body under it only at its edges (#792) — and stood on it.
+func test_a_swimmer_lifted_under_a_deck_is_stopped_by_it() -> void:
+	var rules := _rules()
+	var roof := 2.6
+	var blown := Ticks.from_seconds(0.6)
+	for lift: float in [rules.float_speed, rules.blast_speed, 2.0 * rules.blast_speed, 30.0]:
+		for depth: float in [1.9, 2.0, 2.2]:
+			var sim := _over_a_sunk_deck(depth, roof)
+			var swimmer := sim.state.seats[0]
+			var from := swimmer.pos
+			var where := "lifted at %.0f m/s in %.1f m of water" % [lift, depth]
+			var highest := -INF
+			var swam := true
+			for tick in 2 * Ticks.RATE:
+				if tick < blown:
+					swimmer.vel.y = lift
+				SimFixtures.step(sim)
+				highest = maxf(highest, swimmer.pos.y)
+				swam = swam and swimmer.body == PlayerState.Body.SWIMMING
+			assert_true(swam, where + ": in the water throughout")
+			assert_lte(highest + rules.body_height, roof, where + ": its head under the deck")
+			assert_eq(Vector2(swimmer.pos.x, swimmer.pos.z), Vector2(from.x, from.z), where)
+			assert_almost_eq(swimmer.pos.y, from.y, 0.0001, where + ": back at rest")
+
+
+## Under the open sky the same lift carries it up out of the water, to fall back in.
+func test_a_swimmer_lifted_under_the_sky_rises_out_of_the_water() -> void:
+	var rules := _rules()
+	var sim := _over_a_sunk_deck(2.0, INF)
+	var swimmer := sim.state.seats[0]
+	var from := swimmer.pos
+	var highest := -INF
+	for tick in 3 * Ticks.RATE:
+		if tick < Ticks.from_seconds(0.6):
+			swimmer.vel.y = 2.0 * rules.blast_speed
+		SimFixtures.step(sim)
+		highest = maxf(highest, swimmer.pos.y)
+	assert_gt(highest, from.y + 2.6, "it rose past where a deck would have stood")
+	assert_eq(swimmer.body, PlayerState.Body.SWIMMING)
+	assert_almost_eq(swimmer.pos.y, from.y, 0.0001, "and came back to rest")
