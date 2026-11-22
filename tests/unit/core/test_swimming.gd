@@ -578,6 +578,27 @@ func test_a_swimmer_carried_over_a_dry_compartment_lands_on_its_floor() -> void:
 	assert_eq(sim.pose().cell_at(swimmer.pos), wing, "in the wing, which is dry")
 
 
+## The trawler dry, and a seat off its feet in the air of her fish hold, as one whose water
+## has gone from under it: it falls and lands on what stands under it, as any body in the
+## air — not on through the lower deck as a swimmer over no water.
+func test_a_swimmer_with_no_water_under_it_falls_to_the_floor() -> void:
+	var sim := SimFixtures.sim(2, null, TRAWLER)
+	HeldPose.hold(sim, HeldPose.flooded(TRAWLER, -1.0, {}))
+	SimFixtures.place(sim, 1, Vector3(9.0, 2.3, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(2.0, 0.0, -1.8))
+	var swimmer := sim.state.seats[0]
+	swimmer.pos.y = -0.5
+	var lower_deck := TRAWLER.platforms[SimFixtures.platform_named(TRAWLER, &"lower deck")].height
+	SimFixtures.step(sim)
+	assert_eq(swimmer.body, PlayerState.Body.AIRBORNE, "in the air, not in the sea")
+	for tick in Ticks.RATE:
+		SimFixtures.step(sim)
+		assert_gt(swimmer.pos.y, lower_deck - 0.001, "tick %d: never under the deck" % tick)
+	assert_eq(swimmer.body, PlayerState.Body.GROUNDED, "landed")
+	var stood := sim.surfaces.height_at(swimmer.surface, swimmer.pos)
+	assert_almost_eq(swimmer.pos.y, stood, 0.0001, "on what stood under it")
+
+
 ## The tug level with the sea at her main deck, dry inside (seed 3, 1:04): a seat in the sea
 ## alongside her engine room, past the wall of it and inside her shell's line, has its feet
 ## in that cell's box. The cell's want of water is not the swimmer's: it floats at the sea's
