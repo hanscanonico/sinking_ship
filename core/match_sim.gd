@@ -931,7 +931,8 @@ func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector
 
 ## The water is a countdown (SH5). A body whose feet go wade_depth into the sea, or that falls
 ## into it, or that the current sweeps off its feet (Movement.swept), swims. A swimmer comes to
-## rest (Movement.come_to_rest), stands up where the bottom rises within stand_depth of the sea
+## rest (Movement.come_to_rest), is in the sea no more once out of the water over a dry floor
+## (Movement.leaves_water), stands up where the bottom rises within stand_depth of the sea
 ## and no current there would sweep it off its feet again, and climbs out where it can
 ## (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it swims
 ## and does not climb, its cold meter drains — at pocket_cold_rate of the open water's with its
@@ -963,6 +964,8 @@ func _water(
 			_movement.climb(player, tick, events)
 			continue
 		_movement.come_to_rest(player, feet_before[player.seat], pose_now)
+		if _movement.leaves_water(player, feet_before[player.seat], pose_now, tick, events):
+			continue
 		var ground := _here().under(player.pos, _rules.step_height)
 		var depth := 0.0
 		if ground != Surfaces.NONE:
