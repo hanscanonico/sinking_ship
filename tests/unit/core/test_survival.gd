@@ -21,8 +21,9 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## boiler cells, then #381's blocker name for her deck gear, then the bonus kinds' icons, the
 ## most of a kind a seat holds and Sure footing's 44°, then #591's body_give, then #616's currents
 ## and wade_speed_deep, then #620's wet_grip, then #631's pour_topple and blasts, then #587's
-## side rails on the steamer's flights): the goals must not move the battle royale's.
-const BATTLE_ROYALE_HASH := "0014343acc4ecc5be99ea799a5879f230689938443d2cc7a3591fb9744fbf000"
+## side rails on the steamer's flights, then crate_aground_slack): the goals must not move
+## the battle royale's.
+const BATTLE_ROYALE_HASH := "66d038742f2bbf831b2d950ce21e507fc8829adfd50c08f8187df7bacf990a87"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

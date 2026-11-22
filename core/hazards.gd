@@ -1043,10 +1043,10 @@ func _sea(crates: Array[PropState], pose: ShipPose, tick: int, events: Array[Sim
 
 ## Floats [param crate] on its cell's water under [param pose]: its underside its ride
 ## under the water over its x/z (PropKind.ride), never under the floor beneath it. Set
-## down on that floor once the water over it is too shallow to lift it. True when it is
-## lost: its top at the ceiling over it — for one that floats aboard, never: pressed
-## under it — or, with none, the water over its floor crate_adrift_depth deep — or
-## nothing under it at all.
+## down on that floor once the water over it is crate_aground_slack short of lifting it.
+## True when it is lost: its top at the ceiling over it — for one that floats aboard,
+## never: pressed under it — or, with none, the water over its floor crate_adrift_depth
+## deep — or nothing under it at all.
 func _float(crate: PropState, pose: ShipPose) -> bool:
 	var prop := _props[crate.prop]
 	var kind := _kinds[crate.prop]
@@ -1057,7 +1057,7 @@ func _float(crate: PropState, pose: ShipPose) -> bool:
 	var water := pose.water_height(crate.pos)
 	crate.surface = floor_surface
 	crate.vel.y = 0.0
-	if water - floor_height < kind.lift(_rules):
+	if water - floor_height < kind.lift(_rules) - _rules.crate_aground_slack:
 		crate.body = PropState.Body.GROUNDED
 		crate.pos.y = floor_height
 		return false

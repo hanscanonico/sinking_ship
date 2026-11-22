@@ -78,6 +78,61 @@ func test_a_table_stands_in_the_water_until_it_floats() -> void:
 	assert_almost_eq(table.pos.y, _water(sim, at) - draft, 0.0001, "riding its draft deep")
 
 
+## The sea over the flat deck risen to a chair's draft in 4 s, wavering 4 mm either side
+## of it — as a room's water does while she pitches — until [param until] seconds, then
+## fallen [param fall] under the draft a second later and back at it a second after.
+func _wavering(until: float, fall: float) -> SinkScenario:
+	var edge := SimFixtures.deck().freeboard
+	var draft := PropKind.named(&"dining_chair").draft
+	var rows := [[0.0, edge, 0.0, 0.0], [4.0, edge + draft + 0.004, 0.0, 0.0]]
+	var at := 4.2
+	var under := true
+	while at < until:
+		rows.append([at, edge + draft + (-0.004 if under else 0.004), 0.0, 0.0])
+		under = not under
+		at += 0.2
+	rows.append([until + 1.0, edge + draft - fall, 0.0, 0.0])
+	rows.append([until + 2.0, edge + draft + 0.004, 0.0, 0.0])
+	return SimFixtures.scenario(rows)
+
+
+func test_a_chair_afloat_in_water_wavering_at_its_draft_is_announced_once() -> void:
+	var at := Vector3(-8.0, 0.0, 0.0)
+	var props: Array[ShipProp] = [SimFixtures.chair(at)]
+	var slack := _rules().crate_aground_slack
+	var sim := _kept_dry(_wavering(10.0, slack * 2.0), _laid(props, 2.5), 2.5)
+	var chair := sim.state.props[0]
+	var events := SimFixtures.step(sim, {}, Ticks.from_seconds(4.1))
+	assert_eq(chair.body, PropState.Body.FLOATING, "lifted as the water reached its draft")
+	assert_eq(_of(events, SimEvent.Kind.PROP_AFLOAT).size(), 1)
+	var lowest := chair.pos.y
+	var highest := chair.pos.y
+	var stood := 0
+	var again := 0
+	for _tick in Ticks.from_seconds(5.9):
+		again += _of(SimFixtures.step(sim), SimEvent.Kind.PROP_AFLOAT).size()
+		stood += 0 if chair.body == PropState.Body.FLOATING else 1
+		lowest = minf(lowest, chair.pos.y)
+		highest = maxf(highest, chair.pos.y)
+	assert_eq(again, 0, "not announced again while it stays afloat")
+	assert_eq(stood, 0, "afloat all along, never set down and lifted by turns")
+	assert_lt(highest - lowest, 0.01, "its height steady")
+	SimFixtures.step(sim, {}, Ticks.from_seconds(1.0))
+	assert_eq(chair.body, PropState.Body.GROUNDED, "set down once the water fell well short")
+	assert_eq(chair.pos.y, 0.0)
+	events = SimFixtures.step(sim, {}, Ticks.from_seconds(1.0))
+	assert_eq(chair.body, PropState.Body.FLOATING, "and lifted again at its draft")
+	assert_eq(_of(events, SimEvent.Kind.PROP_AFLOAT).size(), 1)
+
+
+func test_an_aground_slack_as_deep_as_the_water_that_lifts_cargo_is_refused() -> void:
+	var rules: BrawlRules = _rules().duplicate()
+	rules.crate_aground_slack = rules.wade_depth
+	assert_true(
+		rules.problems().has("brawl rules: crate_aground_slack must be less than wade_depth")
+	)
+
+
 func test_furniture_afloat_rides_pressed_under_a_roof_where_cargo_is_lost() -> void:
 	var props: Array[ShipProp] = [
 		SimFixtures.table(Vector3(0.0, 0.0, -1.5)), SimFixtures.crate(Vector3(0.0, 0.0, 1.5))

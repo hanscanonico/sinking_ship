@@ -95,5 +95,6 @@ crate_draft = 0.35
 crate_float_drag = 0.97
 crate_float_pull = 0.25
 crate_adrift_depth = 1.0
+crate_aground_slack = 0.05
 struck_knockback = 7.0
 struck_stagger = 1.5
