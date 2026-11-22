@@ -613,6 +613,12 @@ msgstr "Gîte"
 msgid "Capsizing"
 msgstr "Chavirement"
 
+msgid "By the head"
+msgstr "Enfoncé de l'avant"
+
+msgid "By the stern"
+msgstr "Enfoncé de l'arrière"
+
 msgid "Breaking"
 msgstr "Rupture"
 

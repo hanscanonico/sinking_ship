@@ -124,6 +124,8 @@ const DIALS := Vector2(285.0, 145.0)
 const WARNING := Color(1.0, 0.25, 0.2)
 const BLINK_TICKS := 6
 const CHIP_TEXT := 420.0
+## The widest a prompt under the crosshair is drawn: nothing stands beside it.
+const PROMPT_TEXT := 420.0
 ## How long a phase's name stays up once it begins.
 const BANNER_SECONDS := 4.0
 const BANNER_FONT_SIZE := 30
@@ -277,7 +279,7 @@ func _draw_hud() -> void:
 		var words := grab_words(answers.framed, _seat, _reach, answers.here, grab, press)
 		if not words.is_empty():
 			var at := _canvas.size * 0.5 + PROMPT_BELOW
-			_text(at, words, TEXT, READOUT_TEXT)
+			_text(at, words, TEXT, PROMPT_TEXT)
 			if press.aboard != -1:
 				var kind := _reach.kinds[answers.framed["bonuses"][press.aboard]["kind"]]
 				var size := _font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE)
@@ -1027,7 +1029,7 @@ func _draw_climb_prompt(me: Dictionary, here: Surfaces, pose: ShipPose) -> void:
 	if here.climb_out(me["pos"], toward, pose, _rules, _seat_rules().climb_reach) == null:
 		return
 	var at := _canvas.size * 0.5 + PROMPT_BELOW
-	_text(at, Language.t("Hold %s to climb") % _prompts.word(&"move_up"), TEXT, READOUT_TEXT)
+	_text(at, Language.t("Hold %s to climb") % _prompts.word(&"move_up"), TEXT, PROMPT_TEXT)
 
 
 ## The frost's crystals: the edges between the cells of a seamless cellular noise,

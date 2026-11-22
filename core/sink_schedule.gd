@@ -32,6 +32,19 @@ const LISTING_DEG := 5.0
 const TRIMMED_DEG := 2.0
 ## How many ticks' poses are kept to be handed out again (pose_at).
 const KEPT_POSES := 8
+## Every phase the physics names (_physical_phase), as the banner words them: what the
+## catalogs each hold a line for.
+const PHASES: Array[String] = [
+	"Holed",
+	"Flooding",
+	"Listing",
+	"By the head",
+	"By the stern",
+	"Capsizing",
+	"Breaking",
+	"Afloat",
+	"Aground",
+]
 
 
 ## One of an authored scenario's events, placed on this match's ticks.
