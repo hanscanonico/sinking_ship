@@ -127,12 +127,15 @@ func show_state(
 		_lay_out_hints()
 
 
-## The keys' hints, worded by [param prompts]: each its key and what it does — and only
-## that where the device has no key for it.
+## The keys' hints, worded by [param prompts]: each its key and what it does. What the
+## device has no key for is left out: "to the start" with nothing to press says nothing
+## to a pad's player.
 static func hints(prompts: InputPrompts) -> PackedStringArray:
 	var words := PackedStringArray()
 	for hint: Array in HINTS:
-		words.append(("%s %s" % [prompts.word(hint[0]), Language.t(hint[1])]).strip_edges())
+		var key := prompts.word(hint[0])
+		if not key.is_empty():
+			words.append("%s %s" % [key, Language.t(hint[1])])
 	return words
 
 
