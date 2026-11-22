@@ -31,6 +31,8 @@ const PARAMS: Array[StringName] = [
 	&"thrown",
 	&"burst",
 	&"leaking",
+	&"room_low",
+	&"room_high",
 ]
 
 

@@ -7,6 +7,9 @@ extends RefCounted
 ## is the sheet it would have been had it been there all along. What is kept of each is
 ## InnerWater's.
 
+## The room of a pour that falls into the sea: everywhere.
+const ANYWHERE := AABB(Vector3.ONE * -1e9, Vector3.ONE * 2e9)
+
 
 ## [param water]'s cell [param cell]'s surface — its stack [param stack]'s, by index into
 ## InnerWater._stacks, where not -1 — made the first time it is asked for.
@@ -72,3 +75,48 @@ static func tell(water: InnerWater, cell: int, parameter: StringName, value: Var
 static func show_waders_on(sheet: MeshInstance3D, padded: PackedVector4Array, count: int) -> void:
 	InnerWater._param(sheet, &"waders", padded)
 	InnerWater._param(sheet, &"wader_count", count)
+
+
+## Per side of each of [param passages] in [param structure] — the cell [param sides] has
+## there, -1 for the sea or the sky — the box a pour falling into that side is drawn in,
+## ship space: the cell's own and its opening's span [param spans], which stands on the
+## cell's face or, a ventilator's or a pipe's, off it — to its faces and no further, as a
+## deck's planks lie on its top and a sliver over them would show; everywhere for the
+## sea. A sheet is hung level with the world across its opening's whole width and falls
+## along the world's down, so as she leans a wide opening's sheet leaves the cell — a
+## hatch's stands over the deck at its low end, a hold's lining's 40 m of it runs out
+## through her deck and her bottom, into the sea.
+static func rooms(
+	structure: ShipStructure, passages: int, sides: PackedInt32Array, spans: Array[AABB]
+) -> Array[AABB]:
+	var found: Array[AABB] = []
+	for at in passages * 2:
+		var side := sides[at]
+		if side == -1:
+			found.append(ANYWHERE)
+			continue
+		var cell := structure.cells[side]
+		# A span's size is as its opening was written: a screen's runs down from its top.
+		found.append(AABB(cell.low, cell.high - cell.low).merge(spans[at >> 1].abs()))
+	return found
+
+
+## Keeps the pour through [param water]'s passage [param index], its crossing and its
+## landing, as drawn this frame, inside the side it falls into: the one whose water
+## stands lower, the sea at 0 (InnerWater._show_pour).
+static func keep(water: InnerWater, index: int) -> void:
+	var first := water._sides[index * 2]
+	var second := water._sides[index * 2 + 1]
+	var head := 0.0 if first == -1 else water._levels[first]
+	var other := 0.0 if second == -1 else water._levels[second]
+	var room := water._rooms[index * 2 + (1 if head >= other else 0)]
+	_keep(water, water._pours[index], room)
+	_keep(water, water._landings[index], room)
+	if water._crossings[index] != null:
+		_keep(water, water._crossings[index], room)
+
+
+static func _keep(water: InnerWater, sheet: WaterSheet, room: AABB) -> void:
+	sheet.keep_in(room)
+	if water._slot == -1:
+		InnerWater._param(sheet, &"world_to_ship", water._ship.affine_inverse())

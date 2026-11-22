@@ -10,6 +10,7 @@ shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
 
 #include "res://scenes/art/sea_ripple.gdshaderinc"
+#include "res://scenes/art/pour_room.gdshaderinc"
 
 uniform vec4 foam_colour : source_color = vec4(0.97, 1.0, 0.99, 1.0);
 uniform vec4 water_colour : source_color = vec4(0.1, 0.46, 0.53, 1.0);
@@ -63,9 +64,14 @@ void vertex() {
 	// On the sea, up and down with its ripple, as the sea is drawn.
 	vec3 at = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	VERTEX.y += sea_ripple(at.xz, TIME) * outdoor;
+	in_ship = pour_in_ship(at);
 }
 
 void fragment() {
+	// A pour's landing, only in the room it lands in (pour_room.gdshaderinc).
+	if (pour_out_of_room(in_ship)) {
+		discard;
+	}
 	vec2 at = UV * extent;
 	vec2 off = (UV - 0.5) * 2.0;
 	float from_middle = length(off) + (value_noise(at * 2.5 + TIME * 0.3) - 0.5) * 0.5;

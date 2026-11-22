@@ -18,6 +18,8 @@ var _strength := NAN
 var _thrown := Vector3(NAN, NAN, NAN)
 var _burst := NAN
 var _outdoor := NAN
+## The box it is kept in, ship space (pour_room.gdshaderinc); none yet.
+var _room := AABB(Vector3.ONE * NAN, Vector3.ZERO)
 
 
 ## Hangs it as [param basis] at [param middle], pouring as hard as [param strength] says,
@@ -61,8 +63,20 @@ func lay(basis: Basis, at: Vector3, strength: float, burst: float) -> void:
 	visible = true
 
 
+## Keeps it inside [param room], ship space: the cell its pour falls into, where it is
+## drawn and nowhere else (InnerWaterSheets.keep).
+func keep_in(room: AABB) -> void:
+	if room == _room:
+		return
+	_room = room
+	var material := material_override as ShaderMaterial
+	material.set_shader_parameter(&"room_low", room.position)
+	material.set_shader_parameter(&"room_high", room.end)
+
+
 ## Forgets what it was handed: the next hang or lay hands it everything.
 func forget() -> void:
+	_room = AABB(Vector3.ONE * NAN, Vector3.ZERO)
 	_placed = UNSET
 	_extent = Vector2(NAN, NAN)
 	_strength = NAN

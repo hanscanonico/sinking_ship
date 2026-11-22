@@ -4,10 +4,10 @@ extends Node3D
 ## each cell's at its own level, level with the world however she leans — but as it
 ## sloshes when she turns (CellSlosh) — and drawn only inside its cell (CellSurface) —
 ## in the sea's colours, lit as the room it stands in is (inner_water.gdshader) — the
-## watertight doors the ship slides shut at the hit, water
-## pouring through an opening wherever one side's water stands over its bottom and
-## higher than the other side's, falling along the world's down (spill.gdshader),
-## boiling into froth where it lands, and air blown out of an opening as the water
+## watertight doors the ship slides shut at the hit, water pouring through an opening
+## wherever one side's water stands over its bottom and higher than the other side's,
+## falling along the world's down (spill.gdshader), boiling into froth where it lands,
+## both only in the cell it falls into (InnerWaterSheets.keep), and air blown out as the water
 ## reaches its top, bursting the surface in bubbles there (froth.gdshader) — and, from
 ## SH29, a pocket's air: small bubbles rising to the water over a pocket where it leaks,
 ## a burst at the opening a pocket's air goes out by as it goes free, and the water under
@@ -172,6 +172,8 @@ var _landings: Array[WaterSheet] = []
 var _sides := PackedInt32Array()
 var _floors := PackedFloat64Array()
 var _spans: Array[AABB] = []
+## Per side of each opening, the box a pour falling into it is drawn in (InnerWaterSheets).
+var _rooms: Array[AABB] = []
 ## Per opening, its middle, and half its box's diagonal and TICK_SLACK: however she
 ## leans, its bottom stands no further under its middle than that, nor its top over it
 ## (_find_wet); and its two sides' cells as _find_wet reads them, the sea's after hers.
@@ -342,6 +344,7 @@ func setup(
 		_centres.append(opening.centre)
 		_reaches.append(opening.size.length() * 0.5 + TICK_SLACK)
 		_drawn.append(0 if opening.kind in unseen or _open_top(opening) else 1)
+	_rooms = InnerWaterSheets.rooms(structure, _passages.size(), _sides, _spans)
 	if native != null:
 		native.lay_out_openings(structure, _passages, _spans, _floors)
 	_bursts.clear()
@@ -816,6 +819,7 @@ func _slide(door: StringName) -> Vector3:
 func _pour() -> WaterSheet:
 	var material := ShaderMaterial.new()
 	material.shader = SPILL_SHADER
+	material.set_shader_parameter(&"slot", _slot)
 	material.set_shader_parameter(&"water_colour", _sea.get_shader_parameter(&"shallow_colour"))
 	material.set_shader_parameter(&"foam_colour", _sea.get_shader_parameter(&"foam_colour"))
 	# Over the water it pours into, whichever is nearer the eye.
@@ -937,6 +941,7 @@ func _show_pour(index: int, levels: PackedFloat64Array, pose: ShipPose) -> void:
 		var edge_on := Basis(normal * width, _up * tall, across)
 		crossing.hang(edge_on, middle, strength, Vector3(thrown / width, 0.0, 0.0), outdoor)
 	landing.lay(patch, lands, strength, -1.0)
+	InnerWaterSheets.keep(self, index)
 
 
 ## How hard a pour is drawn pouring, THINNEST…1: from [param flow], the water passing its
@@ -1041,6 +1046,7 @@ func _burst_out(index: int, side: int, level: float, opening: ShipOpening) -> vo
 func _froth(froth: MeshInstance3D = null) -> MeshInstance3D:
 	var material := ShaderMaterial.new()
 	material.shader = FROTH_SHADER
+	material.set_shader_parameter(&"slot", _slot)
 	material.set_shader_parameter(&"water_colour", _sea.get_shader_parameter(&"shallow_colour"))
 	material.set_shader_parameter(&"foam_colour", _sea.get_shader_parameter(&"foam_colour"))
 	material.render_priority = 1

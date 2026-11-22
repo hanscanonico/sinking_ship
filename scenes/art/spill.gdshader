@@ -7,8 +7,11 @@
 // meets the water under it, where the froth there (froth.gdshader) takes it. In the
 // sea's colours, lit as the ship's faces are (ship.gdshaderinc): by the lamps of the
 // room it falls into, and by the sun too where it pours in from outdoors, never glowing.
+// Drawn only inside the room it falls into (pour_room.gdshaderinc).
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_disabled;
+
+#include "res://scenes/art/pour_room.gdshaderinc"
 
 uniform vec4 water_colour : source_color = vec4(0.1, 0.46, 0.53, 1.0);
 uniform vec4 foam_colour : source_color = vec4(0.97, 1.0, 0.99, 1.0);
@@ -45,9 +48,14 @@ float value_noise(vec2 p) {
 void vertex() {
 	// UV.y runs down it from where it leaves the higher water, out of its opening.
 	VERTEX += thrown * sqrt(clamp(UV.y, 0.0, 1.0));
+	in_ship = pour_in_ship((MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz);
 }
 
 void fragment() {
+	// Only in the room it falls into (pour_room.gdshaderinc).
+	if (pour_out_of_room(in_ship)) {
+		discard;
+	}
 	vec2 at = UV * extent;
 	float t = TIME * fall_speed;
 	// How far it has fallen, quickening as it falls, so whatever rides it scrolls down
