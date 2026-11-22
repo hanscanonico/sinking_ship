@@ -59,6 +59,24 @@ msgstr "Bonificaciones"
 msgid "Play"
 msgstr "Jugar"
 
+msgid "How many play, you included: bots take the other seats"
+msgstr "Cuántos juegan, contigo: los bots ocupan los demás puestos"
+
+msgid "How hard the bots fight"
+msgstr "Lo duro que pelean los bots"
+
+msgid "Off: the last one dry wins. On: nobody wins, stay aboard as long as she floats"
+msgstr "Desactivado: gana el último en seco. Activado: nadie gana, aguanta a bordo mientras flote"
+
+msgid "The same seed gives the same hit and the same sinking; empty, each match has its own"
+msgstr "La misma semilla da el mismo golpe y el mismo hundimiento; vacía, cada partida tiene la suya"
+
+msgid "She goes down several times faster"
+msgstr "Se hunde varias veces más rápido"
+
+msgid "Bonuses come aboard during the match: walk up to one and grab it"
+msgstr "Llegan bonus a bordo durante la partida: acércate a uno y agárralo"
+
 msgid "Bots play every seat; watch from any seat's eyes or the free camera"
 msgstr "Los bots ocupan todos los puestos; mira por los ojos de cualquiera o con la cámara libre"
 

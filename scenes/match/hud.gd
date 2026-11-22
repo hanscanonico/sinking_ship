@@ -7,6 +7,9 @@ extends CanvasLayer
 
 ## How long "Go!" stays up once the countdown is over.
 const GO_SECONDS := 0.8
+## How long the keys' hints stay up once the countdown is over: they went with
+## "Go!", four seconds after they came, and the first shove lands at the sixth.
+const HINT_SECONDS := 6.0
 ## The least the hints for play keep clear of each side of the window (show_controls).
 const CONTROLS_MARGIN := 48.0
 ## The widest the banner shows a seat's name, in pixels: a server's may be far longer.
@@ -24,6 +27,8 @@ const GHOST_VIEW := "ghost"
 enum Camera { EYES, FREE, GHOST }
 
 var _countdown_ticks: int
+## Whether the keys' hints are up (hinting).
+var _hinting := false
 
 @onready var _seats_left: Label = %SeatsLeft
 @onready var _clock: Label = %Clock
@@ -58,6 +63,7 @@ func show_snapshot(snapshot: Dictionary) -> void:
 	_clock.visible = not ended
 	_show_countdown(snapshot["tick"])
 	_goal.visible = _countdown.visible
+	_hinting = hinting(snapshot["tick"], _countdown_ticks)
 
 
 ## What a seat plays for under [param goal] (MatchRules.Goal), in the end screen's
@@ -194,10 +200,17 @@ func fit_name(seat_name: String) -> String:
 	return UiTheme.fit(seat_name, font, _spectating.get_theme_font_size(&"font_size"), NAME_WIDTH)
 
 
-## [param prompts]' hint line for play under the countdown while it shows, read only
-## then; null hides it.
+## Whether the keys' hints are up at [param tick] of a match counted down over
+## [param countdown] ticks: through the countdown and HINT_SECONDS past it; never in a
+## match with no countdown.
+static func hinting(tick: int, countdown: int) -> bool:
+	return countdown > 0 and tick < countdown + Ticks.from_seconds(HINT_SECONDS)
+
+
+## [param prompts]' hint line for play under the countdown, and for a few seconds of
+## play after it (hinting), read only then; null hides it.
 func show_controls(prompts: InputPrompts) -> void:
-	_controls.visible = _countdown.visible and prompts != null
+	_controls.visible = _hinting and prompts != null
 	if _controls.visible:
 		var font := _controls.get_theme_font(&"font")
 		var font_size := _controls.get_theme_font_size(&"font_size")

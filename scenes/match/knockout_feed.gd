@@ -13,6 +13,8 @@ extends CanvasLayer
 
 ## The most lines standing at once: a newer one pushes the oldest off.
 const MAX_LINES := 4
+## How far toward white a bonus's line is written from its kind's mark (ink).
+const INK_LIGHTER := 0.3
 ## How long a line stands before it is gone, and the last part of it it fades over.
 const LINE_SECONDS := 5.0
 const FADE_SECONDS := 1.0
@@ -163,7 +165,13 @@ func _post(text: String) -> Label:
 
 ## Writes [param line] in the colour of bonus [param kind].
 static func _in_colour(line: Label, kind: BonusKind) -> void:
-	line.add_theme_color_override(&"font_color", kind.mark)
+	line.add_theme_color_override(&"font_color", ink(kind))
+
+
+## The colour a line about bonus [param kind] is written in: its mark, lightened —
+## Steady's deep purple on the feed's dark outline could not be read.
+static func ink(kind: BonusKind) -> Color:
+	return kind.mark.lerp(Color.WHITE, INK_LIGHTER)
 
 
 func _drop(label: Label) -> void:

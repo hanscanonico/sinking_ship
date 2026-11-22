@@ -3,6 +3,7 @@ extends GutTest
 ## your own seat's, a bot's, an online player's — and runs, whole, clear of the
 ## readouts' plate and of a wedge's arrow on the bottom edge.
 
+const MATCH := preload("res://scenes/match/match.tscn")
 ## The canvases the line is checked on: 16:9 and 16:10 windows, and an ultrawide.
 const SIZES: Array[Vector2] = [
 	Vector2(1152.0, 648.0), Vector2(1152.0, 720.0), Vector2(1536.0, 648.0)
@@ -31,7 +32,7 @@ func test_the_countdown_says_what_the_match_is_played_for() -> void:
 
 
 func test_the_goal_shows_with_the_countdown_and_go_then_goes() -> void:
-	var scene: Node = load("res://scenes/match/match.tscn").instantiate()
+	var scene: Node = MATCH.instantiate()
 	add_child_autofree(scene)
 	var hud: Hud = scene.get_node("Hud")
 	var goal: Label = hud.get_node("%Goal")
@@ -318,3 +319,37 @@ func test_a_line_of_hints_too_long_for_the_window_breaks_between_two() -> void:
 		assert_gt(row.split(ReplayHud.SEPARATOR).size(), 1, "no hint left alone: " + row)
 	var two := Hud.controls_text(line, font, FONT_SIZE, 420.0)
 	assert_eq(two, "W A S D — move   ·   Space — jump\nLeft click — shove")
+
+
+## The keys' hints stay up through the countdown and a few seconds of play past it: they
+## went with "Go!", four seconds after they came, and a bot's first shove lands at the
+## sixth. A match with no countdown has none.
+func test_the_keys_hints_outlast_go() -> void:
+	var countdown := Ticks.from_seconds(3.0)
+	var past := Ticks.from_seconds(Hud.HINT_SECONDS)
+	assert_true(Hud.hinting(0, countdown))
+	assert_true(Hud.hinting(countdown + Ticks.from_seconds(Hud.GO_SECONDS), countdown), "past Go!")
+	assert_true(Hud.hinting(countdown + past - 1, countdown))
+	assert_false(Hud.hinting(countdown + past, countdown), "then gone")
+	assert_false(Hud.hinting(0, 0), "no countdown: no hints")
+	assert_gt(Hud.HINT_SECONDS, 4.0, "long enough to read five hints")
+	var scene: Node = MATCH.instantiate()
+	add_child_autofree(scene)
+	var hud: Hud = scene.get_node("Hud")
+	var config := SimFixtures.config(2)
+	config.countdown_ticks = countdown
+	var sim := MatchSim.create(config)
+	hud.setup(sim)
+	var prompts: InputPrompts = autofree(InputPrompts.new())
+	var controls: Label = hud.get_node("%Controls")
+	var snapshot := sim.snapshot()
+	snapshot["tick"] = countdown + Ticks.from_seconds(2.0)
+	hud.show_snapshot(snapshot)
+	hud.show_controls(prompts)
+	assert_true(controls.visible, "two seconds in: still up")
+	hud.show_controls(null)
+	assert_false(controls.visible, "none for a watcher")
+	snapshot["tick"] = countdown + past
+	hud.show_snapshot(snapshot)
+	hud.show_controls(prompts)
+	assert_false(controls.visible, "gone")
