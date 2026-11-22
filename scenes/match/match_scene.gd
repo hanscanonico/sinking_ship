@@ -133,8 +133,6 @@ var _lens_drops := LensDrops.new()
 var _feed := KnockoutFeed.new()
 ## The replay's controls, made the first time a replay is watched (start_replay).
 var _replay_hud: ReplayHud
-## Whose eyes the replay is seen through, cycled round every seat (SpectateOrder.every).
-var _replay_seat := LOCAL_SEAT
 ## Whether the match stands aside for the next one's held countdown (stand_aside).
 var _aside := false
 ## Whether nobody plays the match started last, live or its replay (MatchChoices.watch):
@@ -552,6 +550,7 @@ func _setup_view(
 	_eyes.setup(settings)
 	_arms.setup(config.rules)
 	_first_person_hud.setup(sim, _names, not observer and not _watcher, _prompts, _answers)
+	_first_person_hud.own = _eye_seat
 	_answers = null
 	# A watcher's and a replay's free camera opens framing the whole ship.
 	if watching() or _driver.replaying():
@@ -641,7 +640,7 @@ func start_replay(file: ReplayFile, config: MatchConfig) -> void:
 	_setup_view(config, null, LOCAL_SEAT, names, false, LOCAL_SEAT, INF, false)
 	# Nobody plays: no crosshair, readouts or wedges over the eyes, as from the observer.
 	_first_person_hud.setup(timeline.sim(), _names, false, _prompts)
-	_replay_seat = LOCAL_SEAT
+	_order = ReplayEyes.new(LOCAL_SEAT, _stats)
 
 
 ## Whether a replay is being watched rather than a match played.
@@ -746,10 +745,10 @@ func _replay_input(event: InputEvent) -> bool:
 		replay_seek(_driver.timeline().last_tick())
 	elif event.is_action_pressed("spectate_next"):
 		_leave_views()
-		_replay_seat = SpectateOrder.every(_replay_seat, 1, _config.seats)
+		_order.cycle(_driver.current, 1)
 	elif event.is_action_pressed("spectate_previous"):
 		_leave_views()
-		_replay_seat = SpectateOrder.every(_replay_seat, -1, _config.seats)
+		_order.cycle(_driver.current, -1)
 	elif event.is_action_pressed("spectate_free"):
 		_toggle_free()
 	elif event.is_action_pressed("spectate_ghost"):
@@ -781,7 +780,7 @@ func _show_replay(snapshot: Dictionary, viewed: int) -> void:
 ## from the snapshot (D5) — the standings, the sinking's effects and the cues.
 func _on_sought(_tick: int) -> void:
 	_stats = MatchStats.new(_config.seats, _config.countdown_ticks)
-	_order = SpectateOrder.new(_eye_seat, _stats)
+	_order = (_order as ReplayEyes).again(_stats)
 	_feed.clear()
 	_fx.clear()
 	_audio.rewind()
@@ -950,9 +949,10 @@ func _toggle_follow() -> void:
 	_free.toggle_follow(_head_of(_viewed()))
 
 
-## The seat watched: in a replay the one cycled to, else the spectate order's.
+## The seat watched, as the spectate order has it: a replay's, the seat cycled to while
+## it is in the match (ReplayEyes).
 func _viewed() -> int:
-	return _replay_seat if _driver.replaying() else _order.target(_driver.current)
+	return _order.target(_driver.current)
 
 
 ## Where [param seat]'s eyes are, in the world.
