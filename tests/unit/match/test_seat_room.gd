@@ -97,6 +97,28 @@ func test_a_seat_out_standing_on_her_deck_went_out_aboard() -> void:
 	assert_false(rooms.out_aboard(sim, sim.snapshot(), 1), "afloat over it: in the sea")
 
 
+## The plate keeps its place over a stair and through a jump, where nothing is named:
+## it went blank, and the readouts' plate changed height, at every jump on deck.
+func test_the_plate_keeps_its_place_where_nothing_is_named() -> void:
+	var rooms := SeatRoom.new()
+	var me := {"seat": 0, "state": PlayerState.Body.GROUNDED}
+	assert_eq(rooms.held("", me, true), "", "nothing yet")
+	assert_eq(rooms.held("working deck", me, true), "working deck")
+	me["state"] = PlayerState.Body.AIRBORNE
+	assert_eq(rooms.held("", me, true), "working deck", "mid-jump")
+	me["state"] = PlayerState.Body.GROUNDED
+	assert_eq(rooms.held("", me, true), "working deck", "on a stair, or a crate's lid")
+	assert_eq(rooms.held("galley", me, true), "galley", "the next place named")
+	assert_eq(rooms.held("", me, false), "", "on her side: no deck is under it")
+	assert_eq(rooms.held("galley", me, true), "galley")
+	me["state"] = PlayerState.Body.SWIMMING
+	assert_eq(rooms.held("", me, true), "", "in the sea")
+	me["state"] = PlayerState.Body.GROUNDED
+	assert_eq(rooms.held("boat deck", me, true), "boat deck")
+	var other := {"seat": 3, "state": PlayerState.Body.AIRBORNE}
+	assert_eq(rooms.held("", other, true), "", "another seat's view: not the last one's place")
+
+
 ## The ghost is in the room it walks, as a seat is, and on an open deck on its platform;
 ## nowhere while the view is not its.
 func test_the_ghost_stands_in_the_room_it_walks() -> void:
