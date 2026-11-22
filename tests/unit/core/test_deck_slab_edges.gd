@@ -1,10 +1,10 @@
 extends GutTest
 ## A deck over another is a slab, and a slab holds a body back at its edge only: a body or
-## a prop wholly in under its area — its head a hair through it, or sunk through it — is
-## under the deck, not in it, and is never thrown out to the slab's nearest side, metres off
-## through her walls. At its edge it holds a body as it did, and a deck over none, the top
-## of a solid hull, still puts out whatever is inside it. Worked alike in GDScript and by
-## the extension.
+## a prop there, wholly in under its area — its head a hair through it, or sunk through it —
+## is under the deck, not in it, and is never thrown out to the slab's nearest side, metres
+## off through her walls. At its edge it holds a body as it did, a deck over none, the top
+## of a solid hull, still puts out whatever is inside it, and a place a body might stand —
+## a bot's look ahead — is still in the slab. Worked alike in GDScript and by the extension.
 
 const Fixtures := preload("res://tests/unit/sim_fixtures.gd")
 
@@ -41,19 +41,23 @@ func _layout(floored := true) -> ShipLayout:
 	return layout
 
 
-## What holds back a body with its feet at [param at] on [param layout]'s Surfaces, in
-## GDScript and, where it is loaded, by the extension; both must agree.
-func _held(layout: ShipLayout, at: Vector3) -> Array[Surfaces.Contact]:
+## What holds back a body with its feet at [param at] on [param layout]'s Surfaces — there
+## already, as the sim asks of one it moves, unless [param there] is false — in GDScript
+## and, where it is loaded, by the extension; both must agree.
+func _held(layout: ShipLayout, at: Vector3, there := true) -> Array[Surfaces.Contact]:
+	var radius := _rules.body_radius
+	var height := _rules.body_height
+	var step := _rules.step_height
 	ContactsNative.off = true
 	var reference := Surfaces.new(layout)
 	ContactsNative.off = false
 	var theirs := reference.obstacle_contacts(
-		at, _rules.body_radius, _rules.body_height, _rules.step_height
+		at, radius, height, step, Surfaces.NONE, INF, -1.0, there
 	)
 	var native := Surfaces.new(layout)
 	if native.native != null:
 		var mine := native.obstacle_contacts(
-			at, _rules.body_radius, _rules.body_height, _rules.step_height
+			at, radius, height, step, Surfaces.NONE, INF, -1.0, there
 		)
 		assert_eq(_told(mine), _told(theirs), "the extension holds it alike at %s" % at)
 	return theirs
@@ -84,6 +88,14 @@ func test_a_body_under_a_slab_well_inside_its_area_is_held_by_none_of_its_edges(
 	# edge of it.
 	var held := _held(_layout(), Vector3.ZERO)
 	assert_eq(held.size(), 0, "under the deck, at no edge of it: %s" % [_told(held)])
+
+
+func test_a_place_under_a_slab_a_body_would_stand_through_it_is_still_in_it() -> void:
+	# Asked of a place, not of a body there: a bot looking ahead is told it is in the deck.
+	var held := _held(_layout(), Vector3.ZERO, false)
+	assert_eq(held.size(), 1, "in the deck: %s" % [_told(held)])
+	if held.size() == 1:
+		assert_almost_eq(held[0].depth, 4.0 + _rules.body_radius, 1e-5)
 
 
 func test_a_slab_never_moves_a_body_under_it_farther_than_a_body_overlaps_its_edge() -> void:

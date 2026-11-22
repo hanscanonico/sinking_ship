@@ -889,7 +889,7 @@ bool NativeSurfaces::climb_contact(int32_t p_surface, const Vector2 &p_point, do
 }
 
 void NativeSurfaces::obstacles(const Vector3 &p_ship_point, double p_radius, double p_body_height, double p_step,
-		int32_t p_except_prop, double p_crawl_height, double p_crawl_reach,
+		int32_t p_except_prop, double p_crawl_height, double p_crawl_reach, bool p_there,
 		std::vector<ContactHit> &r_found) const {
 	r_found.clear();
 	const Vector2 point(p_ship_point.x, p_ship_point.z);
@@ -961,8 +961,8 @@ void NativeSurfaces::obstacles(const Vector3 &p_ship_point, double p_radius, dou
 		if (!(reach_up < top && head > bottoms_[surface])) {
 			continue;
 		}
-		// A slab is all edge: a body wholly in under its area is at no edge of it.
-		if (surface < first_ramp_ && bottoms_[surface] == top && inside(position, size, point, p_radius)) {
+		// A slab is all edge: a body there, wholly in under its area, is at no edge of it.
+		if (p_there && surface < first_ramp_ && bottoms_[surface] == top && inside(position, size, point, p_radius)) {
 			continue;
 		}
 		if (stair == UNASKED) {
@@ -1056,10 +1056,10 @@ void NativeSurfaces::obstacles(const Vector3 &p_ship_point, double p_radius, dou
 
 PackedFloat64Array NativeSurfaces::obstacle_contacts(const Vector3 &p_ship_point, double p_radius,
 		double p_body_height, double p_step, int64_t p_except_prop, double p_crawl_height,
-		double p_crawl_reach) const {
+		double p_crawl_reach, bool p_there) const {
 	std::vector<ContactHit> &found = contacts_found;
 	obstacles(p_ship_point, p_radius, p_body_height, p_step, int32_t(p_except_prop), p_crawl_height, p_crawl_reach,
-			found);
+			p_there, found);
 	return packed(found);
 }
 
@@ -1502,7 +1502,7 @@ void NativeSurfaces::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("clear_stretches", "from", "to", "body_height", "step"),
 			&NativeSurfaces::clear_stretches);
 	ClassDB::bind_method(D_METHOD("obstacle_contacts", "ship_point", "radius", "body_height", "step", "except_prop",
-								 "crawl_height", "crawl_reach"),
+								 "crawl_height", "crawl_reach", "there"),
 			&NativeSurfaces::obstacle_contacts);
 	ClassDB::bind_method(D_METHOD("rail_contacts", "ship_point", "radius", "surface", "step", "railing_height"),
 			&NativeSurfaces::rail_contacts);
@@ -1700,7 +1700,7 @@ bool NativeCrates::blockers(int32_t p_prop) {
 	const Crate &mover = state_[p_prop];
 	const Vector3 feet(mover.pos.x, real_t(feet_before_[p_prop]), mover.pos.z);
 	std::vector<ContactHit> contacts;
-	surfaces_->obstacles(feet, radii_[p_prop], heights_[p_prop], step_height_, p_prop, INF, -1.0, contacts);
+	surfaces_->obstacles(feet, radii_[p_prop], heights_[p_prop], step_height_, p_prop, INF, -1.0, true, contacts);
 	for (const ContactHit &contact : contacts) {
 		if (contact.prop == -1) {
 			hold(state_[p_prop], contact);

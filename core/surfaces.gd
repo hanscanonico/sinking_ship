@@ -444,8 +444,12 @@ func joins(ramp_surface_id: int) -> PackedInt32Array:
 ## and the stair going on down under a deck edge is a floor to crawl on. The flat pieces
 ## that hold it — decks and box blockers — hold it as one: where one piece's corner lies on
 ## another's face, carried on toward the body, or inside it, that corner is a seam and
-## holds nothing back (#566). One contact per direction, the deepest; a crate's names it
-## (Contact.prop). ObstacleContacts works it.
+## holds nothing back (#566). Asked of a body that is [param there] already, to move it out
+## of what it is in, rather than of a place it might stand: a deck over another, a slab, is
+## all edge, and holds a body there only while its circle is over an edge of it — wholly in
+## under its area the body is through the deck, under it or sunk into it, and at no edge of
+## it however far off the nearest one is. One contact per direction, the deepest; a crate's
+## names it (Contact.prop). ObstacleContacts works it.
 func obstacle_contacts(
 	ship_point: Vector3,
 	radius: float,
@@ -453,10 +457,11 @@ func obstacle_contacts(
 	step: float,
 	except_prop: int = NONE,
 	crawl_height := INF,
-	crawl_reach := -1.0
+	crawl_reach := -1.0,
+	there := false
 ) -> Array[Contact]:
 	return _obstacles.contacts(
-		self, ship_point, radius, body_height, step, except_prop, crawl_height, crawl_reach
+		self, ship_point, radius, body_height, step, except_prop, crawl_height, crawl_reach, there
 	)
 
 
