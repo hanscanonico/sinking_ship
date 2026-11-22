@@ -118,13 +118,14 @@ func contacts(
 	step: float,
 	except_prop: int,
 	crawl_height: float,
-	crawl_reach: float
+	crawl_reach: float,
+	there: bool
 ) -> Array[Surfaces.Contact]:
 	if _asks_native:
 		var asked := _native if _native != null else native(surfaces)
 		return ContactsNative.contacts_of(
 			asked.obstacle_contacts(
-				ship_point, radius, body_height, step, except_prop, crawl_height, crawl_reach
+				ship_point, radius, body_height, step, except_prop, crawl_height, crawl_reach, there
 			)
 		)
 	var s := surfaces
@@ -186,6 +187,14 @@ func contacts(
 		var closest := point.clamp(area.position, area.end)
 		var top := s.height_at(surface, Vector3(closest.x, 0.0, closest.y))
 		if not (reach_up < top and head > bottoms[surface]):
+			continue
+		# A slab is all edge: a body there, wholly in under its area, is at no edge of it.
+		if (
+			there
+			and surface < first_ramp
+			and bottoms[surface] == top
+			and PlaneShapes.inside(area, point, radius)
+		):
 			continue
 		if stair == Surfaces.UNASKED:
 			stair = _stair_under(s, point, feet, step)

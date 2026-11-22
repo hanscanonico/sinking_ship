@@ -207,7 +207,7 @@ bool NativeSurfaces::stands_at(const Vector3 &p_point, int32_t p_surface, const 
 	}
 	const Vector3 feet(p_point.x, real_t(height_on(p_surface, double(p_point.x), double(p_point.z))), p_point.z);
 	std::vector<ContactHit> &found = stands_found;
-	obstacles(feet, p_radius, p_body_height, p_step, NONE, p_crawl_height, -1.0, found);
+	obstacles(feet, p_radius, p_body_height, p_step, NONE, p_crawl_height, -1.0, false, found);
 	if (!found.empty()) {
 		return false;
 	}
@@ -358,7 +358,7 @@ PackedByteArray NativeSurfaces::stands_grid(const Vector2 &p_origin, int64_t p_w
 		}
 		const Vector3 feet(point.x, real_t(height_on(surface, double(point.x), double(point.z))), point.z);
 		std::vector<ContactHit> &found = stands_found;
-		obstacles(feet, radius, body_height, step, NONE, crawl_height, -1.0, found);
+		obstacles(feet, radius, body_height, step, NONE, crawl_height, -1.0, false, found);
 		if (!found.empty()) {
 			continue;
 		}

@@ -45,6 +45,18 @@ static func rect_contact(rect: Rect2, point: Vector2, radius: float) -> Surfaces
 	return Surfaces.Contact.new(nearest[1], nearest[0] + radius)
 
 
+## Whether a circle of [param radius] centred on [param point] lies wholly inside
+## [param rect]: its middle [param radius] or more in from every side, at none of its edges.
+static func inside(rect: Rect2, point: Vector2, radius: float) -> bool:
+	var end := rect.end
+	return (
+		point.x - rect.position.x >= radius
+		and end.x - point.x >= radius
+		and point.y - rect.position.y >= radius
+		and end.y - point.y >= radius
+	)
+
+
 ## Whether [param rect] carries on toward [param point] one of the two faces that meet at
 ## [param corner], another rectangle's corner nearest a circle centred there: it stands over
 ## the corner, within SEAM, and on past it along one of those faces toward the circle. The

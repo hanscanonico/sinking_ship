@@ -399,7 +399,7 @@ func _touches(crate: PropState) -> bool:
 	if not railed.is_empty():
 		return true
 	var held := _surfaces.obstacle_contacts(
-		crate.pos, prop.radius, prop.height, _rules.step_height, crate.prop
+		crate.pos, prop.radius, prop.height, _rules.step_height, crate.prop, INF, -1.0, true
 	)
 	return not held.is_empty()
 
@@ -671,7 +671,7 @@ func _blockers(state: MatchState, crates: Array[PropState], crate: PropState, ti
 	var prop := _props[crate.prop]
 	var feet := Vector3(crate.pos.x, _feet_before[crate.prop], crate.pos.z)
 	var contacts := _surfaces.obstacle_contacts(
-		feet, prop.radius, prop.height, _rules.step_height, crate.prop
+		feet, prop.radius, prop.height, _rules.step_height, crate.prop, INF, -1.0, true
 	)
 	for contact: Surfaces.Contact in contacts:
 		if contact.prop == -1:

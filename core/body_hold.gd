@@ -24,7 +24,9 @@ static func contacts(
 		step = Movement.AIR_STEP
 	elif player.body == PlayerState.Body.SWIMMING:
 		step = swim_step
-	return surfaces.obstacle_contacts(feet, rules.body_radius, height, step, Surfaces.NONE, crawl)
+	return surfaces.obstacle_contacts(
+		feet, rules.body_radius, height, step, Surfaces.NONE, crawl, -1.0, true
+	)
 
 
 ## [param player], on its feet or in the air, just pushed by [param crate] — the two

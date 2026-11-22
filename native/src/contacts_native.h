@@ -119,7 +119,7 @@ public:
 	void lidded(const PackedByteArray &p_lids);
 
 	PackedFloat64Array obstacle_contacts(const Vector3 &p_ship_point, double p_radius, double p_body_height,
-			double p_step, int64_t p_except_prop, double p_crawl_height, double p_crawl_reach) const;
+			double p_step, int64_t p_except_prop, double p_crawl_height, double p_crawl_reach, bool p_there) const;
 	PackedFloat64Array rail_contacts(const Vector3 &p_ship_point, double p_radius, int64_t p_surface, double p_step,
 			double p_railing_height) const;
 	PackedFloat64Array airborne_rail_contacts(const Vector3 &p_ship_point, const Vector2 &p_came_from,
@@ -137,7 +137,8 @@ public:
 			double p_body_height, double p_step) const;
 
 	void obstacles(const Vector3 &p_ship_point, double p_radius, double p_body_height, double p_step,
-			int32_t p_except_prop, double p_crawl_height, double p_crawl_reach, std::vector<ContactHit> &r_found) const;
+			int32_t p_except_prop, double p_crawl_height, double p_crawl_reach, bool p_there,
+			std::vector<ContactHit> &r_found) const;
 	void rails(const Vector3 &p_ship_point, double p_radius, int32_t p_surface, double p_step,
 			double p_railing_height, std::vector<ContactHit> &r_found) const;
 	void airborne_rails(const Vector3 &p_ship_point, const Vector2 &p_came_from, double p_radius,
