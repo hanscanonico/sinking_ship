@@ -42,9 +42,31 @@ func test_the_version_is_the_projects_or_dev() -> void:
 func test_a_ship_is_shown_in_words_and_picked_by_her_name() -> void:
 	var menu := _menu(PackedStringArray(["--ship=small_titanic"]))
 	var ship: OptionButton = menu.get_node("%Ship")
-	assert_eq(ship.get_item_text(ship.selected), "small titanic")
+	assert_eq(ship.get_item_text(ship.selected), "Small Titanic")
 	assert_eq(menu.picked_ship(), &"small_titanic")
 	assert_eq(menu.choices().ship, &"small_titanic", "the match she starts is hers")
+
+
+## The ship's and the bots' lists read as every other list does, a capital first, in
+## the player's language, and the tier picked is still the data's own name.
+func test_the_lists_read_as_headings_in_every_language() -> void:
+	var menu := _menu(PackedStringArray(["--ship=small_titanic"]))
+	var ship: OptionButton = menu.get_node("%Ship")
+	var tier: OptionButton = menu.get_node("%Tier")
+	var picked := menu.choices().bot_tier
+	assert_true(BotProfile.tiers().has(String(picked)), "a tier of the data")
+	for language: String in Language.locales():
+		Language.use(language)
+		menu.notification(NOTIFICATION_TRANSLATION_CHANGED)
+		for list: OptionButton in [ship, tier]:
+			for index in list.item_count:
+				var text := list.get_item_text(index)
+				assert_eq(text[0], text[0].to_upper(), text)
+		assert_eq(menu.choices().bot_tier, picked, "the tier is picked by its name")
+	Language.use("fr")
+	menu.notification(NOTIFICATION_TRANSLATION_CHANGED)
+	assert_eq(ship.get_item_text(ship.selected), "Petit Titanic")
+	Language.use(Language.SOURCE)
 
 
 func test_the_custom_match_is_folded_by_default() -> void:
