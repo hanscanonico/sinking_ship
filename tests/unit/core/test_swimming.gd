@@ -578,6 +578,39 @@ func test_a_swimmer_carried_over_a_dry_compartment_lands_on_its_floor() -> void:
 	assert_eq(sim.pose().cell_at(swimmer.pos), wing, "in the wing, which is dry")
 
 
+## The trawler's working deck 0.8 m under, the wing under it dry (seed 6, 3:00): a seat
+## swimming on that deck goes down the companionway to the side passage. Its feet sink
+## through the stairwell onto the head of the stair, a hair under the deck and in the
+## wing's cell — and it is in the deck's water still, swimming, until it is a step under
+## that deck. Stood up on the top tread, it was a step from water it swam in again: a crate
+## on the stair and the stair's railing pushed it back up that step, and it was in the
+## water and out of it four times a second, a climb out and a fall in each time (#777).
+func test_a_swimmer_going_down_a_stair_under_a_flooded_deck_stands_a_step_under_it() -> void:
+	var rules := _rules()
+	var sim := SimFixtures.sim(2, null, TRAWLER)
+	HeldPose.hold(sim, HeldPose.flooded(TRAWLER, 0.8, {&"working_deck": [0.8]}))
+	SimFixtures.place(sim, 1, Vector3(9.0, 2.3, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(5.2, 0.0, -2.8))
+	var swimmer := sim.state.seats[0]
+	swimmer.pos.y = 0.0
+	var stair := sim.surfaces.ramp_surface(14)
+	var aft := {0: SimFixtures.frame(0, Vector2(-1.0, 0.0))}
+	var ticks := 0
+	while swimmer.body == PlayerState.Body.SWIMMING and ticks < 3 * Ticks.RATE:
+		SimFixtures.step(sim, aft)
+		ticks += 1
+		assert_gt(swimmer.pos.y, -2.0 * rules.step_height, "tick %d: on the stair" % ticks)
+	assert_eq(swimmer.body, PlayerState.Body.GROUNDED, "on its feet, out of the water")
+	assert_eq(sim.surfaces.under(swimmer.pos, rules.step_height), stair, "on the stair")
+	assert_lt(swimmer.pos.y, -rules.step_height, "a step under the deck's water")
+	# What the crate and the railing did to it each time: half a body's radius back up.
+	swimmer.pos.x += 0.5 * rules.body_radius
+	swimmer.vel = Vector3.ZERO
+	var events := SimFixtures.step(sim)
+	assert_eq(swimmer.body, PlayerState.Body.GROUNDED, "pushed back up a little, on its feet")
+	assert_eq(_kinds(events, SimEvent.Kind.ENTERED_WATER).size(), 0, "and not in the water")
+
+
 ## The trawler dry, the sea a metre under her main deck, and a seat off its feet in the air
 ## over her working deck, the sky over it and nothing of hers about it, still on its way
 ## up, as one whose water has gone from under it: it falls where it is and lands on the deck
