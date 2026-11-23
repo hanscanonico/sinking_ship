@@ -189,6 +189,20 @@ func test_the_feed_s_lines_read_right_in_french_and_spanish() -> void:
 	assert_eq(KnockoutFeed.feed_line(names, 2, 0, 0), "Has empujado a Bot 2 al mar")
 
 
+## The replay's seek hints stand after their keys' names, which French and Spanish
+## keyboards call Début / Inicio and Fin: the hint must not say the key's name again
+## ("Début au début · Fin à la fin", seen played 2026-11-23).
+func test_a_seek_hint_does_not_repeat_its_key_s_name() -> void:
+	for locale: String in ["fr", "es"]:
+		Language.use(locale)
+		for pair: Array in [["Home", "to the start"], ["End", "to the end"]]:
+			var key := Language.t(pair[0], InputPrompts.ON_KEYBOARD).to_lower()
+			var hint := Language.t(pair[1]).to_lower()
+			assert_ne(key, pair[0].to_lower(), "the key's name is the language's")
+			var words := hint.replace("'", " ").split(" ")
+			assert_false(key in words, "%s: %s %s" % [locale, key, hint])
+
+
 func test_the_hud_s_lines_read_in_the_language_in_use() -> void:
 	Language.use("fr")
 	assert_eq(Hud.whose_view("Bot 3", false, false), "par les yeux de Bot 3")
