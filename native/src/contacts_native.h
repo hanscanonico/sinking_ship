@@ -215,6 +215,7 @@ private:
 	std::vector<Vector3> fall_bases_;
 	std::vector<double> fall_radii_;
 	std::vector<double> fall_heights_;
+	std::vector<double> fall_runs_;
 	std::vector<Vector2> fall_along_;
 	// Surfaces' floors: per cell of grid_ its platforms, and for each the nearest the height
 	// of any other surface of the cell comes to it (FloorClearances).
@@ -246,6 +247,7 @@ private:
 	void crossed_rails(const Vector2 &p_came_from, const Vector3 &p_ship_point, double p_radius, double p_step,
 			double p_railing_height, std::vector<ContactHit> &r_found) const;
 	bool doors_cross(const Vector2 &p_start, const Vector2 &p_end, double p_low, double p_high) const;
+	double fall_lies(size_t p_fall, double p_top) const;
 	bool falls_cross(const Vector2 &p_start, const Vector2 &p_end, double p_low, double p_high) const;
 };
 
