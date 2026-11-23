@@ -314,6 +314,9 @@ msgstr "saltar"
 msgid "shove"
 msgstr "empujar"
 
+msgid "shove; hold to charge"
+msgstr "empujar; mantener para cargar"
+
 msgid "brace"
 msgstr "aguantar"
 
