@@ -1,9 +1,9 @@
 class_name FallenFunnels
 extends RefCounted
 ## Her funnels as Surfaces meets them once they have come down (SH31, FunnelFall): the
-## upright blocker each stood as holds nothing over its foot any more, and the funnel
-## lying along the strip it fell across holds a body back as a wall does — from where it
-## broke off to its girth over that — and stops and hides a shove's line there. It lies
+## upright blocker each stood as holds nothing over where it broke off any more, and the
+## funnel lying along the strip it fell across holds a body back as a wall does — from where
+## it broke off to its girth over that — and stops and hides a shove's line there. It lies
 ## as her layout has it come to rest (FunnelRest): flat along its whole strip with nothing
 ## in its way; propped on a deckhouse it fell onto, only as far along as its underside is
 ## still under what is asked about — a body's head, a line's top — so it holds nobody in
@@ -81,12 +81,13 @@ func any_down() -> bool:
 	return not _down.is_empty()
 
 
-## The top blocker [param blocker] of the layout stands to now: a fallen funnel's, its
-## foot; any other's, [param top].
+## The top blocker [param blocker] of the layout stands to now: a fallen funnel's, where
+## it broke off — its foot, or the roof it stood through, its casing standing on in the
+## room under that —; any other's, [param top].
 func top_of(blocker: int, top: float) -> float:
-	for fall: FunnelFall in _down:
-		if _blockers[_funnels.find(fall.fitting)] == blocker:
-			return fall.fitting.base.y
+	for index in _down.size():
+		if _blockers[_funnels.find(_down[index].fitting)] == blocker:
+			return _feet[index].y
 	return top
 
 

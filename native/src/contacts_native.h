@@ -211,7 +211,8 @@ private:
 	std::vector<double> door_sills_;
 	std::vector<double> door_heads_;
 	std::vector<double> door_shut_;
-	// FallenFunnels: per fall down its funnel's foot, radius and height, and its way.
+	// FallenFunnels: per fall down its funnel's foot, as high as it broke off, its radius and
+	// height, how far along it lies for each metre over that foot (fall_lies), and its way.
 	std::vector<Vector3> fall_bases_;
 	std::vector<double> fall_radii_;
 	std::vector<double> fall_heights_;
