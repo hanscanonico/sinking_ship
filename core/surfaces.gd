@@ -923,39 +923,40 @@ func _onto(platform: int, from: Vector2, to: Vector2) -> Vector2:
 ## A swimmer at [param feet] climbing up onto [param top] to stand at [param stand]
 ## (x/z): on the surface there within a step, out of the sea under [param pose] as
 ## far as wading, with nothing holding it back and no wall across the way at that
-## height; null when it cannot. A stand on a railing's line — a climb pressed along a
-## railed side — is moved off it first, where the railing would hold the body the tick it
-## stands, and that is where it must be clear (#790): never stood in a slot narrower
-## than itself, between the railing and a stair's side, to be wedged there.
+## height; null when it cannot. Off any railing first, where it holds the body (#790):
+## never stood in a slot narrower than itself, by a railing beside a stair, wedged there.
 func _standing(
 	feet: Vector3, stand: Vector2, top: float, pose: ShipPose, rules: BrawlRules
 ) -> Climb:
 	var step := rules.step_height
-	var radius := rules.body_radius
-	var at := Vector3(stand.x, top, stand.y)
-	var surface := under(at, step)
+	var at := _off_railings(Vector3(stand.x, top, stand.y), rules)
+	var surface := NONE if at == Vector3.INF else under(at, step)
 	if surface == NONE or _is_round_top(surface):
 		return null
 	at.y = height_at(surface, at)
-	var railed := rail_contacts(at, radius, surface, step, rules.railing_height)
-	if not railed.is_empty():
-		for contact: Contact in railed:
-			at.x += contact.normal.x * contact.depth
-			at.z += contact.normal.y * contact.depth
-		at.y = top
-		surface = under(at, step)
-		if surface == NONE or _is_round_top(surface):
-			return null
-		at.y = height_at(surface, at)
-		if not rail_contacts(at, radius, surface, step, rules.railing_height).is_empty():
-			return null
 	if pose.water_height(at) - at.y >= rules.wade_depth:
 		return null
-	if not obstacle_contacts(at, radius, rules.body_height, step).is_empty():
+	if not obstacle_contacts(at, rules.body_radius, rules.body_height, step).is_empty():
 		return null
 	if blocked(Vector3(feet.x, at.y, feet.z), at, rules.body_height, step):
 		return null
 	return Climb.new(at, surface)
+
+
+## [param at] (x/z, at a climb's top) moved off the railings holding a body that stands
+## there (rail_contacts), as they would the tick it stands; INF where it is still on one.
+func _off_railings(at: Vector3, rules: BrawlRules) -> Vector3:
+	var step := rules.step_height
+	for _moved in 2:
+		var surface := under(at, step)
+		var feet := Vector3(at.x, at.y if surface == NONE else height_at(surface, at), at.z)
+		var railed := rail_contacts(feet, rules.body_radius, surface, step, rules.railing_height)
+		if railed.is_empty():
+			return at
+		for contact: Contact in railed:
+			at.x += contact.normal.x * contact.depth
+			at.z += contact.normal.y * contact.depth
+	return Vector3.INF
 
 
 ## The point of [param surface] nearest [param point] (x/z) — on a ramp, moved along
