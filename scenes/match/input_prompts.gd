@@ -91,9 +91,9 @@ static func controls_for(on_pad: bool) -> String:
 
 ## Move, look, jump, shove — and that holding it charges it (#779) — brace, grab and
 ## pause as the input map binds them, one to a line, on the pad when [param on_pad],
-## else on the keyboard and mouse — the look being the mouse's, bound to no action — and, when [param spectating], what
-## switches whose eyes the view is in, flies the free camera and has it follow, and walks
-## the ghost.
+## else on the keyboard and mouse — the look being the mouse's, bound to no action —
+## and, when [param spectating], what switches whose eyes the view is in, flies the
+## free camera and has it follow, and walks the ghost.
 static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 	var lines: Array[Array] = [
 		[_move_of(on_pad), "move"],
