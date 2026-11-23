@@ -862,10 +862,10 @@ msgid "faster"
 msgstr "más rápido"
 
 msgid "to the start"
-msgstr "al inicio"
+msgstr "al principio"
 
 msgid "to the end"
-msgstr "al final"
+msgstr "hasta el final"
 
 msgid "seat before"
 msgstr "jugador anterior"
