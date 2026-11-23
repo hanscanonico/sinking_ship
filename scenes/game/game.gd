@@ -332,7 +332,7 @@ func _hold_over_backdrop() -> void:
 	# An autoplay never built the backdrop, and has nobody to show it to: building it now
 	# would only take from the frames the hold keeps moving.
 	if not _args.autoplay:
-		_menu.show_behind(_hold.beside())
+		_menu.show_behind(_hold.beside(), _hold.number())
 
 
 ## The next blank-seed match goes on the menu's pick of ship.

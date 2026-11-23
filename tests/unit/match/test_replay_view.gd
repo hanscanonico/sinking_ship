@@ -3,7 +3,8 @@ extends GutTest
 ## it is seen through and the keys that switch them: once the recorded seat is out, the
 ## match's spectating line — its place, and a played match's keys to switch and fly —
 ## is not drawn over them, as it is in the match itself. Its free camera opens framing
-## the whole ship and follows the seat watched.
+## the whole ship and follows the seat watched. At its last tick the match's HUD stays,
+## no results taking its place, and the controls say who won.
 
 const MATCH := preload("res://scenes/match/match.tscn")
 const MATCH_DATA := "res://data/match/default.tres"
@@ -138,6 +139,110 @@ func test_climbing_the_free_camera_never_pauses_the_replay() -> void:
 		assert_false(scene._driver.clock().paused, "%s climbs, it never pauses" % climb.as_text())
 	_press(scene, &"replay_pause")
 	assert_true(scene._driver.clock().paused, "the replay's own pause still does")
+
+
+## A replay of [param seats] bots' first second, watched in a scene of its own.
+func _replay(seats := 2) -> MatchScene:
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	var config := SimFixtures.config(seats)
+	config.bot_tier = (load(MATCH_DATA) as MatchRules).bot_tier
+	var played := RunMatch.bots_only(config)
+	played.run(Ticks.RATE)
+	scene.start_replay(ReplayFile.record(MatchChoices.new(), played.input_log, 0), config)
+	scene._process(0.0)
+	return scene
+
+
+## [param scene]'s replay at its last tick, the match ended there with only the seats
+## [param left] still in, its frame drawn.
+func _ended(scene: MatchScene, left: Array[int]) -> void:
+	scene.replay_seek(scene._driver.timeline().last_tick())
+	var snapshot := scene.current()
+	snapshot["phase"] = MatchState.Phase.ENDED
+	for entry: Dictionary in snapshot["seats"]:
+		entry["out"] = not left.has(entry["seat"])
+	scene._process(0.0)
+
+
+## The match's HUD goes at its end for the results to take its place (EndOverlay). No
+## results stand over a replay's last tick: the clock, the seats left, the dials and the
+## seat's place went all the same, leaving a bare view under the controls, and came back
+## a step before.
+func test_a_replay_keeps_the_match_s_hud_at_its_last_tick() -> void:
+	var scene := _replay()
+	var hud := scene._first_person_hud
+	_ended(scene, [0])
+	assert_true(scene._hud._clock.visible, "the clock")
+	assert_true(scene._hud._seats_left.visible, "the seats left")
+	assert_eq(scene._hud._seats_left.text, "Seats left 1 / 2")
+	assert_false(hud._over(), "the dials, the banner and the plate are drawn")
+	assert_true(hud._answers.is_in, "of a seat still in")
+	var pose := scene._driver.sim().schedule.pose_at(scene.current()["tick"])
+	assert_same(hud._answers.whole, pose, "at her pose on that tick")
+
+
+## A played match's HUD still goes as it ends: its results are coming up over it.
+func test_the_match_s_hud_goes_as_it_ends() -> void:
+	var scene: MatchScene = MATCH.instantiate()
+	add_child_autofree(scene)
+	scene.start(_config(), true)
+	scene._driver.step()
+	scene.current()["phase"] = MatchState.Phase.ENDED
+	scene._process(0.0)
+	assert_false(scene._hud._clock.visible)
+	assert_false(scene._hud._seats_left.visible)
+	assert_true(scene._first_person_hud._over())
+
+
+## At the end of a match that ended, the controls say who won it, as the list of replays
+## does: nothing else of a replay does, with no results over it.
+func test_a_replay_says_who_won_at_its_end() -> void:
+	var scene := _replay(3)
+	var result: Label = scene._replay_hud._result
+	assert_false(result.visible, "nobody yet, while it plays")
+	_ended(scene, [2])
+	assert_true(result.visible)
+	assert_eq(result.text, "Bot 2 won")
+	_ended(scene, [0])
+	assert_eq(result.text, "You won")
+	_ended(scene, [])
+	assert_eq(result.text, "The sea won", "nobody left dry")
+	scene.replay_seek(scene._driver.timeline().first_tick())
+	scene._process(0.0)
+	assert_false(result.visible, "sought back, the match is on again")
+	assert_eq(result.text, "")
+	var watched := scene.current().duplicate(true)
+	watched["phase"] = MatchState.Phase.ENDED
+	watched["seats"][1]["out"] = true
+	watched["seats"][2]["out"] = true
+	assert_eq(ReplaysMenu.result_words(watched, true), "Bot 1 won", "no seat is the watcher's")
+	Language.use("fr")
+	assert_eq(ReplaysMenu.result_words(watched, false), "Vous avez gagné")
+	Language.use(Language.SOURCE)
+
+
+## A replay left before its match ended names no winner at its last tick: nobody won yet.
+func test_an_unfinished_replay_names_no_winner_at_its_end() -> void:
+	var scene := _replay()
+	scene.replay_seek(scene._driver.timeline().last_tick())
+	scene._process(0.0)
+	assert_true(scene._driver.is_over(), "at its end")
+	assert_false(scene._replay_hud._result.visible)
+
+
+## At its end nothing plays: the button reads Play, as paused, not Pause.
+func test_the_play_button_reads_play_at_a_replay_s_end() -> void:
+	var scene := _replay()
+	var play: Button = scene._replay_hud._play
+	assert_eq(play.text, "Pause", "playing")
+	scene.replay_seek(scene._driver.timeline().last_tick())
+	scene._process(0.0)
+	assert_false(scene._driver.clock().paused, "never paused")
+	assert_eq(play.text, "Play", "but at its end")
+	_press(scene, &"replay_step_back")
+	_press(scene, &"replay_pause")
+	assert_eq(play.text, "Pause", "a step back and played on, it plays again")
 
 
 func _press(scene: MatchScene, action: StringName) -> void:

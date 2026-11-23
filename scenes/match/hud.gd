@@ -50,7 +50,9 @@ func setup(sim: MatchSim) -> void:
 	_goal.text = goal_text(sim.config.goal)
 
 
-func show_snapshot(snapshot: Dictionary) -> void:
+## [param past_end] keeps the seats left and the clock up once the match has ended: a
+## replay's, at its last tick, where no results take their place (ReplayHud).
+func show_snapshot(snapshot: Dictionary, past_end := false) -> void:
 	var seats: Array = snapshot["seats"]
 	var left := 0
 	for entry: Dictionary in seats:
@@ -58,7 +60,7 @@ func show_snapshot(snapshot: Dictionary) -> void:
 			left += 1
 	_seats_left.text = Language.t("Seats left %d / %d") % [left, seats.size()]
 	_clock.text = MatchTranscript.clock(snapshot["tick"])
-	var ended: bool = snapshot["phase"] == MatchState.Phase.ENDED
+	var ended: bool = snapshot["phase"] == MatchState.Phase.ENDED and not past_end
 	_seats_left.visible = not ended
 	_clock.visible = not ended
 	_show_countdown(snapshot["tick"])

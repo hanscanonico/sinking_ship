@@ -153,7 +153,7 @@ static func _what(file: ReplayFile, reason: String) -> String:
 					Language.titled(String(file.ship).replace("_", " ")),
 					Language.t(ReplayListing.seats_text(file.seats)) % file.seats,
 					MatchTranscript.clock(file.ticks),
-					_winner(file.winner, file.ended, file.choices.watch),
+					winner_words(file.winner, file.ended, file.choices.watch),
 				]
 			)
 		)
@@ -170,11 +170,25 @@ static func _more(when: String, file: ReplayFile, reason: String) -> String:
 
 
 ## Who won (ReplayListing.winner_text), in the language in use.
-static func _winner(winner: int, ended: bool, watched: bool) -> String:
+static func winner_words(winner: int, ended: bool, watched: bool) -> String:
 	var bot := ReplayListing.bot_number(winner, watched)
 	if ended and bot > 0:
 		return Language.t("Bot %d won") % bot
 	return Language.t(ReplayListing.winner_text(winner, ended, watched))
+
+
+## Who won the match [param snapshot] is the end of, as the list words it (winner_words)
+## — the last seat in, the local one "you" unless the match was only [param watched], or
+## the sea with nobody left dry; "" while it has not ended. The replay bar's end line.
+static func result_words(snapshot: Dictionary, watched: bool) -> String:
+	if snapshot["phase"] != MatchState.Phase.ENDED:
+		return ""
+	var winner := -1
+	for entry: Dictionary in snapshot["seats"]:
+		if not entry["out"]:
+			winner = entry["seat"]
+			break
+	return winner_words(winner, true, watched)
 
 
 ## Delete asks once: the first press arms it, the second deletes.

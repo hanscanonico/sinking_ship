@@ -14,6 +14,10 @@ var whole: ShipPose
 var pose: ShipPose
 var me: Dictionary
 var is_in := false
+## Whether a snapshot of the match ended is answered as any other: a replay's last tick,
+## which no results stand over (FirstPersonHud.past_end). Its asker has it in what it
+## asks with (ask), as it changes the answers.
+var past_end := false
 ## The snapshot as seen from the eyes' piece (Pieces.seen_from), and framed on the face
 ## they stand on (Faces.framed_snapshot); the eyes' piece's faces, the Surfaces of that
 ## face and of its deck, and her pose in that face's frame while the eyes swim, else null.
@@ -96,7 +100,7 @@ func _answer(snapshot: Dictionary, seat: int) -> void:
 	is_in = false
 	_sight.clear()
 	_sight_eye = NAN
-	if snapshot.is_empty() or snapshot["phase"] == MatchState.Phase.ENDED:
+	if snapshot.is_empty() or (snapshot["phase"] == MatchState.Phase.ENDED and not past_end):
 		return
 	whole = _schedule.pose_at(snapshot["tick"])
 	me = MatchState.entry_of(snapshot["seats"], seat)

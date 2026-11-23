@@ -78,6 +78,11 @@ func beside() -> Control:
 	return _beside
 
 
+## The held countdown's number, which the menu's wordmark keeps clear of.
+func number() -> Control:
+	return _number
+
+
 static func _centre(control: Control, rect: Rect2) -> void:
 	control.set_anchors_preset(Control.PRESET_CENTER)
 	control.offset_left = rect.position.x
