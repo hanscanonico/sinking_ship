@@ -644,8 +644,8 @@ static func height_words(above_sea: float) -> String:
 	if absf(above_sea) < 0.05:
 		return Language.t("At the waterline")
 	if above_sea < 0.0:
-		return Language.t("%.1f m under the sea") % -above_sea
-	return Language.t("%.1f m above the sea") % above_sea
+		return Language.t("%s m under the sea") % Language.decimal(-above_sea)
+	return Language.t("%s m above the sea") % Language.decimal(above_sea)
 
 
 ## What the height readout says of a swimmer instead: in the sea, or — [param in_room],
@@ -1079,11 +1079,12 @@ func _seat_rules() -> SeatRules:
 
 
 ## [param signed_deg] signed to a tenth of a degree, a level reading always "+0.0°":
-## a hair under level rounds to nothing too, never to "-0.0°".
+## a hair under level rounds to nothing too, never to "-0.0°" — its decimal mark the
+## language's (Language.decimal).
 static func degrees_words(signed_deg: float) -> String:
 	if absf(signed_deg) < 0.05:
-		return "+0.0°"
-	return "%+.1f°" % signed_deg
+		return Language.decimal(0.0, 1, true) + "°"
+	return Language.decimal(signed_deg, 1, true) + "°"
 
 
 static func low_words(signed_deg: float, positive: String, negative: String) -> String:
