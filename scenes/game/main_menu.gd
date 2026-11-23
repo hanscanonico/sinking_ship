@@ -148,12 +148,13 @@ func open() -> void:
 
 
 ## The backdrop and the wordmark alone, the ship framed beside [param panel]: another
-## screen's, over this one.
-func show_behind(panel: Control) -> void:
+## screen's, over this one — the wordmark kept clear of [param front] when given (the
+## hold's number, which a long tagline reached at 16:9), else of the panel if a plate.
+func show_behind(panel: Control, front: Control = null) -> void:
 	_panel.hide()
 	_backdrop.frame_beside(panel)
 	# A plate stands in front as this menu's does; the hold's room beside her is no plate.
-	_stand_before(panel if panel is PanelContainer else null)
+	_stand_before(front if front != null else (panel if panel is PanelContainer else null))
 	show()
 
 
