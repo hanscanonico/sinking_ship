@@ -211,10 +211,12 @@ private:
 	std::vector<double> door_sills_;
 	std::vector<double> door_heads_;
 	std::vector<double> door_shut_;
-	// FallenFunnels: per fall down its funnel's foot, radius and height, and its way.
+	// FallenFunnels: per fall down its funnel's foot, as high as it broke off, its radius and
+	// height, how far along it lies for each metre over that foot (fall_lies), and its way.
 	std::vector<Vector3> fall_bases_;
 	std::vector<double> fall_radii_;
 	std::vector<double> fall_heights_;
+	std::vector<double> fall_runs_;
 	std::vector<Vector2> fall_along_;
 	// Surfaces' floors: per cell of grid_ its platforms, and for each the nearest the height
 	// of any other surface of the cell comes to it (FloorClearances).
@@ -246,6 +248,7 @@ private:
 	void crossed_rails(const Vector2 &p_came_from, const Vector3 &p_ship_point, double p_radius, double p_step,
 			double p_railing_height, std::vector<ContactHit> &r_found) const;
 	bool doors_cross(const Vector2 &p_start, const Vector2 &p_end, double p_low, double p_high) const;
+	double fall_lies(size_t p_fall, double p_top) const;
 	bool falls_cross(const Vector2 &p_start, const Vector2 &p_end, double p_low, double p_high) const;
 };
 

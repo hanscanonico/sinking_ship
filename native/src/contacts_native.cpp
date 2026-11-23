@@ -660,10 +660,18 @@ void NativeSurfaces::felled(const PackedVector3Array &p_bases, const PackedFloat
 	take_all(fall_along_, p_along);
 	fall_radii_.resize(fall_bases_.size());
 	fall_heights_.resize(fall_bases_.size());
+	fall_runs_.resize(fall_bases_.size());
 	for (size_t fall = 0; fall < fall_bases_.size(); fall++) {
-		fall_radii_[fall] = p_sizes[int64_t(fall) * 2];
-		fall_heights_[fall] = p_sizes[int64_t(fall) * 2 + 1];
+		fall_radii_[fall] = p_sizes[int64_t(fall) * 3];
+		fall_heights_[fall] = p_sizes[int64_t(fall) * 3 + 1];
+		fall_runs_[fall] = p_sizes[int64_t(fall) * 3 + 2];
 	}
+}
+
+// FallenFunnels._lies: how far along its strip a fall lies under p_top, over its foot.
+double NativeSurfaces::fall_lies(size_t p_fall, double p_top) const {
+	const double under = fall_radii_[p_fall] + (p_top - double(fall_bases_[p_fall].y)) * fall_runs_[p_fall];
+	return fall_heights_[p_fall] < under ? fall_heights_[p_fall] : under;
 }
 
 void NativeSurfaces::masked(const PackedByteArray &p_gone, const PackedByteArray &p_rail_gone) {
@@ -1044,7 +1052,7 @@ void NativeSurfaces::obstacles(const Vector3 &p_ship_point, double p_radius, dou
 		const Vector2 local(off.dot(along_way),
 				real_t(double(off.x) * double(along_way.y) - double(off.y) * double(along_way.x)));
 		const Vector2 strip_position(0.0, real_t(-radius));
-		const Vector2 strip_size(real_t(fall_heights_[fall]), real_t(radius * 2.0));
+		const Vector2 strip_size(real_t(fall_lies(fall, head)), real_t(radius * 2.0));
 		if (rect_contact(strip_position, strip_size, local, p_radius, hit)) {
 			const Vector2 normal = hit.normal;
 			hit.normal = along_way * normal.x + Vector2(along_way.y, -along_way.x) * normal.y;
@@ -1292,7 +1300,7 @@ bool NativeSurfaces::falls_cross(const Vector2 &p_start, const Vector2 &p_end, d
 		if (p_high <= double(base.y) || p_low >= double(base.y) + radius * 2.0) {
 			continue;
 		}
-		const Rect2 strip(Vector2(0.0, real_t(-radius)), Vector2(real_t(fall_heights_[fall]), real_t(radius * 2.0)));
+		const Rect2 strip(Vector2(0.0, real_t(-radius)), Vector2(real_t(fall_lies(fall, p_high)), real_t(radius * 2.0)));
 		const Vector2 &along_way = fall_along_[fall];
 		const Vector2 foot(base.x, base.z);
 		const Vector2 off_start = p_start - foot;
