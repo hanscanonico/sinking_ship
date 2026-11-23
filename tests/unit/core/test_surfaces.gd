@@ -866,3 +866,62 @@ func test_line_of_sight_is_blocked_by_walls_not_by_doorways() -> void:
 	assert_false(surfaces.line_of_sight(at_the_rail, under_the_side, calm), "the hull")
 	var off_the_side := Vector3(-17.0, -layout.freeboard + 0.15, 12.0)
 	assert_true(surfaces.line_of_sight(at_the_rail, off_the_side, calm), "the open sea")
+
+
+## The tug's towing deck at its port forward corner, 0.5 m under the sea's reach: the
+## deck x -11.6..-5.0, z -4..4, railed along z = -4; with [param stair], the stair up its
+## side, x -7.8..-5.0, z -3.5..-2.4, and the casing wall at x -5.0 beside its head — the
+## slot between the stair's side and the railing 0.5 m wide, narrower than a body (#790).
+func _railed_corner(stair: bool) -> ShipLayout:
+	var layout := ShipLayout.new()
+	layout.freeboard = 3.0
+	var deck := ShipPlatform.new()
+	deck.area = Rect2(-11.6, -4.0, 6.6, 8.0)
+	layout.platforms = [deck]
+	var railing := ShipRailing.new()
+	railing.from = Vector2(-8.1, -4.0)
+	railing.to = Vector2(-5.0, -4.0)
+	layout.railings = [railing]
+	if stair:
+		var ramp := ShipRamp.new()
+		ramp.area = Rect2(-7.8, -3.5, 2.8, 1.1)
+		ramp.axis = ShipRamp.Axis.X
+		ramp.end_height = 2.4
+		layout.ramps = [ramp]
+		var wall := ShipBlocker.new()
+		wall.area = Rect2(-5.1, -3.6, 0.2, 3.05)
+		wall.top = 2.4
+		layout.blockers = [wall]
+	layout.spawns = [Vector3(-9.0, 0.0, 0.0)]
+	return layout
+
+
+func test_a_climb_along_a_railing_stands_clear_of_it_and_of_a_stair_beside_it() -> void:
+	# A swimmer along the deck's railed side, just off its end, pressing along it: the climb
+	# would stand it on the railing's line, which holds it 0.4 m in. On open deck it stands
+	# where that leaves it; with the stair's side there, in a slot narrower than itself,
+	# it finds no way up there rather than being stood inside the stair (#790).
+	var rules := SimFixtures.rules()
+	var sea := -0.5
+	var feet := Vector3(-4.25, sea - rules.swim_depth, -4.0)
+	for stair: bool in [false, true]:
+		var layout := _railed_corner(stair)
+		var surfaces := Surfaces.new(layout)
+		var sinking := SimFixtures.scenario([[0.0, layout.freeboard + sea, 0.0, 0.0]])
+		var pose := SimFixtures.sim(1, sinking, layout).pose()
+		var climb := surfaces.climb_out(feet, Vector2(-1.0, 0.0), pose, rules, rules.climb_reach)
+		if stair:
+			assert_null(climb, "no way up into the slot")
+			continue
+		assert_not_null(climb, "up onto the open deck")
+		if climb == null:
+			continue
+		var held := surfaces.rail_contacts(
+			climb.stand, rules.body_radius, climb.surface, rules.step_height, rules.railing_height
+		)
+		assert_eq(held.size(), 0, "stood clear of the railing")
+		assert_almost_eq(climb.stand.z, -4.0 + rules.body_radius, 0.001, "where it holds it")
+		var walled := surfaces.obstacle_contacts(
+			climb.stand, rules.body_radius, rules.body_height, rules.step_height
+		)
+		assert_eq(walled.size(), 0, "clear of anything else")

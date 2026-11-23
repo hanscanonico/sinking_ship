@@ -923,19 +923,35 @@ func _onto(platform: int, from: Vector2, to: Vector2) -> Vector2:
 ## A swimmer at [param feet] climbing up onto [param top] to stand at [param stand]
 ## (x/z): on the surface there within a step, out of the sea under [param pose] as
 ## far as wading, with nothing holding it back and no wall across the way at that
-## height; null when it cannot.
+## height; null when it cannot. A stand on a railing's line — a climb pressed along a
+## railed side — is moved off it first, where the railing would hold the body the tick it
+## stands, and that is where it must be clear (#790): never stood in a slot narrower
+## than itself, between the railing and a stair's side, to be wedged there.
 func _standing(
 	feet: Vector3, stand: Vector2, top: float, pose: ShipPose, rules: BrawlRules
 ) -> Climb:
 	var step := rules.step_height
+	var radius := rules.body_radius
 	var at := Vector3(stand.x, top, stand.y)
 	var surface := under(at, step)
 	if surface == NONE or _is_round_top(surface):
 		return null
 	at.y = height_at(surface, at)
+	var railed := rail_contacts(at, radius, surface, step, rules.railing_height)
+	if not railed.is_empty():
+		for contact: Contact in railed:
+			at.x += contact.normal.x * contact.depth
+			at.z += contact.normal.y * contact.depth
+		at.y = top
+		surface = under(at, step)
+		if surface == NONE or _is_round_top(surface):
+			return null
+		at.y = height_at(surface, at)
+		if not rail_contacts(at, radius, surface, step, rules.railing_height).is_empty():
+			return null
 	if pose.water_height(at) - at.y >= rules.wade_depth:
 		return null
-	if not obstacle_contacts(at, rules.body_radius, rules.body_height, step).is_empty():
+	if not obstacle_contacts(at, radius, rules.body_height, step).is_empty():
 		return null
 	if blocked(Vector3(feet.x, at.y, feet.z), at, rules.body_height, step):
 		return null
