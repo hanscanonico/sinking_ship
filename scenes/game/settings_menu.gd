@@ -293,7 +293,7 @@ func _show_values() -> void:
 	%MasterValue.text = "%d %%" % roundi(_master.value)
 	%MusicValue.text = "%d %%" % roundi(_music.value)
 	%EffectsValue.text = "%d %%" % roundi(_effects.value)
-	%SensitivityValue.text = "%.2f" % _sensitivity.value
+	%SensitivityValue.text = Language.decimal(_sensitivity.value, 2)
 	%FieldOfViewValue.text = "%d°" % roundi(_fov.value)
 	%DeckRollValue.text = "level" if _deck_roll.value <= 0.0 else "%d %%" % roundi(_deck_roll.value)
 	%ViewKickValue.text = "off" if _view_kick.value <= 0.0 else "%d %%" % roundi(_view_kick.value)

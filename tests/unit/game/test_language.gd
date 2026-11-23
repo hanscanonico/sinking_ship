@@ -193,7 +193,7 @@ func test_the_hud_s_lines_read_in_the_language_in_use() -> void:
 	Language.use("fr")
 	assert_eq(Hud.whose_view("Bot 3", false, false), "par les yeux de Bot 3")
 	assert_eq(Hud.out_word(PlayerState.Cause.WITH_HER), "Coulé")
-	assert_eq(FirstPersonHud.height_words(2.04), "2.0 m au-dessus de l'eau")
+	assert_eq(FirstPersonHud.height_words(2.04), "2,0 m au-dessus de l'eau")
 	assert_eq(WarningChips.straining_words(&"funnel_4"), "CHEMINÉE 4 VA CÉDER")
 	assert_eq(WarningChips.straining_words(&"funnel"), "LA CHEMINÉE VA CÉDER")
 	assert_eq(EndOverlay.survived(Ticks.from_seconds(134.0), 3), "Survie 02:14.0 · 3e")
@@ -201,6 +201,23 @@ func test_the_hud_s_lines_read_in_the_language_in_use() -> void:
 	Language.use("es")
 	assert_eq(Hud.whose_view("Bot 3", true, false), "por tus propios ojos")
 	assert_eq(WarningChips.straining_words(&"funnel_2"), "CHIMENEA 2 VA A CEDER")
+
+
+## French and Spanish write a decimal comma (Language.decimal): the panel's height, the
+## dials, the mouse's sensitivity and the replay's speed.
+func test_a_number_s_decimal_mark_is_the_language_s() -> void:
+	assert_eq(Language.decimal(2.54), "2.5")
+	assert_eq(FirstPersonHud.degrees_words(-3.21), "-3.2°")
+	Language.use("fr")
+	assert_eq(Language.decimal(2.54), "2,5")
+	assert_eq(Language.decimal(0.123, 2), "0,12")
+	assert_eq(FirstPersonHud.height_words(-3.8), "3,8 m sous la mer")
+	assert_eq(FirstPersonHud.degrees_words(-3.21), "-3,2°")
+	assert_eq(FirstPersonHud.degrees_words(0.01), "+0,0°", "level reads +0,0, never -0,0")
+	assert_eq(Language.marked("0.25"), "0,25")
+	Language.use("es")
+	assert_eq(FirstPersonHud.height_words(2.5), "2,5 m sobre el mar")
+	assert_eq(FirstPersonHud.degrees_words(14.7), "+14,7°")
 
 
 func test_the_settings_screen_picks_the_language_and_saves_it() -> void:
