@@ -123,7 +123,7 @@ func show_state(
 	if not _dragging:
 		_bar.set_value_no_signal(tick)
 	_play.text = Language.t("Play", ON_REPLAY) if paused else "Pause"
-	_speed.text = "%s×" % String.num(speed, 2)
+	_speed.text = "%s×" % Language.marked(String.num(speed, 2))
 	_clock.text = "%s / %s" % [MatchTranscript.clock(tick), MatchTranscript.clock(_last_tick)]
 	_seat.text = "" if whose.is_empty() else whose[0].to_upper() + whose.substr(1)
 	_camera.text = camera
