@@ -496,10 +496,9 @@ func _begin(
 	)
 
 
-## What a match and a replay share once the driver runs it: [param config]'s ship,
-## sinking and seats drawn, [param local] (null for a bot, or a replay) on
-## [param local_seat], seen through [param eye_seat]'s eyes or the observer camera, as
-## start() says.
+## What a match and a replay share once the driver runs it: [param config]'s ship, sinking and seats
+## drawn, [param local] (null for a bot, or a replay) on [param local_seat], seen through
+## [param eye_seat]'s eyes or the observer camera, as start() says.
 func _setup_view(
 	config: MatchConfig,
 	local: LocalInputSource,
@@ -707,12 +706,11 @@ func _show_results(stats: MatchStats, aboard: bool) -> void:
 	_end.show_results(stats, _local_seat, _names, _config.match_seed, survival, session, aboard)
 
 
-## Stands the ended match aside while Game holds the next one's countdown for its
-## sinking (R20) — a rematch's, or a replay's watched from the results: nothing of it
-## drawn, its world, HUDs and results, nor its keys heard, so the held countdown shows
-## over the menu's backdrop as a held Play does. The match and its last stats are kept
-## for the way back from the replay (show_results_again); start or start_replay brings
-## it back.
+## Stands the ended match aside while Game holds the next one's countdown for its sinking (R20) — a
+## rematch's, or a replay's watched from the results: nothing of it drawn, its world, HUDs and
+## results, nor its keys heard, so the held countdown shows over the menu's backdrop as a held Play
+## does. The match and its last stats are kept for the way back from the replay
+## (show_results_again); start or start_replay brings it back.
 func stand_aside() -> void:
 	_aside = true
 	visible = false
@@ -776,22 +774,8 @@ func _show_replay(snapshot: Dictionary, viewed: int) -> void:
 		Hud.whose_view(_hud.fit_name(_names[viewed]), viewed == _local_seat, false),
 		_camera_name(),
 		_prompts,
-		replay_result(snapshot, _watcher)
+		ReplaysMenu.result_words(snapshot, _watcher)
 	)
-
-
-## Who won the match [param snapshot] is the end of, as the list of replays words it
-## (ReplaysMenu.winner_words) — the last seat in, the local one "you" unless the match was
-## only [param watched], or the sea with nobody left dry; "" while it has not ended.
-static func replay_result(snapshot: Dictionary, watched: bool) -> String:
-	if snapshot["phase"] != MatchState.Phase.ENDED:
-		return ""
-	var winner := -1
-	for entry: Dictionary in snapshot["seats"]:
-		if not entry["out"]:
-			winner = entry["seat"]
-			break
-	return ReplaysMenu.winner_words(winner, true, watched)
 
 
 ## The replay was sought: what presentation built from the ticks before is built again
@@ -813,9 +797,8 @@ func _camera_name() -> String:
 	return "Free · following" if _free.following else "Free camera"
 
 
-## Takes up the settings screen's field of view, deck roll, view kick and graphics
-## mid-match; the look's sensitivity and invert-Y are read from the same settings as
-## they turn.
+## Takes up the settings screen's field of view, deck roll, view kick and graphics mid-match; the
+## look's sensitivity and invert-Y are read from the same settings as they turn.
 func apply_view(settings: ViewSettings) -> void:
 	_eyes.setup(settings)
 	_kick.set_strength(settings.view_kick)
@@ -906,9 +889,8 @@ static func _up_of(snapshot: Dictionary, seat: int) -> int:
 	return MatchState.up_of(snapshot, snapshot["seats"][seat])
 
 
-## Whether the free camera may be flown — and the ghost walked — in [param snapshot]: in
-## a replay, always; else
-## the eye seat out — or the match only watched — while the match goes on, the eyes
+## Whether the free camera may be flown — and the ghost walked — in [param snapshot]: in a replay,
+## always; else the eye seat out — or the match only watched — while the match goes on, the eyes
 ## being a seat's (not the observer's).
 func _can_fly(snapshot: Dictionary) -> bool:
 	if _driver.replaying():

@@ -177,6 +177,20 @@ static func winner_words(winner: int, ended: bool, watched: bool) -> String:
 	return Language.t(ReplayListing.winner_text(winner, ended, watched))
 
 
+## Who won the match [param snapshot] is the end of, as the list words it (winner_words)
+## — the last seat in, the local one "you" unless the match was only [param watched], or
+## the sea with nobody left dry; "" while it has not ended. The replay bar's end line.
+static func result_words(snapshot: Dictionary, watched: bool) -> String:
+	if snapshot["phase"] != MatchState.Phase.ENDED:
+		return ""
+	var winner := -1
+	for entry: Dictionary in snapshot["seats"]:
+		if not entry["out"]:
+			winner = entry["seat"]
+			break
+	return winner_words(winner, true, watched)
+
+
 ## Delete asks once: the first press arms it, the second deletes.
 func _on_delete(button: Button, path: String) -> void:
 	if button.text != "Sure?":

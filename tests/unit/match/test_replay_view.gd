@@ -216,9 +216,9 @@ func test_a_replay_says_who_won_at_its_end() -> void:
 	watched["phase"] = MatchState.Phase.ENDED
 	watched["seats"][1]["out"] = true
 	watched["seats"][2]["out"] = true
-	assert_eq(MatchScene.replay_result(watched, true), "Bot 1 won", "no seat is the watcher's")
+	assert_eq(ReplaysMenu.result_words(watched, true), "Bot 1 won", "no seat is the watcher's")
 	Language.use("fr")
-	assert_eq(MatchScene.replay_result(watched, false), "Vous avez gagné")
+	assert_eq(ReplaysMenu.result_words(watched, false), "Vous avez gagné")
 	Language.use(Language.SOURCE)
 
 
