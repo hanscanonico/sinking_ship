@@ -89,8 +89,8 @@ static func controls_for(on_pad: bool) -> String:
 	return "   ·   ".join(hints)
 
 
-## Move, look, jump, shove, brace, grab and pause as the input map binds them, one to a
-## line, on the pad when [param on_pad], else on the keyboard and mouse — the look
+## Move, look, jump, shove — and that holding it charges it (#779) — brace, grab and
+## pause as the input map binds them, one to a line, on the pad when [param on_pad], else on the keyboard and mouse — the look
 ## being the mouse's, bound to no action — and, when [param spectating], what
 ## switches whose eyes the view is in, flies the free camera and has it follow, and walks
 ## the ghost.
@@ -99,7 +99,7 @@ static func pause_controls_for(on_pad: bool, spectating := false) -> String:
 		[_move_of(on_pad), "move"],
 		[_word_of(&"look_left", on_pad) if on_pad else Language.t("Mouse"), "look"],
 		[_word_of(&"jump", on_pad), "jump"],
-		[_word_of(&"shove", on_pad), "shove"],
+		[_word_of(&"shove", on_pad), "shove; hold to charge"],
 		[_word_of(&"brace", on_pad), "brace"],
 		[_word_of(&"grab", on_pad), "grab"],
 		[_word_of(&"pause", on_pad), "pause"],

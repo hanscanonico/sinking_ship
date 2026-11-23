@@ -314,6 +314,9 @@ msgstr "sauter"
 msgid "shove"
 msgstr "pousser"
 
+msgid "shove; hold to charge"
+msgstr "pousser ; maintenir pour charger"
+
 msgid "brace"
 msgstr "tenir bon"
 
