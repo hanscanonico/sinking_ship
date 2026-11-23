@@ -346,6 +346,18 @@ func test_connecting_then_rejoining() -> void:
 	assert_false(rejoin.visible, "no room, no Rejoin")
 
 
+## The code boxes show the room Rejoin goes back to, not one an earlier rejoin left there
+## (seen played online, 2026-11-23: room EZLH lost, the boxes still read FPFT).
+func test_the_code_shows_the_room_rejoin_goes_back_to() -> void:
+	_open()
+	var code: CodePicker = _node("%Code")
+	_menu.open(OnlinePlay.LOST, "FPFT")
+	(_node("%Rejoin") as Button).pressed.emit()
+	assert_eq(code.code(), "FPFT")
+	_menu.open(OnlinePlay.LOST, "EZLH")
+	assert_eq(code.code(), "EZLH", "before Rejoin is pressed: Join goes there too")
+
+
 func test_back_and_cancel_leave() -> void:
 	_open()
 	watch_signals(_menu)
