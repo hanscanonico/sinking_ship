@@ -32,6 +32,12 @@ var on_web := OS.has_feature("web")
 var _roster: RoomRoster
 ## Whether the start has been asked for since the room was shown.
 var _asked := false
+## Whether the match the room still shows as on is the one this player just finished:
+## the server holds a finished match a moment (ServerRules.finished_linger) before the
+## room waits for its host again.
+var _ended := false
+## Whether the host pressed Start while that match lingered: asked for once it is gone.
+var _queued := false
 
 @onready var _panel: PanelContainer = $Panel
 @onready var _code: Label = %Code
@@ -56,20 +62,29 @@ func _ready() -> void:
 	_watch.toggled.connect(watch_requested.emit)
 
 
-## Shows [param roster]'s room, and [param note] — a refusal, say — under it.
-func show_room(roster: RoomRoster, note: String = "") -> void:
+## Shows [param roster]'s room, and [param note] — a refusal, say — under it; [param ended]
+## when the match it shows as on is the one this player has just seen end (back from the
+## results): the room then says it opens again in a moment, and a Start pressed meanwhile
+## is asked for as soon as it does.
+func show_room(roster: RoomRoster, note: String = "", ended: bool = false) -> void:
+	var hosting := roster.you_host()
+	var same := _roster != null and _roster.code == roster.code
+	_ended = roster.playing and (ended or _ended and same)
+	var start_now := _queued and not roster.playing and hosting
+	_queued = _queued and _ended and hosting
 	_roster = roster
-	_asked = false
+	_asked = _queued
 	_code.text = roster.code
 	_copy_invite.visible = on_web
 	_note.text = note
 	_note.visible = not note.is_empty()
-	var hosting := roster.you_host()
-	_start.text = "Start"
-	_start.disabled = roster.playing or not hosting
+	_start.text = "Starting…" if _queued else "Start"
+	_start.disabled = (roster.playing and not _ended) or not hosting or _queued
 	_watch.set_pressed_no_signal(roster.you_watch())
 	_watch.disabled = roster.playing
-	if roster.playing:
+	if _ended:
+		_status.text = Language.t("That match is over: the room opens again in a moment.")
+	elif roster.playing:
 		_status.text = Language.t("A match is on in this room: it waits for that one to end.")
 	elif hosting:
 		_status.text = Language.t(
@@ -84,6 +99,8 @@ func show_room(roster: RoomRoster, note: String = "") -> void:
 	var focused := get_viewport().gui_get_focus_owner()
 	if focused == null or not _panel.is_ancestor_of(focused) or not focused.is_visible_in_tree():
 		(_start if not _start.disabled else _copy_code).grab_focus()
+	if start_now:
+		_on_start()
 
 
 ## The panel the backdrop's ship stands beside.
@@ -98,12 +115,17 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_start() -> void:
-	if _roster == null or _roster.playing or not _roster.you_host() or _asked:
+	if _roster == null or not _roster.you_host() or _asked:
+		return
+	if _roster.playing and not _ended:
 		return
 	_asked = true
 	_start.disabled = true
 	_start.text = "Starting…"
 	_copy_code.grab_focus()
+	if _roster.playing:
+		_queued = true
+		return
 	start_requested.emit()
 
 

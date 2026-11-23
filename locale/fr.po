@@ -1041,6 +1041,9 @@ msgstr "Regarder sans jouer"
 msgid "A match is on in this room: it waits for that one to end."
 msgstr "Une partie est en cours dans ce salon : il attend qu'elle se termine."
 
+msgid "That match is over: the room opens again in a moment."
+msgstr "Cette partie est finie : le salon rouvre dans un instant."
+
 msgid "You host: start when everyone is aboard. Bots take the empty seats."
 msgstr "Vous êtes l'hôte : lancez quand tout le monde est à bord. Des bots prennent les places libres."
 
