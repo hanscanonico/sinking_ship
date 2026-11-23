@@ -67,6 +67,13 @@ func test_the_keyboard_looks_with_the_mouse_and_the_pad_with_its_stick() -> void
 	assert_string_contains(InputPrompts.pause_controls_for(true), "Start — pause")
 
 
+## Holding shove charges it (#779): the one control whose hold does more than its press
+## is told so where every control is listed.
+func test_the_pause_says_holding_shove_charges_it() -> void:
+	assert_string_contains(InputPrompts.pause_controls_for(false), "— shove; hold to charge")
+	assert_string_contains(InputPrompts.pause_controls_for(true), "— shove; hold to charge")
+
+
 ## A watcher plays nothing: the pause names only what switches the seat and flies the
 ## free camera.
 func test_a_watchers_pause_names_only_the_views() -> void:
