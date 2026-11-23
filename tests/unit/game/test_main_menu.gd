@@ -210,6 +210,26 @@ func test_the_wordmark_shrinks_into_the_room_a_tall_panel_leaves() -> void:
 	assert_eq(MainMenu.wordmark_scale(INF, 160.0), 1.0, "no panel showing")
 
 
+## The held countdown's number stands under the wordmark while a sinking bakes; a long
+## tagline (French, 1152×648) ran into it (seen played, 2026-11-23). Shown behind
+## another screen with that number in front, the wordmark keeps clear of it.
+func test_the_wordmark_keeps_clear_of_what_is_put_in_front_of_it() -> void:
+	var menu := _menu()
+	var wordmark: Control = menu.get_node("Wordmark")
+	var beside := Control.new()
+	var number := Control.new()
+	menu.add_child(beside)
+	menu.add_child(number)
+	number.position = Vector2(400.0, wordmark.global_position.y + 90.0)
+	number.size = Vector2(400.0, 120.0)
+	menu.show_behind(beside, number)
+	var bottom := wordmark.global_position.y + wordmark.size.y * wordmark.scale.y
+	assert_lt(wordmark.scale.y, 1.0, "shrunk into the room over the number")
+	assert_lte(bottom, number.global_position.y, "and clear of it")
+	menu.show_behind(beside)
+	assert_eq(wordmark.scale, Vector2.ONE, "with nothing in front, whole again")
+
+
 func test_the_tagline_goes_before_it_is_too_small_to_read() -> void:
 	assert_true(MainMenu.tagline_shown(INF, 160.0), "no panel showing")
 	assert_true(MainMenu.tagline_shown(160.0, 160.0), "room for it whole")
