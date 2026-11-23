@@ -313,12 +313,10 @@ func _draw_live() -> void:
 	_draw_windup_wedges(mine["pos"], answers.framed["seats"])
 
 
-## Whether there is nothing to draw: no snapshot yet, or the results are up — which they
-## never are over a replay's last tick (past_end).
+## Whether there is nothing to draw: no snapshot yet, or the results up (never past_end).
 func _over() -> bool:
-	if _snapshot.is_empty():
-		return true
-	return _snapshot["phase"] == MatchState.Phase.ENDED and not past_end
+	var ended: bool = not _snapshot.is_empty() and _snapshot["phase"] == MatchState.Phase.ENDED
+	return _snapshot.is_empty() or ended and not past_end
 
 
 ## Frost in from the screen's edges while the eyes swim, the further the emptier
