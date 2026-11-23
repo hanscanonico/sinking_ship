@@ -82,6 +82,38 @@ func test_only_the_host_starts() -> void:
 	assert_signal_emit_count(_screen, "start_requested", 0)
 
 
+## Back from the results the server still holds the finished match a moment
+## (finished_linger): the room says it opens again, not that a match is on, and the
+## host's Start pressed then is asked for as soon as it does (seen played online,
+## 2026-11-23: the press was lost and the room read as busy).
+func test_back_from_a_match_the_host_s_start_waits_for_the_room_to_open() -> void:
+	watch_signals(_screen)
+	var start: Button = _screen.get_node("%Start")
+	var status: Label = _screen.get_node("%Status")
+	_screen.show_room(_roster(["Ada", "Bea"], 0, true), "", true)
+	assert_eq(status.text, "That match is over: the room opens again in a moment.")
+	assert_false(start.disabled, "the host may press it already")
+	start.pressed.emit()
+	assert_signal_emit_count(_screen, "start_requested", 0, "not while the match lingers")
+	assert_true(start.disabled, "asked")
+	_screen.show_room(_roster(["Ada", "Bea", "Cy"], 0, true))
+	assert_eq(status.text, "That match is over: the room opens again in a moment.", "still")
+	_screen.show_room(_roster(["Ada", "Bea", "Cy"], 0))
+	assert_signal_emit_count(_screen, "start_requested", 1, "asked once it opens")
+	assert_true(start.disabled)
+
+
+## Only the match just seen end reads so: a room whose match is someone else's is busy.
+func test_a_room_entered_while_its_match_is_on_reads_busy() -> void:
+	_screen.show_room(_roster(["Ada", "Bea"], 0, true), "", true)
+	var other := _roster(["Dan"], 0, true)
+	other.code = "ZZZZ"
+	_screen.show_room(other)
+	var status: Label = _screen.get_node("%Status")
+	assert_eq(status.text, "A match is on in this room: it waits for that one to end.")
+	assert_true((_screen.get_node("%Start") as Button).disabled)
+
+
 ## A name as long as a hostile server may send moves nothing: the seats' column keeps its
 ## width, and the name shows as far as it fits.
 func test_a_long_name_is_cut_short() -> void:

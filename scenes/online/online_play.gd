@@ -310,7 +310,8 @@ func _back_to_room() -> void:
 		_end(false, refusal(RoomCodec.Refusal.ROOM_CLOSED), "")
 		return
 	playing_changed.emit(false)
-	_room_screen.show_room(_room.roster)
+	# The match the roster may still show as on is the one just seen end (finished_linger).
+	_room_screen.show_room(_room.roster, "", true)
 
 
 ## From the results out of the room, for the Online screen.
