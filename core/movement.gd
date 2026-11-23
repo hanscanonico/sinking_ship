@@ -548,7 +548,7 @@ func _blockers(
 func _held_by(player: PlayerState, feet: Vector3, pose_now: ShipPose) -> Array[Surfaces.Contact]:
 	var swim_step := 0.0
 	if player.body == PlayerState.Body.SWIMMING:
-		swim_step = _swim_step(feet, BodyWater.height(_surfaces, pose_now, feet))
+		swim_step = _swim_step(feet, BodyWater.height(_surfaces, _rules, pose_now, feet))
 	return BodyHold.contacts(_surfaces, _rules, player, feet, swim_step)
 
 
@@ -809,7 +809,7 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 		return
 	var dt := Ticks.SECONDS_PER_TICK
 	var planar := Vector2(player.vel.x, player.vel.z)
-	var wet := BodyWater.wet(_surfaces, pose_now, player.pos)
+	var wet := BodyWater.wet(_surfaces, _rules, pose_now, player.pos)
 	var flowing := _current(player) if wet else Vector2.ZERO
 	_flowing[player.seat] = flowing
 	var dive := 0.0
@@ -845,7 +845,7 @@ func _swim(player: PlayerState, pose_now: ShipPose) -> void:
 ## water it is in — its cell's, so it surfaces in a pocket (SH29) — or a crawler's, in
 ## a crawl space (BrawlRules.swim_depth_of); or on the bottom there when that is higher.
 func _rest_at(feet: Vector3, feet_before: float, pose_now: ShipPose, heading: Vector2) -> float:
-	var sea := BodyWater.height(_surfaces, pose_now, feet)
+	var sea := BodyWater.height(_surfaces, _rules, pose_now, feet)
 	var bottom := _bottom(feet, feet_before, sea)
 	var height := _rules.height_at(_surfaces, feet)
 	var rest := maxf(sea - _rules.swim_depth_of(height), bottom)
@@ -895,9 +895,9 @@ func _swim_step(feet: Vector3, sea: float) -> float:
 ## surface, wade_depth under it or more.
 func in_the_sea(player: PlayerState, pose_now: ShipPose) -> bool:
 	if player.body == PlayerState.Body.AIRBORNE:
-		var sea := BodyWater.height(_surfaces, pose_now, player.pos)
+		var sea := BodyWater.height(_surfaces, _rules, pose_now, player.pos)
 		var depth := sea - _bottom(player.pos, player.pos.y, sea)
-		return BodyWater.wet(_surfaces, pose_now, player.pos) and depth >= _rules.wade_depth
+		return BodyWater.wet(_surfaces, _rules, pose_now, player.pos) and depth >= _rules.wade_depth
 	return sea_over(player.surface, player.pos, pose_now) >= _rules.wade_depth
 
 
@@ -972,7 +972,7 @@ func _blast(player: PlayerState) -> Vector3:
 ## (_ceilings), and loses its upward speed.
 func come_to_rest(player: PlayerState, feet_before: float, pose_now: ShipPose) -> void:
 	var over := BodyWater.over_floor(_surfaces, player.pos, feet_before)
-	var sea := BodyWater.height(_surfaces, pose_now, over)
+	var sea := BodyWater.height(_surfaces, _rules, pose_now, over)
 	var bottom := _bottom(player.pos, feet_before, sea)
 	var height := height_of(player)
 	var from := Vector3(player.pos.x, feet_before, player.pos.z)
