@@ -33,7 +33,7 @@ static func height(surfaces: Surfaces, rules: BrawlRules, pose: ShipPose, feet: 
 		return pose.height_of(0.0, feet)
 	if surfaces.wet(feet, pose):
 		return pose.water_height(feet)
-	var over := hung_in(surfaces, rules, pose, feet)
+	var over := hung_in(rules, pose, feet)
 	return pose.water_height(feet) if is_nan(over) else over
 
 
@@ -42,7 +42,7 @@ static func height(surfaces: Surfaces, rules: BrawlRules, pose: ShipPose, feet: 
 static func wet(surfaces: Surfaces, rules: BrawlRules, pose: ShipPose, feet: Vector3) -> bool:
 	if outside(surfaces, pose, feet):
 		return pose.wet_at(feet, pose.world_height(feet), CellMap.NONE)
-	return surfaces.wet(feet, pose) or not is_nan(hung_in(surfaces, rules, pose, feet))
+	return surfaces.wet(feet, pose) or not is_nan(hung_in(rules, pose, feet))
 
 
 ## The ship-local height of the water [param feet], dry in their own cell, hang in from
@@ -51,24 +51,24 @@ static func wet(surfaces: Surfaces, rules: BrawlRules, pose: ShipPose, feet: Vec
 ## with the dry air of the cell under it right below. A body off its feet in that water
 ## whose feet sink through the opening — onto the head of the stair, a hair under the deck —
 ## has not left it: within a step (step_height) under the floor of a cell whose water is
-## deep enough there to swim in (wade_depth), with nothing of hers under that floor between
-## it and its feet, it is in that water still — and from there it swims back onto the
-## deck beside the opening as onto any edge a step up (Movement._swim_step). Read as out of
-## the water there, it stood up on the stair's top tread, dry, a step from water it swam
-## in again — and whatever pushed it back that step, a railing or a crate, had it in and
-## out several times a second (#777). A body on its feet is asked none of this
-## (Movement.in_the_sea): it swims from the deck down, and stands a step under it.
-static func hung_in(surfaces: Surfaces, rules: BrawlRules, pose: ShipPose, feet: Vector3) -> float:
+## deep enough there to swim in (wade_depth), it is in that water still — and from there
+## it swims back onto the deck, up the stair or beside the opening, as onto any edge a step
+## up (Movement._swim_step). Whatever of hers stands in that step over its feet is its
+## bottom, not a lid on the water: a stair it swims up rises over its feet each tick
+## before the water lifts them onto the tread (Movement.come_to_rest), and read as out of
+## the water under that tread it was in the air there, thrown back down the stair and in
+## the water again, several times a second. Read as out of the water on the stair's head,
+## it stood up on the top tread, dry, a step from water it swam in again — and whatever
+## pushed it back that step, a railing or a crate, had it in and out several times a
+## second (#777). A body on its feet is asked none of this (Movement.in_the_sea): it swims
+## from the deck down, and stands a step under it.
+static func hung_in(rules: BrawlRules, pose: ShipPose, feet: Vector3) -> float:
 	var over := Vector3(feet.x, feet.y + rules.step_height, feet.z)
 	var cell := pose.cell_at(over)
 	if cell == CellMap.NONE or cell == pose.cell_at(feet):
 		return NAN
-	var floor_height := pose.cells.floor_of(cell)
 	var water := pose.water_height(over)
-	if water - floor_height < rules.wade_depth:
-		return NAN
-	var below := surfaces.landing(Vector3(feet.x, floor_height - ON_FLOOR, feet.z))
-	return water if below == floor_under(surfaces, feet) else NAN
+	return water if water - pose.cells.floor_of(cell) >= rules.wade_depth else NAN
 
 
 ## [param feet], or the point over them on the surface they went under this tick, come

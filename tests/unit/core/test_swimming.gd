@@ -611,6 +611,38 @@ func test_a_swimmer_going_down_a_stair_under_a_flooded_deck_stands_a_step_under_
 	assert_eq(_kinds(events, SimEvent.Kind.ENTERED_WATER).size(), 0, "and not in the water")
 
 
+## That swimmer on the head of the stair, less than a step under the flooded deck, turns
+## back for the deck. The stair rises over its feet each tick before the water lifts them
+## onto the tread, and under that tread it is in the deck's water still: it swims up the
+## stair onto the deck. Read as out of the water there — the passage far under the stair
+## for its floor — it was in the air under the tread, thrown a body's radius back down the
+## stair and in the water again, every few ticks for as long as it pressed (#777).
+func test_a_swimmer_on_a_stair_under_a_flooded_deck_swims_back_up_onto_it() -> void:
+	var rules := _rules()
+	var sim := SimFixtures.sim(2, null, TRAWLER)
+	HeldPose.hold(sim, HeldPose.flooded(TRAWLER, 0.8, {&"working_deck": [0.8]}))
+	SimFixtures.place(sim, 1, Vector3(9.0, 2.3, 0.0))
+	SimFixtures.swim(sim, 0, Vector3(5.2, 0.0, -2.8))
+	var swimmer := sim.state.seats[0]
+	swimmer.pos.y = 0.0
+	var stair := sim.surfaces.ramp_surface(14)
+	var head := TRAWLER.ramps[14].area.end.x
+	SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2(-1.0, 0.0))}, Ticks.RATE / 3)
+	assert_eq(swimmer.body, PlayerState.Body.SWIMMING, "swimming down the stair")
+	assert_eq(sim.surfaces.under(swimmer.pos, rules.step_height), stair, "on its head")
+	assert_between(swimmer.pos.y, -rules.step_height, -0.01, "less than a step under the deck")
+	var forward := {0: SimFixtures.frame(0, Vector2(1.0, 0.0))}
+	for tick in Ticks.RATE:
+		var before := swimmer.pos.x
+		var events := SimFixtures.step(sim, forward)
+		assert_eq(swimmer.body, PlayerState.Body.SWIMMING, "tick %d: in the water" % tick)
+		assert_eq(_kinds(events, SimEvent.Kind.ENTERED_WATER).size(), 0, "tick %d: still" % tick)
+		var moved := absf(swimmer.pos.x - before)
+		assert_lt(moved, 0.5 * rules.body_radius, "tick %d: thrown nowhere" % tick)
+	assert_gt(swimmer.pos.x, head + rules.body_radius, "past the head of the stair")
+	assert_almost_eq(swimmer.pos.y, 0.0, 0.0001, "on the deck")
+
+
 ## The trawler dry, the sea a metre under her main deck, and a seat off its feet in the air
 ## over her working deck, the sky over it and nothing of hers about it, still on its way
 ## up, as one whose water has gone from under it: it falls where it is and lands on the deck
