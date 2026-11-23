@@ -189,7 +189,9 @@ func _process(delta: float) -> void:
 		return
 	var snapshot := _driver.current
 	var viewed := _viewed()
-	_hud.show_snapshot(snapshot)
+	# A replay's last tick has no results over it: the HUD stays as it was a tick before.
+	var past_end := _driver.replaying() and not _end.visible
+	_hud.show_snapshot(snapshot, past_end)
 	_sea_and_sky.show_sinking(snapshot["tick"], _view.ship_to_world())
 	_sea_and_sky.show_waders(_view.waders_drawn())
 	var drawn := lerpf(_driver.previous["tick"], snapshot["tick"], _driver.alpha)
@@ -223,6 +225,7 @@ func _process(delta: float) -> void:
 		_local.look_by_stick(delta)
 	_first_person_hud.ghost = _ghost
 	_first_person_hud.flying = _free.active or _ghost.active
+	_first_person_hud.past_end = past_end
 	_audio.hear_through(-1 if _observer or _first_person_hud.flying else viewed)
 	if _observer:
 		_observer_camera.follow(_view.seat_world_position(viewed), delta)
@@ -763,17 +766,32 @@ func _replay_input(event: InputEvent) -> bool:
 
 
 ## The replay's controls over the view, as the replay stands at [param snapshot], seen
-## through [param viewed]'s eyes.
+## through [param viewed]'s eyes: at its end nothing plays, so the button reads as paused.
 func _show_replay(snapshot: Dictionary, viewed: int) -> void:
 	var clock := _driver.clock()
 	_replay_hud.show_state(
 		snapshot["tick"],
-		clock.paused,
+		clock.paused or _driver.is_over(),
 		clock.speed(),
 		Hud.whose_view(_hud.fit_name(_names[viewed]), viewed == _local_seat, false),
 		_camera_name(),
-		_prompts
+		_prompts,
+		replay_result(snapshot, _watcher)
 	)
+
+
+## Who won the match [param snapshot] is the end of, as the list of replays words it
+## (ReplaysMenu.winner_words) — the last seat in, the local one "you" unless the match was
+## only [param watched], or the sea with nobody left dry; "" while it has not ended.
+static func replay_result(snapshot: Dictionary, watched: bool) -> String:
+	if snapshot["phase"] != MatchState.Phase.ENDED:
+		return ""
+	var winner := -1
+	for entry: Dictionary in snapshot["seats"]:
+		if not entry["out"]:
+			winner = entry["seat"]
+			break
+	return ReplaysMenu.winner_words(winner, true, watched)
 
 
 ## The replay was sought: what presentation built from the ticks before is built again

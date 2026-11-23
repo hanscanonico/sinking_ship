@@ -153,7 +153,7 @@ static func _what(file: ReplayFile, reason: String) -> String:
 					Language.titled(String(file.ship).replace("_", " ")),
 					Language.t(ReplayListing.seats_text(file.seats)) % file.seats,
 					MatchTranscript.clock(file.ticks),
-					_winner(file.winner, file.ended, file.choices.watch),
+					winner_words(file.winner, file.ended, file.choices.watch),
 				]
 			)
 		)
@@ -170,7 +170,7 @@ static func _more(when: String, file: ReplayFile, reason: String) -> String:
 
 
 ## Who won (ReplayListing.winner_text), in the language in use.
-static func _winner(winner: int, ended: bool, watched: bool) -> String:
+static func winner_words(winner: int, ended: bool, watched: bool) -> String:
 	var bot := ReplayListing.bot_number(winner, watched)
 	if ended and bot > 0:
 		return Language.t("Bot %d won") % bot

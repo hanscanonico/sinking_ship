@@ -155,6 +155,9 @@ var own := -1
 ## Whether the view is the free camera rather than the seat's eyes: drawn as the
 ## observer's is.
 var flying := false
+## Whether the HUD is drawn on once the match has ended: a replay's last tick, where no
+## results take its place and the dials, the banner and the plate stay as they were.
+var past_end := false
 ## The match's ghost, and where it stands while the view is its (GhostWalk.active): what
 ## the plate names then, not where the seat watched is (place).
 var ghost: GhostWalk
@@ -255,7 +258,10 @@ func show_view(
 	_view = view
 	_show_frost()
 	_walked = _rooms.ghost_place(ghost, _schedule, snapshot, _rules.step_height)
-	var with := [flying, _canvas.size, _prompts.word(&"grab"), _prompts.word(&"brace"), _walked]
+	var with := [
+		flying, _canvas.size, _prompts.word(&"grab"), _prompts.word(&"brace"), _walked, past_end
+	]
+	_answers.past_end = past_end
 	if _answers.ask(snapshot, seat, with):
 		_canvas.queue_redraw()
 	_live.queue_redraw()
@@ -307,9 +313,12 @@ func _draw_live() -> void:
 	_draw_windup_wedges(mine["pos"], answers.framed["seats"])
 
 
-## Whether there is nothing to draw: no snapshot yet, or the results are up.
+## Whether there is nothing to draw: no snapshot yet, or the results are up — which they
+## never are over a replay's last tick (past_end).
 func _over() -> bool:
-	return _snapshot.is_empty() or _snapshot["phase"] == MatchState.Phase.ENDED
+	if _snapshot.is_empty():
+		return true
+	return _snapshot["phase"] == MatchState.Phase.ENDED and not past_end
 
 
 ## Frost in from the screen's edges while the eyes swim, the further the emptier

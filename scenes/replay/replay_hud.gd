@@ -2,7 +2,8 @@ class_name ReplayHud
 extends CanvasLayer
 ## The replay's controls (R4, #212), on a plate along the bottom of the view: play or
 ## pause, the speed, a seek bar the match clock reads over, whose eyes the view is in
-## and which camera, and the keys for each on the device last used (InputPrompts). It
+## and which camera — and, at the end of a match that ended, who won it —, and the keys
+## for each on the device last used (InputPrompts). It
 ## asks the scene for everything through its signals and shows what the scene says
 ## (show_state): nothing of the replay is kept here.
 
@@ -44,6 +45,7 @@ var _bar: HSlider
 var _clock: Label
 var _seat: Label
 var _camera: Label
+var _result: Label
 var _hint: Label
 ## The hints the line was last laid out from, and the width it was laid out in.
 var _hints := PackedStringArray()
@@ -90,6 +92,8 @@ func _ready() -> void:
 	box.add_child(line)
 	_seat = _label(line, "")
 	_camera = _label(line, "")
+	_result = _label(line, "")
+	_result.hide()
 	_hint = _label(box, "")
 	_hint.theme_type_variation = UiTheme.HINT_LABEL
 	_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -116,9 +120,18 @@ func setup(first_tick: int, last_tick: int) -> void:
 
 ## Shows where the replay stands: [param tick] of the span, [param paused] or playing
 ## at [param speed], seen through whose eyes ([param whose], as Hud.whose_view words
-## it) from the [param camera] named, the keys worded by [param prompts].
+## it) from the [param camera] named, the keys worded by [param prompts]; and
+## [param result], who won, once it stands on the tick the match ended on — "" before.
+## The button plays while [param paused], which the scene says at the replay's end too:
+## nothing plays there.
 func show_state(
-	tick: int, paused: bool, speed: float, whose: String, camera: String, prompts: InputPrompts
+	tick: int,
+	paused: bool,
+	speed: float,
+	whose: String,
+	camera: String,
+	prompts: InputPrompts,
+	result := ""
 ) -> void:
 	if not _dragging:
 		_bar.set_value_no_signal(tick)
@@ -127,6 +140,8 @@ func show_state(
 	_clock.text = "%s / %s" % [MatchTranscript.clock(tick), MatchTranscript.clock(_last_tick)]
 	_seat.text = "" if whose.is_empty() else whose[0].to_upper() + whose.substr(1)
 	_camera.text = camera
+	_result.text = result
+	_result.visible = not result.is_empty()
 	var said := hints(prompts)
 	if said != _hints:
 		_hints = said
