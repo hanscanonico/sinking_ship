@@ -944,19 +944,19 @@ func _standing(
 
 
 ## [param at] (x/z, at a climb's top) moved off the railings holding a body that stands
-## there (rail_contacts), as they would the tick it stands; INF where it is still on one.
+## there (rail_contacts), as they would the tick it stands; INF where one still holds it
+## there by more than body_give.
 func _off_railings(at: Vector3, rules: BrawlRules) -> Vector3:
 	var step := rules.step_height
-	for _moved in 2:
+	for moved in 2:
 		var surface := under(at, step)
 		var feet := Vector3(at.x, at.y if surface == NONE else height_at(surface, at), at.z)
-		var railed := rail_contacts(feet, rules.body_radius, surface, step, rules.railing_height)
-		if railed.is_empty():
-			return at
-		for contact: Contact in railed:
+		for contact in rail_contacts(feet, rules.body_radius, surface, step, rules.railing_height):
+			if moved == 1 and contact.depth > rules.body_give:
+				return Vector3.INF
 			at.x += contact.normal.x * contact.depth
 			at.z += contact.normal.y * contact.depth
-	return Vector3.INF
+	return at
 
 
 ## The point of [param surface] nearest [param point] (x/z) — on a ramp, moved along

@@ -925,3 +925,15 @@ func test_a_climb_along_a_railing_stands_clear_of_it_and_of_a_stair_beside_it() 
 			climb.stand, rules.body_radius, rules.body_height, rules.step_height
 		)
 		assert_eq(walled.size(), 0, "clear of anything else")
+	# Wherever along the railing's reach it stands, the open deck takes it, the railing's
+	# hold met exactly — never turned away by what rounding leaves of it.
+	var open := Surfaces.new(_railed_corner(false))
+	var layout := _railed_corner(false)
+	var level := SimFixtures.scenario([[0.0, layout.freeboard + sea, 0.0, 0.0]])
+	var calm := SimFixtures.sim(1, level, layout).pose()
+	for side: float in [-3.97, -3.9, -3.83, -3.7, -3.63]:
+		var along := Vector3(feet.x, feet.y, side)
+		var climb := open.climb_out(along, Vector2(-1.0, 0.0), calm, rules, rules.climb_reach)
+		assert_not_null(climb, "climbs at z %s" % side)
+		if climb != null:
+			assert_almost_eq(climb.stand.z, -4.0 + rules.body_radius, 0.001, "z %s" % side)
