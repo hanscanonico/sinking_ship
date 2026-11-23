@@ -559,11 +559,11 @@ msgstr "Dans l'eau"
 msgid "At the waterline"
 msgstr "À la flottaison"
 
-msgid "%.1f m under the sea"
-msgstr "%.1f m sous la mer"
+msgid "%s m under the sea"
+msgstr "%s m sous la mer"
 
-msgid "%.1f m above the sea"
-msgstr "%.1f m au-dessus de l'eau"
+msgid "%s m above the sea"
+msgstr "%s m au-dessus de l'eau"
 
 msgid "Stamina"
 msgstr "Souffle"

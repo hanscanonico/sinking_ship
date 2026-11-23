@@ -81,6 +81,17 @@ static func current() -> String:
 	return _current
 
 
+## [param value] to [param places] decimals, with its sign when [param signed], as the
+## language writes a number: 2.5 in English, 2,5 in French and Spanish.
+static func decimal(value: float, places := 1, signed := false) -> String:
+	return marked(("%+.*f" if signed else "%.*f") % [places, value])
+
+
+## [param number], written with a point, with the language's decimal mark instead.
+static func marked(number: String) -> String:
+	return number if _current == SOURCE else number.replace(".", ",")
+
+
 ## [param place] as a ranking says it: 1st, 2nd, 3rd; 1er, 2e; 1.º, 2.º.
 static func ordinal(place: int) -> String:
 	match _current:
