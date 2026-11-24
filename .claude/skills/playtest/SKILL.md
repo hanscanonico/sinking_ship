@@ -30,6 +30,31 @@ machine's traps: read `play-tool`, `replay-forensics`, `agent-cap-four` and
 3. `gh issue list --state open --limit 200` once, so known problems are not hunted again.
    Keep a short "already known / fixed this session" list: every hunt brief ends with it.
 
+## Keep the context lean — the session compacts, the status file carries it
+
+A night's loop outgrows any context. Plan for compaction instead of fighting it:
+
+- **The status file is the memory.** Write it so a fresh context could pick up from it
+  alone: stop time, focus, play checkout path, every open PR / issue / agent / train with
+  its state and next step, areas covered, the known list. Update it *before* each
+  checkpoint below, never after.
+- **Checkpoints.** After each merge, each finished agent, and each finished hunt: update
+  the status file, then carry nothing forward in your head. Those are the moments the
+  harness may compact (auto-compaction runs when the context fills); a compaction there
+  loses nothing.
+- **After a compaction** (or a resumed session): re-read this SKILL.md and the status
+  file, `date`, `gh pr list --author @me --state open`, and carry on from the status
+  file's next steps. Do not re-hunt what it lists as covered.
+- **Heavy reading goes to agents.** Hunts, log forensics, traces and frame review run in
+  agents; each brief caps the reply ("at most 40 lines, findings only, paths not
+  contents"). Read only the reply.
+- **Never pull bulk into the main context:** logs by `tail -n 40` or `grep`, never whole;
+  CI failures through `tools/ci_wait.sh` (it reports only what failed); frames only as
+  `sheet.py` sheets, at most one sheet per finding; `scan_totals.py` output, not raw scan
+  files; `git diff --stat` before any full diff.
+- **Background, not foreground**, for anything long (`merge_train.sh`, `verify-changed`,
+  scans): wait for the notification, never poll output files.
+
 ## Hunt — four ways, cheapest first
 
 Only one hunt can hold the game window; the headless ones run beside it. Agents: one at a
