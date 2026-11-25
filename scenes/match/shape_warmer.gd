@@ -15,6 +15,8 @@ const STRIDE := 15
 
 static var _tasks: Array[int] = []
 static var _guard := Mutex.new()
+## Set as the game quits: every warm task stops at its next shape, and is waited for.
+static var _stopping := false
 
 
 ## Starts warming [param sim]'s match: its water's boxes (ShipPieces.warm_water), then
@@ -22,6 +24,9 @@ static var _guard := Mutex.new()
 static func warm(sim: MatchSim) -> void:
 	ShipPieces.warm_water(sim)
 	_reap()
+	var root := (Engine.get_main_loop() as SceneTree).root
+	if not root.tree_exiting.is_connected(_stop_all):
+		root.tree_exiting.connect(_stop_all)
 	if sim.schedule.timeline() == null:
 		return
 	var config := sim.config
@@ -50,7 +55,7 @@ static func _warm(
 		bots = Pieces.new(config.ship, schedule, whole, keep, true, stock)
 	config = null
 	for piece in range(1, schedule.piece_count()):
-		if match_config.get_ref() == null:
+		if _stopping or match_config.get_ref() == null:
 			return
 		pieces.faces(piece)
 		if bots != null:
@@ -62,7 +67,7 @@ static func _warm(
 	var ups := {0: Faces.Up.DECK}
 	var built := {}
 	for tick in range(0, schedule.end_tick() + STRIDE, STRIDE):
-		if match_config.get_ref() == null:
+		if _stopping or match_config.get_ref() == null:
 			return
 		var pose := schedule.placed_at(tick)
 		for piece: int in pose.standing:
@@ -81,6 +86,16 @@ static func _warm(
 				var made := bots.faces(piece).frame_of(up, shut)
 				var graph := WalkGraph.new(made[0], made[1], rules)
 				stock.offer([&"walk", piece, up, shut], [made[0], made[1], graph])
+
+
+## Stops every warm task and waits for it, the game quitting: none may outlive it.
+static func _stop_all() -> void:
+	_stopping = true
+	_guard.lock()
+	for task: int in _tasks:
+		WorkerThreadPool.wait_for_task_completion(task)
+	_tasks.clear()
+	_guard.unlock()
 
 
 ## Sees through every warm task that is over.
