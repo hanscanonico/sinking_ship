@@ -175,3 +175,20 @@ func test_watchers_are_listed_and_watch_toggles() -> void:
 	assert_signal_emitted_with_parameters(_screen, "watch_requested", [false])
 	_screen.show_room(_roster(["Ada", "Bea"], 1, true))
 	assert_true(watch.disabled, "dead while a match is on")
+
+
+## A room where everyone watches has nobody to play: the server would refuse its match
+## (NO_PLAYERS), so the host's Start is dead and the room says why before it is pressed —
+## not after, as a refusal under a Start that looked live (played online, 2026-11-25).
+func test_start_is_dead_while_everyone_watches() -> void:
+	var start: Button = _screen.get_node("%Start")
+	var status: Label = _screen.get_node("%Status")
+	var roster := _roster(["Ada"], 0)
+	roster.players[0].watching = true
+	_screen.show_room(roster)
+	assert_true(start.disabled, "nobody would play")
+	assert_eq(status.text, "Everyone here watches: someone has to play.")
+	roster = _roster(["Ada", "Bea"], 0)
+	roster.players[0].watching = true
+	_screen.show_room(roster)
+	assert_false(start.disabled, "Bea plays")
