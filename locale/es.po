@@ -472,6 +472,12 @@ msgstr "Sigue a bordo mientras flote."
 msgid "Be the last one dry. Shove rivals into the sea."
 msgstr "Sé el último seco. Empuja a tus rivales al mar."
 
+msgid "They stay aboard as long as she floats."
+msgstr "Siguen a bordo mientras flote."
+
+msgid "The last one dry wins."
+msgstr "Gana el último seco."
+
 msgid "watching you"
 msgstr "viéndote a ti"
 
