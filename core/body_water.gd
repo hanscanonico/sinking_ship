@@ -51,24 +51,24 @@ static func wet(surfaces: Surfaces, rules: BrawlRules, pose: ShipPose, feet: Vec
 ## with the dry air of the cell under it right below. A body off its feet in that water
 ## whose feet sink through the opening — onto the head of the stair, a hair under the deck —
 ## has not left it: within a step (step_height) under the floor of a cell whose water is
-## deep enough there to swim in (wade_depth), it is in that water still — and from there
-## it swims back onto the deck, up the stair or beside the opening, as onto any edge a step
-## up (Movement._swim_step). Whatever of hers stands in that step over its feet is its
-## bottom, not a lid on the water: a stair it swims up rises over its feet each tick
-## before the water lifts them onto the tread (Movement.come_to_rest), and read as out of
-## the water under that tread it was in the air there, thrown back down the stair and in
-## the water again, several times a second. Read as out of the water on the stair's head,
-## it stood up on the top tread, dry, a step from water it swam in again — and whatever
-## pushed it back that step, a railing or a crate, had it in and out several times a
-## second (#777). A body on its feet is asked none of this (Movement.in_the_sea): it swims
-## from the deck down, and stands a step under it.
+## deep enough there to swim in (stand_depth, as any swimmer), it is in that water still —
+## and from there it swims back onto the deck, up the stair or beside the opening, as onto
+## any edge a step up (Movement._swim_step). Whatever of hers stands in that step over its
+## feet is its bottom, not a lid on the water: a stair it swims up rises over its feet each
+## tick before the water lifts them onto the tread (Movement.come_to_rest), and read as out
+## of the water under that tread it was in the air there, thrown back down the stair and in
+## the water again, several times a second. Read as out of the water on the stair's head, it
+## stood up on the top tread, dry, a step from water it swam in again — and whatever pushed
+## it back that step, a railing or a crate, had it in and out several times a second (#777).
+## A body on its feet is asked none of this (Movement.in_the_sea): it swims from the deck
+## down, and stands a step under it.
 static func hung_in(rules: BrawlRules, pose: ShipPose, feet: Vector3) -> float:
 	var over := Vector3(feet.x, feet.y + rules.step_height, feet.z)
 	var cell := pose.cell_at(over)
 	if cell == CellMap.NONE or cell == pose.cell_at(feet):
 		return NAN
 	var water := pose.water_height(over)
-	return water if water - pose.cells.floor_of(cell) >= rules.wade_depth else NAN
+	return water if water - pose.cells.floor_of(cell) >= rules.stand_depth else NAN
 
 
 ## [param feet], or the point over them on the surface they went under this tick, come
@@ -85,8 +85,8 @@ static func over_floor(surfaces: Surfaces, feet: Vector3, feet_before: float) ->
 
 ## The floor a swimmer with its feet at [param feet], come from [param feet_before]'s
 ## height, has left the water over: the one under it, when its feet are out of the water
-## and what stands over that floor is too shallow to swim in (wade_depth, as a body in the
-## air lands on such a bottom: Movement.in_the_sea) — a compartment the water has not
+## and what stands over that floor is shallow enough to find its feet in (stand_depth,
+## short of the wade_depth that swims it again, #777) — a compartment the water has not
 ## reached, a room it has run out of. Surfaces.NONE while it is in water, or over water it
 ## falls back into, or over the sea.
 static func dry_floor(
@@ -97,4 +97,4 @@ static func dry_floor(
 	if under == Surfaces.NONE or wet(surfaces, rules, pose, at):
 		return Surfaces.NONE
 	var depth := pose.water_height(at) - surfaces.height_at(under, at)
-	return under if depth < rules.wade_depth else Surfaces.NONE
+	return under if depth < rules.stand_depth else Surfaces.NONE

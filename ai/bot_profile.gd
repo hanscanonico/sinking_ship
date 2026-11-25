@@ -33,6 +33,9 @@ const NON_NEGATIVE: Array[String] = [
 	"late_hunt_gain",
 	"spar_margin_m",
 	"spar_for_s",
+	"spar_patience_s",
+	"spar_release_s",
+	"search_forget_s",
 	"mistake_rate",
 	"mistake_seconds",
 	"climb_margin_m",
@@ -100,9 +103,17 @@ const NON_NEGATIVE: Array[String] = [
 @export var spar_margin_m: float
 @export var spar_until: float
 @export var spar_for_s: float
+## Sparring, a bot that has held its shove at one seat this many seconds running — a
+## shove that would send it at a railing, say, backed into a corner — lets that seat be
+## for spar_release_s and goes at another (#776): it neither stands over it nor lets it go.
+@export var spar_patience_s: float
+@export var spar_release_s: float
 ## Down to this many seats left in the match — as the HUD counts them for every
 ## player — a bot spars no more and presses as hard as late in the sinking.
 @export var hunt_at_seats: int
+## Hunting them with none in sight, a bot looks again in a zone it stood in this many
+## seconds ago (BotSearch, #737).
+@export var search_forget_s: float
 ## How much a bot would rather go at whoever stands highest than at whoever stands
 ## nearest, 0…1.
 @export var king_of_hill_bias: float

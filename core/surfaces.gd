@@ -805,7 +805,7 @@ func sunk(pose: ShipPose, depth: float) -> bool:
 ## climbs onto a dry face inside it (Q22), never up through the ceiling or out over a
 ## wall under it. Either way the climb ends with the circle on a surface a radius past
 ## that edge — a deck, a stair or a box's top, never a round blocker's — under less than
-## wade_depth of the sea, clear of everything that would hold it back, with no wall
+## stand_depth of the sea, clear of everything that would hold it back, with no wall
 ## across the way at that height. Null when there is no way out there.
 func climb_out(
 	feet: Vector3, toward: Vector2, pose: ShipPose, rules: BrawlRules, climb_reach: float
@@ -845,7 +845,7 @@ func climb_out(
 ## [param climb_reach] over the water (climb_out): a ladder where climb_out takes hold of
 ## it, or the point of a surface nearest the swimmer — a ramp's, moved along it to the
 ## waterline — when that point stands within that reach above the sea and no deeper than
-## wade_depth under it, and climb_out finds a way up there. A surface whose nearest point
+## stand_depth under it, and climb_out finds a way up there. A surface whose nearest point
 ## is out of reach is passed over, even where another part of it is not. Null when there
 ## is none.
 func nearest_climb(
@@ -870,13 +870,13 @@ func nearest_climb(
 		var top := _tops[surface] - water
 		if (
 			_gone[surface] == 1
-			or _level_rects[surface] == 1 and (top < -rules.wade_depth or top > climb_reach)
+			or _level_rects[surface] == 1 and (top < -rules.stand_depth or top > climb_reach)
 			or _is_round_top(surface)
 		):
 			continue
 		var at := _waterline_point(surface, point, water)
 		var above := height_at(surface, Vector3(at.x, 0.0, at.y)) - water
-		if above < -rules.wade_depth or above > climb_reach or at.is_equal_approx(point):
+		if above < -rules.stand_depth or above > climb_reach or at.is_equal_approx(point):
 			continue
 		edges.append(at)
 		towards.append((at - point).normalized())
@@ -930,10 +930,11 @@ func _onto(platform: int, from: Vector2, to: Vector2) -> Vector2:
 	return normal
 
 
-## A swimmer at [param feet] climbing up onto [param top] to stand at [param stand]
-## (x/z): on the surface there within a step, out of the sea under [param pose] as
-## far as wading, with nothing holding it back and no wall across the way at that
-## height; null when it cannot. Off any railing first, where it holds the body (#790):
+## A swimmer at [param feet] climbing up onto [param top] to stand at [param stand] (x/z):
+## on the surface there within a step, in water there shallower than stand_depth under
+## [param pose] — where a swimmer finds its feet, short of wade_depth, so the next rise does
+## not swim it again (#777) — with nothing holding it back and no wall across the way at
+## that height; null when it cannot. Off any railing first, where it holds the body (#790):
 ## never stood in a slot narrower than itself, by a railing beside a stair, wedged there.
 func _standing(
 	feet: Vector3, stand: Vector2, top: float, pose: ShipPose, rules: BrawlRules
@@ -944,7 +945,7 @@ func _standing(
 	if surface == NONE or _is_round_top(surface):
 		return null
 	at.y = height_at(surface, at)
-	if pose.water_height(at) - at.y >= rules.wade_depth:
+	if pose.water_height(at) - at.y >= rules.stand_depth:
 		return null
 	if not obstacle_contacts(at, rules.body_radius, rules.body_height, step).is_empty():
 		return null

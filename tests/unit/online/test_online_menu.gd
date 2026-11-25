@@ -1,8 +1,8 @@
 extends GutTest
 ## The Online screen (SH12): a name the server takes — its rule shown, never silently
-## changed — a server natively and the page's own in a browser, and a room code typed in
+## changed — no server asked for, and a room code typed in
 ## any case or picked a letter at a time; only what OnlineLink finds no problem with is
-## asked for, and the name and the server are remembered. A link to a room plays at once
+## asked for, and the name is remembered. A link to a room plays at once
 ## when the name is known, and asks for it otherwise. No socket: the screen only asks.
 
 const SETTINGS_PATH := "user://test_online_settings.json"
@@ -88,37 +88,37 @@ func test_the_name_rule_follows_the_language() -> void:
 	assert_string_contains((_node("%NameRule") as Label).text, "letters", "and back")
 
 
-func test_a_room_is_created_and_the_choices_remembered() -> void:
+func test_a_room_is_created_and_the_name_remembered() -> void:
 	_open()
 	(_node("%Name") as LineEdit).text = " Ada "
-	(_node("%Server") as LineEdit).text = "ws://127.0.0.1:47931"
 	(_node("%Create") as Button).pressed.emit()
 	assert_eq(_asked.size(), 1)
 	assert_true(_asked[0].create)
 	assert_eq(_asked[0].player_name, "Ada")
-	assert_eq(_asked[0].server_url, "ws://127.0.0.1:47931")
-	var saved := OnlineSettings.read(SETTINGS_PATH)
-	assert_eq(saved.player_name, "Ada")
-	assert_eq(saved.server_url, "ws://127.0.0.1:47931")
+	assert_eq(_asked[0].server_url, OnlineMenu.first_server(ServerRules.load_default()))
+	assert_eq(OnlineSettings.read(SETTINGS_PATH).player_name, "Ada")
 	var again := _open()
 	assert_eq((again.get_node("%Name") as LineEdit).text, "Ada", "the next run's name")
-	assert_eq((again.get_node("%Server") as LineEdit).text, "ws://127.0.0.1:47931")
 
 
-## The field starts on the server the player saved; with none saved, on the rules'
-## default_server_url — a release's public server — and without one, this machine's own.
-func test_the_saved_server_wins_then_the_default_then_this_machine() -> void:
+## The server is never asked for: a player has no address to know (seen played,
+## 2026-11-25: the field offered this machine's own, and nothing answered there).
+func test_no_server_is_asked_for() -> void:
+	for on_web: bool in [false, true]:
+		_open(on_web)
+		assert_false(_menu.has_node("%Server"), "on_web %s" % on_web)
+		assert_false(_menu.has_node("%ServerLabel"), "on_web %s" % on_web)
+
+
+## Natively the rules' default_server_url — a release's public server — and without
+## one, this machine's own.
+func test_the_default_server_then_this_machine() -> void:
 	var rules: ServerRules = ServerRules.load_default().duplicate()
 	var own := "ws://127.0.0.1:%d" % rules.port
 	rules.default_server_url = ""
-	assert_eq(OnlineMenu.first_server("", rules), own, "no default: this machine's")
+	assert_eq(OnlineMenu.first_server(rules), own, "no default: this machine's")
 	rules.default_server_url = "wss://ship.example.org/ws"
-	assert_eq(OnlineMenu.first_server("", rules), "wss://ship.example.org/ws", "the default")
-	assert_eq(
-		OnlineMenu.first_server("ws://10.0.0.2:47931", rules),
-		"ws://10.0.0.2:47931",
-		"a saved server still wins"
-	)
+	assert_eq(OnlineMenu.first_server(rules), "wss://ship.example.org/ws", "the default")
 
 
 func test_a_default_that_is_no_server_is_ignored() -> void:
@@ -126,49 +126,48 @@ func test_a_default_that_is_no_server_is_ignored() -> void:
 	var own := "ws://127.0.0.1:%d" % rules.port
 	for bad: String in ["https://ship.example.org/ws", "ship.example.org", "wss://eve@host/ws"]:
 		rules.default_server_url = bad
-		assert_eq(OnlineMenu.first_server("", rules), own, bad)
+		assert_eq(OnlineMenu.first_server(rules), own, bad)
 
 
-## What ships is either no default or a server's address the field can start on.
-func test_the_shipped_default_is_none_or_a_server() -> void:
+## What ships is a secure public server, never this machine's own.
+func test_the_shipped_default_is_a_secure_server() -> void:
 	var shipped := ServerRules.load_default().default_server_url
-	assert_true(shipped.is_empty() or OnlineLink.is_server_url(shipped), shipped)
-	_open()
-	assert_eq(
-		(_node("%Server") as LineEdit).text,
-		OnlineMenu.first_server("", ServerRules.load_default()),
-		"nothing saved: the field starts there"
-	)
+	assert_true(shipped.begins_with("wss://") and OnlineLink.is_server_url(shipped), shipped)
+	assert_eq(_open().server_url, shipped, "a native screen plays there")
 
 
-## A release's default is what a native screen with nothing saved starts on.
-func test_a_native_screen_starts_on_the_release_default() -> void:
+## An address an earlier build saved — this machine's own — no longer stands in for the
+## public server.
+func test_a_saved_server_is_not_played_on() -> void:
+	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
+	file.store_string('{"player_name": "Ada", "server_url": "ws://127.0.0.1:47923"}')
+	file.close()
 	var rules: ServerRules = ServerRules.load_default().duplicate()
 	rules.default_server_url = "wss://ship.example.org/ws"
 	_open(false, rules)
-	assert_eq((_node("%Server") as LineEdit).text, "wss://ship.example.org/ws")
+	assert_eq((_node("%Name") as LineEdit).text, "Ada", "the name still is")
+	(_node("%Create") as Button).pressed.emit()
+	assert_eq(_asked[0].server_url, "wss://ship.example.org/ws")
+	var saved := FileAccess.get_file_as_string(SETTINGS_PATH)
+	assert_false(saved.contains("server_url"), "nor saved again: %s" % saved)
 
 
-func test_a_server_is_a_ws_address() -> void:
+## A launch's --server flag still names the server, for a test on this machine.
+func test_a_launch_names_its_server() -> void:
 	_open()
-	(_node("%Name") as LineEdit).text = "Ada"
-	for bad: String in ["http://127.0.0.1:47923", "127.0.0.1:47923", "", "ws://eve@host/ws"]:
-		(_node("%Server") as LineEdit).text = bad
-		(_node("%Create") as Button).pressed.emit()
-		assert_eq(_status(), "The server must be a ws:// or wss:// address.", bad)
-	assert_eq(_asked, [] as Array[OnlineLink])
+	var link := OnlineLink.new()
+	link.server_url = "ws://127.0.0.1:47931"
+	_menu.take_link(link)
+	assert_eq(_menu.server_url, "ws://127.0.0.1:47931")
 
 
-## In a browser the server is the page's own: the field is gone and nothing of it saved.
+## In a browser the server is the page's own.
 func test_a_page_plays_on_its_own_server() -> void:
 	_open(true)
-	assert_false((_node("%Server") as LineEdit).is_visible_in_tree())
-	assert_false((_node("%ServerLabel") as Label).is_visible_in_tree())
 	(_node("%Name") as LineEdit).text = "Ada"
 	(_node("%Create") as Button).pressed.emit()
 	assert_eq(_asked.size(), 1)
 	assert_eq(_asked[0].server_url, "wss://ship.example.org/ws")
-	assert_eq(OnlineSettings.read(SETTINGS_PATH).server_url, "", "the page's is not remembered")
 
 
 ## Typed in either case, a code goes in upper case; letters a code never has, and
@@ -305,13 +304,11 @@ func test_what_is_remembered_is_checked_as_it_is_read() -> void:
 		file.close()
 		var read := OnlineSettings.read(SETTINGS_PATH)
 		assert_eq(read.player_name, "", text.left(60))
-		assert_eq(read.server_url, "", text.left(60))
 	var file := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
 	file.store_string('{"player_name": "Ada", "server_url": "javascript:alert(1)"}')
 	file.close()
 	var mixed := OnlineSettings.read(SETTINGS_PATH)
 	assert_eq(mixed.player_name, "Ada", "a good value kept beside a bad one")
-	assert_eq(mixed.server_url, "")
 
 
 func test_a_link_with_a_problem_says_it() -> void:

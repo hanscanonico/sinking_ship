@@ -67,9 +67,9 @@ func test_a_table_stands_in_the_water_until_it_floats() -> void:
 	var sim := _kept_dry(_rising(1.2, 12.0), _laid(props, 2.5), 2.5)
 	var table := sim.state.props[0]
 	var draft := PropKind.named(&"dining_table").draft
-	assert_gt(draft, _rules().wade_depth, "a table rides deeper than cargo is lifted at")
+	assert_gt(draft, _rules().crate_lift_depth, "a table rides deeper than cargo is lifted at")
 	SimFixtures.step(sim, {}, Ticks.from_seconds(5.0))
-	assert_between(_water(sim, at), _rules().wade_depth, draft, "deep enough to lift cargo")
+	assert_between(_water(sim, at), _rules().crate_lift_depth, draft, "deep enough to lift cargo")
 	assert_eq(table.body, PropState.Body.GROUNDED, "the table still stands")
 	assert_eq(table.pos.y, 0.0)
 	var events := SimFixtures.step(sim, {}, Ticks.from_seconds(2.5))
@@ -127,9 +127,9 @@ func test_a_chair_afloat_in_water_wavering_at_its_draft_is_announced_once() -> v
 
 func test_an_aground_slack_as_deep_as_the_water_that_lifts_cargo_is_refused() -> void:
 	var rules: BrawlRules = _rules().duplicate()
-	rules.crate_aground_slack = rules.wade_depth
+	rules.crate_aground_slack = rules.crate_lift_depth
 	assert_true(
-		rules.problems().has("brawl rules: crate_aground_slack must be less than wade_depth")
+		rules.problems().has("brawl rules: crate_aground_slack must be less than crate_lift_depth")
 	)
 
 

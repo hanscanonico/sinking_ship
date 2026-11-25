@@ -546,16 +546,18 @@ func test_a_swimmer_in_a_shallow_flooded_room_stays_on_its_floor() -> void:
 	assert_eq(swimmer.body, PlayerState.Body.SWIMMING, "too deep to stand in")
 
 
-## The trawler's working deck a quarter of a metre under, the wing under it dry (seed 10,
-## 5:40): a seat off its feet in that water swims over the head of the companionway down to
-## the side passage. There its feet are in the wing's cell, which holds no water: it is out
-## of the water over the stair, stands on it and walks down it. Left a swimmer, it fell —
-## nothing under a swimmer is its bottom but what its water covers — through the stair, the
-## passage and every floor under them, out of her bottom into the sea under her keel.
+## The trawler's working deck half a metre under — too deep to stand in, a seat once off its
+## feet there swims — the wing under it dry (seed 10, 5:40, then a quarter of a metre under,
+## when stand_depth was less): a seat off its feet in that water swims over the head of the
+## companionway down to the side passage. There its feet are in the wing's cell, which holds
+## no water: it is out of the water over the stair, stands on it and walks down it. Left a
+## swimmer, it fell — nothing under a swimmer is its bottom but what its water covers —
+## through the stair, the passage and every floor under them, out of her bottom into the sea
+## under her keel.
 func test_a_swimmer_carried_over_a_dry_compartment_lands_on_its_floor() -> void:
 	var rules := _rules()
 	var sim := SimFixtures.sim(2, null, TRAWLER)
-	HeldPose.hold(sim, HeldPose.flooded(TRAWLER, 0.25, {&"working_deck": [0.25]}))
+	HeldPose.hold(sim, HeldPose.flooded(TRAWLER, 0.5, {&"working_deck": [0.5]}))
 	SimFixtures.place(sim, 1, Vector3(9.0, 2.3, 0.0))
 	SimFixtures.swim(sim, 0, Vector3(5.2, 0.0, -2.8))
 	var swimmer := sim.state.seats[0]

@@ -74,7 +74,7 @@ const REFUSALS := {
 	RoomCodec.Refusal.BUSY: "The server is busy: try again in a moment.",
 	RoomCodec.Refusal.NO_PLAYERS: "Everyone here watches: someone has to play.",
 }
-const NO_CONNECTION := "Could not reach the server: check its address, or try again later."
+const NO_CONNECTION := "Could not reach the server: try again later."
 const LOST := "The connection to the server was lost."
 const AWAY := "This game was hidden too long, and the server let it go."
 
