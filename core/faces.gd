@@ -204,7 +204,7 @@ func surfaces(up: int, pose: ShipPose = null) -> Surfaces:
 		# one sliding would keep a frame for every tick it slides.
 		var made: Array = (
 			_stock.take([&"frame", _piece, up, shut], _frame.bind(up, shut))
-			if _stock != null and _at_rest(shut)
+			if _stock != null and at_rest(shut)
 			else _frame(up, shut)
 		)
 		_layouts[up] = made[0]
@@ -215,14 +215,14 @@ func surfaces(up: int, pose: ShipPose = null) -> Surfaces:
 ## Keeps the frame [param up] with each door [param shut] that far in the stock, as
 ## surfaces() builds it there: a ShapeWarmer's, ahead of any reader.
 func stock_frame(up: int, shut: PackedFloat64Array) -> void:
-	if _stock != null and _at_rest(shut):
+	if _stock != null and at_rest(shut):
 		_stock.take([&"frame", _piece, up, shut], _frame.bind(up, shut))
 
 
 ## The frame [param up] with each door [param shut] that far, as surfaces() builds it:
 ## its layout and a Surfaces of its own over it — a reader's to keep (adopt).
 func frame_of(up: int, shut: PackedFloat64Array) -> Array:
-	if _stock == null or not _at_rest(shut):
+	if _stock == null or not at_rest(shut):
 		return _frame(up, shut)
 	var made: Array = _stock.take([&"frame", _piece, up, shut], _frame.bind(up, shut))
 	return [made[0], Surfaces.new(made[0], null, made[1])]
@@ -257,7 +257,9 @@ func _frame(up: int, shut: PackedFloat64Array) -> Array:
 	return [layout, Surfaces.new(layout)]
 
 
-static func _at_rest(shut: PackedFloat64Array) -> bool:
+## Whether every door [param shut] (shut_of) stands at rest, open or shut: a frame kept
+## in the stock.
+static func at_rest(shut: PackedFloat64Array) -> bool:
 	for share: float in shut:
 		if share != 0.0 and share != 1.0:
 			return false
