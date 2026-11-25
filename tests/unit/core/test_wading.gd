@@ -82,7 +82,9 @@ func test_a_swimmer_walking_up_a_heeled_deck_out_of_the_sea_stays_out() -> void:
 	var heeled := SimFixtures.scenario([[0.0, 0.4, 0.0, 14.0]])
 	var sim := SimFixtures.sim(1, heeled, SimFixtures.low_deck(0.4))
 	var pose := sim.pose()
-	var low := 1.0 if pose.water_height(Vector3(0, 0, 3)) > pose.water_height(Vector3(0, 0, -3)) else -1.0
+	var low := (
+		1.0 if pose.water_height(Vector3(0, 0, 3)) > pose.water_height(Vector3(0, 0, -3)) else -1.0
+	)
 	var start := Vector3(-4.0, 0.0, 3.8 * low)
 	var deep := pose.water_height(start) - start.y
 	assert_gt(deep, rules.wade_depth + 0.1, "it starts where the water over the deck swims")
@@ -108,9 +110,7 @@ func test_a_swimmer_walking_up_a_heeled_deck_out_of_the_sea_stays_out() -> void:
 ## water a hair under wade_depth, which the next rise or the next step would swim it in.
 func test_a_swimmer_climbs_out_only_where_the_water_is_stand_depth_shallow() -> void:
 	var rules := _rules()
-	for depth: float in [
-		rules.stand_depth - 0.05, (rules.stand_depth + rules.wade_depth) * 0.5
-	]:
+	for depth: float in [rules.stand_depth - 0.05, (rules.stand_depth + rules.wade_depth) * 0.5]:
 		var awash := SimFixtures.scenario([[0.0, 0.4 + depth, 0.0, 0.0]])
 		var sim := SimFixtures.sim(1, awash, SimFixtures.low_deck(0.4))
 		SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, 4.6))

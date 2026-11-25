@@ -778,14 +778,14 @@ func _thaw(live: Array[PlayerState]) -> void:
 			player.held_vel = Vector3.ZERO
 
 
-## Every active shove against the bodies and the crates as they stand now; all of
-## this tick's hits apply together, so simultaneous shoves both land. A landed shove
-## freezes its shover and its target for a hit-stop, and the knockback — the share of it
-## its target's rules take (SeatRules.knockback_share), before a brace takes its own
-## off — and the recoil wait for it to end; a crate takes its share of the knockback at once
-## (Hazards.shove), and its shover rocks and stops as for a body; one _guarded is pushed
-## but not staggered. A charged shove landing on a body holding a prop its kind lets a
-## charge knock loose knocks it out of its hands at its feet (#273).
+## Every active shove against the bodies and the crates as they stand now; all of this
+## tick's hits apply together, so simultaneous shoves both land. A landed shove freezes its
+## shover and its target for a hit-stop, and the knockback — the share of it its target's
+## rules take (SeatRules.knockback_share), before a brace takes its own off — and the recoil
+## wait for it to end; a crate takes its share of the knockback at once (Hazards.shove), and
+## its shover rocks and stops as for a body; one _guarded is pushed but not staggered. A
+## charged shove landing on a body holding a prop its kind lets a charge knock loose knocks
+## it out of its hands at its feet (#273).
 func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
 	var origins := PackedVector2Array()
@@ -896,8 +896,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		player.freeze(Vector3(planar.x, moving.y, planar.y), stops[seat])
 
 
-## Whether [param target] keeps its feet under a shove landing on [param tick] (#776): its
-## stagger has run out, and its last hit landed within stagger_guard.
+## Whether [param target], its stagger run out, was last hit within stagger_guard (#776).
 func _guarded(target: PlayerState, tick: int) -> bool:
 	if target.is_staggered() or target.last_hit_at < 0:
 		return false

@@ -13,7 +13,7 @@ const DUCK_LOOK := 0.1
 ## [param height] under the lowest deck over its head (Surfaces.ceiling) — and, swimming
 ## [param heading], under the lowest along the way to where its circle reaches next, so it
 ## ducks under a lintel or a deck's edge it swims into: through a flooded doorway into the
-## next cell, to surface there. Not under one it floats over — wade_depth under its water
+## next cell, to surface there. Not under one it floats over — stand_depth under its water
 ## at [param sea] — nor one too low for a body over [param bottom]. Under a deck the sea is
 ## filling, it stays under that deck as the water closes over its head; a head pressed
 ## into the deck — by as little as its feet's height rounds up, CLEARANCE_SLACK under it —
@@ -40,6 +40,6 @@ static func swimming(
 	for look in range(1, looks + 1):
 		var ahead := feet + Vector3(heading.x, 0.0, heading.y) * (reach * look / looks)
 		var over := surfaces.ceiling(ahead, rules.step_height)
-		if over > sea - rules.wade_depth and over - body >= bottom:
+		if over > sea - rules.stand_depth and over - body >= bottom:
 			room = minf(room, over - body)
 	return room
