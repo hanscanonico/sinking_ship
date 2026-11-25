@@ -129,7 +129,7 @@ func test_a_default_that_is_no_server_is_ignored() -> void:
 		assert_eq(OnlineMenu.first_server("", rules), own, bad)
 
 
-## What ships is a secure public server, never this machine's own: a player has nothing on 127.0.0.1.
+## What ships is a secure public server, never this machine's own.
 func test_the_shipped_default_is_none_or_a_server() -> void:
 	var shipped := ServerRules.load_default().default_server_url
 	assert_true(shipped.begins_with("wss://") and OnlineLink.is_server_url(shipped), shipped)
