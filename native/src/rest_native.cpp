@@ -42,19 +42,6 @@ const StringName &name_surface() {
 	return name;
 }
 
-// Pieces.piece_in.
-int64_t piece_in(const PackedInt32Array &p_standing, const PackedVector2Array &p_spans, double p_x) {
-	if (p_standing.size() == 1) {
-		return p_standing[0];
-	}
-	for (int64_t at = 0; at < p_standing.size(); at++) {
-		const Vector2 span = p_spans[at];
-		if (p_x >= double(span.x) && p_x <= double(span.y)) {
-			return p_standing[at];
-		}
-	}
-	return -1;
-}
 } // namespace
 
 void NativeRest::setup(const PackedFloat64Array &p_grips, const PackedFloat64Array &p_lifts) {

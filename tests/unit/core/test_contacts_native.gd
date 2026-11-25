@@ -31,6 +31,8 @@ const SIGHTS_ASKED := 240
 ## Ticks the afloat saloons and the sliding crates are stepped.
 const SALOON_TICKS := 150
 const SLIDE_TICKS := 240
+## Ticks a broken ship's crates are stepped from a second before she parts.
+const BROKEN_TICKS := 600
 ## The made-up deck's railing along a stair's side that is spent.
 const SPENT_BY_A_STAIR := 7
 
@@ -208,6 +210,52 @@ func test_crates_sliding_into_railings_step_alike_as_they_break_them() -> void:
 	# crates now fetch up on the boat deck's stair's side rail by its foot (#587).
 	var scenario := SimFixtures.scenario([[0.0, -10.0, 0.0, 0.0], [1.0, -10.0, 6.0, -32.0]])
 	_step_alike(layout, scenario, SLIDE_TICKS, "the steamer's sliding crates", true)
+
+
+func test_crates_on_a_piece_she_broke_into_step_alike() -> void:
+	# A later piece's crates step natively too (the Titanic's end, 2026-11-25): the weak
+	# hull on her pinned breaks_in_two seed, from a second before she parts, her cargo
+	# sliding on both pieces and off the stretch of one onto the other's.
+	if not _loaded():
+		return
+	var config := MatchConfig.from_rules(
+		load("res://data/match/default.tres"),
+		PinnedSeeds.seed_named(&"breaks_in_two"),
+		2,
+		&"steamer_weak"
+	)
+	config.countdown_ticks = 0
+	var parted := config.schedule().timeline().events.filter(
+		func(event: SinkTimeline.Event) -> bool: return event.kind == SinkTimeline.Kind.PARTED
+	)
+	var from := MatchJump.snapshot(
+		config, config.schedule().physics_tick(parted[0].seconds) - Ticks.RATE
+	)
+	var native := MatchSim.from_snapshot(from, config)
+	ContactsNative.off = true
+	var reference := MatchSim.from_snapshot(from, config)
+	ContactsNative.off = false
+	var later := 0
+	for tick in BROKEN_TICKS:
+		SimFixtures.step(native)
+		ContactsNative.off = true
+		SimFixtures.step(reference)
+		ContactsNative.off = false
+		if var_to_bytes(_bare(native.snapshot())) != var_to_bytes(_bare(reference.snapshot())):
+			fail_test("a broken ship's crates: tick %d differs natively" % tick)
+			return
+		var standing := native.pose().standing
+		var spans := native.pieces.walked(standing)
+		for crate: PropState in native.state.props:
+			if crate.is_loose() and crate.vel != Vector3.ZERO:
+				if Pieces.piece_in(standing, spans, crate.pos.x) > 0:
+					later += 1
+	assert_eq(native.pose().standing.size(), 2, "she has parted")
+	for piece: int in native.pose().standing:
+		assert_not_null(
+			native._hazards_of[piece]._native_passes(), "piece %d steps natively" % piece
+		)
+	assert_gt(later, 0, "crates moved on a later piece")
 
 
 ## Steps a match of 2 seats on [param layout] sunk as [param scenario] has her for

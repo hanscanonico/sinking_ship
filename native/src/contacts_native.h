@@ -26,6 +26,10 @@
 
 namespace godot {
 
+// Pieces.piece_in: the piece of [p_standing] over whose stretch, of [p_spans], x lies;
+// -1 for none.
+int64_t piece_in(const PackedInt32Array &p_standing, const PackedVector2Array &p_spans, double p_x);
+
 // A circle held back (Surfaces.Contact).
 struct ContactHit {
 	Vector2 normal;
@@ -263,6 +267,7 @@ public:
 	PackedInt32Array move(const Array &p_props, const PackedInt32Array &p_crates, int64_t p_steps, double p_dt,
 			int64_t p_tick, const PackedByteArray &p_turn, const PackedFloat64Array &p_feet_before,
 			const PackedVector2Array &p_came_from, const Callable &p_damage);
+	void over(int64_t p_piece, const PackedInt32Array &p_standing, const PackedVector2Array &p_spans);
 	PackedInt32Array moving() const;
 	PackedInt32Array woken() const;
 	PackedFloat64Array feet_before() const;
@@ -306,6 +311,12 @@ private:
 	std::vector<int32_t> woken_;
 	const Array *props_ = nullptr;
 	int64_t tick_ = 0;
+	// The piece of her the crates are stepped on, her pieces standing and their stretches
+	// (Pieces.walked), as over() last told them: a crate off this piece's stretch stands on
+	// none of its surfaces.
+	int64_t piece_ = 0;
+	PackedInt32Array standing_;
+	PackedVector2Array spans_;
 
 	Crate &crate(int32_t p_prop);
 	void write_back() const;
