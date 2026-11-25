@@ -340,6 +340,22 @@ func test_a_connection_lost_mid_match_offers_its_room_back() -> void:
 	assert_false(_online._room_screen.visible, "no room over nothing")
 
 
+## Alone in the room, a player dropped mid-match has no room to go back to: the server
+## hands the seat to a bot and closes the room as its last player goes. No Rejoin, which
+## would only answer that no room has that code (#807).
+func test_a_connection_lost_alone_offers_no_room_back() -> void:
+	var fixture := _quick_server()
+	var client := fixture.connect_client("Ada")
+	_play(client)
+	fixture.beat(2)
+	client.start_match()
+	fixture.beat()
+	assert_eq(_built.size(), 1, "the match is built")
+	fixture.cut(client)
+	client.poll()
+	assert_eq(_endings, [[true, OnlinePlay.LOST, ""]])
+
+
 ## A browser tab hidden past the server's silence_timeout runs no frame meanwhile; the
 ## server lets it go, and the first frame back says so.
 func test_a_tab_hidden_too_long_is_told_why_it_was_let_go() -> void:

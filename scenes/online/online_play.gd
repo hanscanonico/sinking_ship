@@ -300,7 +300,20 @@ func _on_closed(reason: int) -> void:
 	elif reason >= 0:
 		note = refusal(reason)
 	var dropped := reason < 0 or reason == RoomCodec.Refusal.TIMEOUT
-	_end(note, _code if dropped else "")
+	_end(note, _code if dropped and _room_lives_on() else "")
+
+
+## Whether the room this player was dropped from is still there to rejoin: the server
+## closes a room as its last player goes, a seat whose client has gone being a bot's —
+## so only while another player whose client is still in holds it open (#807).
+func _room_lives_on() -> bool:
+	var roster := _room.roster
+	if roster == null:
+		return false
+	for index in roster.players.size():
+		if index != roster.you and not roster.players[index].bot:
+			return true
+	return false
 
 
 ## From the results to the room, waiting for its host again.
