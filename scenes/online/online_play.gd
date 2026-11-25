@@ -8,8 +8,8 @@ extends Node
 ## match only watched, as a local Watch is (GLOSSARY: Watch). Esc opens the online
 ## pause over it (OnlinePause) — the match goes on
 ## under it, as nothing online pauses, the seat standing still while the pause has the
-## keys, the pad and the mouse — whose Leave match hangs up for the main menu, the server
-## handing the seat to a bot. In a browser, whose first Esc only takes the mouse back, the
+## keys, the pad and the mouse — whose Leave match hangs up for the Online screen, the
+## server handing the seat to a bot. In a browser, whose first Esc only takes the mouse back, the
 ## mouse let go opens it too. The pause goes whenever the match under it does — at its
 ## end, at the next BEGIN, at any way out — and the settings screen opened from it goes
 ## with it, before whatever shows next takes the focus. At the results, Back to the room
@@ -37,10 +37,10 @@ extends Node
 signal entered_room
 ## A match scene is up, or the room is shown again after one.
 signal playing_changed(playing: bool)
-## Over: for the main menu when [param to_menu], else for the Online screen, saying
-## [param note] — "" for nothing — and offering to rejoin [param rejoin], a room's code,
-## when it is not "".
-signal ended(to_menu: bool, note: String, rejoin: String)
+## Over, for the Online screen: [param was_in_room] when this player had been in a room,
+## saying [param note] — "" for nothing — and offering to rejoin [param rejoin], a room's
+## code, when it is not "".
+signal ended(was_in_room: bool, note: String, rejoin: String)
 
 const MATCH_DATA := "res://data/match/default.tres"
 const MATCH_SCENE := preload("res://scenes/match/match.tscn")
@@ -144,18 +144,18 @@ func _ready() -> void:
 	add_child(_room_screen)
 	_pause = ONLINE_PAUSE.instantiate()
 	add_child(_pause)
-	_room_screen.leave_requested.connect(_end.bind(false, "", ""))
+	_room_screen.leave_requested.connect(_end.bind("", ""))
 	_pause.resume_requested.connect(_resume)
 	_pause.settings_requested.connect(func() -> void: settings.open())
-	_pause.leave_requested.connect(_end.bind(true, "", ""))
+	_pause.leave_requested.connect(_end.bind("", ""))
 	if not _link.problems.is_empty():
 		_room = null
-		_end.call_deferred(false, _link.problems[0], "")
+		_end.call_deferred(_link.problems[0], "")
 		return
 	if _room == null:
 		_socket = WebSocketTransport.new()
 		if _socket.dial(_link.server_url) != OK:
-			_end.call_deferred(false, NO_CONNECTION, "")
+			_end.call_deferred(NO_CONNECTION, "")
 			return
 		_room = RoomClient.new(_socket, match_rules, NetRules.load_default(), _link.player_name)
 	_room.welcomed.connect(_on_welcomed)
@@ -237,14 +237,14 @@ func _on_refused(reason: int) -> void:
 	if _room.roster != null:
 		_room_screen.show_room(_room.roster, refusal(reason))
 	else:
-		_end(false, refusal(reason), "")
+		_end(refusal(reason), "")
 
 
 func _on_roster_changed(roster: RoomRoster) -> void:
 	if _match != null:
 		return
 	if roster == null:
-		_end(false, refusal(RoomCodec.Refusal.ROOM_CLOSED), "")
+		_end(refusal(RoomCodec.Refusal.ROOM_CLOSED), "")
 		return
 	var entering := not _room_screen.visible
 	_code = roster.code
@@ -300,14 +300,14 @@ func _on_closed(reason: int) -> void:
 	elif reason >= 0:
 		note = refusal(reason)
 	var dropped := reason < 0 or reason == RoomCodec.Refusal.TIMEOUT
-	_end(false, note, _code if dropped else "")
+	_end(note, _code if dropped else "")
 
 
 ## From the results to the room, waiting for its host again.
 func _back_to_room() -> void:
 	_leave_match()
 	if _room.roster == null:
-		_end(false, refusal(RoomCodec.Refusal.ROOM_CLOSED), "")
+		_end(refusal(RoomCodec.Refusal.ROOM_CLOSED), "")
 		return
 	playing_changed.emit(false)
 	# The match the roster may still show as on is the one just seen end (finished_linger).
@@ -316,7 +316,7 @@ func _back_to_room() -> void:
 
 ## From the results out of the room, for the Online screen.
 func _leave_room() -> void:
-	_end(false, "", "")
+	_end("", "")
 
 
 ## Opens the online pause over the match being played, letting the mouse go: false when
@@ -348,13 +348,13 @@ func _close_pause() -> void:
 		settings.close()
 
 
-## Hangs up and says why: for the main menu when [param to_menu], else for the Online
-## screen with [param note] and [param rejoin] — once, whatever comes after.
-func _end(to_menu: bool, note: String, rejoin: String) -> void:
+## Hangs up and says why, for the Online screen: [param note] and [param rejoin] — once,
+## whatever comes after.
+func _end(note: String, rejoin: String) -> void:
 	if _ended:
 		return
 	hang_up()
-	ended.emit(to_menu, note, rejoin)
+	ended.emit(not _code.is_empty(), note, rejoin)
 
 
 ## Lets the match scene go, freed at the frame's end: unhooked and stopped first, so
