@@ -50,6 +50,8 @@ func start_replay(timeline: ReplayTimeline, rules: ReplayRules) -> void:
 	_played = null
 	client = null
 	_timeline = timeline
+	# Her water's boxes and her shapes made ahead, as a match played has them (ShapeWarmer).
+	ShapeWarmer.warm(timeline.sim())
 	_clock = ReplayClock.new(rules.speeds)
 	previous = timeline.snapshot()
 	current = previous

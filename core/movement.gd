@@ -885,17 +885,17 @@ func _bottom(feet: Vector3, feet_before: float, sea: float) -> float:
 	return height if height < sea else -INF
 
 
-## How far up a swimmer with its feet at [param feet] steps: over any edge it can
-## float across, as high as wade_depth under [param sea], but never so high that its
-## head — a crawler's, in a crawl space — would meet a deck over it; a step_height at
-## the least. A deck's edge it swims onto stands below its head and a deck it swims
-## under above it, within a step: the first is no wall to someone swimming in from
+## How far up a swimmer with its feet at [param feet] steps: over any edge it can float
+## across, as high as stand_depth under [param sea] — water it does not stand in — but never
+## so high that its head — a crawler's, in a crawl space — would meet a deck over it; a
+## step_height at the least. A deck's edge it swims onto stands below its head and a deck it
+## swims under above it, within a step: the first is no wall to someone swimming in from
 ## deeper water, the second no floor.
 func _swim_step(feet: Vector3, sea: float) -> float:
 	var height := _rules.height_at(_surfaces, feet)
 	var clearance := height - _rules.step_height
 	var overhead := _surfaces.ceiling(feet, clearance) - height
-	return maxf(_rules.step_height, minf(sea - _rules.wade_depth, overhead) - feet.y)
+	return maxf(_rules.step_height, minf(sea - _rules.stand_depth, overhead) - feet.y)
 
 
 ## Whether [param player], not swimming, is in the sea: in the air, its feet under

@@ -124,7 +124,7 @@ func test_a_wading_step_is_louder_and_further_apart_the_deeper_the_water() -> vo
 	var sim := SimFixtures.sim(1)
 	var ticks := Ticks.from_seconds(4.0)
 	var shallow := _wade(sim, 0.02, ticks)
-	var deep := _wade(sim, 0.25, ticks)
+	var deep := _wade(sim, 0.5, ticks)
 	assert_gt(shallow.size(), 0)
 	assert_eq(shallow[0].ground, AudioCue.Ground.WET, "a film of water splashes")
 	assert_eq(deep[0].ground, AudioCue.Ground.WET)

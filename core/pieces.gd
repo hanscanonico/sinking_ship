@@ -34,15 +34,24 @@ var _posed: Dictionary[int, ShipPose] = {}
 ## its own, and those numbers (gone).
 var _gone_from: Dictionary[int, PackedInt32Array] = {}
 var _gone: Dictionary[int, PackedInt32Array] = {}
+## Where each piece's layout, solids and frames are kept for every reader of the match
+## (ShapeStock); none for pieces of their own.
+var _stock: ShapeStock
 
 
 ## The pieces of [param layout] [param schedule] has, the whole ship's faces
 ## [param whole]; each piece's faces keeping to [param keep_deg] and turning as
-## [param turns] says (Faces).
+## [param turns] says (Faces), its shapes kept in [param stock] when given.
 func _init(
-	layout: ShipLayout, schedule: SinkSchedule, whole: Faces, keep_deg: float, turns: bool
+	layout: ShipLayout,
+	schedule: SinkSchedule,
+	whole: Faces,
+	keep_deg: float,
+	turns: bool,
+	stock: ShapeStock = null
 ) -> void:
 	_layout = layout
+	_stock = stock
 	_schedule = schedule
 	_keep_deg = keep_deg
 	_turns = turns
@@ -62,20 +71,45 @@ func count() -> int:
 ## Piece [param piece]'s layout: hers cut to its stretch.
 func layout(piece: int) -> ShipLayout:
 	if not _layouts.has(piece):
-		var span := _schedule.span_of(piece)
-		var rails := PackedInt32Array()
-		_layouts[piece] = cut(_layout, _schedule.structure_of(piece), span, _ends, _tear, rails)
-		_rails[piece] = rails
+		var made: Array = (
+			_stock.take([&"cut", piece], _cut.bind(piece)) if _stock != null else _cut(piece)
+		)
+		_layouts[piece] = made[0]
+		_rails[piece] = made[1]
 		_posed_from[piece] = null
 	return _layouts[piece]
+
+
+## Piece [param piece]'s layout cut from hers, and the railing of hers each of its
+## railings is.
+func _cut(piece: int) -> Array:
+	var span := _schedule.span_of(piece)
+	var rails := PackedInt32Array()
+	return [cut(_layout, _schedule.structure_of(piece), span, _ends, _tear, rails), rails]
 
 
 ## Piece [param piece]'s faces (Faces), its decks' frame its layout's own Surfaces.
 func faces(piece: int) -> Faces:
 	if not _faces.has(piece):
 		var cut_layout := layout(piece)
-		_faces[piece] = Faces.new(cut_layout, Surfaces.new(cut_layout), _keep_deg, _turns)
+		var like: Surfaces = null
+		if _stock != null:
+			like = _stock.take(
+				[&"deck", piece], func() -> Surfaces: return Surfaces.new(cut_layout)
+			)
+		var deck := Surfaces.new(cut_layout, null, like)
+		_faces[piece] = Faces.new(cut_layout, deck, _keep_deg, _turns, _stock, piece)
 	return _faces[piece]
+
+
+## Takes [param faces], built over layout(piece), as piece [param piece]'s, unless its
+## own are built: whether it took them.
+func adopt(piece: int, faces: Faces) -> bool:
+	if _faces.has(piece):
+		return false
+	layout(piece)
+	_faces[piece] = faces
+	return true
 
 
 ## The railing of hers that railing [param railing] of piece [param piece]'s layout is.

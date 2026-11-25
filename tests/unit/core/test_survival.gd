@@ -23,7 +23,7 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## and wade_speed_deep, then #620's wet_grip, then #631's pour_topple and blasts, then #587's
 ## side rails on the steamer's flights, then crate_aground_slack): the goals must not move
 ## the battle royale's.
-const BATTLE_ROYALE_HASH := "66d038742f2bbf831b2d950ce21e507fc8829adfd50c08f8187df7bacf990a87"
+const BATTLE_ROYALE_HASH := "8409bcbae50081f2e2f463a2f332b174bd51e40d7bf76a3b68a85baca9e209f2"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

@@ -51,16 +51,37 @@ var _surfaces: Dictionary[int, Surfaces] = {}
 var _layouts: Dictionary[int, ShipLayout] = {}
 var _shut: Dictionary[int, PackedFloat64Array] = {}
 var _cells: Dictionary[int, CellMap] = {}
+## The stock its solids and frames are kept in for every reader of the match, and the
+## piece of her it is (ShapeStock); none for faces of their own.
+var _stock: ShapeStock
+var _piece := 0
 
 
 ## The faces of [param layout], whose own frame [param deck] answers for, with the
 ## watertight doors the ship shuts at the hit. A frame keeps to [param keep_deg] of
-## tilt; without [param turns] a match stands on her decks.
-func _init(layout: ShipLayout, deck: Surfaces, keep_deg: float, turns: bool) -> void:
+## tilt; without [param turns] a match stands on her decks. Given [param stock], its
+## solids and frames are piece [param piece]'s there, built by whoever asks first.
+func _init(
+	layout: ShipLayout,
+	deck: Surfaces,
+	keep_deg: float,
+	turns: bool,
+	stock: ShapeStock = null,
+	piece := 0
+) -> void:
 	_layout = layout
 	_deck = deck
 	_keep_deg = keep_deg
 	_turns = turns
+	_stock = stock
+	_piece = piece
+	if stock != null:
+		var built: Faces = stock.take(
+			[&"faces", piece], func() -> Faces: return Faces.new(layout, deck, keep_deg, turns)
+		)
+		_solids = built._solids
+		_doors = built._doors
+		return
 	for platform: ShipPlatform in layout.platforms:
 		var area := platform.area
 		_solids.append(
@@ -176,14 +197,71 @@ func surfaces(up: int, pose: ShipPose = null) -> Surfaces:
 		return _deck
 	if pose == null and _surfaces.has(up):
 		return _surfaces[up]
+	var shut := shut_of(pose)
+	if not _surfaces.has(up) or _shut[up] != shut:
+		_shut[up] = shut
+		# A frame is kept in the stock only with every door's leaf at rest, open or shut:
+		# one sliding would keep a frame for every tick it slides.
+		var made: Array = (
+			_stock.take([&"frame", _piece, up, shut], _frame.bind(up, shut))
+			if _stock != null and _at_rest(shut)
+			else _frame(up, shut)
+		)
+		_layouts[up] = made[0]
+		_surfaces[up] = Surfaces.new(made[0], null, made[1]) if _stock != null else made[1]
+	return _surfaces[up]
+
+
+## Keeps the frame [param up] with each door [param shut] that far in the stock, as
+## surfaces() builds it there: a ShapeWarmer's, ahead of any reader.
+func stock_frame(up: int, shut: PackedFloat64Array) -> void:
+	if _stock != null and _at_rest(shut):
+		_stock.take([&"frame", _piece, up, shut], _frame.bind(up, shut))
+
+
+## The frame [param up] with each door [param shut] that far, as surfaces() builds it:
+## its layout and a Surfaces of its own over it — a reader's to keep (adopt).
+func frame_of(up: int, shut: PackedFloat64Array) -> Array:
+	if _stock == null or not _at_rest(shut):
+		return _frame(up, shut)
+	var made: Array = _stock.take([&"frame", _piece, up, shut], _frame.bind(up, shut))
+	return [made[0], Surfaces.new(made[0], null, made[1])]
+
+
+## Takes [param layout] and [param surfaces] (frame_of) as the frame [param up] with
+## each door [param shut] that far, as if surfaces() had built them.
+func adopt(up: int, shut: PackedFloat64Array, layout: ShipLayout, surfaces: Surfaces) -> void:
+	_shut[up] = shut
+	_layouts[up] = layout
+	_surfaces[up] = surfaces
+
+
+## Whether the frame [param up] is built with each door [param shut] that far.
+func holds(up: int, shut: PackedFloat64Array) -> bool:
+	return _surfaces.has(up) and _shut[up] == shut
+
+
+## How far each watertight door is shut under [param pose] (DoorLeaves.shut_in), as
+## surfaces() builds a frame's leaves: all open without a pose.
+func shut_of(pose: ShipPose) -> PackedFloat64Array:
 	var shut := PackedFloat64Array()
 	for door: ShipOpening in _doors:
 		shut.append(0.0 if pose == null else DoorLeaves.shut_in(pose, door.name))
-	if not _surfaces.has(up) or _shut[up] != shut:
-		_shut[up] = shut
-		_layouts[up] = _framed_layout(up, shut)
-		_surfaces[up] = Surfaces.new(_layouts[up])
-	return _surfaces[up]
+	return shut
+
+
+## The frame [param up] with each door [param shut] that far: its layout and the
+## Surfaces built over it.
+func _frame(up: int, shut: PackedFloat64Array) -> Array:
+	var layout := _framed_layout(up, shut)
+	return [layout, Surfaces.new(layout)]
+
+
+static func _at_rest(shut: PackedFloat64Array) -> bool:
+	for share: float in shut:
+		if share != 0.0 and share != 1.0:
+			return false
+	return true
 
 
 ## Her layout in the frame [param up]: her own for her decks', else that of the frame's

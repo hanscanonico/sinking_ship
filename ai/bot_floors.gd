@@ -48,6 +48,8 @@ var _rules: BrawlRules
 var _faces: Faces
 var _pieces: Pieces
 var _graphs: Dictionary[int, WalkGraph] = {}
+## The pieces whose faces were asked for: those a ShapeWarmer built ahead taken.
+var _claimed: Dictionary[int, bool] = {}
 ## Per snapshot tick, what facts_of worked out from it.
 var _facts: Dictionary[int, Facts] = {}
 ## How many snapshots' facts are kept: one for every tick from the newest a bot reading
@@ -67,7 +69,7 @@ func _init(deck: WalkGraph, config: MatchConfig) -> void:
 	_deck = deck
 	_config = config
 	_rules = config.rules
-	_faces = Faces.new(config.ship, deck.surfaces(), _rules.brace_holds_to, true)
+	_faces = Faces.new(config.ship, deck.surfaces(), _rules.brace_holds_to, true, config.shapes())
 
 
 ## A bot reads these floors [param ticks] back (BotProfile.reaction_ticks): enough
@@ -97,6 +99,14 @@ func graph(at: int, pose: ShipPose = null) -> WalkGraph:
 		return _deck
 	var faces := _faces_of(at)
 	var up := at % Faces.Up.size()
+	if up != Faces.Up.DECK and pose != null:
+		var shut := faces.shut_of(pose)
+		if not faces.holds(up, shut):
+			# The frame and its graph as a ShapeWarmer built them ahead (ShapeStock).
+			var kit: Variant = _config.shapes().claim([&"walk", at / Faces.Up.size(), up, shut])
+			if kit != null:
+				faces.adopt(up, shut, kit[0], kit[1])
+				_graphs[at] = kit[2]
 	var surfaces := faces.surfaces(up, pose)
 	if not _graphs.has(at) or _graphs[at].surfaces() != surfaces:
 		_graphs[at] = WalkGraph.new(faces.layout(up), surfaces, _rules)
@@ -156,7 +166,7 @@ func framed(pose: ShipPose, at: int) -> ShipPose:
 func surfaces(piece := 0) -> Surfaces:
 	if piece == 0:
 		return _deck.surfaces()
-	return _pieces_of().faces(piece).surfaces(Faces.Up.DECK)
+	return _faces_of(piece * Faces.Up.size()).surfaces(Faces.Up.DECK)
 
 
 ## The share of a standing body's height a body with its feet at [param feet] on piece
@@ -169,11 +179,21 @@ func height_share(feet: Vector3, piece := 0) -> float:
 ## The faces of the piece of the footing [param at].
 func _faces_of(at: int) -> Faces:
 	var piece := at / Faces.Up.size()
-	return _faces if piece == 0 else _pieces_of().faces(piece)
+	if piece == 0:
+		return _faces
+	if not _claimed.has(piece):
+		_claimed[piece] = true
+		# Its faces and its decks' graph as a ShapeWarmer built them ahead (ShapeStock).
+		var kit: Variant = _config.shapes().claim([&"walk", piece, Faces.Up.DECK])
+		if kit != null and _pieces_of().adopt(piece, kit[0]):
+			_graphs[piece * Faces.Up.size()] = kit[1]
+	return _pieces_of().faces(piece)
 
 
 ## Her pieces (Pieces), made the first time a bot stands on one she broke into.
 func _pieces_of() -> Pieces:
 	if _pieces == null:
-		_pieces = Pieces.new(_config.ship, _config.schedule(), _faces, _rules.brace_holds_to, true)
+		_pieces = Pieces.new(
+			_config.ship, _config.schedule(), _faces, _rules.brace_holds_to, true, _config.shapes()
+		)
 	return _pieces

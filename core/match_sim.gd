@@ -30,6 +30,7 @@ var _windup_ticks: int
 var _active_ticks: int
 var _recovery_ticks: int
 var _stagger_ticks: int
+var _stagger_guard_ticks: int
 var _charge_threshold_ticks: int
 var _charge_full_ticks: int
 var _regen_delay_ticks: int
@@ -63,17 +64,11 @@ func _init(match_config: MatchConfig) -> void:
 	config = match_config
 	_rules = config.rules
 	schedule = config.schedule()
-	surfaces = Surfaces.new(config.ship)
-	faces = Faces.new(
-		config.ship, surfaces, _rules.brace_holds_to, SeaPhysics.load_default().capsized_movement
-	)
-	pieces = Pieces.new(
-		config.ship,
-		schedule,
-		faces,
-		_rules.brace_holds_to,
-		SeaPhysics.load_default().capsized_movement
-	)
+	var stock := config.shapes()
+	surfaces = Surfaces.new(config.ship, null, ShapeStock.deck_of(stock, config.ship))
+	var turns := SeaPhysics.load_default().capsized_movement
+	faces = Faces.new(config.ship, surfaces, _rules.brace_holds_to, turns, stock)
+	pieces = Pieces.new(config.ship, schedule, faces, _rules.brace_holds_to, turns, stock)
 	var currents := Currents.of_piece(config, schedule, 0)
 	_hazards = Hazards.new(config, surfaces, 0, pieces, currents)
 	var falls := Falls.of_piece(config, schedule, 0, currents)
@@ -84,6 +79,7 @@ func _init(match_config: MatchConfig) -> void:
 	_active_ticks = Ticks.from_seconds(_rules.shove_active)
 	_recovery_ticks = Ticks.from_seconds(_rules.shove_recovery)
 	_stagger_ticks = Ticks.from_seconds(_rules.stagger)
+	_stagger_guard_ticks = Ticks.from_seconds(_rules.stagger_guard)
 	_charge_threshold_ticks = Ticks.from_seconds(_rules.charge_threshold)
 	_charge_full_ticks = Ticks.from_seconds(_rules.charge_full)
 	_regen_delay_ticks = Ticks.from_seconds(_rules.stamina_regen_delay)
@@ -776,14 +772,14 @@ func _thaw(live: Array[PlayerState]) -> void:
 			player.held_vel = Vector3.ZERO
 
 
-## Every active shove against the bodies and the crates as they stand now; all of
-## this tick's hits apply together, so simultaneous shoves both land. A landed shove
-## freezes its shover and its target for a hit-stop, and the knockback — the share of it
-## its target's rules take (SeatRules.knockback_share), before a brace takes its own
-## off — and the recoil wait for it to end; a crate takes its share of the knockback at once
-## (Hazards.shove), and its shover rocks and stops as for a body. A charged shove landing
-## on a body holding a prop its kind lets a charge knock loose knocks it out of its hands
-## at its feet (#273).
+## Every active shove against the bodies and the crates as they stand now; all of this
+## tick's hits apply together, so simultaneous shoves both land. A landed shove freezes its
+## shover and its target for a hit-stop, and the knockback — the share of it its target's
+## rules take (SeatRules.knockback_share), before a brace takes its own off — and the recoil
+## wait for it to end; a crate takes its share of the knockback at once (Hazards.shove), and
+## its shover rocks and stops as for a body; one _guarded is pushed but not staggered. A
+## charged shove landing on a body holding a prop its kind lets a charge knock loose knocks
+## it out of its hands at its feet (#273).
 func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
 	var origins := PackedVector2Array()
@@ -838,7 +834,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		if _braced_against(target, shover, hit.direction):
 			speed *= 1.0 - _rules.brace_reduction
 			stop = _hitstop_braced_ticks
-		else:
+		elif not _guarded(target, tick):
 			staggers[hit.target] = 1
 		knock[hit.target] += hit.direction * speed
 		# Every hit of one shove shares its direction: one shove landing on two
@@ -887,11 +883,19 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 				_knock_back_in(player, tick, events)
 			if staggers[seat] == 1:
 				player.stagger_ticks = _stagger_ticks
+				player.staggered_at = tick
 				player.bracing = false
 				_enter(player, PlayerState.Action.IDLE)
 		else:
 			planar += rock[seat]
 		player.freeze(Vector3(planar.x, moving.y, planar.y), stops[seat])
+
+
+## Whether [param target], its stagger run out, was staggered within stagger_guard (#776).
+func _guarded(target: PlayerState, tick: int) -> bool:
+	if target.is_staggered() or target.staggered_at < 0:
+		return false
+	return tick - target.staggered_at < _stagger_guard_ticks
 
 
 ## A quick shove's knockback, or a charged one's: from knockback at the threshold
@@ -929,20 +933,19 @@ func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector
 	return target.braced_against(direction, _rules.brace_arc_deg)
 
 
-## The water is a countdown (SH5). A body whose feet go wade_depth into the sea, or that falls
-## into it, or that the current sweeps off its feet (Movement.swept), swims. A swimmer comes to
-## rest (Movement.come_to_rest), is in the sea no more once out of the water over a dry floor
-## (Movement.leaves_water), stands up where the bottom rises within stand_depth of the sea
-## and no current there would sweep it off its feet again, and climbs out where it can
-## (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it swims
-## and does not climb, its cold meter drains — at pocket_cold_rate of the open water's with its
-## head in trapped air (Q22),
-## at the sea_cold_rate of a prop it holds that keeps it afloat (#273), the lower of the two
-## where both do — and it is out when that is empty, but for a seat with a bonus that gives a
-## spare meter (Double life, #307): that fills it again, once, and the bonus is spent — one of
-## them, of two. Out of the sea the meter refills at cold_regen. A seat frozen in a hit-stop
-## holds its meter, and neither falls in, stands, climbs nor settles until the stop ends.
-## Returns who went out.
+## The water is a countdown (SH5). A body whose feet go wade_depth into the sea, or that
+## falls into it, or that the current sweeps off its feet (Movement.swept), swims. A swimmer
+## comes to rest (Movement.come_to_rest), is in the sea no more once out of the water over a
+## dry floor (Movement.leaves_water), stands up where the bottom rises within stand_depth of
+## the sea and no current there would sweep it off its feet again, and climbs out where it
+## can (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it
+## swims and does not climb, its cold meter drains — at pocket_cold_rate of the open water's
+## with its head in trapped air (Q22), at the sea_cold_rate of a prop it holds that keeps it
+## afloat (#273), the lower of the two where both do — and it is out when that is empty, but
+## for a seat with a bonus that gives a spare meter (Double life, #307): that fills it
+## again, once, and the bonus is spent — one of them, of two. Out of the sea the meter
+## refills at cold_regen. A seat frozen in a hit-stop holds its meter, and neither falls in,
+## stands, climbs nor settles until the stop ends. Returns who went out.
 func _water(
 	live: Array[PlayerState],
 	pose_now: ShipPose,

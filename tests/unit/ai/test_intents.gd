@@ -671,3 +671,41 @@ func _longest_press(spar: float, seats: int) -> int:
 		run = run + 1 if pressed else 0
 		held = maxi(held, run)
 	return held
+
+
+## Sparring, a bot that has held its shove at a cornered seat for spar_patience_s lets
+## it be for spar_release_s (#776): it goes at another rather than standing over a seat
+## that every shove would send at a railing.
+func test_a_sparring_bot_lets_a_cornered_seat_be() -> void:
+	var profile: BotProfile = _tier(&"normal").duplicate()
+	profile.brace_read = 0.0
+	profile.mistake_rate = 0.0
+	profile.spar_margin_m = 2.5
+	profile.spar_until = 0.5
+	profile.spar_for_s = 600.0
+	var layout: ShipLayout = SimFixtures.deck().duplicate()
+	var stern := ShipRailing.new()
+	stern.from = Vector2(-15.0, -4.0)
+	stern.to = Vector2(-15.0, 4.0)
+	var railings: Array[ShipRailing] = layout.railings.duplicate()
+	railings.append(stern)
+	layout.railings = railings
+	var sim := MatchSim.create(SimFixtures.config(3, null, SEED, layout))
+	# The flat deck's after starboard corner, railed to starboard and, here, aft.
+	SimFixtures.place(sim, 0, Vector3(-13.2, 0.0, 2.2), 45.0)
+	SimFixtures.place(sim, 1, Vector3(-14.3, 0.0, 3.3))
+	SimFixtures.place(sim, 2, Vector3(4.0, 0.0, -3.0))
+	var source := BotInputSource.new(0, profile, sim.config)
+	var runner := _runner(sim, source)
+	var shoved_it := false
+	var left_it := -1
+	for tick in Ticks.from_seconds(profile.spar_patience_s + 3.0):
+		for event: SimEvent in runner.step():
+			shoved_it = shoved_it or event.kind == SimEvent.Kind.SHOVE_LANDED and event.target == 1
+		if left_it == -1 and tick > Ticks.RATE and source.brain.target != 1:
+			left_it = tick
+	assert_false(shoved_it, "it never shoved the cornered seat")
+	assert_ne(left_it, -1, "it let that seat be")
+	assert_gte(left_it, Ticks.from_seconds(profile.spar_patience_s), "once its patience ran out")
+	var away := sim.state.seats[0].pos.distance_to(sim.state.seats[1].pos)
+	assert_gt(away, 2.0, "and walked off it")
