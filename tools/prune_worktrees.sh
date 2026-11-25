@@ -9,7 +9,8 @@
 # and deletes its local branch. Every other worktree is named with why it stays: a
 # detached one, as no PR says when it is done; one whose branch has an open PR, or
 # none merged, or one merged under GRACE_MINUTES ago, as the session that merged it may
-# be cleaning up after it still; one holding work.
+# be cleaning up after it still; one holding work. tools/exactness.sh's detached
+# exactness-base-<sha> worktrees are done once unused for GRACE_MINUTES and clean.
 #
 # Asks gh for the repo's pull requests. Usage:  tools/prune_worktrees.sh [--remove]
 
@@ -57,13 +58,45 @@ holds() {
 	[[ -z "$(ls -A "$tree/captures" 2>/dev/null | head -1)" ]] || { echo "files under captures/"; return; }
 }
 
+# Why tools/exactness.sh's base worktree $1 stays; nothing when it is idle past
+# GRACE_MINUTES (by its last use, else its import) and holds no change of its own.
+base_holds() {
+	local tree=$1 used
+	used="$tree/.godot/exactness-used"
+	[[ -e "$used" ]] || used="$tree/.godot"
+	[[ -e "$used" ]] || used="$tree"
+	[[ -z "$(find "$used" -maxdepth 0 -mmin -"$GRACE_MINUTES" 2>/dev/null)" ]] ||
+		{ echo "exactness base used under $GRACE_MINUTES min ago"; return; }
+	git -C "$tree" diff --quiet --ignore-cr-at-eol 2>/dev/null || { echo "changes"; return; }
+	[[ -z "$(git -C "$tree" ls-files --others --exclude-standard 2>/dev/null | head -1)" ]] ||
+		echo "untracked files"
+}
+
+# Names, or with --remove removes, the idle exactness base $1: make exactness adds it
+# again when a run needs it.
+reap_base() {
+	done_count=$((done_count + 1))
+	if ((remove)); then
+		if git -C "$main" worktree remove --force "$1" 2>/dev/null; then
+			echo "removed $1 (idle exactness base)"
+		else
+			echo "failed  $1 (idle exactness base, but git could not remove it: a program has a file open there?)"
+		fi
+	else
+		echo "done    $1 (idle exactness base)"
+	fi
+}
+
 done_count=0
 kept_count=0
 tree='' branch='' detached=0
 report() {
 	[[ -z "$tree" || "$tree" == "$main" ]] && return
 	local why='' line head number minutes
-	if ((detached)); then
+	if ((detached)) && [[ "$(basename "$tree")" == exactness-base-* ]]; then
+		why=$(base_holds "$tree")
+		[[ -n "$why" ]] || { reap_base "$tree"; return; }
+	elif ((detached)); then
 		why="detached"
 	elif grep -qxF "$branch" <<<"$open"; then
 		why="PR open"

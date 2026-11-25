@@ -4,8 +4,9 @@
 # gh. It names done the worktree whose PR is merged and that holds nothing of its own,
 # line-ending churn included, and keeps every other with its reason — changes, staged
 # changes, an untracked file, files under captures/, a commit past its PR, an open PR,
-# no PR, a merge inside the grace period, a detached HEAD; --remove removes the done
-# ones and deletes their branches, and leaves the rest.
+# no PR, a merge inside the grace period, a detached HEAD; it names done an exactness
+# base idle past the grace period and keeps one used inside it or holding changes;
+# --remove removes the done ones and deletes their branches, and leaves the rest.
 
 set -uo pipefail
 tool="$(cd "$(dirname "$0")" && pwd)/prune_worktrees.sh"
@@ -25,7 +26,7 @@ git -C "$repo" config user.name check
 git -C "$repo" config user.email check@example.com
 git -C "$repo" config core.autocrlf false
 printf 'one\ntwo\n' >"$repo/tracked.txt"
-printf 'captures/\n' >"$repo/.gitignore"
+printf 'captures/\n.godot/\n' >"$repo/.gitignore"
 git -C "$repo" add tracked.txt .gitignore
 git -C "$repo" commit -qm base
 git -C "$repo" branch -M main
@@ -51,6 +52,14 @@ for branch in clean churn changed staged untracked captures ahead open nopr fres
 done
 printf 'open\n' >"$WORK/open.txt"
 git -C "$repo" worktree add -q --detach "$WORK/wt/detached" main
+for base in idle used dirty; do
+	tree="$WORK/wt/exactness-base-$base"
+	git -C "$repo" worktree add -q --detach "$tree" main
+	mkdir -p "$tree/.godot"
+	touch -d '1 day ago' "$tree/.godot/exactness-used"
+done
+touch "$WORK/wt/exactness-base-used/.godot/exactness-used"
+echo more >>"$WORK/wt/exactness-base-dirty/tracked.txt"
 
 printf 'one\r\ntwo\r\n' >"$WORK/wt/churn/tracked.txt"
 echo more >>"$WORK/wt/changed/tracked.txt"
@@ -89,18 +98,22 @@ expect stays open 'PR open'
 expect stays nopr 'no merged PR'
 expect stays fresh 'PR #10 merged 5 min ago'
 expect stays detached 'detached'
+expect done exactness-base-idle 'idle exactness base'
+expect stays exactness-base-used 'exactness base used under 120 min ago'
+expect stays exactness-base-dirty 'changes'
 grep -q "/main " <<<"$said" && fail "the main checkout was judged: $said"
 for branch in clean churn changed; do
 	[[ -d "$WORK/wt/$branch" ]] || fail "a dry run removed $branch"
 done
 
 removed=$(cd "$repo" && PATH="$WORK/bin:$PATH" "$tool" --remove 2>&1)
+[[ -d "$WORK/wt/exactness-base-idle" ]] && fail "--remove left the idle exactness base: $removed"
 for branch in clean churn; do
 	[[ -d "$WORK/wt/$branch" ]] && fail "--remove left the done worktree $branch: $removed"
 	git -C "$repo" rev-parse -q --verify "refs/heads/$branch" >/dev/null &&
 		fail "--remove left the done worktree's branch $branch"
 done
-for branch in changed staged untracked captures ahead open nopr fresh detached; do
+for branch in changed staged untracked captures ahead open nopr fresh detached exactness-base-used exactness-base-dirty; do
 	[[ -d "$WORK/wt/$branch" ]] || fail "--remove removed $branch, which holds work or is not done"
 done
 
