@@ -23,6 +23,7 @@ knockback = 8.0
 restagger_mult = 1.25
 recoil = 2.5
 stagger = 0.4
+stagger_guard = 1.0
 hitstop = 0.1
 hitstop_charged = 0.17
 hitstop_braced = 0.07

@@ -30,6 +30,7 @@ var _windup_ticks: int
 var _active_ticks: int
 var _recovery_ticks: int
 var _stagger_ticks: int
+var _stagger_guard_ticks: int
 var _charge_threshold_ticks: int
 var _charge_full_ticks: int
 var _regen_delay_ticks: int
@@ -84,6 +85,7 @@ func _init(match_config: MatchConfig) -> void:
 	_active_ticks = Ticks.from_seconds(_rules.shove_active)
 	_recovery_ticks = Ticks.from_seconds(_rules.shove_recovery)
 	_stagger_ticks = Ticks.from_seconds(_rules.stagger)
+	_stagger_guard_ticks = Ticks.from_seconds(_rules.stagger_guard)
 	_charge_threshold_ticks = Ticks.from_seconds(_rules.charge_threshold)
 	_charge_full_ticks = Ticks.from_seconds(_rules.charge_full)
 	_regen_delay_ticks = Ticks.from_seconds(_rules.stamina_regen_delay)
@@ -781,9 +783,9 @@ func _thaw(live: Array[PlayerState]) -> void:
 ## freezes its shover and its target for a hit-stop, and the knockback — the share of it
 ## its target's rules take (SeatRules.knockback_share), before a brace takes its own
 ## off — and the recoil wait for it to end; a crate takes its share of the knockback at once
-## (Hazards.shove), and its shover rocks and stops as for a body. A charged shove landing
-## on a body holding a prop its kind lets a charge knock loose knocks it out of its hands
-## at its feet (#273).
+## (Hazards.shove), and its shover rocks and stops as for a body; one _guarded is pushed
+## but not staggered. A charged shove landing on a body holding a prop its kind lets a
+## charge knock loose knocks it out of its hands at its feet (#273).
 func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> void:
 	var attempts: Array[ShoveResolver.Attempt] = []
 	var origins := PackedVector2Array()
@@ -838,7 +840,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		if _braced_against(target, shover, hit.direction):
 			speed *= 1.0 - _rules.brace_reduction
 			stop = _hitstop_braced_ticks
-		else:
+		elif not _guarded(target, tick):
 			staggers[hit.target] = 1
 		knock[hit.target] += hit.direction * speed
 		# Every hit of one shove shares its direction: one shove landing on two
@@ -892,6 +894,14 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		else:
 			planar += rock[seat]
 		player.freeze(Vector3(planar.x, moving.y, planar.y), stops[seat])
+
+
+## Whether [param target] keeps its feet under a shove landing on [param tick] (#776): its
+## stagger has run out, and its last hit landed within stagger_guard.
+func _guarded(target: PlayerState, tick: int) -> bool:
+	if target.is_staggered() or target.last_hit_at < 0:
+		return false
+	return tick - target.last_hit_at < _stagger_guard_ticks
 
 
 ## A quick shove's knockback, or a charged one's: from knockback at the threshold

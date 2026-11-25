@@ -46,6 +46,10 @@ extends Resource
 ## it lands on.
 @export var recoil: float
 @export var stagger: float
+## Seconds from a hit landing within which a shove on a body whose stagger has run out
+## pushes it but does not stagger it again, nor take the shove it readies (#776): backed
+## into a corner, it gets a moment to shove back. More than stagger.
+@export var stagger_guard: float
 ## How long a landed quick shove freezes its shover and its target (D12).
 @export var hitstop: float
 ## A full charge's hit-stop; a charge let go sooner stops between hitstop and this.
@@ -363,6 +367,7 @@ func problems() -> PackedStringArray:
 		"grab_reach",
 		"knockback",
 		"stagger",
+		"stagger_guard",
 		"stagger_friction",
 		"slide_friction",
 		"vault_speed",
@@ -492,6 +497,8 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: stand_depth must not exceed wade_depth")
 	if pocket_cold_rate > 1.0:
 		found.append("brawl rules: pocket_cold_rate must not exceed the open water's 1")
+	if stagger_guard <= stagger:
+		found.append("brawl rules: stagger_guard must be more than stagger")
 	if wade_speed > walk_speed:
 		found.append("brawl rules: wade_speed must not exceed walk_speed")
 	if wade_speed_deep > wade_speed:

@@ -219,3 +219,38 @@ func test_resolver_reads_candidates_not_live_seats() -> void:
 		rules.step_height
 	)
 	assert_true(hits.is_empty())
+
+
+## Seat 0 shoves seat 1, standing in its reach facing it and winding up a shove of its
+## own, last hit [param since] seconds ago and its stagger run out. Returns the sim once
+## seat 0's shove has landed.
+func _shoved_again(since: float) -> MatchSim:
+	var sim := SimFixtures.sim(2)
+	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
+	SimFixtures.place(sim, 1, _at(0.3, 0.0), 180.0)
+	SimFixtures.step(sim, {}, 2 * Ticks.RATE)
+	var cornered := sim.state.seats[1]
+	cornered.last_hit_by = 0
+	cornered.last_hit_at = sim.state.tick - Ticks.from_seconds(since)
+	SimFixtures.step(sim, {0: _shove(0)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: _shove(1)})
+	SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)}, 2)
+	return sim
+
+
+## A body shoved again soon after its stagger has run out is pushed, not staggered
+## (#776): backed into a corner, it gets the moment to shove back that a stagger after
+## every shove would never give it. Once stagger_guard has passed, a shove staggers again.
+func test_a_shove_soon_after_a_stagger_pushes_but_does_not_stagger() -> void:
+	var rules := SimFixtures.rules()
+	var guarded := _shoved_again(rules.stagger + 0.1)
+	var cornered := guarded.state.seats[1]
+	assert_gt(SimFixtures.sent(cornered).length(), 0.0, "the shove still pushes it")
+	assert_false(cornered.is_staggered(), "but it keeps its feet")
+	assert_ne(cornered.action, PlayerState.Action.IDLE, "and its own shove comes on")
+	SimFixtures.step(guarded, {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)}, 6)
+	assert_eq(guarded.state.seats[0].last_hit_by, 1, "to land on the one that cornered it")
+
+	var later := _shoved_again(rules.stagger_guard + 0.1)
+	assert_true(later.state.seats[1].is_staggered(), "past stagger_guard a shove staggers")
+	assert_eq(later.state.seats[1].action, PlayerState.Action.IDLE)
