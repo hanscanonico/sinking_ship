@@ -900,9 +900,6 @@ msgstr "Nom"
 msgid "your name"
 msgstr "votre nom"
 
-msgid "Server"
-msgstr "Serveur"
-
 msgid "Room code"
 msgstr "Code du salon"
 
@@ -1008,8 +1005,8 @@ msgstr "Tout le monde regarde : il faut bien que quelqu'un joue."
 msgid "The server refused this game."
 msgstr "Le serveur a refusé le jeu."
 
-msgid "Could not reach the server: check its address, or try again later."
-msgstr "Serveur injoignable : vérifiez son adresse, ou réessayez plus tard."
+msgid "Could not reach the server: try again later."
+msgstr "Serveur injoignable : réessayez plus tard."
 
 msgid "The connection to the server was lost."
 msgstr "La connexion au serveur a été perdue."
