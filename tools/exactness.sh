@@ -140,6 +140,8 @@ if [[ ! -d "$base" ]]; then
 elif [[ "$(git -C "$base" rev-parse HEAD 2>/dev/null)" != "$sha" ]]; then
 	die "FAIL $base is not at $short: remove it (git worktree remove) and run again"
 fi
+# When the base was last used: tools/prune_worktrees.sh removes one idle past its grace.
+mkdir -p "$base/.godot" && touch "$base/.godot/exactness-used"
 lib=0
 compgen -G "$base/native/lib/*" >/dev/null && lib=1
 kept="$CACHE/$sha-$key-lib$lib-tool$(git hash-object "$tool" | cut -c1-10)"
