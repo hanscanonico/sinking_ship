@@ -44,7 +44,7 @@ var _online: OnlinePlay
 var _built: Array[FakeMatch] = []
 var _built_of: Array[Array] = []
 var _now := 0
-## What _online said as it ended: [to_menu, note, rejoin] each time.
+## What _online said as it ended: [was_in_room, note, rejoin] each time.
 var _endings: Array[Array] = []
 
 
@@ -74,8 +74,8 @@ func _play(client: RoomClient, code: String = "", real: bool = false) -> OnlineP
 	var build := Callable() if real else _build_fake
 	_online = OnlinePlay.new(link, client, build, func() -> int: return _now)
 	_online.ended.connect(
-		func(to_menu: bool, note: String, rejoin: String) -> void:
-			_endings.append([to_menu, note, rejoin])
+		func(was_in_room: bool, note: String, rejoin: String) -> void:
+			_endings.append([was_in_room, note, rejoin])
 	)
 	add_child_autofree(_online)
 	return _online
@@ -300,14 +300,15 @@ func test_esc_opens_the_online_pause_and_the_match_goes_on() -> void:
 	assert_eq(players[0].state, RoomClient.State.PLAYING)
 
 
-## Leave match hangs up for the main menu; the server hands the seat to a bot.
+## Leave match hangs up for the Online screen, not the main menu — one click from the
+## next room (#807); the server hands the seat to a bot.
 func test_leaving_a_match_hands_the_seat_to_a_bot() -> void:
 	var fixture := _quick_server()
 	var players := _in_a_match(fixture)
 	var online := _online
 	online._unhandled_input(_pressed(&"pause"))
 	online._pause.leave_requested.emit()
-	assert_eq(_endings, [[true, "", ""]], "for the main menu")
+	assert_eq(_endings, [[true, "", ""]], "for the Online screen, back from a room")
 	_assert_let_go(_built[0], "the match")
 	assert_false(online._pause.visible)
 	fixture.beat(2)
@@ -322,7 +323,7 @@ func test_leave_at_the_results_leaves_the_room() -> void:
 	var room := fixture.room(players[0])
 	_finish(fixture, room)
 	_built[0].menu_requested.emit()
-	assert_eq(_endings, [[false, "", ""]], "for the Online screen")
+	assert_eq(_endings, [[true, "", ""]], "for the Online screen, back from a room")
 	_assert_let_go(_built[0], "the match")
 	fixture.beat(2)
 	assert_eq(room.members.size(), 1, "Ada alone is left in the room")
@@ -334,7 +335,7 @@ func test_a_connection_lost_mid_match_offers_its_room_back() -> void:
 	var code := players[0].roster.code
 	fixture.cut(players[1])
 	players[1].poll()
-	assert_eq(_endings, [[false, OnlinePlay.LOST, code]])
+	assert_eq(_endings, [[true, OnlinePlay.LOST, code]])
 	_assert_let_go(_built[0], "the match")
 	assert_false(_online._room_screen.visible, "no room over nothing")
 
@@ -349,7 +350,7 @@ func test_a_tab_hidden_too_long_is_told_why_it_was_let_go() -> void:
 	_online._process(0.0)
 	fixture.cut(players[1])
 	players[1].poll()
-	assert_eq(_endings, [[false, OnlinePlay.AWAY, players[0].roster.code]])
+	assert_eq(_endings, [[true, OnlinePlay.AWAY, players[0].roster.code]])
 
 
 ## The host's Start is asked once per showing; the server's BUSY is said, and Start
@@ -479,7 +480,7 @@ func test_a_lost_connection_closes_the_settings_opened_from_the_pause() -> void:
 	var settings := _settings_from_the_pause()
 	fixture.cut(players[1])
 	players[1].poll()
-	assert_eq(_endings, [[false, OnlinePlay.LOST, players[0].roster.code]])
+	assert_eq(_endings, [[true, OnlinePlay.LOST, players[0].roster.code]])
 	_assert_settings_gone(settings, "the connection was lost")
 
 
@@ -530,7 +531,7 @@ func test_a_drop_well_after_a_long_frame_is_not_told_as_hidden() -> void:
 	_online._process(0.0)
 	fixture.cut(players[1])
 	players[1].poll()
-	assert_eq(_endings, [[false, OnlinePlay.LOST, players[0].roster.code]])
+	assert_eq(_endings, [[true, OnlinePlay.LOST, players[0].roster.code]])
 
 
 ## Input's mouse mode, as a stand-in: a browser's, which a click alone captures.

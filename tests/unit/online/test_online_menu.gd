@@ -358,6 +358,21 @@ func test_the_code_shows_the_room_rejoin_goes_back_to() -> void:
 	assert_eq(code.code(), "EZLH", "before Rejoin is pressed: Join goes there too")
 
 
+## Back from a room with nothing to rejoin, the boxes are emptied: they held an earlier
+## room's code, not the one left (#807: room MNJN left, the boxes still read DLZR). A code
+## typed and refused stays, to mend.
+func test_leaving_a_room_empties_the_code() -> void:
+	_open()
+	var code: CodePicker = _node("%Code")
+	_menu.open(OnlinePlay.LOST, "DLZR")
+	_menu.open("", "", true)
+	assert_eq(code.code(), "", "the room left was another")
+	assert_false((_node("%Rejoin") as Button).visible)
+	code.set_code("KXRT")
+	_menu.open(OnlinePlay.refusal(RoomCodec.Refusal.NO_ROOM))
+	assert_eq(code.code(), "KXRT", "a refused code stays to mend")
+
+
 func test_back_and_cancel_leave() -> void:
 	_open()
 	watch_signals(_menu)

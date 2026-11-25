@@ -75,14 +75,16 @@ static func first_server(saved: String, rules: ServerRules) -> String:
 
 ## Shows the screen, [param note] — what went wrong, if anything — under the choices,
 ## and Rejoin when [param rejoin] names a room to go back to — its code in the boxes then,
-## so Join goes there too and no earlier room's code is left in them.
-func open(note: String = "", rejoin: String = "") -> void:
+## so Join goes there too and no earlier room's code is left in them. Back from a room
+## with none to rejoin — [param left_room] — the boxes are emptied: the code in them is
+## an earlier room's, never the one just left. A code typed and refused stays, to mend.
+func open(note: String = "", rejoin: String = "", left_room: bool = false) -> void:
 	%ServerLabel.visible = not on_web
 	_server.visible = not on_web
 	_rejoin = rejoin
 	_set_busy(false)
 	_rejoin_button.visible = not rejoin.is_empty()
-	if not rejoin.is_empty():
+	if not rejoin.is_empty() or left_room:
 		_code.set_code(rejoin)
 	_say(note, true)
 	show()
