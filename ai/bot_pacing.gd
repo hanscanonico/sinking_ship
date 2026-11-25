@@ -17,7 +17,8 @@ var pressing := 1.0
 ## How far from the water, an open drop or a railing it keeps whoever it shoves; none
 ## once it fights to the death.
 var spar := 0.0
-## Whether it hunts the last seats left: it goes looking for them (BotSearch).
+## Whether it hunts the last seats left, another among them: it goes looking for them
+## (BotSearch).
 var hunts := false
 
 var _profile: BotProfile
@@ -52,7 +53,7 @@ func pace(seen: Dictionary, under: float, seats_left: int) -> void:
 	if seats_left <= _profile.hunt_at_seats:
 		pressing = 1.0 + _profile.late_hunt_gain
 		spar = 0.0
-		hunts = true
+		hunts = seats_left > 1
 		return
 	pressing = 1.0 + _profile.late_hunt_gain * under
 	var live_s := Ticks.to_seconds(tick - _live_from) if _live_from >= 0 else 0.0
