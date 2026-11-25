@@ -484,20 +484,12 @@ func _physical(tick: int) -> ShipPose:
 		var fronts := water_fronts()
 		if fronts != null:
 			fronts.pose(pose, seconds)
-	for failed in _failed_ticks.size():
-		if _failed_ticks[failed] > tick:
-			break
-		pose.opened[_failed_names[failed]] = _failed_states[failed]
+	_doors_of(pose, tick, seconds)
 	for fall: FunnelFall in _falls:
 		if fall.warned_at <= tick:
 			pose.falls.append(fall)
 		if fall.lands_at <= tick:
 			pose.felled.append(fall)
-	if tick >= _hit_tick:
-		for door in _doors.size():
-			pose.doors_shut[_doors[door]] = (
-				1.0 - SinkOpenings.open_share(_door_times[door], seconds)
-			)
 	for lurch in _lurch_heels.size():
 		if tick >= _lurch_ticks[lurch * 3] and tick < _lurch_ticks[lurch * 3 + 1]:
 			pose.lurch_warning = _lurch_heels[lurch]
@@ -580,15 +572,8 @@ func leans_at(tick: int) -> PackedFloat64Array:
 ## its place across the world, as high as the sea up it says; its own cells' water and air
 ## as the timeline has them.
 func _piece_pose(piece: int, frame: int, next: int, weight: float, seconds: float) -> ShipPose:
-	var standing := _standing(piece, seconds)
-	var leaf := _timeline.leaf_of(standing)
-	var sea := lerpf(_timeline.sea_of(frame, leaf), _timeline.sea_of(next, leaf), weight)
-	var turn := Basis(_timeline.blend(frame, next, weight, leaf))
-	var sink := sea - _timeline.rest
-	var origin := turn * -_pivots[standing] + _anchors[standing]
-	origin.y = _freeboard - sink
-	var leans := leans_of(turn)
-	var pose := ShipPose.new(sink, leans[0], leans[1], Transform3D(turn, origin))
+	var pose := _placed(piece, frame, next, weight, seconds)
+	var origin := pose.transform.origin
 	pose.cells = _piece_cells[piece]
 	var cells := _cell_of[piece]
 	if _native_held():
@@ -609,6 +594,59 @@ func _piece_pose(piece: int, frame: int, next: int, weight: float, seconds: floa
 		pose.levels[cell] = head + origin.y
 		pose.pockets[cell] = _timeline.pocket(frame, next, weight, at)
 		pose.lit[cell] = _timeline.lit(frame, at)
+	return pose
+
+
+## Piece [param piece]'s pose as _piece_pose has it, but for its cells: where it stands.
+func _placed(piece: int, frame: int, next: int, weight: float, seconds: float) -> ShipPose:
+	var standing := _standing(piece, seconds)
+	var leaf := _timeline.leaf_of(standing)
+	var sea := lerpf(_timeline.sea_of(frame, leaf), _timeline.sea_of(next, leaf), weight)
+	var turn := Basis(_timeline.blend(frame, next, weight, leaf))
+	var sink := sea - _timeline.rest
+	var origin := turn * -_pivots[standing] + _anchors[standing]
+	origin.y = _freeboard - sink
+	var leans := leans_of(turn)
+	return ShipPose.new(sink, leans[0], leans[1], Transform3D(turn, origin))
+
+
+## Her watertight doors on [param pose], at [param tick], [param seconds] after the hit:
+## those failed, jammed or open (opened), and how far each the ship shuts is shut.
+func _doors_of(pose: ShipPose, tick: int, seconds: float) -> void:
+	for failed in _failed_ticks.size():
+		if _failed_ticks[failed] > tick:
+			break
+		pose.opened[_failed_names[failed]] = _failed_states[failed]
+	if tick >= _hit_tick:
+		for door in _doors.size():
+			pose.doors_shut[_doors[door]] = (
+				1.0 - SinkOpenings.open_share(_door_times[door], seconds)
+			)
+
+
+## Her pose at [param tick] as pose_at has it but for what is in her — where she and
+## each piece of her standing then stand, and her watertight doors — read off the
+## timeline alone, never kept: the frames a ShapeWarmer foresees her pieces turning onto,
+## asked off the main thread. Null without a physical sinking.
+func placed_at(tick: int) -> ShipPose:
+	if _timeline == null:
+		return null
+	var frame := 0
+	var weight := 0.0
+	if tick > _hit_tick:
+		frame = _timeline.frame_at(_seconds_at(tick))
+		weight = _weight(frame, tick)
+	var next := mini(frame + 1, _timeline.count() - 1)
+	var seconds := _seconds_at(tick) if tick > _hit_tick else 0.0
+	var pose := _placed(0, frame, next, weight, seconds)
+	_doors_of(pose, tick, seconds)
+	if _structures.size() > 1:
+		pose.standing = _timeline.pieces_at(seconds)
+		for piece in _structures.size():
+			var own := pose if piece == 0 else _placed(piece, frame, next, weight, seconds)
+			own.doors_shut = pose.doors_shut
+			own.opened = pose.opened
+			pose.pieces.append(own)
 	return pose
 
 

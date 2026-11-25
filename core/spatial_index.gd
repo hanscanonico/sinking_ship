@@ -72,6 +72,27 @@ func _init(
 		_cells[cell] = PackedInt32Array()
 
 
+## A grid holding what this one holds, its cells the same ones — nothing goes into
+## either again — with its own near() blocks, so each may be asked on a thread of its
+## own (ShapeStock).
+func sharing() -> SpatialIndex:
+	var made := SpatialIndex.new(Rect2(), 1.0)
+	made._origin = _origin
+	made._side = _side
+	made._size = _size
+	made._low = _low
+	made._band = _band
+	made._bands = _bands
+	made._scan_over = _scan_over
+	made._columns = _columns
+	made._cells = _cells
+	made._filled_columns = _filled_columns
+	made._filled = _filled
+	made._all = _all
+	made._last = _last
+	return made
+
+
 ## The rectangle (x/z) every platform, ramp and blocker of [param layout] stands in — a
 ## cylinder by its square.
 static func bounds_of(layout: ShipLayout) -> Rect2:
