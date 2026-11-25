@@ -37,8 +37,9 @@ extends RefCounted
 ## Then scored — the hunt and the line-up for more, the more of the ship's decks are
 ## under water, by late_hunt_gain: SEEK_HIGH — water within edge_margin_m and higher
 ## ground to reach, or nobody to go at — for the highest zone it can reach, where it
-## goes at whoever comes up too; LINE_UP, its target within a shove's carry of the
-## water or an unrailed drop and no nearer than its spar margin, weighed by
+## goes at whoever comes up too; down to the last seats with none in sight and no water near, it
+## goes looking for them instead, zone by zone (BotSearch); LINE_UP, its target within a
+## shove's carry of the water or an unrailed drop and no nearer than its spar margin, weighed by
 ## lineup_weight — round to the far side of it, then the shove that puts it over; HUNT
 ## — through the walk graph to its target's zone, then at it, past the grip angle round
 ## to its uphill side first; TAKE_BUOY — its hands empty and buoy_from of her decks
@@ -140,6 +141,8 @@ var _wading := false
 ## The refuge it chose at the last think, or WalkGraph.NONE, and what chooses it.
 var _refuge := WalkGraph.NONE
 var _refuges: BotRefuge
+## Where it looks for the last seats when it sees none of them (#737).
+var _search: BotSearch
 var _aim_offset := 0.0
 var _think_in := 0
 var _last_buttons := 0
@@ -152,7 +155,6 @@ var _reads_charge := false
 ## Ticks this charge has been held for; 0 when not charging.
 var _charge_held := 0
 var _charge_full_ticks: int
-var _windup_ticks: int
 ## The tick of its last shove press, -1 for none.
 var _pressed_at := -1
 ## A lapse under way: ticks of it left, the heading it walks, and whether it is
@@ -221,7 +223,6 @@ func _init(
 	_pacing = BotPacing.new(profile, plays_for, _targeting.carry)
 	_rng = rng
 	_charge_full_ticks = Ticks.from_seconds(rules.charge_full)
-	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
 
 
 ## How many times it has searched the walk graph afresh because it strayed off the
@@ -329,6 +330,7 @@ func _stand_on(up: int, pose: ShipPose = null) -> void:
 	_targeting = BotTargeting.new(seat, _profile, _rules, _footing, _walk_graph, _plays_for)
 	_swim = BotSwim.new(_walk_graph, _rules, _profile)
 	_refuges = BotRefuge.new(_walk_graph, _profile)
+	_search = BotSearch.new(_walk_graph, _profile)
 	_legs.clear()
 	_goal = WalkGraph.NONE
 	_refuge = WalkGraph.NONE
@@ -404,6 +406,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 		_refuge = _refuges.choose(found, pose, seen["tick"], _refuge)
 		refuge = _refuge
 	var my_zone := _zone_of(me)
+	_search.stood_in(my_zone, seen["tick"])
 	var feet := pose.above_water(my_pos)
 	var floor_height := _walk_graph.floor_height(my_zone, my_pos, pose)
 	# Its floor going under, and every dry way from it too: it wades out (BotRefuge).
@@ -456,6 +459,8 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	# keener to go at someone than to keep its ground.
 	_footing.margin = _profile.edge_margin_m * (1.0 - _profile.late_margin_share * under)
 	_pacing.pace(seen, under, seats_left)
+	if _pacing.spar == 0.0:
+		_targeting.let_none_be()
 	var walk := _rules.walk_speed * _profile.think_period * Ticks.SECONDS_PER_TICK
 	var reach := _profile.edge_margin_m + walk + _footing.slide_reach(pose, me["vel"])
 	_edges_near = (
@@ -476,7 +481,9 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	var kept_goal := _goal
 	match intent:
 		Intent.SEEK_HIGH:
-			_goal = highest
+			var looks: bool = _pacing.hunts and mark.is_empty()
+			looks = looks and not _footing.water_near(now_pos, pose)
+			_goal = _search.goal(found, pose, seen["tick"], highest) if looks else highest
 		Intent.CLIMB_OUT, Intent.FLEE:
 			_goal = refuge
 		Intent.GUARD:
@@ -910,8 +917,8 @@ func _keep_off_edges(
 ## A shove at whoever one would land on, its target first — weighed as things stood in
 ## its view, from where it looks now: a charge at a bracing one on the read, else a
 ## tap. Nothing while its view predates its last press, nor while it sees itself busy,
-## nor, sparring, while it would send anyone at an edge (_spared), nor, when it minds
-## its back, while another seat could land one on it.
+## nor, sparring, while it would send anyone at an edge (BotTargeting.spares), nor, when it
+## minds its back, while another seat could land one on it.
 func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int, pose: ShipPose) -> int:
 	if _last_buttons & InputFrame.SHOVE or seen["tick"] <= _pressed_at:
 		return 0
@@ -928,7 +935,8 @@ func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int, pose:
 				break
 	if victim.is_empty():
 		return 0
-	if _pacing.spar > 0.0 and _spared(seen, my_pos, pose):
+	var lands := func(entry: Dictionary) -> bool: return _lands(my_pos, entry)
+	if _pacing.spar > 0.0 and _targeting.spares(seen, my_pos, victim, lands, _pacing.spar, pose):
 		return 0
 	if _profile.minds_its_back:
 		var threat := _targeting.threat(seen, me)
@@ -941,24 +949,6 @@ func _shove(seen: Dictionary, me: Dictionary, mark: Dictionary, tick: int, pose:
 	if charge and _pacing.spar == 0.0:
 		_charge_held = 1
 	return InputFrame.SHOVE
-
-
-## Whether a shove from [param my_pos], where the bot looks, would land on a seat in
-## [param seen] with the water, an open drop or a railing it could go over within the
-## spar margin the way the shove sends it — straight away from the bot — from where it
-## was seen, or from where its seen velocity carries it by the time the shove lands.
-func _spared(seen: Dictionary, my_pos: Vector3, pose: ShipPose) -> bool:
-	var lag := (_profile.reaction_ticks + _windup_ticks) * Ticks.SECONDS_PER_TICK
-	for entry: Dictionary in seen["seats"]:
-		if entry["seat"] == seat or not _lands(my_pos, entry):
-			continue
-		var seen_at: Vector3 = entry["pos"]
-		var vel: Vector3 = entry["vel"]
-		for at: Vector3 in [seen_at, seen_at + Vector3(vel.x, 0.0, vel.z) * lag]:
-			var way := Vector2(at.x - my_pos.x, at.z - my_pos.z).normalized()
-			if _footing.edge_toward(at, entry["surface"], way, _pacing.spar, pose, true) < INF:
-				return true
-	return false
 
 
 ## A charge under way: held until it is full, then let go — or let go at once once

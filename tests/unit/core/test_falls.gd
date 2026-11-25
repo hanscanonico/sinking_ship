@@ -159,7 +159,8 @@ func test_a_pour_under_the_topple_staggers_no_one() -> void:
 
 
 func test_a_body_knocked_down_in_water_deep_enough_to_swim_goes_into_it() -> void:
-	var sim := _sim(1, Vector3(0.2, 1.0, 0.0), 1.0)
+	# Half a metre: wadeable on its feet, but too deep to stand back up in (stand_depth).
+	var sim := _sim(1, Vector3(0.5, 1.0, 0.0), 1.0)
 	SimFixtures.place(sim, 0, Vector3(0.0, 0.0, 0.0))
 	var events := SimFixtures.step(sim, {0: SimFixtures.frame(0)})
 	assert_eq(sim.state.seats[0].body, PlayerState.Body.SWIMMING, "into the water")

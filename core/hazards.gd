@@ -9,7 +9,7 @@ extends RefCounted
 ## the pose pulls it downhill against its friction — the slope rule bodies follow. It
 ## meets walls, blockers, railings and the other crates through Surfaces (D6), and
 ## falls off an open edge or down a stair opening. Falling into the sea, it is lost once
-## the water stands wade_depth over its underside; standing, the water lifts it off its
+## the water stands crate_lift_depth over its underside; standing, the water lifts it off its
 ## floor there, and it floats on its cell's water crate_draft deep, never under its
 ## floor, rising with it — a blocker still, as it stood, and its lid a surface a body may
 ## stand on, carried by nothing — until its top meets the ceiling over it or, with none,
@@ -21,7 +21,7 @@ extends RefCounted
 ## span into the sea, lost. Its planar speed keeps crate_float_drag of itself a tick,
 ## against a standing crate's friction — of itself over the water's, where the water
 ## moves (Currents, #616): afloat, it drifts with the current. The water falling back
-## under wade_depth over its floor sets it down there again. Running into a brawler at
+## under crate_lift_depth over its floor sets it down there again. Running into a brawler at
 ## crate_impact_speed or more, it staggers it and knocks it back through a hit-stop, as a
 ## shove does (D12), and keeps going, slowed; slower, it pushes it. Either way the two part with the
 ## closing speed by their masses. A shove sends a crate at its knockback weighed by

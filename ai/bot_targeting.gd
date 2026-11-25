@@ -15,6 +15,7 @@ var drop_way := Vector2.ZERO
 var drop_distance := INF
 
 var _seat: int
+var _windup_ticks: int
 var _profile: BotProfile
 var _rules: BrawlRules
 var _footing: BotFooting
@@ -26,6 +27,11 @@ var _fights: Array[int] = []
 ## Whether a survival bot fights nobody yet: until it sees refuge_from of the ship
 ## under water, nothing is worth a fight while she still holds them all.
 var _holds := false
+## Sparring, the seat it has held its shove at, the snapshot tick it began to and the last
+## it did: -1 for none (spares). And by seat, the snapshot tick until which it lets
+## that seat be (#776).
+var _sparing := PackedInt32Array([-1, 0, 0])
+var _let_be: Dictionary[int, int] = {}
 ## This think's looks round seats, by seat: where it stood, and how far the water or an
 ## open drop is along each probe direction.
 var _looked_from := {}
@@ -42,6 +48,7 @@ func _init(
 	plays_for := MatchRules.Goal.LAST_STANDING
 ) -> void:
 	_seat = seat
+	_windup_ticks = Ticks.from_seconds(rules.shove_windup)
 	_plays_for = plays_for
 	_profile = profile
 	_rules = rules
@@ -69,7 +76,7 @@ func _init(
 ## to the lower seat. -1 for none. Under survival, once it sees the share [param under]
 ## of her deck area reach refuge_from, it fights over [param refuge] and
 ## [param perch]: while anyone stands in them, only those are weighed — before that,
-## nobody is fought (off_perch).
+## nobody is fought (off_perch). A seat it lets be (spares) is none of them.
 func choose(
 	seen: Dictionary,
 	me: Dictionary,
@@ -93,6 +100,8 @@ func choose(
 	var highest := -INF
 	for entry: Dictionary in seen["seats"]:
 		if entry["seat"] == _seat or entry["out"] or entry["state"] == PlayerState.Body.SWIMMING:
+			continue
+		if _let_be.get(entry["seat"], -1) > seen["tick"]:
 			continue
 		var zone := _zone_of(entry)
 		if zone != WalkGraph.NONE and not found.reaches(zone):
@@ -135,6 +144,52 @@ func choose(
 	if best != -1 and kept_score + _profile.hysteresis >= best_score:
 		return kept
 	return best
+
+
+## Sparring with a spar margin of [param spar], whether a shove from [param my_pos] would
+## land on a seat in [param seen] — one [param lands] says it lands on — with the water, an
+## open drop or a railing it could go over within that margin the way the shove sends it,
+## straight away from the bot: from where it was seen, or from where its seen velocity
+## carries it by the time the shove lands. Held for [param victim]'s sake — not a
+## bystander's — for spar_patience_s running, no break of more than two thinks, it lets that
+## seat be for spar_release_s (#776): choose() passes it over.
+func spares(
+	seen: Dictionary,
+	my_pos: Vector3,
+	victim: Dictionary,
+	lands: Callable,
+	spar: float,
+	pose: ShipPose
+) -> bool:
+	var lag := (_profile.reaction_ticks + _windup_ticks) * Ticks.SECONDS_PER_TICK
+	for entry: Dictionary in seen["seats"]:
+		if entry["seat"] == _seat or not lands.call(entry):
+			continue
+		var seen_at: Vector3 = entry["pos"]
+		var vel: Vector3 = entry["vel"]
+		for at: Vector3 in [seen_at, seen_at + Vector3(vel.x, 0.0, vel.z) * lag]:
+			var way := Vector2(at.x - my_pos.x, at.z - my_pos.z).normalized()
+			if _footing.edge_toward(at, entry["surface"], way, spar, pose, true) < INF:
+				if entry["seat"] == victim["seat"]:
+					_held_fire(victim["seat"], seen["tick"])
+				return true
+	return false
+
+
+## Sparring no more, it lets no seat be: whoever it let be is fought again.
+func let_none_be() -> void:
+	_let_be.clear()
+	_sparing[0] = -1
+
+
+func _held_fire(at_seat: int, tick: int) -> void:
+	if _sparing[0] != at_seat or tick - _sparing[2] > _profile.think_period * 2:
+		_sparing = PackedInt32Array([at_seat, tick, tick])
+		return
+	_sparing[2] = tick
+	if tick - _sparing[1] >= Ticks.from_seconds(_profile.spar_patience_s):
+		_let_be[at_seat] = tick + Ticks.from_seconds(_profile.spar_release_s)
+		_sparing[0] = -1
 
 
 ## Each of [param candidates]' scores as choose() has them — [param span] holds the

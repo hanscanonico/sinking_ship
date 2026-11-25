@@ -65,6 +65,9 @@ var climb_to: Vector3
 var last_hit_by: int = -1
 ## The tick that shove landed on, or -1.
 var last_hit_at: int = -1
+## The tick a shove last staggered this one, or -1: the guard after it runs from there
+## (BrawlRules.stagger_guard, #776).
+var staggered_at: int = -1
 ## The crate, by its index in the layout, that last ran into this one — under the
 ## same terms as last_hit_by, which is then the seat that shoved the crate, if any
 ## did within credit_window; -1 otherwise (SH10).
@@ -188,6 +191,7 @@ const FIELDS := [
 	{"name": "last_hit_by", "kind": SnapshotField.Kind.INT},
 	{"name": "last_hit_at", "kind": SnapshotField.Kind.INT},
 	{"name": "last_hit_crate", "kind": SnapshotField.Kind.INT},
+	{"name": "staggered_at", "kind": SnapshotField.Kind.INT},
 	{"name": "bonuses", "kind": SnapshotField.Kind.INTS},
 	{"name": "prev_buttons", "kind": SnapshotField.Kind.INT},
 	{"name": "last_input", "kind": SnapshotField.Kind.INTS},
@@ -227,6 +231,7 @@ func to_dict() -> Dictionary:
 		"last_hit_by": last_hit_by,
 		"last_hit_at": last_hit_at,
 		"last_hit_crate": last_hit_crate,
+		"staggered_at": staggered_at,
 		"bonuses": Array(bonuses),
 		"prev_buttons": prev_buttons,
 		"last_input": [last_move.x, last_move.y, last_look, last_buttons],
@@ -264,6 +269,7 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.last_hit_by = entry["last_hit_by"]
 	player.last_hit_at = entry["last_hit_at"]
 	player.last_hit_crate = entry["last_hit_crate"]
+	player.staggered_at = entry["staggered_at"]
 	player.bonuses = PackedInt32Array(entry["bonuses"])
 	player.prev_buttons = entry["prev_buttons"]
 	var last_input: Array = entry["last_input"]

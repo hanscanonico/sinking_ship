@@ -496,7 +496,7 @@ func test_the_water_floats_a_standing_crate_off_its_floor_and_it_rises_with_it()
 	assert_eq(afloat[0].prop, 0)
 	assert_eq(crate.body, PropState.Body.FLOATING)
 	var water := _water(sim, crate.pos)
-	assert_gte(water, rules.wade_depth, "once wade_depth stands over its floor")
+	assert_gte(water, rules.crate_lift_depth, "once crate_lift_depth stands over its floor")
 	assert_eq(crate.pos.y, maxf(water - rules.crate_draft, 0.0), "crate_draft deep, on its floor")
 	var risen_from := crate.pos.y
 	events = SimFixtures.step(sim, {}, 3 * Ticks.RATE)
@@ -601,7 +601,7 @@ func test_a_floating_crate_settles_on_its_floor_as_the_water_falls_back() -> voi
 	assert_eq(crate.body, PropState.Body.FLOATING)
 	events.append_array(_until(sim, PropState.Body.GROUNDED, 4 * Ticks.RATE))
 	assert_eq(crate.body, PropState.Body.GROUNDED, "set down again")
-	assert_lt(_water(sim, crate.pos), rules.wade_depth, "as the water fell back")
+	assert_lt(_water(sim, crate.pos), rules.crate_lift_depth, "as the water fell back")
 	assert_eq(crate.pos.y, 0.0, "on its floor")
 	assert_eq(crate.surface, 0)
 	events.append_array(SimFixtures.step(sim, {}, Ticks.RATE))
@@ -646,14 +646,14 @@ func test_a_crate_draft_as_tall_as_a_crate_is_refused() -> void:
 	rules = _rules().duplicate()
 	rules.crate_float_drag = 1.5
 	rules.crate_float_pull = 1.5
-	rules.crate_adrift_depth = rules.wade_depth
+	rules.crate_adrift_depth = rules.crate_lift_depth
 	assert_eq(
 		rules.problems(),
 		PackedStringArray(
 			[
 				"brawl rules: crate_float_drag must not exceed 1",
 				"brawl rules: crate_float_pull must not exceed 1",
-				"brawl rules: crate_adrift_depth must be more than wade_depth",
+				"brawl rules: crate_adrift_depth must be more than crate_lift_depth",
 			]
 		)
 	)

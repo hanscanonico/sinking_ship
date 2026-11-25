@@ -31,7 +31,9 @@ extends RefCounted
 ## 11: a room member may watch (#611): WATCH says so, the roster marks who does and BEGIN
 ## gives a watcher no seat, so a client of 10 — which would read a seatless BEGIN as none
 ## at all — is refused VERSION at its HELLO.
-const PROTOCOL_VERSION := 11
+## 12: a seat's snapshot carries the tick a shove last staggered it (#776), so a client of
+## 11 — which would read every seat a field short — is refused VERSION at its HELLO.
+const PROTOCOL_VERSION := 12
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
@@ -40,7 +42,10 @@ const PROTOCOL_VERSION := 11
 ## the sea (#315).
 ## 11: a seat's bonus gives it what its kind sets — a jump, a share of a shove, a climb
 ## reach and a ladder's pace — the sim's and the bots' alike (#316).
-const SIM_BUILD := 11
+## 12: a swimmer stands, climbs out and floats over edges by stand_depth (#777), a guard
+## follows a stagger (#776), and bots let a cornered seat be and look for the last seats
+## (#776, #737).
+const SIM_BUILD := 12
 const HASH_BYTES := 8
 ## How far apart, in quanta, two values within_quantum may be: a rounding on each side,
 ## and a single-precision Vector3's own error at a few tens of metres.
