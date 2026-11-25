@@ -193,6 +193,29 @@ func test_a_jump_under_a_low_deck_stops_at_the_ceiling() -> void:
 	assert_almost_eq(door["apex"], 2.5 + 2.1 - rules.body_height, 0.0001, "under the lintel")
 
 
+## A head stopped at a slab's underside stays out of it: its feet are a float32, and
+## one that rounded up left the head a hair inside, so the next tick held the body as
+## standing in the slab and threw it out past the slab's nearest edge, metres off,
+## through every wall between (the Titanic's deckhouses, under a 10.8 m slab).
+func test_a_jump_under_a_slab_lands_where_it_rose() -> void:
+	var rules := _rules()
+	for step in 11:
+		var underside := rules.body_height + 0.3 + step * 0.05
+		var layout := SimFixtures.deck().duplicate()
+		var slab := ShipBlocker.new()
+		slab.area = Rect2(-6.0, -6.0, 12.0, 12.0)
+		slab.bottom = underside
+		slab.top = underside + 0.2
+		var blockers: Array[ShipBlocker] = [slab]
+		layout.blockers = blockers
+		var sim := SimFixtures.sim(1, null, layout)
+		SimFixtures.place(sim, 0, Vector3.ZERO)
+		var player := sim.state.seats[0]
+		_fly(sim, 0, SimFixtures.frame(0))
+		assert_eq(_planar(player.pos), Vector2.ZERO, "slab at %.2f m: still under it" % underside)
+		assert_eq(player.body, GROUNDED, "slab at %.2f m: landed" % underside)
+
+
 func test_an_exhausted_seat_cannot_jump() -> void:
 	var rules := _rules()
 	var sim := SimFixtures.sim(1)

@@ -52,6 +52,9 @@ const CROWD_DRIFT := 0.1
 ## How far over its feet a body in the air steps (_blockers): nothing but a hair, so a
 ## deck it stood on — its height a 64-bit float, its feet a 32-bit one — is under it.
 const AIR_STEP := 0.001
+## A little more than a float32's relative step (2^-23): taken off a value, at least one
+## float32 step down from it (_ceilings).
+const FLOAT32_STEP := 1.2e-7
 
 var _rules: BrawlRules
 var _hazards: Hazards
@@ -493,7 +496,10 @@ func _squeezed(
 ## A rising body stops with its head — at its height there (height_of) — against the
 ## lowest underside over it — a deck, a stair, a lintel — and loses its upward speed.
 ## It is looked for from where the feet stood before this tick's move, so a fast rise
-## cannot pass through a deck.
+## cannot pass through a deck. The feet are a float32 that may round up past
+## [code]highest[/code], leaving the head a hair inside the underside: the next tick would
+## hold the body as in that deck or slab and throw it out past its nearest edge, through
+## every wall between. So they go down a float32 step until the head is clear.
 func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> void:
 	for player: PlayerState in live:
 		if player.body != PlayerState.Body.AIRBORNE or player.vel.y <= 0.0:
@@ -502,6 +508,8 @@ func _ceilings(live: Array[PlayerState], feet_before: PackedFloat64Array) -> voi
 		var highest := _surfaces.ceiling(feet, _rules.step_height) - height_of(player)
 		if player.pos.y > highest:
 			player.pos.y = highest
+			while player.pos.y > highest:
+				player.pos.y -= maxf(absf(highest), 1.0) * FLOAT32_STEP
 			player.vel.y = 0.0
 
 
