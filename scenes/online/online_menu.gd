@@ -7,7 +7,8 @@ extends CanvasLayer
 ## player chose becomes an OnlineLink, checked as every link is, and only a link with no
 ## problem is asked for; the name is remembered for the next run (OnlineSettings). What
 ## went wrong on the way — a refusal, the connection never made or lost — comes back here
-## as a short sentence, with Rejoin when there is a room to go back to. Back and ui_cancel leave for the main menu.
+## as a short sentence, with Rejoin when there is a room to go back to. Back and
+## ui_cancel leave for the main menu.
 
 signal play_requested(link: OnlineLink)
 signal back_requested
