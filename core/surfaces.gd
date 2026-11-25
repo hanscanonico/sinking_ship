@@ -921,10 +921,12 @@ func _onto(platform: int, from: Vector2, to: Vector2) -> Vector2:
 
 
 ## A swimmer at [param feet] climbing up onto [param top] to stand at [param stand]
-## (x/z): on the surface there within a step, out of the sea under [param pose] as
-## far as wading, with nothing holding it back and no wall across the way at that
-## height; null when it cannot. Off any railing first, where it holds the body (#790):
-## never stood in a slot narrower than itself, by a railing beside a stair, wedged there.
+## (x/z): on the surface there within a step, in water there shallower than stand_depth
+## under [param pose] — where a swimmer finds its feet, short of wade_depth, so the next
+## rise does not swim it again (#777) — with nothing holding it back and no wall across
+## the way at that height; null when it cannot. Off any railing first, where it holds the
+## body (#790): never stood in a slot narrower than itself, by a railing beside a stair,
+## wedged there.
 func _standing(
 	feet: Vector3, stand: Vector2, top: float, pose: ShipPose, rules: BrawlRules
 ) -> Climb:
@@ -934,7 +936,7 @@ func _standing(
 	if surface == NONE or _is_round_top(surface):
 		return null
 	at.y = height_at(surface, at)
-	if pose.water_height(at) - at.y >= rules.wade_depth:
+	if pose.water_height(at) - at.y >= rules.stand_depth:
 		return null
 	if not obstacle_contacts(at, rules.body_radius, rules.body_height, step).is_empty():
 		return null

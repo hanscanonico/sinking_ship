@@ -229,6 +229,10 @@ extends Resource
 ## floats with its underside this far under its cell's water. Below every crate's
 ## height (MatchConfig).
 @export var crate_draft: float
+## How deep the water over a cargo crate's underside stands as it lifts it off its floor,
+## in metres (PropKind.lift): its own, not wade_depth, so how deep a body wades moves no
+## crate (#800).
+@export var crate_lift_depth: float
 ## The share of its planar speed a floating crate keeps from tick to tick; 0…1, above
 ## 0. Near 1 the water drags little: a shove or a body's push sends one afloat farther
 ## than one standing.
@@ -238,12 +242,12 @@ extends Resource
 ## angle holds it, and on an even keel there is none. 0…1, above 0.
 @export var crate_float_pull: float
 ## How deep the water over a floating crate's floor may stand where nothing roofs it
-## before the sea sweeps it away, in metres: more than wade_depth, which lifts it.
+## before the sea sweeps it away, in metres: more than crate_lift_depth, which lifts it.
 @export var crate_adrift_depth: float
 ## How far short of the depth that lifted it the water over a floating crate's floor
 ## must fall before it is set down again, in metres: one afloat where the water stands
 ## at that very depth stays afloat as the water wavers, rather than standing and
-## lifting by turns. Less than wade_depth.
+## lifting by turns. Less than crate_lift_depth.
 @export var crate_aground_slack: float
 ## A falling funnel landing on a body (Hazards, SH31): the speed it sends it out of the
 ## strip it lands across, in m/s, and the seconds it is staggered — knocked down; no
@@ -400,6 +404,7 @@ func problems() -> PackedStringArray:
 		"railing_hp",
 		"railing_break_speed",
 		"crate_draft",
+		"crate_lift_depth",
 		"crate_float_drag",
 		"crate_float_pull",
 		"crate_adrift_depth",
@@ -497,8 +502,8 @@ func problems() -> PackedStringArray:
 		found.append("brawl rules: crate_float_drag must not exceed 1")
 	if crate_float_pull > 1.0:
 		found.append("brawl rules: crate_float_pull must not exceed 1")
-	if crate_adrift_depth <= wade_depth:
-		found.append("brawl rules: crate_adrift_depth must be more than wade_depth")
-	if crate_aground_slack >= wade_depth:
-		found.append("brawl rules: crate_aground_slack must be less than wade_depth")
+	if crate_adrift_depth <= crate_lift_depth:
+		found.append("brawl rules: crate_adrift_depth must be more than crate_lift_depth")
+	if crate_aground_slack >= crate_lift_depth:
+		found.append("brawl rules: crate_aground_slack must be less than crate_lift_depth")
 	return found

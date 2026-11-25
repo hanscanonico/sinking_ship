@@ -85,8 +85,8 @@ static func over_floor(surfaces: Surfaces, feet: Vector3, feet_before: float) ->
 
 ## The floor a swimmer with its feet at [param feet], come from [param feet_before]'s
 ## height, has left the water over: the one under it, when its feet are out of the water
-## and what stands over that floor is too shallow to swim in (wade_depth, as a body in the
-## air lands on such a bottom: Movement.in_the_sea) — a compartment the water has not
+## and what stands over that floor is shallow enough to find its feet in (stand_depth,
+## short of the wade_depth that swims it again, #777) — a compartment the water has not
 ## reached, a room it has run out of. Surfaces.NONE while it is in water, or over water it
 ## falls back into, or over the sea.
 static func dry_floor(
@@ -97,4 +97,4 @@ static func dry_floor(
 	if under == Surfaces.NONE or wet(surfaces, rules, pose, at):
 		return Surfaces.NONE
 	var depth := pose.water_height(at) - surfaces.height_at(under, at)
-	return under if depth < rules.wade_depth else Surfaces.NONE
+	return under if depth < rules.stand_depth else Surfaces.NONE

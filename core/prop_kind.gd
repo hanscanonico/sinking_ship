@@ -24,9 +24,9 @@ const DIRECTORY := "res://data/props"
 @export var height: float
 @export_group("Loose")
 ## How deep the water stands over its underside as it lifts it, and how deep its
-## underside rides under the water afloat, in metres; 0 for cargo's: lifted at
-## wade_depth, riding the rules' crate_draft deep — or half its height, for one less than
-## twice that tall. Furniture rides low, its top near the water, and stands until then.
+## underside rides under the water afloat, in metres; 0 for cargo's: lifted at the
+## rules' crate_lift_depth, riding their crate_draft deep — or half its height, for one
+## less than twice that tall. Furniture rides low, its top near the water, and stands until then.
 @export var draft: float
 ## Whether in the water inside her it floats wherever it is: falling into it, it comes
 ## down afloat, and afloat it rides pressed under the ceiling over it — lost only as the
@@ -67,9 +67,9 @@ static func named(kind_name: StringName) -> PropKind:
 
 
 ## How deep the water over the underside of one of this kind lifts it: its draft, or
-## for cargo's [param rules]' wade_depth.
+## for cargo's [param rules]' crate_lift_depth.
 func lift(rules: BrawlRules) -> float:
-	return draft if draft > 0.0 else rules.wade_depth
+	return draft if draft > 0.0 else rules.crate_lift_depth
 
 
 ## How deep the underside of one of this kind [param tall] high rides under the water
