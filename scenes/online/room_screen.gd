@@ -8,7 +8,7 @@ extends CanvasLayer
 ## watch the match without a seat, while the room waits (GLOSSARY: Watch). The host's
 ## Start asks for the match once per showing — until the server's answer, a refusal
 ## or the room changed shows the room again — and is there but dead for everyone else,
-## who wait for the host. Leave room, and ui_cancel, leave.
+## who wait for the host, and while everyone in the room watches. Leave room, and ui_cancel, leave.
 ##
 ## Every name in it is another player's typing, so it is a plain Label, cut short with
 ## an ellipsis where it is too long for its seat's line.
@@ -79,20 +79,25 @@ func show_room(roster: RoomRoster, note: String = "", ended: bool = false) -> vo
 	_note.text = note
 	_note.visible = not note.is_empty()
 	_start.text = "Starting…" if _queued else "Start"
-	_start.disabled = (roster.playing and not _ended) or not hosting or _queued
+	# The server refuses a match nobody plays in (RoomCodec.Refusal.NO_PLAYERS): Start
+	# is dead while everyone in the room watches, and the room says why.
+	var nobody_plays := roster.seated().is_empty()
+	_start.disabled = (roster.playing and not _ended) or not hosting or _queued or nobody_plays
 	_watch.set_pressed_no_signal(roster.you_watch())
 	_watch.disabled = roster.playing
 	if _ended:
 		_status.text = Language.t("That match is over: the room opens again in a moment.")
 	elif roster.playing:
 		_status.text = Language.t("A match is on in this room: it waits for that one to end.")
+	elif hosting and nobody_plays:
+		_status.text = Language.t("Everyone here watches: someone has to play.")
 	elif hosting:
 		_status.text = Language.t(
 			"You host: start when everyone is aboard. Bots take the empty seats."
 		)
 	else:
 		_status.text = Language.t("Waiting for the host to start.")
-	if roster.you_watch() and not roster.playing:
+	if roster.you_watch() and not roster.playing and not (hosting and nobody_plays):
 		_status.text += Language.t(" You watch: you take no seat.")
 	_show_seats(roster)
 	show()
