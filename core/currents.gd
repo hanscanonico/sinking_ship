@@ -192,10 +192,14 @@ func at(pose: ShipPose, point: Vector3) -> Vector2:
 	var sum := Vector2.ZERO
 	var fastest := 0.0
 	for used: int in found:
+		var index := _used[used]
+		# Only an opening with the point's cell on one side of it moves it (below): asked
+		# first, the rest are passed over before any of their sums.
+		if cell != _sides[index * 2] and cell != _sides[index * 2 + 1]:
+			continue
 		var through := _through(pose, used)
 		if through <= 0.0:
 			continue
-		var index := _used[used]
 		var opening := _openings[index]
 		var half := opening.size * 0.5
 		var near := opening.centre + (point - opening.centre).clamp(-half, half)

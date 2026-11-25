@@ -136,8 +136,10 @@ func honour(
 		_posed_from[piece] = own
 		_posed[piece] = _renumbered(piece, own)
 	var aboard: Array[PropState] = []
+	# The pieces' stretches read once, not once a crate (piece_at).
+	var spans := walked(own.standing)
 	for crate: PropState in props:
-		if piece_at(own.standing, crate.pos.x) == piece:
+		if piece_in(own.standing, spans, crate.pos.x) == piece:
 			aboard.append(crate)
 	surfaces.honour(_posed[piece], gone(piece, broken), aboard)
 
@@ -173,8 +175,17 @@ func _own(piece: int, hers: PackedInt32Array) -> PackedInt32Array:
 	layout(piece)
 	var rails := _rails[piece]
 	var own := PackedInt32Array()
+	if hers.is_empty():
+		return own
+	# Hers marked once: a broken hull's failed railings run to hundreds, each piece's to
+	# hundreds more, every tick.
+	var marked := PackedByteArray()
+	marked.resize(_layout.railings.size())
+	for railing: int in hers:
+		if railing >= 0 and railing < marked.size():
+			marked[railing] = 1
 	for railing in rails.size():
-		if rails[railing] in hers:
+		if marked[rails[railing]] == 1:
 			own.append(railing)
 	return own
 
