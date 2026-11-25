@@ -1611,12 +1611,28 @@ void NativeCrates::write_back() const {
 	}
 }
 
-// Hazards._stand_one, for the whole ship (PropStands.stand).
+int64_t godot::piece_in(const PackedInt32Array &p_standing, const PackedVector2Array &p_spans, double p_x) {
+	if (p_standing.size() == 1) {
+		return p_standing[0];
+	}
+	for (int64_t at = 0; at < p_standing.size(); at++) {
+		const Vector2 span = p_spans[at];
+		if (p_x >= double(span.x) && p_x <= double(span.y)) {
+			return p_standing[at];
+		}
+	}
+	return -1;
+}
+
+// Hazards._stand_one (Pieces.stand): on the whole ship or her first piece as
+// PropStands.stand stands it; on a later piece, taken off its surfaces while it is off
+// the piece's stretch.
 void NativeCrates::stand_one(int32_t p_prop) {
 	const Crate &found = state_[p_prop];
 	NativeStands *stands = surfaces_->stands();
 	const bool loose = found.body != BODY_LOST && found.body < BODY_HUNG;
-	if (loose && solid_[p_prop] == 1) {
+	const bool here = piece_ == 0 || piece_in(standing_, spans_, double(found.pos.x)) == piece_;
+	if (here && loose && solid_[p_prop] == 1) {
 		stands->put(p_prop, found.pos);
 	} else {
 		stands->take(p_prop);
@@ -1806,6 +1822,14 @@ PackedInt32Array NativeCrates::move(const Array &p_props, const PackedInt32Array
 	return out;
 }
 
+// The piece the next move() steps, of her pieces [p_standing] over their stretches
+// [p_spans]: 0 for the whole ship or her first piece.
+void NativeCrates::over(int64_t p_piece, const PackedInt32Array &p_standing, const PackedVector2Array &p_spans) {
+	piece_ = p_piece;
+	standing_ = p_standing;
+	spans_ = p_spans;
+}
+
 PackedInt32Array NativeCrates::moving() const {
 	PackedInt32Array out;
 	out.resize(int64_t(crates_.size()));
@@ -1847,6 +1871,7 @@ void NativeCrates::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("move", "props", "crates", "steps", "dt", "tick", "turn", "feet_before",
 								 "came_from", "damage"),
 			&NativeCrates::move);
+	ClassDB::bind_method(D_METHOD("over", "piece", "standing", "spans"), &NativeCrates::over);
 	ClassDB::bind_method(D_METHOD("moving"), &NativeCrates::moving);
 	ClassDB::bind_method(D_METHOD("woken"), &NativeCrates::woken);
 	ClassDB::bind_method(D_METHOD("feet_before"), &NativeCrates::feet_before);

@@ -581,8 +581,7 @@ func _move(
 		var reach := Vector2(crate.vel.x, crate.vel.z).length() * Ticks.SECONDS_PER_TICK
 		steps = maxi(steps, ceili(reach / _props[crate.prop].radius))
 	var dt := Ticks.SECONDS_PER_TICK / steps
-	# The whole ship's crates, or her first piece's, stand on its own Surfaces alone.
-	if _piece == 0 and _native_passes() != null:
+	if _native_passes() != null:
 		_move_natively(state, crates, steps, dt, pose, tick, events)
 		return
 	for _step in steps:
@@ -639,6 +638,8 @@ func _move_natively(
 	var breaks := func(railing: int, prop: int) -> bool:
 		_surfaces.stands.adopt(_native.moving())
 		return damage(state, rail(railing), _rules.crate_damage, pose, tick, events, -1, prop)
+	if _piece != 0:
+		_native.over(_piece, pose.standing, _pieces.walked(pose.standing))
 	var moved: PackedInt32Array = _native.move(
 		state.props, order, steps, dt, tick, _turn, _feet_before, _came_from, breaks
 	)
