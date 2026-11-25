@@ -50,15 +50,6 @@ custom_minimum_size = Vector2(300, 0)
 theme_type_variation = &"HintLabel"
 autowrap_mode = 3
 
-[node name="ServerLabel" type="Label" parent="Panel/Box/Choices"]
-unique_name_in_owner = true
-text = "Server"
-
-[node name="Server" type="LineEdit" parent="Panel/Box/Choices"]
-unique_name_in_owner = true
-size_flags_horizontal = 3
-placeholder_text = "ws://host:port"
-
 [node name="CodeLabel" type="Label" parent="Panel/Box/Choices"]
 text = "Room code"
 

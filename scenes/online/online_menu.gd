@@ -1,23 +1,26 @@
 class_name OnlineMenu
 extends CanvasLayer
 ## The Online screen (SH12), over the main menu's backdrop: a display name — the rule the
-## server holds it to shown under it — and natively the server to play on; then Create a
-## room, or Join one by its code (CodePicker). In a browser the server is the page's own
-## and the field is gone. What the player chose becomes an OnlineLink, checked as every
-## link is, and only a link with no problem is asked for; the name and the server are
-## remembered for the next run (OnlineSettings). What went wrong on the way — a refusal,
-## the connection never made or lost — comes back here as a short sentence, with Rejoin
-## when there is a room to go back to. Back and ui_cancel leave for the main menu.
+## server holds it to shown under it — then Create a room, or Join one by its code
+## (CodePicker). The server is never asked for: in a browser it is the page's own, and
+## natively the release's public one, or the one a --server launch flag names. What the
+## player chose becomes an OnlineLink, checked as every link is, and only a link with no
+## problem is asked for; the name is remembered for the next run (OnlineSettings). What
+## went wrong on the way — a refusal, the connection never made or lost — comes back here
+## as a short sentence, with Rejoin when there is a room to go back to. Back and
+## ui_cancel leave for the main menu.
 
 signal play_requested(link: OnlineLink)
 signal back_requested
 
-## Where the name and the server are remembered; a test points it elsewhere.
+## Where the name is remembered; a test points it elsewhere.
 var settings_path := OnlineSettings.PATH
 ## Whether this runs in a browser: the server is the page's own then.
 var on_web := OS.has_feature("web")
 ## The page's own server, in a browser.
 var page_server := ""
+## Natively, the server played on: a launch's --server, else first_server's.
+var server_url := ""
 
 var _rules := ServerRules.load_default()
 var _settings: OnlineSettings
@@ -27,7 +30,6 @@ var _busy := false
 
 @onready var _panel: PanelContainer = $Panel
 @onready var _name: LineEdit = %Name
-@onready var _server: LineEdit = %Server
 @onready var _code: CodePicker = %Code
 @onready var _join: Button = %Join
 @onready var _create: Button = %Create
@@ -41,11 +43,8 @@ func _ready() -> void:
 	hide()
 	%NameRule.text = OnlineLink.name_rule(_rules)
 	_name.max_length = _rules.name_length
-	_server.max_length = OnlineLink.MAX_URL
-	for field: LineEdit in [_name, _server]:
-		field.gui_input.connect(MainMenu.leave_field.bind(field))
+	_name.gui_input.connect(MainMenu.leave_field.bind(_name))
 	_name.text_submitted.connect(func(_text: String) -> void: _create.grab_focus())
-	_server.text_submitted.connect(func(_text: String) -> void: _create.grab_focus())
 	_code.lead_to(_join)
 	_create.pressed.connect(_submit.bind(true))
 	_join.pressed.connect(_submit.bind(false))
@@ -53,7 +52,7 @@ func _ready() -> void:
 	_back.pressed.connect(back_requested.emit)
 	_settings = OnlineSettings.read(settings_path)
 	_name.text = _settings.player_name
-	_server.text = first_server(_settings.server_url, _rules)
+	server_url = first_server(_rules)
 
 
 # The name's rule is worded in the language played: the game picks it after this screen
@@ -63,11 +62,9 @@ func _notification(what: int) -> void:
 		%NameRule.text = OnlineLink.name_rule(_rules)
 
 
-## The server the field starts on: the one [param saved] if any, else [param rules]'
+## The server played on natively unless a launch names one: [param rules]'
 ## default_server_url when it is a server's address, else this machine's own.
-static func first_server(saved: String, rules: ServerRules) -> String:
-	if not saved.is_empty():
-		return saved
+static func first_server(rules: ServerRules) -> String:
 	if OnlineLink.is_server_url(rules.default_server_url):
 		return rules.default_server_url
 	return "ws://127.0.0.1:%d" % rules.port
@@ -79,8 +76,6 @@ static func first_server(saved: String, rules: ServerRules) -> String:
 ## with none to rejoin — [param left_room] — the boxes are emptied: the code in them is
 ## an earlier room's, never the one just left. A code typed and refused stays, to mend.
 func open(note: String = "", rejoin: String = "", left_room: bool = false) -> void:
-	%ServerLabel.visible = not on_web
-	_server.visible = not on_web
 	_rejoin = rejoin
 	_set_busy(false)
 	_rejoin_button.visible = not rejoin.is_empty()
@@ -104,7 +99,7 @@ func open(note: String = "", rejoin: String = "", left_room: bool = false) -> vo
 ## remembered for them unless they press Create or Join themselves.
 func take_link(link: OnlineLink) -> void:
 	if not on_web and not link.server_url.is_empty():
-		_server.text = link.server_url
+		server_url = link.server_url
 	var remembered := on_web and not _settings.player_name.is_empty()
 	if link.named and not link.player_name.is_empty() and not remembered:
 		_name.text = link.player_name
@@ -145,12 +140,12 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 ## Asks to play what the player chose — [param creating] a room, or joining the code in
-## the slots, or [param code]'s — when it can be played, remembering the name and the
-## server when [param remember] says; says what is wrong otherwise.
+## the slots, or [param code]'s — when it can be played, remembering the name when
+## [param remember] says; says what is wrong otherwise.
 func _submit(creating: bool, code: String = "", remember: bool = true) -> void:
 	if _busy:
 		return
-	var server := page_server if on_web else _server.text.strip_edges()
+	var server := page_server if on_web else server_url
 	var joining := code if not code.is_empty() else _code.code()
 	var link := OnlineLink.from_menu(server, creating, joining, _name.text, _rules)
 	if not link.problems.is_empty():
@@ -158,8 +153,6 @@ func _submit(creating: bool, code: String = "", remember: bool = true) -> void:
 		return
 	if remember:
 		_settings.player_name = link.player_name
-		if not on_web:
-			_settings.server_url = link.server_url
 		var saved := _settings.save(settings_path)
 		if saved != OK:
 			push_warning("online: not saved: %s" % error_string(saved))
@@ -173,8 +166,7 @@ func _on_rejoin() -> void:
 
 func _set_busy(busy: bool) -> void:
 	_busy = busy
-	for control: Control in [_name, _server]:
-		(control as LineEdit).editable = not busy
+	_name.editable = not busy
 	for button: Button in [_create, _join, _rejoin_button]:
 		button.disabled = busy
 	for slot: Node in _code.get_children():

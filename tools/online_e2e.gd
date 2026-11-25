@@ -67,7 +67,7 @@ func _enter_room() -> RoomScreen:
 	if not await _until(func() -> bool: return online.visible, "the Online screen"):
 		return null
 	(online.get_node("%Name") as LineEdit).text = _name
-	(online.get_node("%Server") as LineEdit).text = _server
+	online.server_url = _server
 	if _join.is_empty():
 		(online.get_node("%Create") as Button).pressed.emit()
 	else:
