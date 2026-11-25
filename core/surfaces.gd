@@ -124,8 +124,12 @@ var native: Object:
 var _obstacles: ObstacleContacts
 
 
-## [param layout]'s surfaces, on a grid of [param grid]'s cells — the data's when none.
-func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
+## [param layout]'s surfaces, on a grid of [param grid]'s cells — the data's when none —
+## or, given [param like] built over that layout, its built shape shared (ShapeStock).
+func _init(layout: ShipLayout, grid: IndexRules = null, like: Surfaces = null) -> void:
+	if like != null:
+		ShapeStock.share(self, like, layout)
+		return
 	_platforms = layout.platforms.duplicate()
 	_ramps = layout.ramps.duplicate()
 	_blockers = layout.blockers.duplicate()
@@ -171,7 +175,13 @@ func _init(layout: ShipLayout, grid: IndexRules = null) -> void:
 		var span := _railings[index]
 		var deck := _platforms[span.platform].height
 		_rail_grid.insert(index, Rect2(span.from, Vector2.ZERO).expand(span.to), deck, deck)
-	_index_floors()
+	# Each cell's platforms and their clearances: the distance from a platform's height to
+	# the heights every other surface of the cell stands at, less CLEARANCE_SLACK.
+	var floors := FloorClearances.new(
+		_grid, _tops, _bottoms, _first_ramp, _first_top, CLEARANCE_SLACK
+	)
+	_floors = floors.floors
+	_floor_clearances = floors.clearances
 	stands = PropStands.new(layout, bounds)
 	doors = DoorLeaves.new(layout.structure)
 	_fallen = FallenFunnels.new(layout)
@@ -999,17 +1009,6 @@ func _rail_contact(index: int, point: Vector2, radius: float, off := false) -> C
 	if along < 0.0 or along > 1.0:
 		return null
 	return Contact.new(normal, radius - inside, index)
-
-
-## Each cell's platforms and their clearances, into _floors and _floor_clearances: the
-## distance from a platform's height to the heights every other surface of the cell
-## stands at — a ramp anywhere between its ends — less CLEARANCE_SLACK (FloorClearances).
-func _index_floors() -> void:
-	var index := FloorClearances.new(
-		_grid, _tops, _bottoms, _first_ramp, _first_top, CLEARANCE_SLACK
-	)
-	_floors = index.floors
-	_floor_clearances = index.clearances
 
 
 ## The surfaces whose areas reach the cell under [param ship_point]'s x/z, in the bands

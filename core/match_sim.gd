@@ -64,17 +64,11 @@ func _init(match_config: MatchConfig) -> void:
 	config = match_config
 	_rules = config.rules
 	schedule = config.schedule()
-	surfaces = Surfaces.new(config.ship)
-	faces = Faces.new(
-		config.ship, surfaces, _rules.brace_holds_to, SeaPhysics.load_default().capsized_movement
-	)
-	pieces = Pieces.new(
-		config.ship,
-		schedule,
-		faces,
-		_rules.brace_holds_to,
-		SeaPhysics.load_default().capsized_movement
-	)
+	var stock := config.shapes()
+	surfaces = Surfaces.new(config.ship, null, ShapeStock.deck_of(stock, config.ship))
+	var turns := SeaPhysics.load_default().capsized_movement
+	faces = Faces.new(config.ship, surfaces, _rules.brace_holds_to, turns, stock)
+	pieces = Pieces.new(config.ship, schedule, faces, _rules.brace_holds_to, turns, stock)
 	var currents := Currents.of_piece(config, schedule, 0)
 	_hazards = Hazards.new(config, surfaces, 0, pieces, currents)
 	var falls := Falls.of_piece(config, schedule, 0, currents)

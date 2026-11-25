@@ -53,13 +53,15 @@ var _sight_eye := NAN
 func _init(sim: MatchSim) -> void:
 	_schedule = sim.schedule
 	_faces = sim.faces
-	_surfaces = Surfaces.new(sim.config.ship)
+	var stock := sim.config.shapes()
+	_surfaces = Surfaces.new(sim.config.ship, null, ShapeStock.deck_of(stock, sim.config.ship))
 	_pieces = Pieces.new(
 		sim.config.ship,
 		sim.schedule,
 		sim.faces,
 		sim.config.rules.brace_holds_to,
-		SeaPhysics.load_default().capsized_movement
+		SeaPhysics.load_default().capsized_movement,
+		stock
 	)
 
 

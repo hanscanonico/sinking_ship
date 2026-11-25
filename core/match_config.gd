@@ -27,6 +27,8 @@ var bonus_rules: BonusRules
 ## bakes it again (D5). The must-sink rule's bake may run a slice at a time first
 ## (bake_some, R20), or come baked from the host (receive_sinking, D11).
 var _schedule: SinkSchedule
+## Her shapes as every reader of the match builds them (shapes()).
+var _shapes: ShapeStock
 var _choosing: MustSink.Choosing
 var _received: MustSink.Choice
 
@@ -92,6 +94,13 @@ func schedule() -> SinkSchedule:
 	if _schedule == null:
 		_schedule = SinkSchedule.for_match(self)
 	return _schedule
+
+
+## The shapes of her every reader of the match builds alike (ShapeStock), kept once.
+func shapes() -> ShapeStock:
+	if _shapes == null:
+		_shapes = ShapeStock.new()
+	return _shapes
 
 
 ## The match's sinking built as [param kind], a SinkSchedule of a tool's own

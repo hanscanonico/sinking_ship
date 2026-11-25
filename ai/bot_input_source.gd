@@ -33,7 +33,10 @@ func _init(seat: int, profile: BotProfile, config: MatchConfig, floors: BotFloor
 
 ## The floors [param config]'s bots find their way on, her decks' walk graph first.
 static func floors_of(config: MatchConfig) -> BotFloors:
-	var deck := WalkGraph.new(config.ship, Surfaces.new(config.ship), config.rules)
+	var surfaces := Surfaces.new(
+		config.ship, null, ShapeStock.deck_of(config.shapes(), config.ship)
+	)
+	var deck := WalkGraph.new(config.ship, surfaces, config.rules)
 	return BotFloors.new(deck, config)
 
 
