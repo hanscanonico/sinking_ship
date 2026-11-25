@@ -37,8 +37,8 @@ extends RefCounted
 ## Then scored — the hunt and the line-up for more, the more of the ship's decks are
 ## under water, by late_hunt_gain: SEEK_HIGH — water within edge_margin_m and higher
 ## ground to reach, or nobody to go at — for the highest zone it can reach, where it
-## goes at whoever comes up too; down to the last seats with none in sight, it goes
-## looking for them instead, zone by zone (BotSearch); LINE_UP, its target within a
+## goes at whoever comes up too; down to the last seats with none in sight and no water near, it
+## goes looking for them instead, zone by zone (BotSearch); LINE_UP, its target within a
 ## shove's carry of the water or an unrailed drop and no nearer than its spar margin, weighed by
 ## lineup_weight — round to the far side of it, then the shove that puts it over; HUNT
 ## — through the walk graph to its target's zone, then at it, past the grip angle round
@@ -459,6 +459,8 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	# keener to go at someone than to keep its ground.
 	_footing.margin = _profile.edge_margin_m * (1.0 - _profile.late_margin_share * under)
 	_pacing.pace(seen, under, seats_left)
+	if _pacing.spar == 0.0:
+		_targeting.let_none_be()
 	var walk := _rules.walk_speed * _profile.think_period * Ticks.SECONDS_PER_TICK
 	var reach := _profile.edge_margin_m + walk + _footing.slide_reach(pose, me["vel"])
 	_edges_near = (
@@ -480,6 +482,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	match intent:
 		Intent.SEEK_HIGH:
 			var looks: bool = _pacing.hunts and mark.is_empty()
+			looks = looks and not _footing.water_near(now_pos, pose)
 			_goal = _search.goal(found, pose, seen["tick"], highest) if looks else highest
 		Intent.CLIMB_OUT, Intent.FLEE:
 			_goal = refuge

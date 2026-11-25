@@ -889,6 +889,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 				_knock_back_in(player, tick, events)
 			if staggers[seat] == 1:
 				player.stagger_ticks = _stagger_ticks
+				player.staggered_at = tick
 				player.bracing = false
 				_enter(player, PlayerState.Action.IDLE)
 		else:
@@ -896,11 +897,11 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		player.freeze(Vector3(planar.x, moving.y, planar.y), stops[seat])
 
 
-## Whether [param target], its stagger run out, was last hit within stagger_guard (#776).
+## Whether [param target], its stagger run out, was staggered within stagger_guard (#776).
 func _guarded(target: PlayerState, tick: int) -> bool:
-	if target.is_staggered() or target.last_hit_at < 0:
+	if target.is_staggered() or target.staggered_at < 0:
 		return false
-	return tick - target.last_hit_at < _stagger_guard_ticks
+	return tick - target.staggered_at < _stagger_guard_ticks
 
 
 ## A quick shove's knockback, or a charged one's: from knockback at the threshold
@@ -938,20 +939,19 @@ func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector
 	return target.braced_against(direction, _rules.brace_arc_deg)
 
 
-## The water is a countdown (SH5). A body whose feet go wade_depth into the sea, or that falls
-## into it, or that the current sweeps off its feet (Movement.swept), swims. A swimmer comes to
-## rest (Movement.come_to_rest), is in the sea no more once out of the water over a dry floor
-## (Movement.leaves_water), stands up where the bottom rises within stand_depth of the sea
-## and no current there would sweep it off its feet again, and climbs out where it can
-## (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it swims
-## and does not climb, its cold meter drains — at pocket_cold_rate of the open water's with its
-## head in trapped air (Q22),
-## at the sea_cold_rate of a prop it holds that keeps it afloat (#273), the lower of the two
-## where both do — and it is out when that is empty, but for a seat with a bonus that gives a
-## spare meter (Double life, #307): that fills it again, once, and the bonus is spent — one of
-## them, of two. Out of the sea the meter refills at cold_regen. A seat frozen in a hit-stop
-## holds its meter, and neither falls in, stands, climbs nor settles until the stop ends.
-## Returns who went out.
+## The water is a countdown (SH5). A body whose feet go wade_depth into the sea, or that
+## falls into it, or that the current sweeps off its feet (Movement.swept), swims. A swimmer
+## comes to rest (Movement.come_to_rest), is in the sea no more once out of the water over a
+## dry floor (Movement.leaves_water), stands up where the bottom rises within stand_depth of
+## the sea and no current there would sweep it off its feet again, and climbs out where it
+## can (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it
+## swims and does not climb, its cold meter drains — at pocket_cold_rate of the open water's
+## with its head in trapped air (Q22), at the sea_cold_rate of a prop it holds that keeps it
+## afloat (#273), the lower of the two where both do — and it is out when that is empty, but
+## for a seat with a bonus that gives a spare meter (Double life, #307): that fills it
+## again, once, and the bonus is spent — one of them, of two. Out of the sea the meter
+## refills at cold_regen. A seat frozen in a hit-stop holds its meter, and neither falls in,
+## stands, climbs nor settles until the stop ends. Returns who went out.
 func _water(
 	live: Array[PlayerState],
 	pose_now: ShipPose,

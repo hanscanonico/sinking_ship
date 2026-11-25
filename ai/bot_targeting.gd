@@ -150,9 +150,9 @@ func choose(
 ## land on a seat in [param seen] — one [param lands] says it lands on — with the water, an
 ## open drop or a railing it could go over within that margin the way the shove sends it,
 ## straight away from the bot: from where it was seen, or from where its seen velocity
-## carries it by the time the shove lands. Held at [param victim] for spar_patience_s
-## running, no break of more than two thinks, it lets that seat be for spar_release_s
-## (#776): choose() passes it over.
+## carries it by the time the shove lands. Held for [param victim]'s sake — not a
+## bystander's — for spar_patience_s running, no break of more than two thinks, it lets that
+## seat be for spar_release_s (#776): choose() passes it over.
 func spares(
 	seen: Dictionary,
 	my_pos: Vector3,
@@ -170,9 +170,16 @@ func spares(
 		for at: Vector3 in [seen_at, seen_at + Vector3(vel.x, 0.0, vel.z) * lag]:
 			var way := Vector2(at.x - my_pos.x, at.z - my_pos.z).normalized()
 			if _footing.edge_toward(at, entry["surface"], way, spar, pose, true) < INF:
-				_held_fire(victim["seat"], seen["tick"])
+				if entry["seat"] == victim["seat"]:
+					_held_fire(victim["seat"], seen["tick"])
 				return true
 	return false
+
+
+## Sparring no more, it lets no seat be: whoever it let be is fought again.
+func let_none_be() -> void:
+	_let_be.clear()
+	_sparing[0] = -1
 
 
 func _held_fire(at_seat: int, tick: int) -> void:

@@ -46,8 +46,8 @@ extends Resource
 ## it lands on.
 @export var recoil: float
 @export var stagger: float
-## Seconds from a hit landing within which a shove on a body whose stagger has run out
-## pushes it but does not stagger it again, nor take the shove it readies (#776): backed
+## Seconds from a shove staggering a body within which another, once that stagger has run
+## out, pushes it but does not stagger it again, nor take the shove it readies (#776): backed
 ## into a corner, it gets a moment to shove back. More than stagger.
 @export var stagger_guard: float
 ## How long a landed quick shove freezes its shover and its target (D12).

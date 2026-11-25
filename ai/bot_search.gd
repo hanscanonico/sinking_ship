@@ -42,8 +42,8 @@ func stood_in(zone: int, tick: int) -> void:
 
 
 ## The zone to look in next on snapshot [param tick], of those [param found] reaches
-## under [param pose]: [param highest] until it has stood there lately; NONE when it
-## reaches none but where it stands.
+## under [param pose]: [param highest] until it has stood there lately, and again when it
+## reaches no other zone worth walking to.
 func goal(found: WalkSearch, pose: ShipPose, tick: int, highest: int) -> int:
 	if highest != NONE and not _lately(highest, tick):
 		return highest
@@ -66,7 +66,7 @@ func goal(found: WalkSearch, pose: ShipPose, tick: int, highest: int) -> int:
 			oldest_zone = zone
 	if _goal == NONE:
 		_goal = oldest_zone
-	return _goal
+	return _goal if _goal != NONE else highest
 
 
 ## Whether [param zone] is worth walking to under [param pose]: neither giving way nor

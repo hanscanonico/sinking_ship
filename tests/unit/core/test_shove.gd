@@ -222,16 +222,17 @@ func test_resolver_reads_candidates_not_live_seats() -> void:
 
 
 ## Seat 0 shoves seat 1, standing in its reach facing it and winding up a shove of its
-## own, last hit [param since] seconds ago and its stagger run out. Returns the sim once
-## seat 0's shove has landed.
-func _shoved_again(since: float) -> MatchSim:
+## own, last staggered [param since] seconds ago — that stagger run out — and last hit
+## [param hit] seconds ago (by default then). Returns the sim once seat 0's shove landed.
+func _shoved_again(since: float, hit := NAN) -> MatchSim:
 	var sim := SimFixtures.sim(2)
 	SimFixtures.place(sim, 0, Vector3.ZERO, 0.0)
 	SimFixtures.place(sim, 1, _at(0.3, 0.0), 180.0)
 	SimFixtures.step(sim, {}, 2 * Ticks.RATE)
 	var cornered := sim.state.seats[1]
 	cornered.last_hit_by = 0
-	cornered.last_hit_at = sim.state.tick - Ticks.from_seconds(since)
+	cornered.staggered_at = sim.state.tick - Ticks.from_seconds(since)
+	cornered.last_hit_at = sim.state.tick - Ticks.from_seconds(since if is_nan(hit) else hit)
 	SimFixtures.step(sim, {0: _shove(0)})
 	SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: _shove(1)})
 	SimFixtures.step(sim, {0: SimFixtures.frame(0), 1: SimFixtures.frame(1)}, 2)
@@ -254,3 +255,22 @@ func test_a_shove_soon_after_a_stagger_pushes_but_does_not_stagger() -> void:
 	var later := _shoved_again(rules.stagger_guard + 0.1)
 	assert_true(later.state.seats[1].is_staggered(), "past stagger_guard a shove staggers")
 	assert_eq(later.state.seats[1].action, PlayerState.Action.IDLE)
+
+	# The guard runs from the stagger, not from the pushes since: hit again and again under
+	# a second apart, a body is staggered once more as soon as the guard has run out.
+	var pushed := _shoved_again(rules.stagger_guard + 0.1, 0.5)
+	assert_true(pushed.state.seats[1].is_staggered(), "pushes in the guard do not renew it")
+
+
+## A body never staggered — its last hit a braced one, or a crate's nudge — has no guard
+## to keep its feet with: the next shove staggers it (#776).
+func test_a_hit_that_did_not_stagger_gives_no_guard() -> void:
+	var fresh := SimFixtures.sim(2)
+	SimFixtures.place(fresh, 0, Vector3.ZERO, 0.0)
+	SimFixtures.place(fresh, 1, _at(0.3, 0.0), 180.0)
+	SimFixtures.step(fresh, {}, 2 * Ticks.RATE)
+	var nudged := fresh.state.seats[1]
+	nudged.last_hit_at = fresh.state.tick - Ticks.from_seconds(0.3)
+	SimFixtures.step(fresh, {0: _shove(0)})
+	SimFixtures.step(fresh, {0: SimFixtures.frame(0)}, 3)
+	assert_true(nudged.is_staggered(), "hit 0.3 s ago, never staggered: this shove staggers")
