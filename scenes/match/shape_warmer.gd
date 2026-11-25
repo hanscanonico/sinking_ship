@@ -3,9 +3,10 @@ extends RefCounted
 ## Builds her shapes into the match's ShapeStock on a worker thread as her load ends,
 ## ahead of any reader (#563): each piece she breaks into — its cut layout, its decks'
 ## Surfaces, its solids — and each frame a piece of her turns onto as the timeline has her
-## turn (SinkSchedule.placed_at, Faces.up_after), the frames in the order she reaches
-## them. Without it the sim, the HUD and the bots each build them the frame she breaks
-## or rolls: seconds of tens of thousands of plates. What it builds is what a reader
+## turn (SinkSchedule.placed_at, Faces.up_after), again for each way her watertight doors
+## come to rest while it is turned, in the order she reaches them. Without it the sim, the
+## HUD and the bots each build them the frame she breaks, rolls or a door of a turned
+## piece fails: seconds of tens of thousands of plates. What it builds is what a reader
 ## would have built (ShapeStock), so nothing the match does depends on it having run.
 ## It stops once the match it warms for is gone.
 
@@ -77,10 +78,14 @@ static func _warm(
 			var own := pose.of_piece(piece)
 			var up := Faces.up_after(own, ups[from], keep)
 			ups[piece] = up
-			if up == Faces.Up.DECK or built.has([piece, up]):
+			if up == Faces.Up.DECK:
 				continue
-			built[[piece, up]] = true
+			# Each way her doors stand at rest while the piece is turned is a frame of its
+			# own: a door that fails or jams there has its frame built again (Faces).
 			var shut := pieces.faces(piece).shut_of(own)
+			if built.has([piece, up, shut]) or not Faces.at_rest(shut):
+				continue
+			built[[piece, up, shut]] = true
 			pieces.faces(piece).stock_frame(up, shut)
 			if bots != null:
 				var made := bots.faces(piece).frame_of(up, shut)
