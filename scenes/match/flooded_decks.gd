@@ -14,6 +14,9 @@ var _pieces: PieceViews
 var _poses: Array[ShipPose] = [null, null]
 var _flooded: Array[PackedByteArray] = [PackedByteArray(), PackedByteArray()]
 var _next := 0
+## Per place among the pieces she ends in (PieceViews.of), the platforms whose middles
+## lie on it: laid out the first time she is read broken, as the cuts never move.
+var _on_place: Array[PackedInt32Array] = []
 
 
 ## [param layout]'s platforms, each read at its middle at its height, as Surfaces
@@ -49,13 +52,18 @@ func of(pose: ShipPose) -> PackedByteArray:
 		_middles.read(pose)
 		_flooded[slot] = _middles.wet_all()
 		return _flooded[slot]
+	if _on_place.size() != views.size():
+		_on_place.clear()
+		for place in views.size():
+			_on_place.append(PackedInt32Array())
+		for platform in _middles.size():
+			_on_place[_pieces.place_of(views, _middles.point(platform).x)].append(platform)
 	var flooded := PackedByteArray()
 	flooded.resize(_middles.size())
 	for place in views.size():
 		_middles.read(views[place])
 		var wet := _middles.wet_all()
-		for platform in flooded.size():
-			if _pieces.place_of(views, _middles.point(platform).x) == place:
-				flooded[platform] = wet[platform]
+		for platform: int in _on_place[place]:
+			flooded[platform] = wet[platform]
 	_flooded[slot] = flooded
 	return flooded

@@ -50,6 +50,12 @@ var _block_high := PackedVector3Array()
 var _block_x := PackedFloat64Array()
 var _block_z := PackedFloat64Array()
 var _sprayed := PackedByteArray()
+## Per place among the pieces she ends in, the platforms reaching into its stretch along
+## her (plan): laid out the first time she is read broken, as the cuts never move.
+var _reaching: Array[PackedInt32Array] = []
+## Per place, each reaching platform's least corner and length along x, cut to the stretch.
+var _reach_least: Array[PackedVector3Array] = []
+var _reach_x: Array[PackedFloat64Array] = []
 ## Per platform asked about, the platforms level with it (_level_with).
 var _level := {}
 ## Per platform crossed, the rooms its deck stands in, grown (DeckWetness.rooms_grown_on).
@@ -120,28 +126,64 @@ func plan(
 	# Broken: every stretch of a deck on a piece, as that piece stands.
 	_sprayed.fill(1)
 	var platforms := _layout.platforms.size()
+	if _reaching.size() != views.size():
+		_reach(views.size())
 	for place in views.size():
 		var view := views[place]
 		var then := _pieces.of_piece(pose_then, _pieces.leaves[place])
-		var low_x := -INF if place == 0 else _pieces.cuts[place - 1]
-		var high_x := INF if place == views.size() - 1 else _pieces.cuts[place]
-		for index in platforms:
+		var basis := view.transform.basis
+		var reaching := _reaching[place]
+		var lengths := _reach_x[place]
+		# Every least corner's height in the world at once, as world_height reads each.
+		var lows := view.transform * _reach_least[place]
+		for at in reaching.size():
+			var index := reaching[at]
 			var slot := (place * platforms + index) * 2
+			var low := lows[at].y
+			# Every corner on the side of the sea its least is, its plane rising less than
+			# that across it: no line for _crossing_area to find.
+			var rise := absf(basis.x.y * lengths[at]) + absf(basis.z.y * _size_z[index])
 			var platform := _layout.platforms[index]
-			var area := platform.area
-			var from := maxf(area.position.x, low_x)
-			var to := minf(area.end.x, high_x)
-			var crossed := to > from and not platform.name in pose_now.collapsed
+			var crossed := absf(low) <= rise and not platform.name in pose_now.collapsed
 			if crossed:
-				area = Rect2(from, area.position.y, to - from, area.size.y)
-				var least := Vector3(from, platform.height, area.position.y)
-				var low := view.world_height(least)
+				var least := _reach_least[place][at]
+				var area := Rect2(least.x, least.z, lengths[at], _size_z[index])
 				crossed = _crossing_area(area, platform.height, view, low)
 			if not crossed:
 				_spray[slot] = 0.0
 				_spray[slot + 1] = 0.0
 				continue
 			_crossed(index, slot, then, view, tick, plunging, cues)
+
+
+## Lays out _reaching for her [param places] pieces, every slot of a platform that does
+## not reach a piece's stretch left dry for good — as plan left it each step it was read.
+func _reach(places: int) -> void:
+	_reaching.clear()
+	_reach_least.clear()
+	_reach_x.clear()
+	var platforms := _layout.platforms.size()
+	for place in places:
+		var low_x := -INF if place == 0 else _pieces.cuts[place - 1]
+		var high_x := INF if place == places - 1 else _pieces.cuts[place]
+		var reaching := PackedInt32Array()
+		var least := PackedVector3Array()
+		var lengths := PackedFloat64Array()
+		for index in platforms:
+			var area := _layout.platforms[index].area
+			var from := maxf(area.position.x, low_x)
+			var to := minf(area.end.x, high_x)
+			if to > from:
+				reaching.append(index)
+				least.append(Vector3(from, _least[index].y, area.position.y))
+				lengths.append(to - from)
+			else:
+				var slot := (place * platforms + index) * 2
+				_spray[slot] = 0.0
+				_spray[slot + 1] = 0.0
+		_reaching.append(reaching)
+		_reach_least.append(least)
+		_reach_x.append(lengths)
 
 
 ## plan while she is whole, as it ever was: the decks clear of the sea told from the
