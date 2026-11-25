@@ -756,9 +756,10 @@ func _on_view_changed(settings: ViewSettings) -> void:
 
 
 ## The Online screen over the menu's backdrop, saying [param note] and offering to
-## rejoin [param rejoin]'s room when they are not "".
-func _open_online(note: String = "", rejoin: String = "") -> void:
-	_online_menu.open(note, rejoin)
+## rejoin [param rejoin]'s room when they are not "" — [param left_room] when the player
+## comes back to it from a room (OnlineMenu.open).
+func _open_online(note: String = "", rejoin: String = "", left_room: bool = false) -> void:
+	_online_menu.open(note, rejoin, left_room)
 	_menu.show_behind(_online_menu.panel())
 
 
@@ -791,14 +792,10 @@ func _on_online_playing(playing: bool) -> void:
 		_music.play_menu()
 
 
-func _on_online_ended(to_menu: bool, note: String, rejoin: String) -> void:
+func _on_online_ended(was_in_room: bool, note: String, rejoin: String) -> void:
 	_drop_online()
 	_music.play_menu()
-	if to_menu:
-		_online_menu.hide()
-		_menu.open()
-	else:
-		_open_online(note, rejoin)
+	_open_online(note, rejoin, was_in_room)
 
 
 ## Back from the Online screen, giving up on whatever it was connecting to.
