@@ -540,7 +540,7 @@ func _setup_view(
 	dressing = null
 	_ship_art = _view.art()
 	_view.look_out_of(-1 if observer else _eye_seat)
-	_hud.setup(sim)
+	_hud.setup(sim, not _watcher)
 	_marks.setup(_driver, _view, sim)
 	_dust.setup(_driver, _view)
 	_fx.setup(_driver, _view, sim, _sea_and_sky.sun(), _planner)

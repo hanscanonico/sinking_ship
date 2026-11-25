@@ -31,6 +31,20 @@ func test_the_countdown_says_what_the_match_is_played_for() -> void:
 	assert_eq(Hud.goal_text(MatchRules.Goal.SURVIVAL), "Stay aboard as long as she floats.")
 
 
+## A watcher has no seat: the countdown tells them what the seats play for rather than
+## asking them to shove anyone (seen watching online, 2026-11-25).
+func test_a_watcher_is_told_the_goal_not_asked_it() -> void:
+	assert_eq(Hud.goal_text(MatchRules.Goal.LAST_STANDING, false), "The last one dry wins.")
+	assert_eq(
+		Hud.goal_text(MatchRules.Goal.SURVIVAL, false), "They stay aboard as long as she floats."
+	)
+	var scene: Node = MATCH.instantiate()
+	add_child_autofree(scene)
+	var hud: Hud = scene.get_node("Hud")
+	hud.setup(MatchSim.create(SimFixtures.config(2)), false)
+	assert_eq((hud.get_node("%Goal") as Label).text, "The last one dry wins.")
+
+
 func test_the_goal_shows_with_the_countdown_and_go_then_goes() -> void:
 	var scene: Node = MATCH.instantiate()
 	add_child_autofree(scene)

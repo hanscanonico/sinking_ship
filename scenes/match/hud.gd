@@ -45,9 +45,11 @@ func _ready() -> void:
 	_place_spectating()
 
 
-func setup(sim: MatchSim) -> void:
+## [param playing] false for a watcher, who has no seat to play: the goal is told of the
+## seats, not asked of them (goal_text).
+func setup(sim: MatchSim, playing := true) -> void:
 	_countdown_ticks = sim.config.countdown_ticks
-	_goal.text = goal_text(sim.config.goal)
+	_goal.text = goal_text(sim.config.goal, playing)
 
 
 ## [param past_end] keeps the seats left and the clock up once the match has ended: a
@@ -69,10 +71,15 @@ func show_snapshot(snapshot: Dictionary, past_end := false) -> void:
 
 
 ## What a seat plays for under [param goal] (MatchRules.Goal), in the end screen's
-## words (EndOverlay): to be the last one dry, or to last as long as she does.
-static func goal_text(goal: MatchRules.Goal) -> String:
+## words (EndOverlay): to be the last one dry, or to last as long as she does — asked of
+## the player, or, not [param playing], told a watcher, who has no rival to shove.
+static func goal_text(goal: MatchRules.Goal, playing := true) -> String:
 	if goal == MatchRules.Goal.SURVIVAL:
+		if not playing:
+			return "They stay aboard as long as she floats."
 		return "Stay aboard as long as she floats."
+	if not playing:
+		return "The last one dry wins."
 	return "Be the last one dry. Shove rivals into the sea."
 
 
