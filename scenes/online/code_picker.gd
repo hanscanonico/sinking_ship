@@ -7,6 +7,9 @@ extends HBoxContainer
 ## again or left. Left and right move between slots, and up and down leave the row when
 ## no slot is taken up. Only RoomCodec's CODE_LETTERS go in, in upper case.
 
+## The player changed the letters — typed, turned, erased or pasted; set_code() never says.
+signal edited
+
 ## What an empty slot shows: its box alone.
 const EMPTY := ""
 const SLOT_SIZE := Vector2(50.0, 54.0)
@@ -90,6 +93,7 @@ func lead_to(next: Control) -> void:
 
 func _on_slot_input(event: InputEvent, index: int) -> void:
 	var slot := _slots[index]
+	var before := code()
 	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		match (event as InputEventMouseButton).button_index:
 			MOUSE_BUTTON_WHEEL_UP:
@@ -120,6 +124,8 @@ func _on_slot_input(event: InputEvent, index: int) -> void:
 	else:
 		return
 	slot.accept_event()
+	if code() != before:
+		edited.emit()
 
 
 ## Turns slot [param index]'s letter [param step] places on through CODE_LETTERS, round
