@@ -949,27 +949,17 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: Sh
 		var deck := _space.deck_under(centre, blocker.bottom)
 		var foot := blocker.bottom if is_nan(deck) else deck
 		var shown := ShipMesh.ALL_FACES & ~hull.under_skin(area, blocker.bottom, blocker.top)
+		var side_rail := blocker.resource_scene_unique_id.begins_with(FLIGHT_SIDE_RAIL)
+		var paint := ShipPaints.balustrade if side_rail else ShipPaints.wall
 		_lined.box(
-			mesh,
-			area,
-			blocker.bottom,
-			top,
-			ShipPaints.wall,
-			shown,
-			shown & ShipMesh.SIDES,
-			foot,
-			blocker.top
+			mesh, area, blocker.bottom, top, paint, shown, shown & ShipMesh.SIDES, foot, blocker.top
 		)
-		if (
-			not is_nan(deck)
-			and blocker.bottom - deck > DOOR_FROM
-			and not blocker.resource_scene_unique_id.begins_with(FLIGHT_SIDE_RAIL)
-		):
+		if not is_nan(deck) and blocker.bottom - deck > DOOR_FROM and not side_rail:
 			DoorFrame.build(mesh, _space, blocker, deck)
 		if top < blocker.top:
 			# Where the deck laid on it stops short of its edge, it stands up to its top.
 			for bare: Rect2 in _space.uncovered(area, blocker.top):
-				mesh.box(bare, top, blocker.top, ShipPaints.wall, shown & ~ShipMesh.BOTTOM)
+				mesh.box(bare, top, blocker.top, paint, shown & ~ShipMesh.BOTTOM)
 		# Along her side, up to the room's ceiling where the deck over it stops short of
 		# the wall, so her shell's outside never shows from in the room (#147).
 		for stretch: Vector3 in _space.short_of_ceiling(blocker):
