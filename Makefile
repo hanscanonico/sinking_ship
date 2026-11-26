@@ -170,9 +170,11 @@ match:
 # tick however fast the machine draws. A capture is silent: the Dummy driver.
 # SCREEN=menu, settings, graphics, online, room, replays or credits starts no match, so it neither
 # autoplays nor takes AT; pause, online-pause and online-settings stand over the match
-# at AT. One game window at a time on a shared machine: capture and fps take the window
-# lock themselves (tools/window_lock.sh), a kernel lock released on any exit, so never
-# hand-roll a lock around them; run, a person playing, does not take it. A window the
+# at AT. At most WINDOW_SLOTS game windows at once on a shared machine: capture takes a
+# window slot itself, and fps every slot (tools/window_lock.sh), kernel locks released
+# on any exit, so never hand-roll a lock around them; run, a person playing, does not
+# take one. A capture reads its frame off its own viewport, so windows side by side
+# only slow each other. A window the
 # system stops drawing — covered, minimised, on another Space, the display asleep —
 # fails a capture once no frame has been drawn for a minute (DrawWatch), rather
 # than hang holding the lock. Nor does a capture hold it past CAPTURE_LIMIT seconds of
@@ -217,7 +219,7 @@ smoke:
 # know after it: the screen's words and buttons, the local seat, what happened, the
 # frames it saved. The menu opens as for a person; between turns the game stands still.
 # It keeps its own user folder under PLAY (captures/play), so the machine's owner's
-# settings and replays are never touched, and holds the window lock until it quits: on
+# settings and replays are never touched, and holds a window slot until it quits: on
 # `tools/play.sh quit`, after PLAY_IDLE seconds (600) with no turn, or PLAY_LIMIT (3600)
 # in all. Rules live in tools/play.sh and scenes/game/play_driver.gd. Not part of verify.
 PLAY ?= $(CURDIR)/captures/play
@@ -380,8 +382,8 @@ bench:
 # draw calls — its unaccounted rest with it (FrameProbe). Its client only watches, so it
 # never predicts: its reconcile is the restore of each snapshot.
 # Rules live in tools/fps.sh. Not part of verify: it needs a display, and the machine to
-# itself — it takes the window lock itself, as capture does, and bounds its game as
-# capture does: FPS_LIMIT seconds, the load limit, SKIP and SECONDS and 120 more by
+# itself — it takes every window slot itself (tools/window_lock.sh --alone), and
+# bounds its game as capture does: FPS_LIMIT seconds, the load limit, SKIP and SECONDS and 120 more by
 # default, and stopped at once on a compile failure or one script error over and over.
 fps:
 	GODOT="$(GODOT)" tools/fps.sh $(if $(SEED),--seed=$(SEED)) $(if $(SEATS),--seats=$(SEATS)) \

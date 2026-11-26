@@ -25,7 +25,7 @@
 # folder into PLAY/home (APPDATA on Windows, XDG_DATA_HOME elsewhere), so what it saves —
 # settings, key bindings, replays, baked sinkings — is its own and never the settings or
 # the replays of whoever owns the machine; the first turn's answer says where that is.
-# It holds the one window lock (tools/window_lock.sh) for as long as it runs, as a
+# It holds a window slot (tools/window_lock.sh) for as long as it runs, as a
 # capture does: quit it when done.
 #
 # Environment: PLAY the session's folder (captures/play), PLAY_WAIT the seconds a turn

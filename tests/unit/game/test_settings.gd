@@ -349,8 +349,16 @@ func test_a_run_can_be_drawn_at_chosen_graphics_to_measure_them() -> void:
 
 ## The plate's title and tabs stand where they stood whatever the page: the pages are
 ## centred on the plate, and the Keys and Graphics pages being the taller, the title
-## stood higher or lower with each page clicked through.
+## stood higher or lower with each page clicked through. In every language: Spanish's
+## Graphics page is the wider.
 func test_the_title_keeps_its_place_from_page_to_page() -> void:
+	for language: String in Language.locales():
+		Language.use(language)
+		await _the_title_keeps_its_place(language)
+	Language.use(Language.SOURCE)
+
+
+func _the_title_keeps_its_place(language: String) -> void:
 	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
 	menu.audio_path = AUDIO_PATH
 	menu.view_path = VIEW_PATH
@@ -368,10 +376,16 @@ func test_the_title_keeps_its_place_from_page_to_page() -> void:
 	var title: Control = menu.get_node("Panel/Box/Title")
 	var panel: Control = menu.get_node("Panel")
 	var stood := title.global_position.y
+	var left := panel.global_position.x
+	var width := panel.size.x
 	assert_gt(stood, panel.global_position.y, "on the plate")
 	for page: SettingsMenu.Page in pages:
 		menu.show_page(page)
 		await wait_frames(2)
-		assert_eq(title.global_position.y, stood, "page %d" % page)
+		assert_eq(title.global_position.y, stood, "%s, page %d" % [language, page])
+		# As wide, too: the Graphics page widened the plate, and Language and Back
+		# moved sideways with each tab (seen played, 2026-11-26).
+		assert_eq(panel.global_position.x, left, "%s: the left edge on page %d" % [language, page])
+		assert_eq(panel.size.x, width, "%s: the width on page %d" % [language, page])
 		var box: Control = menu.get_node("Panel/Box")
 		assert_lte(box.size.y, panel.size.y, "and page %d fits the plate" % page)

@@ -14,6 +14,11 @@ static var wall := ShipMesh.Paint.new(
 	FINISH.HOUSE, ArtPalette.HOUSE, FINISH.CABIN, ArtPalette.CABIN
 )
 static var teak := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.TEAK)
+## A flight's side rail (ShipArt.FLIGHT_SIDE_RAIL): teak boards outside, of a piece with
+## the stair's teak stringers, never a white house's plated wall; a wall indoors.
+static var balustrade := ShipMesh.Paint.new(
+	FINISH.ROUGH, ArtPalette.TEAK, FINISH.CABIN, ArtPalette.CABIN
+)
 ## Fresh wood where a rail has splintered.
 static var splinter := ShipMesh.Paint.new(FINISH.PLAIN, ArtPalette.SPLINTER)
 static var frame := ShipMesh.Paint.new(

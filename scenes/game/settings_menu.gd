@@ -43,6 +43,8 @@ var on_web := OS.has_feature("web")
 
 ## The tallest of the pages so far, which every page is as tall as (show_page).
 var _tallest := 216.0
+## The widest of the pages so far, in any language played: every page is as wide.
+var _widest := 0.0
 
 @onready var _master: HSlider = %Master
 @onready var _music: HSlider = %Music
@@ -152,13 +154,16 @@ func open(page := Page.SOUND) -> void:
 func show_page(page: Page) -> void:
 	_rebinding = &""
 	_show_keys()
-	# One height for every page, the tallest's: the plate, its title and its tabs
-	# stood higher or lower with each page clicked through.
+	# One size for every page, the tallest's and the widest's: the plate, its title
+	# and its tabs stood higher or lower with each page clicked through, and a wider
+	# page (Graphics, in French and Spanish) moved Language and Back sideways.
 	for each: Control in _pages:
-		each.custom_minimum_size.y = 0.0
-		_tallest = maxf(_tallest, each.get_combined_minimum_size().y)
+		each.custom_minimum_size = Vector2.ZERO
+		var needs := each.get_combined_minimum_size()
+		_tallest = maxf(_tallest, needs.y)
+		_widest = maxf(_widest, needs.x)
 	for index in _pages.size():
-		_pages[index].custom_minimum_size.y = _tallest
+		_pages[index].custom_minimum_size = Vector2(_widest, _tallest)
 		_pages[index].visible = index == page
 		_tabs[index].set_pressed_no_signal(index == page)
 
