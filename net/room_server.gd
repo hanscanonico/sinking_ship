@@ -400,7 +400,7 @@ func _attempt(connection: Connection) -> bool:
 
 
 func _seat(connection: Connection, into: Room) -> void:
-	into.add(connection.peer, connection.name, _beat)
+	into.add(connection.peer, into.free_name(connection.name, _rules.name_length), _beat)
 	connection.room = into
 	_enter(connection, Stage.ROOM)
 	_say(

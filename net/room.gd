@@ -89,6 +89,23 @@ func add(peer: int, display_name: String, beat: int) -> void:
 	since = beat
 
 
+## [param wanted] as a name no member of the room goes by, in any case: itself when it
+## is free, else with the first number from 2 that frees it after it — "Bea 2" — cut to
+## fit [param longest] letters. Two players under one name would read as one in the room,
+## the match and its results.
+func free_name(wanted: String, longest: int) -> String:
+	var taken := {}
+	for each: Member in members:
+		taken[each.name.to_lower()] = true
+	var given := wanted
+	var number := 2
+	while taken.has(given.to_lower()):
+		var suffix := " %d" % number
+		given = wanted.left(maxi(longest - suffix.length(), 1)).strip_edges() + suffix
+		number += 1
+	return given
+
+
 ## Takes [param peer] out of the room: struck from the list while it waits, its seat
 ## handed to a bot while its match is on.
 func remove(peer: int, beat: int) -> void:
