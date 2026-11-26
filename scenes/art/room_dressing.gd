@@ -887,8 +887,8 @@ static func lifebelt(mesh: ShipMesh, centre: Vector3, normal: Vector3) -> void:
 
 
 ## A plate over every doorway of [param room] onto another room, on the doorway's
-## head, naming the room beyond as the HUD names it: an enamel plate in a brass rim
-## in [param mesh], its letters a Label3D under [param signs].
+## head, naming the room beyond as the HUD names it — in the language played: an enamel
+## plate in a brass rim in [param mesh], its letters a Label3D under [param signs].
 func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 	var runs := _space.wall_runs(room)
 	for side in 4:
@@ -896,7 +896,7 @@ func _signs(mesh: ShipMesh, signs: Node3D, room: ShipRoom) -> void:
 			var other := _beyond(_space, room, side, gap)
 			if other == -1 or CargoHold.headroom(_space, room) < SIGN_HEIGHT:
 				continue
-			var text := String(_layout.rooms[other].name).capitalize()
+			var text := Language.titled(String(_layout.rooms[other].name))
 			var width := SignText.line_size(text, SIGN_FONT).x
 			var half := Vector2(width * SIGN_PIXEL * 0.5 + 0.05, 0.075)
 			var out := ShipSpace.outward(side)
