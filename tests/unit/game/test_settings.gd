@@ -137,7 +137,7 @@ func test_a_file_from_before_the_window_choices_reads_with_their_defaults() -> v
 		assert_eq(ViewSettings.read(VIEW_PATH).window_mode, old.window_mode)
 
 
-func test_the_graphics_page_picks_the_window_mode_vsync_and_the_frame_cap() -> void:
+func test_the_graphics_page_picks_the_window_mode_vsync_the_frame_cap_and_its_readout() -> void:
 	var shared := ViewSettings.local()
 	var was_fps := Engine.max_fps
 	var menu: SettingsMenu = autofree(SETTINGS_MENU.instantiate())
@@ -163,14 +163,20 @@ func test_the_graphics_page_picks_the_window_mode_vsync_and_the_frame_cap() -> v
 	fps.item_selected.emit(capped)
 	assert_eq(Engine.max_fps, 120, "the cap applies as it is picked")
 	vsync.button_pressed = false
+	var show_fps: CheckButton = menu.get_node("%ShowFps")
+	assert_eq(show_fps.button_pressed, shared.show_fps)
+	show_fps.button_pressed = false
+	assert_false(shared.show_fps, "the frame rate hides as it is turned off")
 	menu.close()
 	Engine.max_fps = was_fps
 	var saved := ViewSettings.read(VIEW_PATH)
 	assert_eq(saved.window_mode, ViewSettings.WindowMode.WINDOWED)
 	assert_eq(saved.max_fps, 120)
 	assert_false(saved.vsync)
+	assert_false(saved.show_fps)
 	shared.max_fps = 0
 	shared.vsync = true
+	shared.show_fps = true
 
 
 func test_a_browser_is_not_offered_vsync_or_the_exclusive_mode() -> void:
