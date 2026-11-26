@@ -20,11 +20,11 @@
 # samples span 2 fps or less, slowest to fastest, the run prints NOT DRAWING and
 # fails, and is to be run again with the window in sight.
 #
-# One game window at a time on a shared machine: the script takes the window lock
-# itself (tools/window_lock.sh), however it is called — `make fps` or straight, as
-# for an A/B — and holds it over the whole measurement, both load readings with
-# the run. It is a kernel lock, released on any exit: never hand-roll a lock
-# around it.
+# No other game window draws while it measures: the script takes every window slot
+# itself (tools/window_lock.sh --alone), however it is called — `make fps` or
+# straight, as for an A/B — and holds them over the whole measurement, both load
+# readings with the run. They are kernel locks, released on any exit: never hand-roll
+# a lock around it.
 #
 # With --split the game also times where each frame goes (FrameProbe, --frame-split)
 # over the same kept seconds — the match's parts, the display scripts node class by
@@ -43,7 +43,7 @@
 # script's rules. The game quits by itself --seconds after the match starts; it runs
 # under tools/engine_guard.sh, which stops it, and what it started, once it has run
 # FPS_LIMIT seconds — LOAD_LIMIT plus SKIP plus --seconds plus FPS_MARGIN (120) by
-# default; 0 for no limit — as it holds the one window lock all along, and the moment
+# default; 0 for no limit — as it holds every window slot all along, and the moment
 # its output shows its scripts failed to compile or one script error over and over
 # (#464). Either stop fails the run, saying why. The guard's exit-time scan is not this
 # script's rule: the run is judged by its samples.
@@ -59,9 +59,9 @@ cd "$(dirname "$0")/.." || exit 1
 
 require_godot fps
 
-# Under the window lock — the same file the wrapper would lock — or start again
-# under it, on the file resolved before the cd above.
-window_lock_held || WINDOW_LOCK="$WINDOW_LOCK_FILE" exec tools/window_lock.sh tools/fps.sh "$@"
+# Under every slot of the window lock — the same file the wrapper would lock — or start
+# again under it, --alone, on the file resolved before the cd above.
+window_lock_alone_held || WINDOW_LOCK="$WINDOW_LOCK_FILE" exec tools/window_lock.sh --alone tools/fps.sh "$@"
 
 SEED=4
 SEATS=8

@@ -10,7 +10,7 @@ and report. The agents play; you do not take seats yourself (except to unblock o
 
 `$ARGUMENTS` may give N (seats, 1–8; default 3) and a focus ("quick game", "host
 leaves", "shoves between people", "rejoin after a drop"). CLAUDE.md's rules hold: your
-own worktree, one game window (the crew takes the lock once for all its windows), and
+own worktree, one window slot (the crew takes one for all its windows), and
 the owner's agent count — the user asking for N agents is the ask.
 
 ## The tool
@@ -106,8 +106,8 @@ the run worktree when done.
 
 ## Traps
 
-- One window lock: a `make play` or capture elsewhere waits behind the crew, and the
-  crew behind it. HEADLESS=1 takes none.
+- One window slot of `WINDOW_SLOTS`: captures and plays elsewhere run beside the crew
+  while slots are free, and `make fps` waits for it to end. HEADLESS=1 takes none.
 - A crew of held seats moves only while **every** held seat has a batch running: two
   agents each waiting for the other's post with held seats is a deadlock — free one.
 - Online `wait N` is N frames of the match; under the clock nobody's frames run ahead.
