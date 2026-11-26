@@ -4,6 +4,8 @@ extends CanvasLayer
 ## with what the match is played for and what to press under the countdown; and,
 ## once the local seat is out — or all match long for a watcher — whose eyes the view is
 ## in, none of it over the results. The tilt is the first-person HUD's inclinometer.
+## Under the seats left, the frames a second the game draws, while the player's view
+## settings show them (ViewSettings.show_fps) and the run is not a capture.
 
 ## How long "Go!" stays up once the countdown is over.
 const GO_SECONDS := 0.8
@@ -17,6 +19,9 @@ const NAME_WIDTH := 130.0
 ## How far the spectating line keeps off the readouts' plate either side of it and
 ## off a shove's wedge on the bottom edge under it (FirstPersonHud), in pixels.
 const SPECTATING_CLEAR := 12.0
+## How often the frame rate's readout is redrawn, in seconds: a steadier number than
+## every frame's.
+const FPS_EVERY := 0.5
 ## Whose view the spectating line names from the free camera: nobody's.
 const FREE_VIEW := "free camera"
 ## Whose view it names from the ghost (GhostWalk): nobody's.
@@ -29,9 +34,16 @@ enum Camera { EYES, FREE, GHOST }
 var _countdown_ticks: int
 ## Whether the keys' hints are up (hinting).
 var _hinting := false
+## Seconds until the frame rate's readout is redrawn.
+var _fps_wait := 0.0
+## Whether this run is a capture, whose shots carry no frame rate.
+var _capture := false
+## The player's view settings, held so the settings screen edits the same ones.
+var _view: ViewSettings
 
 @onready var _seats_left: Label = %SeatsLeft
 @onready var _clock: Label = %Clock
+@onready var _fps: Label = %Fps
 @onready var _countdown: Label = %Countdown
 @onready var _spectating: Label = %Spectating
 @onready var _controls: Label = %Controls
@@ -40,9 +52,25 @@ var _hinting := false
 
 func _ready() -> void:
 	UiTheme.apply_to(self)
-	for label: Label in [_seats_left, _clock]:
+	for label: Label in [_seats_left, _clock, _fps]:
 		label.theme_type_variation = UiTheme.HUD_LABEL
 	_place_spectating()
+	_capture = not MatchArgs.parse(OS.get_cmdline_user_args()).capture_path.is_empty()
+	_view = ViewSettings.local()
+	_fps.visible = false
+
+
+func _process(delta: float) -> void:
+	_fps.visible = _view.show_fps and not _capture
+	_fps_wait -= delta
+	if _fps.visible and _fps_wait <= 0.0:
+		_fps_wait = FPS_EVERY
+		_fps.text = fps_text(Engine.get_frames_per_second())
+
+
+## The frame rate's readout for [param fps] frames a second.
+static func fps_text(fps: float) -> String:
+	return Language.t("%d FPS") % roundi(fps)
 
 
 ## [param playing] false for a watcher, who has no seat to play: the goal is told of the

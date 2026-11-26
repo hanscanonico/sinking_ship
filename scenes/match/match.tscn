@@ -66,6 +66,14 @@ offset_right = 260.0
 offset_bottom = 44.0
 theme_override_font_sizes/font_size = 22
 
+[node name="Fps" type="Label" parent="Hud"]
+unique_name_in_owner = true
+offset_left = 18.0
+offset_top = 44.0
+offset_right = 260.0
+offset_bottom = 66.0
+theme_override_font_sizes/font_size = 16
+
 [node name="Clock" type="Label" parent="Hud"]
 unique_name_in_owner = true
 anchors_preset = 5

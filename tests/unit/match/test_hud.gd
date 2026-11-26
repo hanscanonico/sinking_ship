@@ -367,3 +367,28 @@ func test_the_keys_hints_outlast_go() -> void:
 	hud.show_snapshot(snapshot)
 	hud.show_controls(prompts)
 	assert_false(controls.visible, "gone")
+
+
+func test_the_frame_rate_is_a_whole_number_of_frames_a_second() -> void:
+	assert_eq(Hud.fps_text(59.6), "60 FPS")
+	assert_eq(Hud.fps_text(0.0), "0 FPS")
+
+
+## The frame rate along the top shows while the player's view settings say so, as they
+## do until the player turns it off on the settings screen.
+func test_the_frame_rate_shows_while_the_view_settings_say_so() -> void:
+	var view := ViewSettings.local()
+	var was := view.show_fps
+	assert_true(ViewSettings.new().show_fps, "shown by default")
+	var scene: Node = MATCH.instantiate()
+	add_child_autofree(scene)
+	var hud: Hud = scene.get_node("Hud")
+	var fps: Label = hud.get_node("%Fps")
+	view.show_fps = true
+	hud._process(1.0)
+	assert_true(fps.visible)
+	assert_string_ends_with(fps.text, " FPS")
+	view.show_fps = false
+	hud._process(1.0)
+	assert_false(fps.visible, "hidden once the player turns it off")
+	view.show_fps = was

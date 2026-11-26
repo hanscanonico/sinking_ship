@@ -207,6 +207,12 @@ msgstr "VSync"
 msgid "Max FPS"
 msgstr "FPS máx."
 
+msgid "Show FPS"
+msgstr "Mostrar FPS"
+
+msgid "%d FPS"
+msgstr "%d FPS"
+
 msgid "Quality"
 msgstr "Calidad"
 
