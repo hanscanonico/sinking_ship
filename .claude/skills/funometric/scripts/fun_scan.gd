@@ -185,7 +185,9 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 				last_beat[seat] = t
 		var w := int((t - live_from) / (WINDOW_S * TICKS))
 		while windows.size() <= w:
-			windows.append({"alive": 0, "encounters": 0, "shoves": 0, "water": 0, "spectacle": 0, "outs": 0})
+			windows.append(
+				{"alive": 0, "encounters": 0, "shoves": 0, "water": 0, "spectacle": 0, "outs": 0}
+			)
 		var win: Dictionary = windows[w]
 		win.alive = maxi(win.alive, state.remaining())
 
@@ -201,7 +203,18 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 					ending = "winner" if e.seat >= 0 else "draw"
 				continue
 			var name: String = K.keys()[e.kind]
-			print("E|%s|%s|%d|%d|%s" % [_s(e.tick - live_from), name, e.seat, e.target, str(e.credit) if e.kind == K.SEAT_OUT else ""])
+			print(
+				(
+					"E|%s|%s|%d|%d|%s"
+					% [
+						_s(e.tick - live_from),
+						name,
+						e.seat,
+						e.target,
+						str(e.credit) if e.kind == K.SEAT_OUT else ""
+					]
+				)
+			)
 			_beat(e.seat, t, last_beat, lull, lull_from, beats)
 			counts[e.seat][name] = counts[e.seat].get(name, 0) + 1
 			match e.kind:
@@ -225,7 +238,9 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 					if e.credit >= 0 and e.credit < n:
 						kos[e.credit] += 1
 					last_cause = (
-						"shoved" if e.credit >= 0 else ("cold" if e.cause == PlayerState.Cause.COLD else "with_her")
+						"shoved"
+						if e.credit >= 0
+						else ("cold" if e.cause == PlayerState.Cause.COLD else "with_her")
 					)
 					if state.remaining() == 2 and duel_from < 0:
 						duel_from = t
@@ -247,7 +262,9 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 			for other: PlayerState in state.seats:
 				if other.seat == seat or other.is_out() or other.piece != p.piece:
 					continue
-				nearest = minf(nearest, Vector2(other.pos.x - p.pos.x, other.pos.z - p.pos.z).length())
+				nearest = minf(
+					nearest, Vector2(other.pos.x - p.pos.x, other.pos.z - p.pos.z).length()
+				)
 			var near := nearest <= NEAR
 			if near:
 				near_ticks[seat] += 1
@@ -259,7 +276,9 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 				first_contact[seat] = t
 			if (t - live_from) % int(TICKS) == 0 and nearest < INF:
 				gaps[seat].append(nearest)
-			var step := Vector2(p.pos.x - prev_pos[seat].x, p.pos.z - prev_pos[seat].z).length() * TICKS
+			var step := (
+				Vector2(p.pos.x - prev_pos[seat].x, p.pos.z - prev_pos[seat].z).length() * TICKS
+			)
 			if p.body == B.GROUNDED and step < IDLE_SPEED and not near:
 				idle_ticks[seat] += 1
 			prev_pos[seat] = p.pos
@@ -273,10 +292,7 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 		live_from = 0
 	var live_ticks := t_end - live_from
 	print(
-		(
-			"H|%s|%d|%d|%s|%s|%d|%s"
-			% [ship_name, seed_value, n, mode, source, humans, _s(live_from)]
-		)
+		"H|%s|%d|%d|%s|%s|%d|%s" % [ship_name, seed_value, n, mode, source, humans, _s(live_from)]
 	)
 	for seat in n:
 		var p := state.seats[seat]
@@ -290,7 +306,9 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 		if p.is_out():
 			credit = credit_of[seat]
 			cause = (
-				"shoved" if credit >= 0 else ("cold" if p.out_cause == PlayerState.Cause.COLD else "with_her")
+				"shoved"
+				if credit >= 0
+				else ("cold" if p.out_cause == PlayerState.Cause.COLD else "with_her")
 			)
 		var spectate := live_ticks - alive[seat] if p.is_out() else 0
 		print(
@@ -327,7 +345,20 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 		)
 	for i in windows.size():
 		var win: Dictionary = windows[i]
-		print("T|%.0f|%d|%d|%d|%d|%d|%d" % [i * WINDOW_S, win.alive, win.encounters, win.shoves, win.water, win.spectacle, win.outs])
+		print(
+			(
+				"T|%.0f|%d|%d|%d|%d|%d|%d"
+				% [
+					i * WINDOW_S,
+					win.alive,
+					win.encounters,
+					win.shoves,
+					win.water,
+					win.spectacle,
+					win.outs
+				]
+			)
+		)
 	out_ticks.sort()
 	var out_gaps := PackedStringArray()
 	for i in range(1, out_ticks.size()):
@@ -355,7 +386,14 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 
 
 ## A beat for [param seat] on [param t]: the stretch since its last one ends.
-func _beat(seat: int, t: int, last_beat: PackedInt32Array, lull: PackedInt32Array, lull_from: PackedInt32Array, beats: PackedInt32Array) -> void:
+func _beat(
+	seat: int,
+	t: int,
+	last_beat: PackedInt32Array,
+	lull: PackedInt32Array,
+	lull_from: PackedInt32Array,
+	beats: PackedInt32Array
+) -> void:
 	if last_beat[seat] >= 0 and t - last_beat[seat] > lull[seat]:
 		lull[seat] = t - last_beat[seat]
 		lull_from[seat] = last_beat[seat]

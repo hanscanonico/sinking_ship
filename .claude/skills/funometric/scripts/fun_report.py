@@ -164,7 +164,11 @@ def finale(m):
     e = m["end"]
     if e["duel_s"] is None:
         return "no final two (everyone left at once or the match did not end)"
+    if e["duel_s"] < 1:
+        return f"no final two: the last seats went out together ({e['last_cause']})"
     if e["duel_shoves"] == 0:
+        if e["last_cause"] == "shoved":
+            return f"final two for {e['duel_s']:.0f} s and **not one shove** between them; the last out is credited to an older shove"
         return f"final two for {e['duel_s']:.0f} s and **not one shove** between them — the sea picked the winner ({e['last_cause']})"
     if e["duel_s"] > 90 and e["duel_shoves"] < 4:
         return f"final two for {e['duel_s']:.0f} s with {e['duel_shoves']} shoves — a stand-off"
@@ -176,11 +180,13 @@ def pacing(m):
     if len(w) < 3:
         return "too short to read a curve"
     third = max(1, len(w) // 3)
-    heat = [x[2] + x[3] + 2 * x[4] + 3 * x[6] for x in w]  # encounters, shoves, water, outs
+    # Meetings, shoves, falls in and outs, per seat still in: what each player lives,
+    # so a match does not read as front-loaded only because fewer are left.
+    heat = [(x[2] + x[3] + 2 * x[4] + 3 * x[6]) / max(x[1], 1) for x in w]
     first, last = sum(heat[:third]), sum(heat[-third:])
     shape = "builds to the end" if last > first * 1.2 else ("front-loaded: the carnage is early" if first > last * 1.5 else "flat")
     strip = "".join(" ▁▂▃▄▅▆▇█"[min(8, int(8 * h / max(heat)))] if max(heat) else " " for h in heat)
-    return f"`{strip}` ({shape}; 15 s a column, heat = meetings + shoves + falls in + outs)"
+    return f"`{strip}` ({shape}; 15 s a column, heat a seat = meetings + shoves + falls in + outs)"
 
 
 def journal_section(paths, matches):
