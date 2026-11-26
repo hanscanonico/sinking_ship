@@ -110,6 +110,9 @@ var _made: MatchScene
 ## built and the last frame ran by them; -1 before the first.
 var _clock: Callable
 var _built_msec := -1
+## When the room's roster last came, by _clock: a quick game counts down from then, however
+## long its results kept this player from the room.
+var _roster_msec := -1
 var _frame_msec := -1
 ## When a frame came longer than the server's silence_timeout after the one before it,
 ## while the server knew this player; -1 before any did.
@@ -143,6 +146,7 @@ func _init(
 func _ready() -> void:
 	var match_rules: MatchRules = load(MATCH_DATA)
 	_room_screen = ROOM_SCREEN.instantiate()
+	_room_screen.clock = _clock
 	_room_screen.seats = match_rules.seats
 	_room_screen.server_url = _link.server_url
 	add_child(_room_screen)
@@ -241,12 +245,13 @@ func _on_refused(reason: int) -> void:
 	if _match != null:
 		return
 	if _room.roster != null:
-		_room_screen.show_room(_room.roster, refusal(reason))
+		_show_room(refusal(reason))
 	else:
 		_end(refusal(reason), "")
 
 
 func _on_roster_changed(roster: RoomRoster) -> void:
+	_roster_msec = _clock.call()
 	if _match != null:
 		_say_who_left(roster)
 		return
@@ -255,7 +260,7 @@ func _on_roster_changed(roster: RoomRoster) -> void:
 		return
 	var entering := not _room_screen.visible
 	_code = roster.code
-	_room_screen.show_room(roster)
+	_show_room()
 	if entering:
 		entered_room.emit()
 
@@ -360,7 +365,15 @@ func _back_to_room() -> void:
 		return
 	playing_changed.emit(false)
 	# The match the roster may still show as on is the one just seen end (finished_linger).
-	_room_screen.show_room(_room.roster, "", true)
+	_show_room("", true)
+
+
+## The room as its roster last came, with [param note] under it; [param ended] as
+## RoomScreen.show_room has it. A BEGIN come — this player's next match being made —
+## has the room say so, not that a match is on.
+func _show_room(note: String = "", ended: bool = false) -> void:
+	var begun := _room.state == RoomClient.State.PLAYING
+	_room_screen.show_room(_room.roster, note, ended, _roster_msec, begun)
 
 
 ## From the results out of the room, for the Online screen.
