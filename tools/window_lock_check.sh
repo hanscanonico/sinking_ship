@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 #
-# `make guard-check`, its second half: tools/window_lock.sh serialises two runs,
+# `make guard-check`, its second half: tools/window_lock.sh runs two on two slots side
+# by side and holds a third, has --alone wait for every slot and hold up who comes
+# after it, refuses --alone under a holder of one slot of several, serialises two runs
+# on one slot,
 # hands the window to three queued waiters in the order they came, saying how many
 # wait ahead of each, lets a waiter killed in the queue hold up no one, lets the lock
 # go once a holder is stopped past its bound (tools/engine_guard.sh's limit, and
@@ -22,7 +25,10 @@ cd "$(dirname "$0")/.." || exit 1
 DEADLINE=60
 WORK=$(mktemp -d)
 export WINDOW_LOCK="$WORK/window.flock"
-unset WINDOW_LOCK_HELD
+unset WINDOW_LOCK_HELD WINDOW_LOCK_ALONE
+# One slot for the cases that ask how one window waits on another; the slots' own
+# cases set their count.
+export WINDOW_SLOTS=1
 PIDS=()
 trap 'kill -9 ${PIDS[@]+"${PIDS[@]}"} 2>/dev/null; rm -rf "$WORK"' EXIT
 
@@ -77,6 +83,70 @@ if wait_for "[ -e '$WORK/a.start' ]"; then
 else
 	fail "the first run never started"
 fi
+
+# Two slots: two runs hold one each side by side, and a third waits until one ends.
+WINDOW_SLOTS=2 tools/window_lock.sh bash -c "touch '$WORK/s1.start'; until [ -e '$WORK/s.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+s1=$!
+WINDOW_SLOTS=2 tools/window_lock.sh bash -c "touch '$WORK/s2.start'; until [ -e '$WORK/s2.release' ]; do sleep 0.1; done" &
+PIDS+=($!)
+s2=$!
+if wait_for "[ -e '$WORK/s1.start' ] && [ -e '$WORK/s2.start' ]"; then
+	WINDOW_SLOTS=2 tools/window_lock.sh touch "$WORK/s3.ran" 2>"$WORK/s3.err" &
+	PIDS+=($!)
+	s3=$!
+	wait_for "grep -q 'waiting for another game window (all 2 slots taken' '$WORK/s3.err'" ||
+		fail "a third run on two taken slots never said it was waiting: $(cat "$WORK/s3.err")"
+	[[ -e "$WORK/s3.ran" ]] && fail "a third run started while both slots were held"
+	touch "$WORK/s.release"
+	wait "$s1"
+	wait_for "[ -e '$WORK/s3.ran' ]" || fail "a third run never took the slot let go of"
+	wait "$s3"
+	touch "$WORK/s2.release"
+	wait "$s2"
+else
+	fail "two runs on two slots did not both start"
+fi
+
+# --alone takes every slot: it waits for the one run holding one, and a run that comes
+# after it waits for it, though a slot is free while it waits.
+WINDOW_SLOTS=2 tools/window_lock.sh bash -c "touch '$WORK/al.start'; until [ -e '$WORK/al.release' ]; do sleep 0.1; done
+	touch '$WORK/al.end'" &
+PIDS+=($!)
+holder=$!
+if wait_for "[ -e '$WORK/al.start' ]"; then
+	WINDOW_SLOTS=2 tools/window_lock.sh --alone bash -c "env | grep -q '^WINDOW_LOCK_ALONE=' && touch '$WORK/al.marked'
+		[ -e '$WORK/al.end' ] && touch '$WORK/al.ok'
+		until [ -e '$WORK/al2.release' ]; do sleep 0.1; done; touch '$WORK/al.done'" 2>"$WORK/al.err" &
+	PIDS+=($!)
+	alone=$!
+	wait_for "grep -q 'this one runs alone' '$WORK/al.err'" ||
+		fail "a run --alone never said it was waiting to run alone: $(cat "$WORK/al.err")"
+	WINDOW_SLOTS=2 tools/window_lock.sh bash -c "[ -e '$WORK/al.done' ] && touch '$WORK/af.ok'; touch '$WORK/af.ran'" 		2>"$WORK/af.err" &
+	PIDS+=($!)
+	after=$!
+	wait_for "grep -q 'waiting for another game window' '$WORK/af.err'" ||
+		fail "a run behind one --alone never said it was waiting: $(cat "$WORK/af.err")"
+	[[ -e "$WORK/af.ran" ]] && fail "a run behind one --alone took the free slot ahead of it"
+	touch "$WORK/al.release"
+	wait "$holder"
+	wait_for "[ -e '$WORK/al.ok' ]" || fail "a run --alone never ran once the other window closed"
+	[[ -e "$WORK/al.marked" ]] || fail "a run --alone was not told it holds every slot (WINDOW_LOCK_ALONE)"
+	[[ -e "$WORK/af.ran" ]] && fail "a run took a slot while one --alone held them all"
+	touch "$WORK/al2.release"
+	wait "$alone"
+	wait_for "[ -e '$WORK/af.ran' ]" || fail "the run behind one --alone never ran"
+	wait "$after"
+	[[ -e "$WORK/af.ok" ]] || fail "the run behind one --alone ran alongside it"
+else
+	fail "the holder for a run --alone never started"
+fi
+
+# --alone under a holder of one slot of two cannot have them all, and fails at once.
+WINDOW_SLOTS=2 tools/window_lock.sh bash -c "tools/window_lock.sh --alone touch '$WORK/an.ran'" 2>"$WORK/an.err"
+status=$?
+((status == 2)) || fail "--alone under a holder of one slot of two came back as $status, not 2"
+[[ -e "$WORK/an.ran" ]] && fail "--alone under a holder of one slot of two ran its command"
 
 # Three waiters queued behind a holder take the window in the order they came, each
 # saying how many wait ahead of it, whatever order the kernel would have woken them in.

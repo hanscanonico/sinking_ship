@@ -924,6 +924,9 @@ msgstr "Partie rapide : elle commence dans %d s avec tous ceux à bord. Des bots
 msgid "Quick game: starting…"
 msgstr "Partie rapide : lancement…"
 
+msgid "The next quick game starts soon, with everyone in the room."
+msgstr "La prochaine partie rapide commence bientôt, avec tout le salon."
+
 msgid "The next quick game starts in %d s, with everyone in the room."
 msgstr "La prochaine partie rapide commence dans %d s, avec tout le salon."
 

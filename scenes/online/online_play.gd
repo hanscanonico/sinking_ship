@@ -387,6 +387,8 @@ func _show_room(note: String = "", ended: bool = false) -> void:
 ## Over the results, what comes next: a quick game's room starts its next match on its
 ## own with everyone in it, so they count down to it — to the moment the room screen
 ## does, from when the roster came — and say nothing for a room its host starts by hand.
+## Until the room reopens (a moment after the end) they say it comes soon: the line
+## coming in late moved the whole plate.
 func _say_next() -> void:
 	if _match == null or not _match.call(&"is_over"):
 		return
@@ -394,8 +396,11 @@ func _say_next() -> void:
 	if results == null or not results.has_method(&"say_next"):
 		return
 	var line := ""
-	var ends := RoomScreen.quick_ends_msec(_room.roster, _roster_msec)
-	if ends >= 0:
+	var roster := _room.roster
+	var ends := RoomScreen.quick_ends_msec(roster, _roster_msec)
+	if ends < 0 and roster != null and roster.quick and roster.playing:
+		line = Language.t("The next quick game starts soon, with everyone in the room.")
+	elif ends >= 0:
 		var left := RoomScreen.seconds_until(ends, _clock.call())
 		line = Language.t("Quick game: starting…")
 		if left > 0:

@@ -40,8 +40,8 @@ MAIN-worktrees/scout-<topic> origin/main`, where MAIN is the main checkout's pat
 `dirname "$(git rev-parse --path-format=absolute --git-common-dir)"` prints from any
 checkout), run `make import` there, run the engine from it, and remove it when done.
 Keep probes and logs in the session scratchpad. Never kill a process you did not start,
-never raise `TEST_SLOTS`, never script window focus; the window lock does not serve
-waiters in order, so a capture may wait 30–50 min — wait, never kill.
+never raise `TEST_SLOTS`, never script window focus; the window lock serves waiters
+in order, `WINDOW_SLOTS` at a time, so a capture may still wait a long while — wait, never kill.
 
 Prefer a small, certain change over a large, plausible one. Never propose scope the plan
 has not scheduled, a balance number moved without measurement, or work in an area the
