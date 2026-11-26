@@ -2,6 +2,10 @@ extends GutTest
 ## The played session's driver (PlayDriver, make play): how a batch's lines become
 ## commands, and what an answer says of the match and of its events.
 
+## A session's folder, freed (tools/crew.sh free).
+const FREED_DIR := "user://test_play_driver_freed"
+const FREED_FILE := "user://test_play_driver_freed/free"
+
 
 func test_a_line_is_its_words_and_a_quoted_one_stays_whole() -> void:
 	assert_eq(
@@ -84,3 +88,22 @@ func test_the_flags_put_a_session_on_a_crews_clock() -> void:
 	)
 	assert_eq(args.crew_dir, "/tmp/crew/clock")
 	assert_eq(MatchArgs.parse(PackedStringArray()).crew_dir, "", "its frames its own")
+
+
+## A held seat waits on its next batch; freed then — its agent done with its turn — it
+## stops waiting and plays on, rather than holding the whole crew until a batch comes.
+func test_a_seat_freed_while_it_waits_stops_waiting() -> void:
+	var dir := FREED_DIR
+	DirAccess.make_dir_recursive_absolute(dir + "/in")
+	var driver := PlayDriver.new(dir, 2.0)
+	driver._crew = CrewClock.new(dir + "/clock", "seat1", false)
+	var free := FileAccess.open(FREED_FILE, FileAccess.WRITE)
+	free.close()
+	var began := Time.get_ticks_msec()
+	assert_true(driver._take_batch(), "it plays on")
+	assert_lt(Time.get_ticks_msec() - began, 1000, "at once, not after its idle seconds")
+	assert_true(driver._queue.is_empty(), "with no command taken")
+	DirAccess.remove_absolute(FREED_FILE)
+	DirAccess.remove_absolute(dir + "/in")
+	DirAccess.remove_absolute(dir)
+	driver.free()

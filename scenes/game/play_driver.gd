@@ -161,8 +161,10 @@ func _process(_delta: float) -> void:
 				_answer()
 			if _runs_free():
 				return
+			# None taken: the session is over, or the seat was freed while it waited.
 			if not _take_batch():
 				get_tree().quit()
+			if _queue.is_empty():
 				return
 		if not _run(_queue.pop_front()):
 			return
@@ -250,13 +252,17 @@ func _runs_free() -> bool:
 
 
 ## The next batch's commands, waited for with the game held; false when the wait is over
-## with none — nobody fed it, or the window was closed.
+## with none — nobody fed it, or the window was closed. A crew's seat freed while it
+## waits (tools/crew.sh free, after a held seat's last batch) stops waiting: true, with
+## no command queued, and the game plays on.
 func _take_batch() -> bool:
 	var path := _dir.path_join("in/%04d.txt" % (_batch + 1))
 	var since := Time.get_ticks_msec()
 	while not FileAccess.file_exists(path):
 		if _closing:
 			return false
+		if _crew != null and FileAccess.file_exists(_dir.path_join("free")):
+			return true
 		if Time.get_ticks_msec() - since > idle_seconds * 1000.0:
 			print("play: no batch for %d s: quitting" % roundi(idle_seconds))
 			return false
