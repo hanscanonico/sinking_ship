@@ -54,8 +54,7 @@ func test_online_the_match_lines_say_the_seat_the_server_gave() -> void:
 	assert_ne(pos, seats[0]["pos"], "the fixture's seats stand apart")
 	var lines := PlayDriver.match_lines(snapshot, 2)
 	assert_string_contains(lines[1], "(%.1f, %.1f, %.1f)" % [pos.x, pos.y, pos.z])
-	var others := "
-".join(lines.slice(3))
+	var others := " | ".join(lines.slice(3))
 	assert_string_contains(others, "seat 0 ", "the first seat is one of the others")
 	assert_false(others.contains("seat 2 "), "the seat played is not")
 
