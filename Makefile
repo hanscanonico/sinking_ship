@@ -226,15 +226,16 @@ PLAY_LIMIT ?=
 play:
 	@PLAY="$(PLAY)" PLAY_IDLE="$(PLAY_IDLE)" PLAY_LIMIT="$(PLAY_LIMIT)" RES="$(RES)" GODOT="$(GODOT)" 		tools/play.sh serve $(match-args) $(bake-cache-arg) $(ARGS)
 
-# `make crew [N=2] [SEED=1701] [WS_PORT=47941] [RES=640x360] [HEADLESS=1] [FREE=1]`, in the
+# `make crew [N=2] [SEED=1701] [WS_PORT=47941] [RES=640x360] [HEADLESS=1] [FREE=1] [LANGS=fr,es]`, in the
 # background: an agent at every seat of an online match — a --server on 127.0.0.1 and N
 # play sessions (make play) on its Online screen, all held a frame at a time together
 # by one CrewClock, so the match stands still while any held seat's agent thinks
-# (FREE=1: no seat holds it, each playing on between turns). Turns are
+# (FREE=1: no seat holds it, each playing on between turns; LANGS=: the seats'
+# languages in turn, en without it). Turns are
 # `tools/crew.sh SEAT '<commands>'`; `tools/crew.sh say|board|free|hold|status|log|quit` plan,
 # watch and end it. Rules live in tools/crew.sh. Not part of verify.
 crew:
-	@CREW="$(CURDIR)/captures/crew" RES="$(RES)" HEADLESS="$(HEADLESS)" GODOT="$(GODOT)" 		PLAY_IDLE="$(PLAY_IDLE)" PLAY_LIMIT="$(PLAY_LIMIT)" tools/crew.sh serve 		$(if $(N),--seats=$(N)) $(if $(SEED),--seed=$(SEED)) $(if $(WS_PORT),--port=$(WS_PORT))
+	@CREW="$(CURDIR)/captures/crew" RES="$(RES)" HEADLESS="$(HEADLESS)" LANGS="$(LANGS)" GODOT="$(GODOT)" 		PLAY_IDLE="$(PLAY_IDLE)" PLAY_LIMIT="$(PLAY_LIMIT)" tools/crew.sh serve 		$(if $(N),--seats=$(N)) $(if $(SEED),--seed=$(SEED)) $(if $(WS_PORT),--port=$(WS_PORT))
 
 # `make net-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says

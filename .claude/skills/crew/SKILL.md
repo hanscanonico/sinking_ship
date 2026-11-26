@@ -15,7 +15,7 @@ the owner's agent count — the user asking for N agents is the ask.
 
 ## The tool
 
-`make crew N=3 [HEADLESS=1] [FREE=1] [RES=640x360] [SEED=1701] [WS_PORT=47941]`, run in
+`make crew N=3 [HEADLESS=1] [FREE=1] [RES=640x360] [LANGS=fr,es,en] [SEED=1701] [WS_PORT=47941]`, run in
 the background from a checkout that has had `make import`: a `--server` on 127.0.0.1 and
 N `make play` sessions, seat K named Ada, Bea, Cal, Dee, Eve, Fay, Gus, Hal, each on the
 server's Online screen. Everything runs on one **CrewClock**: frame by frame together.
@@ -38,6 +38,9 @@ server's Online screen. Everything runs on one **CrewClock**: frame by frame tog
 HEADLESS=1 opens no windows: cheaper, any N, but `shot` fails and positions in the
 answers mean nothing — click by text only (a room code's slots are `click "Slot0"`,
 then `type abcd`). Windowed, each seat's answer names its frames; keep N ≤ 4 there.
+`LANGS=fr,es,en` gives the seats their languages in turn (Ada French, Bea Spanish, Cal
+English); without it every seat plays in English. Buttons are then clicked by their
+translated text: tell each agent its language and the words it will see.
 
 ## 1. Plan — on the board, before anyone plays
 
