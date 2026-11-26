@@ -256,6 +256,21 @@ func test_a_pasted_code_fills_the_slots() -> void:
 	assert_eq(code.code(), "AB", "the slots past it emptied")
 
 
+## A slot is as wide whatever letter it holds, so typing a code never moves Join or
+## widens the panel.
+func test_the_slots_keep_their_width_whatever_the_letters() -> void:
+	_open()
+	var code: CodePicker = _node("%Code")
+	var empty := code.get_combined_minimum_size()
+	var widths: Array[float] = []
+	for letters: String in ["JJJJ", "MWMW"]:
+		code.set_code(letters)
+		assert_eq(code.get_combined_minimum_size(), empty, "the row as wide with %s" % letters)
+		for slot: Control in code.get_children():
+			widths.append(slot.get_combined_minimum_size().x)
+	assert_eq(widths.min(), widths.max(), "every slot one width")
+
+
 ## A page's link to a room plays at once when its name is known — the link's own or the
 ## one remembered — and asks for the name otherwise, the code filled in.
 func test_a_link_to_a_room_asks_for_a_name_it_does_not_know() -> void:
