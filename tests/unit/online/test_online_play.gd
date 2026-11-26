@@ -18,6 +18,15 @@ const AUDIO_PATH := "user://test_online_audio_settings.tres"
 const KEYS_PATH := "user://test_online_key_bindings.json"
 
 
+## The feed of a FakeMatch: what it was told to say.
+class FakeFeed:
+	extends Node
+	var said: PackedStringArray = []
+
+	func say(text: String) -> void:
+		said.append(text)
+
+
 ## What OnlinePlay builds in place of a MatchScene.
 class FakeMatch:
 	extends Node
@@ -27,6 +36,11 @@ class FakeMatch:
 
 	var mouse_freed := false
 	var over := false
+	var feed := FakeFeed.new()
+
+	func _init() -> void:
+		feed.name = "KnockoutFeed"
+		add_child(feed)
 
 	func free_mouse(freed: bool) -> void:
 		mouse_freed = freed
@@ -314,6 +328,19 @@ func test_leaving_a_match_hands_the_seat_to_a_bot() -> void:
 	fixture.beat(2)
 	assert_true(fixture.logged("Bea left · seat 1 to a bot"), "the seat is a bot's")
 	assert_eq(players[0].state, RoomClient.State.PLAYING, "and the match goes on")
+
+
+func test_a_player_gone_mid_match_is_said_in_the_feed_once() -> void:
+	var fixture := _quick_server()
+	var players := _in_a_match(fixture)
+	var feed := _built[0].feed
+	fixture.beat(2)
+	assert_eq(feed.said, PackedStringArray(), "nobody has gone")
+	fixture.cut(players[0])
+	fixture.beat(3)
+	assert_eq(feed.said, PackedStringArray(["Player 0 left: a bot plays on"]), "the host left")
+	fixture.beat(Ticks.RATE)
+	assert_eq(feed.said.size(), 1, "said once")
 
 
 ## Leave at the results hangs up for the Online screen.

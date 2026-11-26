@@ -117,6 +117,9 @@ var _away_msec := -1
 var _silence_msec: int
 ## Whether the match up is only watched: its BEGIN gave this player no seat.
 var _watching := false
+## The players of the match up already gone from it, by name (the room's are its own):
+## each one going is said once in its feed.
+var _gone: Dictionary[String, bool] = {}
 ## The code of the room last shown: Rejoin's, should the connection drop.
 var _code := ""
 var _welcomed := false
@@ -245,6 +248,7 @@ func _on_refused(reason: int) -> void:
 
 func _on_roster_changed(roster: RoomRoster) -> void:
 	if _match != null:
+		_say_who_left(roster)
 		return
 	if roster == null:
 		_end(refusal(RoomCodec.Refusal.ROOM_CLOSED), "")
@@ -265,6 +269,8 @@ func _on_began(config: MatchConfig, seat: int) -> void:
 	_built_msec = now
 	_leave_match()
 	_watching = seat < 0
+	_gone.clear()
+	_say_who_left(_room.roster, false)
 	var local: LocalInputSource = null
 	if not _watching:
 		local = LocalInputSource.new(seat, 0.0, ViewSettings.local())
@@ -281,6 +287,22 @@ func _on_began(config: MatchConfig, seat: int) -> void:
 	_made = MATCH_SCENE.instantiate()
 	add_child(_made)
 	_made.stand_aside()
+
+
+## Says in the match's feed which of [param roster]'s players have gone from its match
+## since — a bot playing on in their seat — once each, never this player nor one who
+## only watched; only counts them when not [param saying], as the match begins.
+func _say_who_left(roster: RoomRoster, saying := true) -> void:
+	if roster == null or not roster.playing:
+		return
+	var feed := _match.get_node_or_null(^"KnockoutFeed") if _match != null else null
+	for index in roster.players.size():
+		var player := roster.players[index]
+		if not player.bot or player.watching or index == roster.you or _gone.has(player.name):
+			continue
+		_gone[player.name] = true
+		if saying and feed != null and feed.has_method(&"say"):
+			feed.call(&"say", Language.t("%s left: a bot plays on") % player.name)
 
 
 ## The match begun is shown: its scene built and started (_build), over the room.
