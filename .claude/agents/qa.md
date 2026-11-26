@@ -34,8 +34,8 @@ command the Bash tool's own `timeout` (up to 600000 ms), and run make bare: a `t
 wrapper kills make and leaves its engines running. Report only once the job has ended.
 
 A non-zero exit from a capture: read what `tools/engine_guard.sh` complained about and
-report it; never set `ENGINE_GUARD_IGNORE`. The window lock does not serve waiters in
-order, so a capture may wait 30–50 min on a shared machine — wait, never kill. Never kill
+report it; never set `ENGINE_GUARD_IGNORE`. The window lock serves waiters in order,
+`WINDOW_SLOTS` windows at a time, so a capture may still wait a long while — wait, never kill. Never kill
 a process you did not start, never raise `TEST_SLOTS`, never script window focus. Keep
 probes and logs in the session scratchpad.
 

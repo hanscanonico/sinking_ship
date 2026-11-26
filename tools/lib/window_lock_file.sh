@@ -1,6 +1,7 @@
 # The window lock's file, one answer for tools/window_lock.sh, which takes it,
 # and tools/fps.sh, which trusts a held lock only when it is this same file:
-# $WINDOW_LOCK, /tmp/sinking_ship_window.flock by default. Paths are compared
+# $WINDOW_LOCK, /tmp/sinking_ship_window.flock by default. It is the first of the
+# window slots; the others are FILE.slot2 … (window_slot_file). Paths are compared
 # resolved — absolute, through any symlinked directory — so two spellings of one
 # file (/tmp and /private/tmp on a Mac, a relative path) are the same lock.
 
@@ -20,6 +21,23 @@ window_lock_resolve() {
 window_lock_held() {
 	[[ -n "${WINDOW_LOCK_HELD-}" ]] &&
 		[[ "$(window_lock_resolve "$WINDOW_LOCK_HELD")" == "$WINDOW_LOCK_FILE" ]]
+}
+
+# Whether this process runs under a holder of every slot of this same lock file: one
+# that took it --alone, as tools/fps.sh must.
+window_lock_alone_held() {
+	window_lock_held && [[ -n "${WINDOW_LOCK_ALONE-}" ]] &&
+		[[ "$(window_lock_resolve "$WINDOW_LOCK_ALONE")" == "$WINDOW_LOCK_FILE" ]]
+}
+
+# Slot $1's file, 1 up: slot 1 is the lock file itself, which an older copy of
+# tools/window_lock.sh takes as the one window.
+window_slot_file() {
+	if (($1 == 1)); then
+		printf '%s\n' "$WINDOW_LOCK_FILE"
+	else
+		printf '%s.slot%s\n' "$WINDOW_LOCK_FILE" "$1"
+	fi
 }
 
 WINDOW_LOCK_FILE=$(window_lock_resolve "${WINDOW_LOCK:-/tmp/sinking_ship_window.flock}")

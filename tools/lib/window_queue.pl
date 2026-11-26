@@ -1,7 +1,10 @@
-# The window lock's queue, for tools/window_lock.sh: waiters take the window in the
+# The window lock's queue, for tools/window_lock.sh: waiters take a window slot in the
 # order they came, each holding a ticket while it waits.
 #
-# Usage:  perl tools/lib/window_queue.pl ASKER QUEUE FD SECONDS MESSAGE
+# Usage:  perl tools/lib/window_queue.pl ASKER QUEUE SECONDS MESSAGE WANT FD…
+#
+# FD… are the slots' descriptors, slot 1 first. WANT is "one", any one free slot, or
+# "all", every slot: a run that must have the machine's windows to itself (tools/fps.sh).
 #
 # A ticket is a number from QUEUE/counter, counted under that file's own lock, and a
 # file QUEUE/N this process holds an exclusive flock(2) on while it waits: the kernel
@@ -10,33 +13,52 @@
 # is taken and locked under the counter's lock, so a waiter behind it, whose number
 # came later, never sees it unlocked while its waiter lives.
 #
-# Once no live ticket is ahead of it, it takes the window lock itself — flock(2) on
-# descriptor FD, which it shares with ASKER, so the lock stays with ASKER when this
-# process ends, as with tools/lib/fd_lock.sh's Perl — and prints "locked" on stdout.
+# Once no live ticket is ahead of it, it takes the slots itself — flock(2) on the
+# descriptors, which it shares with ASKER, so the locks stay with ASKER when this
+# process ends, as with tools/lib/fd_lock.sh's Perl — and prints "locked K…" on stdout,
+# the slots it holds, 1 up. Wanting all, it keeps each slot it gets while it waits for
+# the rest, its ticket kept too, so no one behind it takes a slot it is waiting for.
 # It never blocks in flock: it tries once every half second, so it sees its time run
 # out and its asker die (an asker gone ends it, freeing its ticket, where a Perl blocked
 # in flock waits on for no one), and costs no process per try. MESSAGE goes to stderr
 # once, the first time it has to wait, with how many live tickets are ahead of it.
 #
-# Exits 0 holding the lock, 1 when SECONDS (above 0) have passed without it, 3 when
+# Exits 0 holding what it wants, 1 when SECONDS (above 0) have passed without it, 3 when
 # ASKER is gone, 2 when the queue cannot be used (the caller then waits unordered).
 #
-# The kernel lock alone is what keeps two windows apart; the queue only orders those
-# that take a ticket. A waiter that takes none — an older copy of window_lock.sh,
-# blocked in flock — may take the window ahead of the queue, never alongside it.
+# The kernel locks alone are what cap the windows; the queue only orders those that
+# take a ticket. A waiter that takes none — an older copy of window_lock.sh, blocked in
+# flock on slot 1 — may take that slot ahead of the queue, never alongside its holder.
 
 use strict;
 use warnings;
 use Fcntl qw(:flock);
 use IO::Handle;
 
-my ($asker, $queue, $fd, $seconds, $message) = @ARGV;
-exit 2 unless defined $message && $fd =~ /^\d+$/ && $seconds =~ /^\d+$/;
+my ($asker, $queue, $seconds, $message, $want, @fds) = @ARGV;
+exit 2 unless defined $want && @fds && $seconds =~ /^\d+$/ && $want =~ /^(one|all)$/;
 my $deadline = $seconds > 0 ? time + $seconds : 0;
 
 mkdir $queue;
 exit 2 unless -d $queue;
-open(my $window, ">&=", $fd) or exit 2;
+my @slots;
+for my $fd (@fds) {
+	exit 2 unless $fd =~ /^\d+$/;
+	open(my $slot, ">&=", $fd) or exit 2;
+	push @slots, $slot;
+}
+my @held = (0) x @slots;
+
+# Takes what it wants of the slots it does not yet hold: true once it has it.
+sub take {
+	for my $k (0 .. $#slots) {
+		next if $held[$k];
+		next unless flock($slots[$k], LOCK_EX | LOCK_NB);
+		$held[$k] = 1;
+		return 1 if $want eq "one";
+	}
+	return $want eq "all" && !grep { !$_ } @held;
+}
 
 # The ticket: the counter's next number, its file made and locked under the counter's
 # lock.
@@ -93,10 +115,10 @@ my $said = 0;
 while (1) {
 	exit 3 unless kill(0, $asker);
 	my $live = ahead();
-	if ($live == 0 && flock($window, LOCK_EX | LOCK_NB)) {
+	if ($live == 0 && take()) {
 		drop_ticket();
 		STDOUT->autoflush(1);
-		print "locked\n";
+		print join(" ", "locked", map { $_ + 1 } grep { $held[$_] } 0 .. $#held), "\n";
 		exit 0;
 	}
 	unless ($said) {

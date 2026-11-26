@@ -89,8 +89,8 @@ Captures:
   of the session shares that scratchpad, and a `gate.log` of its own overwrote another's.
 - `make capture` exiting non-zero: read what `tools/engine_guard.sh` complained about and
   report it; never set `ENGINE_GUARD_IGNORE` to get past it.
-- The window lock does not serve waiters in order: a capture may wait 30–50 min on a
-  shared machine. Wait; never kill it.
+- The window lock serves waiters in order, `WINDOW_SLOTS` windows at a time: a capture
+  may still wait a long while on a shared machine. Wait; never kill it.
 
 The shared machine: never kill a process you did not start, never raise `TEST_SLOTS`, and
 never script window focus (no raising or activating a window).
