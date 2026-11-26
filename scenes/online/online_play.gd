@@ -290,19 +290,30 @@ func _on_began(config: MatchConfig, seat: int) -> void:
 
 
 ## Says in the match's feed which of [param roster]'s players have gone from its match
-## since — a bot playing on in their seat — once each, never this player nor one who
-## only watched; only counts them when not [param saying], as the match begins.
+## since — a bot playing on in their seat, unless it was out already — once each, never
+## this player nor one who only watched; only counts them when not [param saying], as
+## the match begins.
 func _say_who_left(roster: RoomRoster, saying := true) -> void:
 	if roster == null or not roster.playing:
 		return
 	var feed := _match.get_node_or_null(^"KnockoutFeed") if _match != null else null
-	for index in roster.players.size():
-		var player := roster.players[index]
-		if not player.bot or player.watching or index == roster.you or _gone.has(player.name):
+	var seats: Array = []
+	if _match != null and _match.has_method(&"current"):
+		seats = (_match.call(&"current") as Dictionary).get("seats", [])
+	var you: RoomRoster.Player = null
+	if roster.you >= 0 and roster.you < roster.players.size():
+		you = roster.players[roster.you]
+	var seated := roster.seated()
+	for seat in seated.size():
+		var player := seated[seat]
+		if not player.bot or player == you or _gone.has(player.name):
 			continue
 		_gone[player.name] = true
-		if saying and feed != null and feed.has_method(&"say"):
-			feed.call(&"say", Language.t("%s left: a bot plays on") % player.name)
+		if not saying or feed == null or not feed.has_method(&"say"):
+			continue
+		var out: bool = seat < seats.size() and seats[seat]["out"]
+		var line := Language.t("%s left") if out else Language.t("%s left: a bot plays on")
+		feed.call(&"say", line % player.name)
 
 
 ## The match begun is shown: its scene built and started (_build), over the room.

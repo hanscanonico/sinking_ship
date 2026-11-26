@@ -37,6 +37,8 @@ class FakeMatch:
 	var mouse_freed := false
 	var over := false
 	var feed := FakeFeed.new()
+	## What current() answers: the match as its scene last stepped it.
+	var snapshot := {}
 
 	func _init() -> void:
 		feed.name = "KnockoutFeed"
@@ -47,6 +49,9 @@ class FakeMatch:
 
 	func is_over() -> bool:
 		return over
+
+	func current() -> Dictionary:
+		return snapshot
 
 	func apply_view(_settings: ViewSettings) -> void:
 		pass
@@ -341,6 +346,16 @@ func test_a_player_gone_mid_match_is_said_in_the_feed_once() -> void:
 	assert_eq(feed.said, PackedStringArray(["Player 0 left: a bot plays on"]), "the host left")
 	fixture.beat(Ticks.RATE)
 	assert_eq(feed.said.size(), 1, "said once")
+
+
+func test_a_player_gone_once_out_leaves_no_bot_to_play_on() -> void:
+	var fixture := _quick_server()
+	var players := _in_a_match(fixture)
+	var shown := _built[0]
+	shown.snapshot = {"seats": [{"out": true}, {"out": false}]}
+	fixture.cut(players[0])
+	fixture.beat(3)
+	assert_eq(shown.feed.said, PackedStringArray(["Player 0 left"]), "out already: just gone")
 
 
 ## Leave at the results hangs up for the Online screen.
