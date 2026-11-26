@@ -5,7 +5,8 @@ extends Node
 ## every line of the server's log printed with the time of day. Room codes are drawn
 ## from the system's CSPRNG (SecureDraws) whatever the flags, match seeds too unless
 ## --seed asks for a run that repeats; the server quits once --matches matches have
-## finished.
+## finished. Under --crew (make crew) its beats keep a CrewClock instead of the time of
+## day: one beat a frame, the frame run once the crew's players have all run theirs.
 
 ## A hitch is caught up this many beats at most: past it the matches run late rather
 ## than fast-forward.
@@ -17,6 +18,8 @@ var _socket := WebSocketTransport.new()
 var _rooms: RoomServer
 var _accumulator := 0.0
 var _finished := 0
+## The crew's clock under --crew; null keeps the time of day.
+var _crew: CrewClock
 
 
 func _init(args: MatchArgs) -> void:
@@ -34,6 +37,10 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	Engine.max_fps = rules.headless_fps
+	if not _args.crew_dir.is_empty():
+		# Before the socket: the crew's handshakes wait out a held crew.
+		_crew = CrewClock.new(_args.crew_dir, "server")
+		_say("crew: beats kept by the clock in %s" % _args.crew_dir)
 	var port := _args.port if _args.port > 0 else rules.port
 	var address := _args.bind_address if not _args.bind_address.is_empty() else rules.bind_address
 	var error := _socket.listen(port, address, rules)
@@ -78,6 +85,12 @@ func _process(delta: float) -> void:
 		return
 	_socket.poll()
 	_rooms.take_in()
+	if _crew != null:
+		_crew.tick()
+		_rooms.step()
+		_socket.poll()
+		_quit_when_served()
+		return
 	_accumulator += delta
 	var beats := 0
 	while _accumulator >= Ticks.SECONDS_PER_TICK and beats < MAX_BEATS_PER_FRAME:
@@ -87,6 +100,15 @@ func _process(delta: float) -> void:
 		_socket.poll()
 	if beats == MAX_BEATS_PER_FRAME:
 		_accumulator = minf(_accumulator, Ticks.SECONDS_PER_TICK)
+	_quit_when_served()
+
+
+func _exit_tree() -> void:
+	if _crew != null:
+		_crew.leave()
+
+
+func _quit_when_served() -> void:
 	if _args.matches > 0 and _finished >= _args.matches:
 		_say("served %d match(es): quitting" % _finished)
 		_rooms = null

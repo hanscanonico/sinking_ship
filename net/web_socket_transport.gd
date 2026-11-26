@@ -10,6 +10,11 @@ extends Transport
 
 const SERVER_PEER := 1
 
+## The seconds a handshake may take on every socket this process opens, the rules'
+## handshake_timeout overridden — a tool's (make crew, CrewClock), whose processes are
+## held together for as long as any one player thinks; <= 0 keeps the rules'.
+static var handshake_override := 0.0
+
 var _socket := WebSocketMultiplayerPeer.new()
 var _serving := false
 ## A client that has asked to connect and has not yet: if its socket gives up, the
@@ -37,12 +42,16 @@ func listen(port: int, bind_address: String, rules: ServerRules) -> Error:
 	_socket.outbound_buffer_size = rules.outbound_backlog * 2
 	_socket.max_queued_packets = _socket.outbound_buffer_size / (2 + WireCodec.HASH_BYTES)
 	_socket.handshake_timeout = rules.handshake_timeout
+	if handshake_override > 0.0:
+		_socket.handshake_timeout = handshake_override
 	_serving = true
 	return _socket.create_server(port, bind_address)
 
 
 ## Connects to the server at [param url] (ws://host:port).
 func dial(url: String) -> Error:
+	if handshake_override > 0.0:
+		_socket.handshake_timeout = handshake_override
 	var error := _socket.create_client(url)
 	_dialing = error == OK
 	return error

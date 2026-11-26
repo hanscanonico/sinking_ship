@@ -226,6 +226,16 @@ PLAY_LIMIT ?=
 play:
 	@PLAY="$(PLAY)" PLAY_IDLE="$(PLAY_IDLE)" PLAY_LIMIT="$(PLAY_LIMIT)" RES="$(RES)" GODOT="$(GODOT)" 		tools/play.sh serve $(match-args) $(bake-cache-arg) $(ARGS)
 
+# `make crew [N=2] [SEED=1701] [WS_PORT=47941] [RES=640x360] [HEADLESS=1] [FREE=1]`, in the
+# background: an agent at every seat of an online match — a --server on 127.0.0.1 and N
+# play sessions (make play) on its Online screen, all held a frame at a time together
+# by one CrewClock, so the match stands still while any held seat's agent thinks
+# (FREE=1: no seat holds it, each playing on between turns). Turns are
+# `tools/crew.sh SEAT '<commands>'`; `tools/crew.sh say|board|free|hold|status|log|quit` plan,
+# watch and end it. Rules live in tools/crew.sh. Not part of verify.
+crew:
+	@CREW="$(CURDIR)/captures/crew" RES="$(RES)" HEADLESS="$(HEADLESS)" GODOT="$(GODOT)" 		PLAY_IDLE="$(PLAY_IDLE)" PLAY_LIMIT="$(PLAY_LIMIT)" tools/crew.sh serve 		$(if $(N),--seats=$(N)) $(if $(SEED),--seed=$(SEED)) $(if $(WS_PORT),--port=$(WS_PORT))
+
 # `make net-bench [SEED=] [SEATS=] [SHIP=] [FAST=] [GOAL=] [BONUSES=] [SECONDS=] [NET=latency:120,jitter:20,loss:5]`: one
 # match headless, seat 0 played through the client over a loopback lying as NET says
 # (NET= for the offline game's honest wire), timed beat by beat: ticks re-run, the
@@ -875,7 +885,7 @@ format-check:
 # test is already one of test's scripts.
 .NOTPARALLEL:
 
-.PHONY: import native run replay match capture smoke play flood-invariants net-bench sim-bench exactness bench serve-local online-e2e export-server \
+.PHONY: import native run replay match capture smoke play crew flood-invariants net-bench sim-bench exactness bench serve-local online-e2e export-server \
 	export-web export-mac export-win export-linux export-server-mac serve-web-local serve-web-local-stop fps arena \
 	hits bake census art-lint art-lint-changed art-lint-costs test test-changed durations goldens verify verify-changed check guard-check guard-check-changed ship ship-gen-check ship-gen-check-changed ship-check bake-ship \
 	bake-check ship-scene preview \

@@ -128,7 +128,7 @@ func _ready() -> void:
 	# A capture, a bot's autoplay (make fps) and a played session (make play) keep the
 	# window, VSync and frame rate they were launched with, whatever the player saved.
 	if not _args.play_dir.is_empty():
-		add_child(PlayDriver.new(_args.play_dir, _args.play_idle))
+		add_child(PlayDriver.new(_args.play_dir, _args.play_idle, _args.crew_dir))
 	elif _args.capture_path.is_empty() and not _args.autoplay:
 		_view.apply_window()
 	else:

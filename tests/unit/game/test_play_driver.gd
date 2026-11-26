@@ -56,3 +56,11 @@ func test_an_answer_leaves_the_bots_own_brawl_out() -> void:
 	assert_true(PlayDriver.tells(out.to_dict()), "anyone going out")
 	var flooding := SimEvent.new(SimEvent.Kind.CELL_FLOODING, 45, -1)
 	assert_true(PlayDriver.tells(flooding.to_dict()), "her sinking")
+
+
+func test_the_flags_put_a_session_on_a_crews_clock() -> void:
+	var args := MatchArgs.parse(
+		PackedStringArray(["--play=/tmp/crew/seat1", "--crew=/tmp/crew/clock"])
+	)
+	assert_eq(args.crew_dir, "/tmp/crew/clock")
+	assert_eq(MatchArgs.parse(PackedStringArray()).crew_dir, "", "its frames its own")

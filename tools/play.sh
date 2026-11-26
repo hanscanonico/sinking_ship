@@ -29,7 +29,8 @@
 # capture does: quit it when done.
 #
 # Environment: PLAY the session's folder (captures/play), PLAY_WAIT the seconds a turn
-# may take before the client gives up on it (600).
+# may take before the client gives up on it (600). Several sessions playing online
+# together, an agent at each: `make crew` (tools/crew.sh).
 
 set -uo pipefail
 export LC_ALL=C
@@ -50,9 +51,17 @@ if [[ "${1:-}" == "serve" ]]; then
 	MINGW* | MSYS* | CYGWIN*) APPDATA="$(cygpath -w "$PLAY/home")" && export APPDATA ;;
 	*) export XDG_DATA_HOME="$PLAY/home" ;;
 	esac
+	# PLAY_HEADLESS=1 draws nothing (make crew HEADLESS=1): no window, so no window lock,
+	# and a `shot` fails.
+	lock=(tools/window_lock.sh)
+	view=(--resolution "${RES:-960x540}")
+	if [[ "${PLAY_HEADLESS:-0}" == 1 ]]; then
+		lock=()
+		view=(--headless)
+	fi
 	ENGINE_GUARD_LIMIT="${PLAY_LIMIT:-3600}" ENGINE_GUARD_EARLY=1 \
-		tools/window_lock.sh tools/engine_guard.sh "$GODOT" --path . \
-		--resolution "${RES:-960x540}" --audio-driver Dummy --fixed-fps 30 --disable-vsync -- \
+		${lock[@]+"${lock[@]}"} tools/engine_guard.sh "$GODOT" --path . \
+		"${view[@]}" --audio-driver Dummy --fixed-fps 30 --disable-vsync -- \
 		"$@" --play="$PLAY" --play-idle="${PLAY_IDLE:-600}" 2>&1 | tee "$PLAY/engine.log"
 	exit "${PIPESTATUS[0]}"
 fi
