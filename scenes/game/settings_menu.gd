@@ -5,11 +5,11 @@ extends CanvasLayer
 ## first-person view's mouse sensitivity, invert Y, field of view, and the deck-roll
 ## and view-kick comfort sliders (D14, Q17, R15); Keys — the key or mouse button of
 ## each action of play and of spectating (KeyBindings), picked by pressing it;
-## Graphics — the window mode, VSync, a frame-rate cap, the graphics preset with a
-## line on what it changes (GraphicsQuality), and the 3D view's render scale, both
-## this machine's own until the player picks them. Under every page, the language
-## the game speaks (Language), each under its own name. Each change applies as it is
-## made; closing saves them under user://.
+## Graphics — the window mode, VSync, a frame-rate cap, whether the frame rate shows,
+## the graphics preset with a line on what it changes (GraphicsQuality), and the 3D
+## view's render scale, both this machine's own until the player picks them. Under
+## every page, the language the game speaks (Language), each under its own name. Each
+## change applies as it is made; closing saves them under user://.
 
 signal closed
 ## The first-person view or the graphics changed: whatever is on screen should take
@@ -50,6 +50,7 @@ var _tallest := 216.0
 @onready var _window_mode: OptionButton = %WindowMode
 @onready var _vsync: CheckButton = %VSync
 @onready var _max_fps: OptionButton = %MaxFps
+@onready var _show_fps: CheckButton = %ShowFps
 @onready var _sensitivity: HSlider = %Sensitivity
 @onready var _invert_y: CheckButton = %InvertY
 @onready var _fov: HSlider = %FieldOfView
@@ -79,6 +80,7 @@ func _ready() -> void:
 	for fps: int in ViewSettings.MAX_FPS_CHOICES:
 		_max_fps.add_item("Unlimited" if fps == 0 else "%d" % fps, fps)
 	_max_fps.item_selected.connect(_on_window)
+	_show_fps.toggled.connect(_on_show_fps)
 	for slider: HSlider in [_sensitivity, _fov, _deck_roll, _view_kick]:
 		slider.value_changed.connect(_on_view)
 	_invert_y.toggled.connect(_on_view)
@@ -128,6 +130,7 @@ func open(page := Page.SOUND) -> void:
 	_vsync.set_pressed_no_signal(_view.vsync)
 	# A cap saved off the list shows as none until the player picks one.
 	_max_fps.select(maxi(_max_fps.get_item_index(_view.max_fps), 0))
+	_show_fps.set_pressed_no_signal(_view.show_fps)
 	_sensitivity.set_value_no_signal(_view.mouse_deg_per_pixel)
 	_invert_y.set_pressed_no_signal(_view.invert_y)
 	_fov.set_value_no_signal(_view.fov_deg)
@@ -213,6 +216,10 @@ func _on_window(_value: Variant) -> void:
 	_view.vsync = _vsync.button_pressed
 	_view.max_fps = _max_fps.get_selected_id()
 	_view.apply_window(true)
+
+
+func _on_show_fps(shown: bool) -> void:
+	_view.show_fps = shown
 
 
 func _on_view(_value: Variant) -> void:

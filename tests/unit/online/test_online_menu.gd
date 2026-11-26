@@ -198,6 +198,25 @@ func test_a_code_is_typed_in_any_case() -> void:
 	assert_eq(_asked.size(), 1, "a short code is not asked for")
 
 
+## A refusal stands under the choices until the player mends what it was about: an
+## edited code or name takes it away, so it never sits beside a code it was not about.
+func test_a_problem_goes_once_the_code_or_name_is_edited() -> void:
+	_open()
+	(_node("%Name") as LineEdit).text = "Bea"
+	var code: CodePicker = _node("%Code")
+	code.set_code("ZZZZ")
+	_menu.open("No room has that code: check it with the room's host.")
+	assert_ne(_status(), "", "the refusal shown")
+	code.first_slot().grab_focus()
+	_type("a")
+	assert_eq(_status(), "", "gone as the code is edited")
+	_menu.open("No room has that code: check it with the room's host.")
+	var name_field: LineEdit = _node("%Name")
+	name_field.text = "Bean"
+	name_field.text_changed.emit(name_field.text)
+	assert_eq(_status(), "", "gone as the name is edited")
+
+
 ## With a pad: pressing a slot takes it up, up and down turn its letter, round the ends,
 ## left and right carry it to the next slot, and pressing again puts it down — then up
 ## and down move on through the screen as anywhere else.
@@ -235,6 +254,21 @@ func test_a_pasted_code_fills_the_slots() -> void:
 	assert_eq(code.code(), "KXRT")
 	code.set_code("ab")
 	assert_eq(code.code(), "AB", "the slots past it emptied")
+
+
+## A slot is as wide whatever letter it holds, so typing a code never moves Join or
+## widens the panel.
+func test_the_slots_keep_their_width_whatever_the_letters() -> void:
+	_open()
+	var code: CodePicker = _node("%Code")
+	var empty := code.get_combined_minimum_size()
+	var widths: Array[float] = []
+	for letters: String in ["JJJJ", "MWMW"]:
+		code.set_code(letters)
+		assert_eq(code.get_combined_minimum_size(), empty, "the row as wide with %s" % letters)
+		for slot: Control in code.get_children():
+			widths.append(slot.get_combined_minimum_size().x)
+	assert_eq(widths.min(), widths.max(), "every slot one width")
 
 
 ## A page's link to a room plays at once when its name is known — the link's own or the

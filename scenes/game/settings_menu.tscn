@@ -271,6 +271,15 @@ size_flags_horizontal = 3
 
 [node name="MaxFpsSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
 
+[node name="ShowFpsLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
+text = "Show FPS"
+
+[node name="ShowFps" type="CheckButton" parent="Panel/Box/Graphics/GraphicsChoices"]
+unique_name_in_owner = true
+size_flags_horizontal = 0
+
+[node name="ShowFpsSpacer" type="Control" parent="Panel/Box/Graphics/GraphicsChoices"]
+
 [node name="QualityLabel" type="Label" parent="Panel/Box/Graphics/GraphicsChoices"]
 text = "Quality"
 

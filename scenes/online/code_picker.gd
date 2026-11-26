@@ -7,6 +7,9 @@ extends HBoxContainer
 ## again or left. Left and right move between slots, and up and down leave the row when
 ## no slot is taken up. Only RoomCodec's CODE_LETTERS go in, in upper case.
 
+## The player changed the letters — typed, turned, erased or pasted; set_code() never says.
+signal edited
+
 ## What an empty slot shows: its box alone.
 const EMPTY := ""
 const SLOT_SIZE := Vector2(50.0, 54.0)
@@ -31,6 +34,31 @@ func _ready() -> void:
 		slot.focus_exited.connect(func() -> void: slot.set_pressed_no_signal(false))
 		add_child(slot)
 		_slots.append(slot)
+	_fit_slots()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED and not _slots.is_empty():
+		_fit_slots()
+
+
+## Makes every slot as wide as its widest letter needs, at least SLOT_SIZE: a slot then
+## keeps its width whatever it holds, and typing a code never moves what follows it.
+## Asked of the row, of the slots' types: a theme given to a screen above reaches the row
+## before its slots, whose own answers are still the old theme's then. The slot's letters
+## are its variation's, its frames a Button's.
+func _fit_slots() -> void:
+	var font := get_theme_font(&"font", UiTheme.CODE_SLOT)
+	var font_size := get_theme_font_size(&"font_size", UiTheme.CODE_SLOT)
+	var frame := 0.0
+	for state: StringName in [&"normal", &"hover", &"pressed", &"focus", &"hover_pressed"]:
+		frame = maxf(frame, get_theme_stylebox(state, &"Button").get_minimum_size().x)
+	var width := SLOT_SIZE.x
+	for letter: String in RoomCodec.CODE_LETTERS:
+		var text := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+		width = maxf(width, ceilf(text.x + frame))
+	for slot: Button in _slots:
+		slot.custom_minimum_size = Vector2(width, SLOT_SIZE.y)
 
 
 ## The letters filled in, in order: short of CODE_LENGTH while a slot is empty.
@@ -65,6 +93,7 @@ func lead_to(next: Control) -> void:
 
 func _on_slot_input(event: InputEvent, index: int) -> void:
 	var slot := _slots[index]
+	var before := code()
 	if event is InputEventMouseButton and (event as InputEventMouseButton).pressed:
 		match (event as InputEventMouseButton).button_index:
 			MOUSE_BUTTON_WHEEL_UP:
@@ -95,6 +124,8 @@ func _on_slot_input(event: InputEvent, index: int) -> void:
 	else:
 		return
 	slot.accept_event()
+	if code() != before:
+		edited.emit()
 
 
 ## Turns slot [param index]'s letter [param step] places on through CODE_LETTERS, round
