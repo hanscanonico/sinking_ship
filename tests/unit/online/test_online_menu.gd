@@ -217,6 +217,20 @@ func test_backspace_from_join_takes_the_last_letter_back() -> void:
 	assert_eq(code.code(), "MWMJ")
 
 
+## A code refused comes back with the focus in its last slot, to mend: never on Create,
+## where Enter to try again made a room instead (seen played, 2026-11-26).
+func test_a_refused_code_keeps_the_focus() -> void:
+	_open()
+	(_node("%Name") as LineEdit).text = "Ada"
+	var code: CodePicker = _node("%Code")
+	code.set_code("ZZZZ")
+	_menu.open("No room has that code: check it with the room's host.")
+	assert_eq(get_viewport().gui_get_focus_owner(), code.get_child(3), "in the last slot")
+	code.set_code("")
+	_menu.open("The connection to the server was lost.")
+	assert_eq(get_viewport().gui_get_focus_owner(), _node("%Create"), "no code: on Create")
+
+
 ## A refusal stands under the choices until the player mends what it was about: an
 ## edited code or name takes it away, so it never sits beside a code it was not about.
 func test_a_problem_goes_once_the_code_or_name_is_edited() -> void:
