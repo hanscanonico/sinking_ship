@@ -17,7 +17,7 @@ extends RefCounted
 ##   --frame-split=S  --match-seconds=S  --language=en|fr|es
 ##   --replay=PATH
 ##   --bake-cache
-##   --play=DIR  --play-idle=S
+##   --play=DIR  --play-idle=S  --crew=DIR
 ## --seed, --seats, --ship, --scenario, --hit, --fast, --goal and --bonuses are the match
 ## choices (MatchChoices), each one not given the match data's — --ship a ship of
 ## the Fleet, by name, played in her open-sea scenario, or in --scenario's, one of hers
@@ -73,7 +73,9 @@ extends RefCounted
 ## again, and keeps each one baked — the make targets pass it (BAKE_CACHE=0 drops it).
 ## --play has the game played by batches of commands left in DIR (PlayDriver, make play):
 ## the menu opens as for a person, the game held between batches, and it quits once no
-## batch has come for --play-idle seconds.
+## batch has come for --play-idle seconds. --crew has a --server or a --play session
+## keep the CrewClock in DIR (make crew): every member a frame at a time together, so a
+## played session held between batches holds the server and the other sessions too.
 ## No menu reaches any of them (D14). --server serves
 ## rooms over WebSocket, headless, on --port and --bind (ServerRules' unless given),
 ## its matches' seeds drawn from --seed when given — its rooms' codes never are — until
@@ -170,6 +172,9 @@ var bake_cache := false
 ## "" when a person plays. The seconds it waits for a batch before it quits.
 var play_dir: String = ""
 var play_idle := PlayDriver.DEFAULT_IDLE_SECONDS
+## The folder of the CrewClock a server or a played session keeps (--crew, make crew);
+## "" for the time of day.
+var crew_dir: String = ""
 
 
 ## The seconds [param text] says: mm:ss, h:mm:ss or plain seconds.
@@ -263,6 +268,8 @@ static func parse(args: PackedStringArray) -> MatchArgs:
 				parsed.play_dir = value
 			"--play-idle":
 				parsed.play_idle = value.to_float()
+			"--crew":
+				parsed.crew_dir = value
 			"--net-sim":
 				var conditions := NetConditions.parse(value)
 				if conditions == null:

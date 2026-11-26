@@ -45,6 +45,7 @@ make match SEED=1701 FAST=1                     # the same, her sinking on the f
 make match SEED=1701 GOAL=survival              # survival: everyone stays in as long as she lasts (GOAL= works for run too)
 make exactness TICKS=1200                       # does the branch simulate bit for bit like BASE=origin/main? a hash of every tick's snapshot, both sides (SEED=, SHIP=, FAST=1, NATIVE=0)
 make play SHIP=steamer ARGS=--language=en       # play it yourself, by turns: run in the background, then tools/play.sh '<commands>' per turn (it lists them); quit when done
+make crew N=3                                   # online with an agent at every seat: a local server and N play sessions on one lockstep clock; tools/crew.sh K '<commands>' per turn, say/board to plan (/crew runs the whole test)
 make smoke                                      # the water capture sweep for QA: shots at the transcript's water moments into captures/smoke/ (MAX=3, DRY=1)
 make preview SHIP=steamer                       # her dressed art as a PNG, no game window: headless dress, Blender Workbench render (SPAN=, EYE= AT=; needs Blender)
 make ship                                       # regenerate data/ships/NAME.tres from tools/gen_NAME.py; SHIP=trawler for one

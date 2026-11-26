@@ -17,6 +17,10 @@ extends Node
 ## match never holds their pointer: every event is the driver's. A session nobody feeds
 ## for [member idle_seconds] quits, so a player gone leaves no window behind.
 ##
+## Under a CrewClock (--crew, make crew) it runs each frame in step with the crew — a
+## server and the other played sessions — so while its batch is awaited every one of
+## them is held as well: an online match stands still for whoever is thinking.
+##
 ## Commands, one a line, `#` to the line's end a comment (tools/play.sh sends them):
 ##   wait N                  let N frames run
 ##   shot [NAME]             save the next frame drawn as DIR/shots/NNNN_NAME.png
@@ -87,11 +91,17 @@ var _pointer := Pointer.new()
 var _pointer_at := Vector2.ZERO
 var _match: MatchScene
 var _closing := false
+## The crew's clock (--crew); null when this session's frames are its own.
+var _crew: CrewClock
+## When a free seat began running on with no batch, in msec; -1 when it is not.
+var _free_since := -1
 
 
-func _init(dir: String, idle: float = DEFAULT_IDLE_SECONDS) -> void:
+func _init(dir: String, idle: float = DEFAULT_IDLE_SECONDS, crew_dir: String = "") -> void:
 	_dir = dir.trim_suffix("/")
 	idle_seconds = idle
+	if not crew_dir.is_empty():
+		_crew = CrewClock.new(crew_dir, _dir.get_file())
 	name = "PlayDriver"
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	process_priority = FIRST
@@ -115,6 +125,8 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	DirAccess.remove_absolute(_dir.path_join("ready"))
+	if _crew != null:
+		_crew.leave()
 
 
 func _notification(what: int) -> void:
@@ -123,6 +135,8 @@ func _notification(what: int) -> void:
 
 
 func _process(_delta: float) -> void:
+	if _crew != null:
+		_crew.tick()
 	_gather_events()
 	if not _shot_path.is_empty():
 		_shot_waited += 1
@@ -145,6 +159,8 @@ func _process(_delta: float) -> void:
 		if _queue.is_empty():
 			if not _answered:
 				_answer()
+			if _runs_free():
+				return
 			if not _take_batch():
 				get_tree().quit()
 				return
@@ -210,6 +226,29 @@ func _run(words: PackedStringArray) -> bool:
 	return again
 
 
+## Whether this frame runs on with no batch: a crew's free seat (DIR/free, tools/crew.sh
+## free) plays on while its next batch is awaited — what it holds held still — rather
+## than holding the crew. A free seat left unfed for [member idle_seconds] quits.
+func _runs_free() -> bool:
+	if _closing:
+		return false
+	var next := _dir.path_join("in/%04d.txt" % (_batch + 1))
+	if (
+		_crew == null
+		or FileAccess.file_exists(next)
+		or not FileAccess.file_exists(_dir.path_join("free"))
+	):
+		_free_since = -1
+		return false
+	if _free_since < 0:
+		_free_since = Time.get_ticks_msec()
+	if Time.get_ticks_msec() - _free_since <= idle_seconds * 1000.0:
+		return true
+	print("play: no batch for %d s: quitting" % roundi(idle_seconds))
+	_closing = true
+	return false
+
+
 ## The next batch's commands, waited for with the game held; false when the wait is over
 ## with none — nobody fed it, or the window was closed.
 func _take_batch() -> bool:
@@ -222,6 +261,8 @@ func _take_batch() -> bool:
 			print("play: no batch for %d s: quitting" % roundi(idle_seconds))
 			return false
 		OS.delay_msec(POLL_MS)
+		if _crew != null:
+			_crew.hold()
 		# The window still answers the system while the game is held.
 		DisplayServer.process_events()
 	_batch += 1
@@ -788,8 +829,12 @@ func _control_showing(text: String) -> Control:
 
 
 func _plain(control: Control) -> String:
-	if control is Button:
-		return (control as Button).text
+	if control is BaseButton:
+		# A button with no words is named in the answer as _button_said names it.
+		var text := (control as Button).text if control is Button else ""
+		if text.is_empty():
+			text = control.tooltip_text if not control.tooltip_text.is_empty() else control.name
+		return text
 	if control is Label:
 		return (control as Label).text
 	if control is LineEdit:
