@@ -493,7 +493,7 @@ func _begin_match(at: Room, by: Connection) -> bool:
 				"room %s: match begins · seed %d · %d seats · %s sinking · bonuses %s · %s"
 				% [at.code, config.match_seed, config.seats, pace, bonuses, ", ".join(players)]
 			)
-			+ " · bots on the rest"
+			+ (" · bots on the rest" if players.size() < config.seats else "")
 			+ (" · %s watching" % ", ".join(watchers) if not watchers.is_empty() else "")
 		)
 	)
@@ -556,6 +556,7 @@ func _leave_room(connection: Connection) -> void:
 		return
 	connection.room = null
 	var seat := left.member(connection.peer).seat
+	var hosted := left.host_peer() == connection.peer
 	left.remove(connection.peer, _beat)
 	if left.phase == Room.Phase.PLAYING and seat < 0:
 		_say("room %s: %s left, watching no more" % [left.code, connection.name])
@@ -566,6 +567,8 @@ func _leave_room(connection: Connection) -> void:
 	if left.present().is_empty():
 		_close_room(left, "everyone left")
 	else:
+		if hosted:
+			_say("room %s: %s hosts now" % [left.code, left.member(left.host_peer()).name])
 		_send_rosters(left)
 
 
