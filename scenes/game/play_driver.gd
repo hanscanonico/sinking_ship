@@ -474,10 +474,20 @@ func _met(condition: PackedStringArray) -> bool:
 		"over":
 			met = snapshot.get("phase", -1) == MatchState.Phase.ENDED
 		"out":
-			met = not snapshot.is_empty() and snapshot["seats"][MatchScene.LOCAL_SEAT]["out"]
+			met = not snapshot.is_empty() and snapshot["seats"][_local_seat()]["out"]
 		_:
 			_fail("until: no condition %s" % condition[0])
 	return met
+
+
+## The seat this session plays: online, the one the server gave it, not always the
+## first; a watcher's answers go on telling of the first.
+func _local_seat() -> int:
+	if not is_instance_valid(_match):
+		return MatchScene.LOCAL_SEAT
+	# Read where the match keeps it: its file has no line to spare for a way to ask.
+	var seat: int = _match._local_seat
+	return seat if seat >= 0 else MatchScene.LOCAL_SEAT
 
 
 func _snapshot() -> Dictionary:
@@ -510,8 +520,9 @@ func _gather_events() -> void:
 	if snapshot.is_empty() or snapshot["tick"] == _event_tick:
 		return
 	_event_tick = snapshot["tick"]
+	var local := _local_seat()
 	for event: Dictionary in snapshot["events"]:
-		if not tells(event):
+		if not tells(event, local):
 			continue
 		if _events.size() >= EVENT_LINES:
 			_events_dropped += 1
@@ -520,12 +531,11 @@ func _gather_events() -> void:
 
 
 ## Whether an answer tells of [param event]: what happens to her, who goes out, how the
-## match ends, and whatever the local seat does or has done to it — never the bots'
-## brawl among themselves, a hundred shoves a minute.
-static func tells(event: Dictionary) -> bool:
+## match ends, and whatever the [param local] seat does or has done to it — never the
+## bots' brawl among themselves, a hundred shoves a minute.
+static func tells(event: Dictionary, local: int = MatchScene.LOCAL_SEAT) -> bool:
 	if event["kind"] in [SimEvent.Kind.SEAT_OUT, SimEvent.Kind.MATCH_ENDED]:
 		return true
-	var local := MatchScene.LOCAL_SEAT
 	return event["seat"] < 0 or local in [event["seat"], event["target"], event["credit"]]
 
 
@@ -536,7 +546,7 @@ static func event_line(event: Dictionary) -> String:
 		var value: Variant = event[key]
 		if key in ["kind", "tick"]:
 			continue
-		# A seat, a prop or a railing nobody named is -1; seat 0 is the local player.
+		# A seat, a prop or a railing nobody named is -1; seat 0 is a player.
 		if (value is int and value < 0) or (value is float and value == 0.0):
 			continue
 		if value is int and value == 0 and key in ["place", "cause", "stagger"]:
@@ -559,7 +569,7 @@ func _answer() -> void:
 		lines.append("shot: " + shot)
 	if not _held.is_empty():
 		lines.append("held: " + ", ".join(_held.keys()))
-	lines.append_array(match_lines(_snapshot()))
+	lines.append_array(match_lines(_snapshot(), _local_seat()))
 	# The match scene's own ghost, read where it keeps it: its file has no line to spare
 	# for a way to ask (gdlint's max-file-lines).
 	var ghost: GhostWalk = _match._ghost if is_instance_valid(_match) else null
@@ -613,10 +623,12 @@ static func ghost_line(body: PlayerState, yaw: float) -> String:
 	)
 
 
-## The match as the local seat knows it from [param snapshot]: the clock, who is in,
-## the seat itself, and the others still in by how near they are — each how far, and how
-## many degrees to the right of the seat's facing (negative: to its left).
-static func match_lines(snapshot: Dictionary) -> PackedStringArray:
+## The match as the [param local] seat knows it from [param snapshot]: the clock, who is
+## in, the seat itself, and the others still in by how near they are — each how far, and
+## how many degrees to the right of the seat's facing (negative: to its left).
+static func match_lines(
+	snapshot: Dictionary, local: int = MatchScene.LOCAL_SEAT
+) -> PackedStringArray:
 	var lines: PackedStringArray = []
 	if snapshot.is_empty():
 		return lines
@@ -639,7 +651,7 @@ static func match_lines(snapshot: Dictionary) -> PackedStringArray:
 			)
 		)
 	)
-	var me: Dictionary = seats[MatchScene.LOCAL_SEAT]
+	var me: Dictionary = seats[local]
 	var pos: Vector3 = me["pos"]
 	var vel: Vector3 = me["vel"]
 	(

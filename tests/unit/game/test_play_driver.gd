@@ -46,6 +46,27 @@ func test_the_match_lines_say_the_seat_and_who_is_near() -> void:
 	assert_eq(PlayDriver.match_lines({}), PackedStringArray(), "no match, nothing to say")
 
 
+func test_online_the_match_lines_say_the_seat_the_server_gave() -> void:
+	var sim := SimFixtures.sim(3)
+	var snapshot := sim.snapshot()
+	var seats: Array = snapshot["seats"]
+	var pos: Vector3 = seats[2]["pos"]
+	assert_ne(pos, seats[0]["pos"], "the fixture's seats stand apart")
+	var lines := PlayDriver.match_lines(snapshot, 2)
+	assert_string_contains(lines[1], "(%.1f, %.1f, %.1f)" % [pos.x, pos.y, pos.z])
+	var others := "
+".join(lines.slice(3))
+	assert_string_contains(others, "seat 0 ", "the first seat is one of the others")
+	assert_false(others.contains("seat 2 "), "the seat played is not")
+
+
+func test_online_an_answer_tells_of_the_seat_the_server_gave() -> void:
+	var landed := SimEvent.new(SimEvent.Kind.SHOVE_LANDED, 45, 4)
+	landed.target = 2
+	assert_true(PlayDriver.tells(landed.to_dict(), 2), "a shove on the seat played")
+	assert_false(PlayDriver.tells(landed.to_dict(), 0), "a shove on someone else's seat")
+
+
 func test_an_answer_leaves_the_bots_own_brawl_out() -> void:
 	var theirs := SimEvent.new(SimEvent.Kind.SHOVE_LANDED, 45, 2)
 	theirs.target = 3
