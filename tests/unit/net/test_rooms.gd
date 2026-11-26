@@ -245,6 +245,32 @@ func test_full_room_refuses_a_join() -> void:
 	assert_eq(players[0].roster.players.size(), 2)
 
 
+func test_a_name_taken_in_the_room_gets_a_number() -> void:
+	var fixture := RoomFixtures.new()
+	var host := fixture.connect_client("Bea")
+	var twin := fixture.connect_client("bea")
+	var third := fixture.connect_client("Bea")
+	fixture.beat()
+	host.create_room()
+	fixture.beat()
+	twin.join_room(host.roster.code)
+	fixture.beat()
+	third.join_room(host.roster.code)
+	fixture.beat()
+	var names: Array[String] = []
+	for player: RoomRoster.Player in host.roster.players:
+		names.append(player.name)
+	assert_eq(names, ["Bea", "bea 2", "Bea 3"] as Array[String], "each name the room's own")
+	assert_eq(third.roster.players[third.roster.you].name, "Bea 3", "and told to its player")
+
+
+func test_a_numbered_name_fits_the_longest_name() -> void:
+	var room := Room.new("ABCD", null, 0)
+	room.add(1, "Sixteen letters!", 0)
+	assert_eq(room.free_name("Sixteen letters!", 16), "Sixteen letter 2")
+	assert_eq(room.free_name("Cal", 16), "Cal", "a free name stays itself")
+
+
 ## A roster the server sent before it read the leave is the room's last word to a member
 ## gone: the client that left stays out, and a BEGIN on its way plays nothing for it.
 func test_a_room_left_stays_left() -> void:
