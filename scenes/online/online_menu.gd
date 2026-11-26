@@ -48,6 +48,10 @@ func _ready() -> void:
 	_name.gui_input.connect(MainMenu.leave_field.bind(_name))
 	_name.text_submitted.connect(func(_text: String) -> void: _create.grab_focus())
 	_code.lead_to(_join)
+	# A problem shown is about the code and name it was asked with: editing either
+	# takes it away, so it never stands beside a code it was not about.
+	_code.edited.connect(_clear_problem)
+	_name.text_changed.connect(func(_text: String) -> void: _clear_problem())
 	_create.pressed.connect(_submit.bind(true))
 	_join.pressed.connect(_submit.bind(false))
 	_quick.pressed.connect(_submit.bind(false, "", true, true))
@@ -174,6 +178,11 @@ func _set_busy(busy: bool) -> void:
 		button.disabled = busy
 	for slot: Node in _code.get_children():
 		(slot as Button).disabled = busy
+
+
+func _clear_problem() -> void:
+	if _status.visible and _status.theme_type_variation == UiTheme.PROBLEM_LABEL:
+		_say("")
 
 
 ## [param text] under the choices — as a problem when [param problem] — or nothing.
