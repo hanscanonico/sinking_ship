@@ -584,6 +584,19 @@ static func _clears(layout: ShipLayout, rules: BrawlRules, line: RigLine) -> boo
 	return true
 
 
+## The underside of the lowest deck of [param layout] over all of [param area] whose
+## underside stands over [param height] by [param reach] at most; NAN when none: where a
+## flight's side rail hung under a deck's edge is drawn up to (ShipArt.SIDE_RAIL_SCREEN).
+static func underside_over(layout: ShipLayout, area: Rect2, height: float, reach: float) -> float:
+	var lowest := INF
+	for platform: ShipPlatform in layout.platforms:
+		var under := platform.height - ShipArt.PLANK
+		if under > height + ShipSpace.SLIVER and under <= height + reach and under < lowest:
+			if platform.area.grow(ShipSpace.SLIVER).encloses(area):
+				lowest = under
+	return NAN if lowest == INF else lowest
+
+
 ## Every top a body of [param rules] can stand on whose round reaches over the ship
 ## plane between [param from] and [param to] — a platform's, a ramp's, a blocker's
 ## but [param spars]' and a flight's side rails' (ShipArt.FLIGHT_SIDE_RAIL: its cap, as a

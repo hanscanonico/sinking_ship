@@ -4,19 +4,20 @@ extends GutTest
 ## steamer's inner stair's two, a hand's breadth tall, read as two loose boxes (2026-11-26).
 
 const RunMatch := preload("res://tools/run_match.gd")
-const STEAMER :="res://data/ships/steamer.tres"
+const STEAMER := "res://data/ships/steamer.tres"
 const INNER_STAIR := "Blocker_side_inner_stair_"
 
 
 func test_the_underside_over_a_rail_is_the_deck_s_within_reach_and_none_past_it() -> void:
 	var layout: ShipLayout = load(STEAMER)
-	var space := ShipSpace.new(layout)
 	var rails := _inner_stair_rails(layout)
 	assert_eq(rails.size(), 2, "one hung each side of the inner stair")
 	for rail: ShipBlocker in rails:
-		var under := space.underside_over(rail.area, rail.top, ShipArt.SIDE_RAIL_SCREEN)
+		var under := DeckWorks.underside_over(layout, rail.area, rail.top, ShipArt.SIDE_RAIL_SCREEN)
 		assert_almost_eq(under, 0.0 - ShipArt.PLANK, 0.001, "the main deck's underside")
-		assert_true(is_nan(space.underside_over(rail.area, rail.top, 0.1)), "none within 0.1 m")
+		assert_true(
+			is_nan(DeckWorks.underside_over(layout, rail.area, rail.top, 0.1)), "none within 0.1 m"
+		)
 
 
 func test_the_inner_stair_s_side_rails_are_drawn_up_to_the_main_deck() -> void:
