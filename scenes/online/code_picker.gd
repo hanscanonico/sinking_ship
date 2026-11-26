@@ -31,6 +31,31 @@ func _ready() -> void:
 		slot.focus_exited.connect(func() -> void: slot.set_pressed_no_signal(false))
 		add_child(slot)
 		_slots.append(slot)
+	_fit_slots()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_THEME_CHANGED and not _slots.is_empty():
+		_fit_slots()
+
+
+## Makes every slot as wide as its widest letter needs, at least SLOT_SIZE: a slot then
+## keeps its width whatever it holds, and typing a code never moves what follows it.
+## Asked of the row, of the slots' types: a theme given to a screen above reaches the row
+## before its slots, whose own answers are still the old theme's then. The slot's letters
+## are its variation's, its frames a Button's.
+func _fit_slots() -> void:
+	var font := get_theme_font(&"font", UiTheme.CODE_SLOT)
+	var font_size := get_theme_font_size(&"font_size", UiTheme.CODE_SLOT)
+	var frame := 0.0
+	for state: StringName in [&"normal", &"hover", &"pressed", &"focus", &"hover_pressed"]:
+		frame = maxf(frame, get_theme_stylebox(state, &"Button").get_minimum_size().x)
+	var width := SLOT_SIZE.x
+	for letter: String in RoomCodec.CODE_LETTERS:
+		var text := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size)
+		width = maxf(width, ceilf(text.x + frame))
+	for slot: Button in _slots:
+		slot.custom_minimum_size = Vector2(width, SLOT_SIZE.y)
 
 
 ## The letters filled in, in order: short of CODE_LENGTH while a slot is empty.
