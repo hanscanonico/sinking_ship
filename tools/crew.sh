@@ -34,7 +34,7 @@
 # its game plays on, what it holds held still, as a player's would who looked away.
 # Free a seat that waits on the others — in the menus, or waiting on the board.
 #
-# The seats' windows share the one window lock, taken once for the crew (HEADLESS=1
+# The seats' windows share one window slot, taken once for the crew (HEADLESS=1
 # opens none and takes none: then `shot` fails, and the answers' text is all a seat
 # sees). Each seat has its own user folder, CREW/seatK/home, as a play session does.
 #
@@ -189,7 +189,7 @@ case "${1:-}" in
 	;;
 serve)
 	shift
-	# One window lock for every seat's window: each seat's own play.sh finds it held.
+	# One window slot for every seat's window: each seat's own play.sh finds it held.
 	if [[ "${HEADLESS:-0}" == 1 || -n "${WINDOW_LOCK_HELD:-}" ]]; then
 		serve "$@"
 	else

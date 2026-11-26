@@ -84,9 +84,11 @@ shared by every worktree). Once the PR is merged, remove its worktree:
 `tools/prune_worktrees.sh` names every worktree whose PR is merged and that holds nothing
 of its own, and `--remove` removes them.
 
-One game window at a time on this shared machine: `make capture` and `make fps` take the
-window lock themselves (`tools/window_lock.sh`, a kernel lock released on any exit) — never
-hand-roll a lock around them. Test engines are capped the same way, `make check`'s,
+At most `WINDOW_SLOTS` game windows at once on this shared machine (3 by default):
+`make capture`, `make play`, `make crew` (one slot for all its seats) and `make fps` take
+a window slot themselves (`tools/window_lock.sh`, kernel locks released on any exit, first
+come first served) — never hand-roll a lock around them. `make fps` takes every slot, so
+no other window draws while it measures. Test engines are capped the same way, `make check`'s,
 art-lint's and bake-check's with them: each takes one of `TEST_SLOTS` machine-wide slots
 (`tools/test_slot.sh`, half the cores by default) and then waits for a tenth of the
 machine's memory to be free, so a run that says it is waiting for a slot or for memory is
