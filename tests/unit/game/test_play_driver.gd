@@ -84,3 +84,22 @@ func test_the_flags_put_a_session_on_a_crews_clock() -> void:
 	)
 	assert_eq(args.crew_dir, "/tmp/crew/clock")
 	assert_eq(MatchArgs.parse(PackedStringArray()).crew_dir, "", "its frames its own")
+
+
+## A held seat waits on its next batch; freed then — its agent done with its turn — it
+## stops waiting and plays on, rather than holding the whole crew until a batch comes.
+func test_a_seat_freed_while_it_waits_stops_waiting() -> void:
+	var dir := "user://test_play_driver_freed"
+	DirAccess.make_dir_recursive_absolute(dir + "/in")
+	var driver := PlayDriver.new(dir, 2.0)
+	driver._crew = CrewClock.new(dir + "/clock", "seat1", false)
+	var free := FileAccess.open(dir + "/free", FileAccess.WRITE)
+	free.close()
+	var began := Time.get_ticks_msec()
+	assert_true(driver._take_batch(), "it plays on")
+	assert_lt(Time.get_ticks_msec() - began, 1000, "at once, not after its idle seconds")
+	assert_true(driver._queue.is_empty(), "with no command taken")
+	DirAccess.remove_absolute(dir + "/free")
+	DirAccess.remove_absolute(dir + "/in")
+	DirAccess.remove_absolute(dir)
+	driver.free()
