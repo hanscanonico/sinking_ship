@@ -7,8 +7,8 @@ extends CanvasLayer
 ## each action of play and of spectating (KeyBindings), picked by pressing it;
 ## Graphics — the window mode, VSync, a frame-rate cap, whether the frame rate shows,
 ## the graphics preset with a line on what it changes (GraphicsQuality), and the 3D
-## view's render scale, both this machine's own until the player picks them. Under every page, the language
-## the game speaks (Language), each under its own name. Each change applies as it is
+## view's render scale, both this machine's own until the player picks them. Under
+## every page, the language the game speaks (Language), each under its own name. Each change applies as it is
 ## made; closing saves them under user://.
 
 signal closed

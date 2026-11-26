@@ -1,8 +1,9 @@
 class_name ViewSettings
 extends Resource
 ## How the local player's first-person view turns and frames (D14), the window — its
-## mode, VSync, a frame-rate cap and whether the frame rate shows — and the graphics — the preset (GraphicsQuality)
-## and the 3D view's render scale, each this machine's own until the player picks one
+## mode, VSync, a frame-rate cap and whether the frame rate shows — and the graphics —
+## the preset (GraphicsQuality) and the 3D view's render scale, each this machine's own
+## until the player picks one
 ## — and the language the game speaks (Language), the system's until they pick one —
 ## with defaults. The settings screen saves them at PATH. Presentation only: none of it is
 ## ever sent, and no rule reads it.
