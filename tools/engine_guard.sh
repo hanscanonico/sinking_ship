@@ -40,7 +40,7 @@
 # file touched once the watch is set (both for the checks); ENGINE_GUARD_WATCH=0 watches
 # no requester.
 #
-# A game window holds the one window lock (tools/window_lock.sh) for as long as it runs,
+# A game window holds a window slot (tools/window_lock.sh) for as long as it runs,
 # so `make capture` and `make fps` bound it (#464), through the same watchdog:
 # ENGINE_GUARD_LIMIT=SECONDS stops the engine, and what it started, once it has run that
 # long, saying so, and the guard exits 124. ENGINE_GUARD_EARLY=1 stops it the moment its
