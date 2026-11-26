@@ -81,7 +81,8 @@ static func first_server(rules: ServerRules) -> String:
 ## and Rejoin when [param rejoin] names a room to go back to — its code in the boxes then,
 ## so Join goes there too and no earlier room's code is left in them. Back from a room
 ## with none to rejoin — [param left_room] — the boxes are emptied: the code in them is
-## an earlier room's, never the one just left. A code typed and refused stays, to mend.
+## an earlier room's, never the one just left. A code typed and refused stays, to mend,
+## the focus in its last slot: on Create, Enter to try again made a room instead.
 func open(note: String = "", rejoin: String = "", left_room: bool = false) -> void:
 	_rejoin = rejoin
 	_set_busy(false)
@@ -94,6 +95,8 @@ func open(note: String = "", rejoin: String = "", left_room: bool = false) -> vo
 		_rejoin_button.grab_focus()
 	elif _name.text.strip_edges().is_empty():
 		_name.grab_focus()
+	elif not note.is_empty() and not _code.code().is_empty():
+		_code.last_slot().grab_focus()
 	else:
 		_create.grab_focus()
 

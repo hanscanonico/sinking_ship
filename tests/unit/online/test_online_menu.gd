@@ -198,11 +198,14 @@ func test_a_code_is_typed_in_any_case() -> void:
 	assert_eq(_asked.size(), 1, "a short code is not asked for")
 
 
-## Typing the last letter moves on to Join; Backspace there takes that letter back, as
-## it would have in the slot, and typing goes on in it (seen played, 2026-11-26: the
-## keys went nowhere until the last slot was clicked).
-func test_backspace_from_join_takes_the_last_letter_back() -> void:
+## A code is mended from where the focus is left (seen played, 2026-11-26). Typing the
+## last letter moves on to Join; Backspace there takes that letter back, as it would
+## have in the slot, and typing goes on in it — the keys went nowhere until the last
+## slot was clicked. A code refused comes back with the focus in its last slot: on
+## Create, Enter to try again made a room instead.
+func test_a_code_is_mended_where_the_focus_is_left() -> void:
 	_open()
+	(_node("%Name") as LineEdit).text = "Ada"
 	var code: CodePicker = _node("%Code")
 	code.first_slot().grab_focus()
 	_type("mwmw")
@@ -215,6 +218,12 @@ func test_backspace_from_join_takes_the_last_letter_back() -> void:
 	assert_eq(get_viewport().gui_get_focus_owner(), code.get_child(3), "in the last slot")
 	_type("j")
 	assert_eq(code.code(), "MWMJ")
+	code.set_code("ZZZZ")
+	_menu.open("No room has that code: check it with the room's host.")
+	assert_eq(get_viewport().gui_get_focus_owner(), code.get_child(3), "in the last slot")
+	code.set_code("")
+	_menu.open("The connection to the server was lost.")
+	assert_eq(get_viewport().gui_get_focus_owner(), _node("%Create"), "no code: on Create")
 
 
 ## A refusal stands under the choices until the player mends what it was about: an
