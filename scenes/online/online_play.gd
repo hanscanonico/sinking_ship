@@ -1,8 +1,9 @@
 class_name OnlinePlay
 extends Node
 ## A person playing on a server (SH12), where the Online screen's OnlineLink says: it
-## connects, creates the room or joins it by its code, and shows the room (RoomScreen),
-## whose host starts the match. The match is the offline game's MatchScene, its seat
+## connects, creates the room, joins it by its code or asks for a quick game, and shows
+## the room (RoomScreen), whose host starts the match — a quick game's starting on its own.
+## The match is the offline game's MatchScene, its seat
 ## played from this player's keys, mouse and pad (LocalInputSource) through the server's
 ## RemoteMatch — or, for a player who chose to watch in the room, no seat at all: the
 ## match only watched, as a local Watch is (GLOSSARY: Watch). Esc opens the online
@@ -225,6 +226,8 @@ func _on_welcomed() -> void:
 	_welcomed = true
 	if _link.create:
 		_room.create_room()
+	elif _link.quick:
+		_room.quick_game()
 	else:
 		_room.join_room(_link.room)
 

@@ -240,6 +240,19 @@ func test_the_online_screen_links_are_checked_the_same() -> void:
 	var creating := OnlineLink.from_menu("ws://127.0.0.1:47923", true, "KXRT", "Bea", _rules)
 	assert_eq(creating.problems, PackedStringArray(), "a code beside Create is no problem")
 	assert_eq(creating.room, "")
+	var quick := OnlineLink.from_menu("ws://127.0.0.1:47923", false, "KX", "Bea", _rules, true)
+	assert_eq(quick.problems, PackedStringArray(), "a quick game names no room")
+	assert_true(quick.quick and not quick.create)
+	assert_eq(quick.room, "", "the code in the slots is left out")
+	assert_false(
+		(
+			OnlineLink
+			. from_menu("ws://127.0.0.1:47923", false, "", "<b>", _rules, true)
+			. problems
+			. is_empty()
+		),
+		"its name is checked all the same"
+	)
 	for bad: Array in [
 		["http://127.0.0.1:47923", true, "", "Bea"],
 		["ws://127.0.0.1:47923", false, "KXR", "Bea"],

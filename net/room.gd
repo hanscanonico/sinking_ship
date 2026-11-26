@@ -32,6 +32,11 @@ class Member:
 
 var code: String
 var phase := Phase.WAITING
+## Whether the room is a quick game's (RoomServer, QUICK): it starts on its own at
+## [member starts_at], or once it is full, and anyone asking for a quick game is put in.
+var quick := false
+## The server beat a waiting quick game starts at; -1 for any other room.
+var starts_at := -1
 var members: Array[Member] = []
 ## The match while it plays and lingers; null while the room waits.
 var host: MatchHost
@@ -187,6 +192,7 @@ func roster_for(peer: int) -> RoomRoster:
 	var roster := RoomRoster.new()
 	roster.code = code
 	roster.playing = phase != Phase.WAITING
+	roster.quick = quick
 	var hosting := host_peer()
 	for player: Member in members:
 		if player.gone and player.watching:

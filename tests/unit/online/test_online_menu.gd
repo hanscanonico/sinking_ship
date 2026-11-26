@@ -376,3 +376,17 @@ func test_back_and_cancel_leave() -> void:
 	(_node("%Back") as Button).pressed.emit()
 	_act(&"ui_cancel")
 	assert_signal_emit_count(_menu, "back_requested", 2)
+
+
+## Quick game asks for a quick game under the name typed, whatever code is in the boxes —
+## and remembers the name as Create and Join do.
+func test_quick_game_asks_for_one_with_no_code() -> void:
+	_open()
+	(_node("%Name") as LineEdit).text = "Ada"
+	(_node("%Quick") as Button).pressed.emit()
+	assert_eq(_asked.size(), 1)
+	assert_true(_asked[0].quick, "a quick game")
+	assert_false(_asked[0].create)
+	assert_eq(_asked[0].room, "")
+	assert_eq(_asked[0].player_name, "Ada")
+	assert_eq(OnlineSettings.read(SETTINGS_PATH).player_name, "Ada", "the name is remembered")

@@ -906,6 +906,18 @@ msgstr "Code du salon"
 msgid "Join"
 msgstr "Rejoindre"
 
+msgid "Quick game"
+msgstr "Partie rapide"
+
+msgid "Plays with everyone else waiting for one, bots on the empty seats."
+msgstr "Joue avec tous ceux qui en attendent une, des bots sur les places vides."
+
+msgid "Quick game: it starts in %d s with everyone aboard. Bots take the rest."
+msgstr "Partie rapide : elle commence dans %d s avec tous ceux à bord. Des bots prennent le reste."
+
+msgid "Quick game: starting…"
+msgstr "Partie rapide : lancement…"
+
 msgid "Create a room"
 msgstr "Créer un salon"
 

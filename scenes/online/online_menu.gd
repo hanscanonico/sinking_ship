@@ -1,8 +1,9 @@
 class_name OnlineMenu
 extends CanvasLayer
 ## The Online screen (SH12), over the main menu's backdrop: a display name — the rule the
-## server holds it to shown under it — then Create a room, or Join one by its code
-## (CodePicker). The server is never asked for: in a browser it is the page's own, and
+## server holds it to shown under it — then Create a room, Join one by its code
+## (CodePicker), or Quick game: play with everyone else asking for one, no code needed. The
+## server is never asked for: in a browser it is the page's own, and
 ## natively the release's public one, or the one a --server launch flag names. What the
 ## player chose becomes an OnlineLink, checked as every link is, and only a link with no
 ## problem is asked for; the name is remembered for the next run (OnlineSettings). What
@@ -33,6 +34,7 @@ var _busy := false
 @onready var _code: CodePicker = %Code
 @onready var _join: Button = %Join
 @onready var _create: Button = %Create
+@onready var _quick: Button = %Quick
 @onready var _rejoin_button: Button = %Rejoin
 @onready var _back: Button = %Back
 @onready var _status: Label = %Status
@@ -48,6 +50,7 @@ func _ready() -> void:
 	_code.lead_to(_join)
 	_create.pressed.connect(_submit.bind(true))
 	_join.pressed.connect(_submit.bind(false))
+	_quick.pressed.connect(_submit.bind(false, "", true, true))
 	_rejoin_button.pressed.connect(_on_rejoin)
 	_back.pressed.connect(back_requested.emit)
 	_settings = OnlineSettings.read(settings_path)
@@ -139,15 +142,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		back_requested.emit()
 
 
-## Asks to play what the player chose — [param creating] a room, or joining the code in
-## the slots, or [param code]'s — when it can be played, remembering the name when
-## [param remember] says; says what is wrong otherwise.
-func _submit(creating: bool, code: String = "", remember: bool = true) -> void:
+## Asks to play what the player chose — [param creating] a room, joining the code in
+## the slots, or [param code]'s, or [param quick] a quick game — when it can be played,
+## remembering the name when [param remember] says; says what is wrong otherwise.
+func _submit(creating: bool, code: String = "", remember: bool = true, quick: bool = false) -> void:
 	if _busy:
 		return
 	var server := page_server if on_web else server_url
 	var joining := code if not code.is_empty() else _code.code()
-	var link := OnlineLink.from_menu(server, creating, joining, _name.text, _rules)
+	var link := OnlineLink.from_menu(server, creating, joining, _name.text, _rules, quick)
 	if not link.problems.is_empty():
 		_say(link.problems[0], true)
 		return
@@ -167,7 +170,7 @@ func _on_rejoin() -> void:
 func _set_busy(busy: bool) -> void:
 	_busy = busy
 	_name.editable = not busy
-	for button: Button in [_create, _join, _rejoin_button]:
+	for button: Button in [_create, _join, _quick, _rejoin_button]:
 		button.disabled = busy
 	for slot: Node in _code.get_children():
 		(slot as Button).disabled = busy

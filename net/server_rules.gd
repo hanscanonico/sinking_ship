@@ -57,6 +57,10 @@ const NAME_PUNCTUATION := " -_.'"
 ## client builds the match scene in one frame, answering nothing meanwhile — seconds on
 ## a slow machine, longer than silence_timeout on a loaded one. At least silence_timeout.
 @export var load_timeout: float
+## How long a quick game waits for more players once its first is aboard (QUICK): then
+## it starts with whoever is in it, bots on the seats nobody holds — at once when it
+## fills first. Its room waits as long again after each match.
+@export var quick_wait: float = 15.0
 ## How long a finished match keeps sending its last snapshot before its room goes back
 ## to waiting.
 @export var finished_linger: float
@@ -139,6 +143,7 @@ func problems() -> PackedStringArray:
 		"attempt_refill",
 		"start_cooldown",
 		"finished_linger",
+		"quick_wait",
 		"refusal_linger",
 		"ping_interval",
 		"log_interval",

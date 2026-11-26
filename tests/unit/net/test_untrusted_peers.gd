@@ -541,3 +541,26 @@ func test_a_watcher_is_held_to_the_silence_once_loaded() -> void:
 	fixture.beat(ServerRules.beats(fixture.rules.silence_timeout))
 	assert_true(fixture.logged("went silent"), "silent past silence_timeout, it is let go")
 	assert_false(fixture.logged("loading its match"))
+
+
+## Quick games on the wire: QUICK carries nothing, and a roster says whether its room is a
+## quick game and how long it waits yet — a wait on a room that is none is nothing.
+func test_a_quick_game_s_roster_comes_through() -> void:
+	var codec := RoomCodec.new(
+		RoomServer.data_hash(load(RoomFixtures.MATCH_DATA), NetRules.load_default())
+	)
+	var quick := codec.decode(codec.encode_bare(WireCodec.Kind.QUICK))
+	assert_eq(quick.kind, WireCodec.Kind.QUICK)
+	var roster := RoomRoster.new()
+	roster.code = "ABCD"
+	roster.you = 0
+	roster.players.append(RoomRoster.Player.new("Ada", true, false))
+	roster.quick = true
+	roster.starts_in = 300
+	var read := codec.decode(codec.encode_roster(roster)).roster
+	assert_true(read.quick)
+	assert_eq(read.starts_in, 300)
+	roster.quick = false
+	assert_null(codec.decode(codec.encode_roster(roster)), "a wait for no quick game")
+	roster.starts_in = 0
+	assert_false(codec.decode(codec.encode_roster(roster)).roster.quick)

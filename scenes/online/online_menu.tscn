@@ -67,6 +67,16 @@ size_flags_horizontal = 3
 size_flags_vertical = 4
 text = "Join"
 
+[node name="Quick" type="Button" parent="Panel/Box"]
+unique_name_in_owner = true
+text = "Quick game"
+
+[node name="QuickRule" type="Label" parent="Panel/Box"]
+custom_minimum_size = Vector2(380, 0)
+theme_type_variation = &"HintLabel"
+autowrap_mode = 3
+text = "Plays with everyone else waiting for one, bots on the empty seats."
+
 [node name="Status" type="Label" parent="Panel/Box"]
 unique_name_in_owner = true
 visible = false

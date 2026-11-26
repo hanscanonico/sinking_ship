@@ -8,7 +8,9 @@ extends CanvasLayer
 ## watch the match without a seat, while the room waits (GLOSSARY: Watch). The host's
 ## Start asks for the match once per showing — until the server's answer, a refusal
 ## or the room changed shows the room again — and is there but dead for everyone else,
-## who wait for the host, and while everyone in the room watches. Leave room, and ui_cancel, leave.
+## who wait for the host, and while everyone in the room watches. A quick game counts
+## down to the moment it starts on its own, its host still free to start it sooner. Leave
+## room, and ui_cancel, leave.
 ##
 ## Every name in it is another player's typing, so it is a plain Label, cut short with
 ## an ellipsis where it is too long for its seat's line.
@@ -38,6 +40,10 @@ var _asked := false
 var _ended := false
 ## Whether the host pressed Start while that match lingered: asked for once it is gone.
 var _queued := false
+## When a waiting quick game starts, on the engine's clock in msec; -1 for no such room.
+var _quick_ends_msec := -1
+## The seconds left the status last said; -1 when it said none.
+var _shown_seconds := -1
 
 @onready var _panel: PanelContainer = $Panel
 @onready var _code: Label = %Code
@@ -85,20 +91,10 @@ func show_room(roster: RoomRoster, note: String = "", ended: bool = false) -> vo
 	_start.disabled = (roster.playing and not _ended) or not hosting or _queued or nobody_plays
 	_watch.set_pressed_no_signal(roster.you_watch())
 	_watch.disabled = roster.playing
-	if _ended:
-		_status.text = Language.t("That match is over: the room opens again in a moment.")
-	elif roster.playing:
-		_status.text = Language.t("A match is on in this room: it waits for that one to end.")
-	elif hosting and nobody_plays:
-		_status.text = Language.t("Everyone here watches: someone has to play.")
-	elif hosting:
-		_status.text = Language.t(
-			"You host: start when everyone is aboard. Bots take the empty seats."
-		)
-	else:
-		_status.text = Language.t("Waiting for the host to start.")
-	if roster.you_watch() and not roster.playing and not (hosting and nobody_plays):
-		_status.text += Language.t(" You watch: you take no seat.")
+	_quick_ends_msec = -1
+	if roster.quick and not roster.playing:
+		_quick_ends_msec = Time.get_ticks_msec() + int(Ticks.to_seconds(roster.starts_in) * 1000.0)
+	_show_status()
 	_show_seats(roster)
 	show()
 	var focused := get_viewport().gui_get_focus_owner()
@@ -111,6 +107,50 @@ func show_room(roster: RoomRoster, note: String = "", ended: bool = false) -> vo
 ## The panel the backdrop's ship stands beside.
 func panel() -> Control:
 	return _panel
+
+
+# A waiting quick game counts down to its start, a second at a time.
+func _process(_delta: float) -> void:
+	if visible and _quick_ends_msec >= 0 and _seconds_left() != _shown_seconds:
+		_show_status()
+
+
+## The whole seconds until a waiting quick game starts, as its roster said.
+func _seconds_left() -> int:
+	return ceili(maxi(_quick_ends_msec - Time.get_ticks_msec(), 0) / 1000.0)
+
+
+## What the room is waiting for, under its code.
+func _show_status() -> void:
+	var roster := _roster
+	var hosting := roster.you_host()
+	var nobody_plays := roster.seated().is_empty()
+	_shown_seconds = _seconds_left() if _quick_ends_msec >= 0 else -1
+	if _ended:
+		_status.text = Language.t("That match is over: the room opens again in a moment.")
+	elif roster.playing:
+		_status.text = Language.t("A match is on in this room: it waits for that one to end.")
+	elif nobody_plays and (hosting or roster.quick):
+		_status.text = Language.t("Everyone here watches: someone has to play.")
+	elif roster.quick and _shown_seconds > 0:
+		_status.text = (
+			Language.t("Quick game: it starts in %d s with everyone aboard. Bots take the rest.")
+			% _shown_seconds
+		)
+	elif roster.quick:
+		_status.text = Language.t("Quick game: starting…")
+	elif hosting:
+		_status.text = Language.t(
+			"You host: start when everyone is aboard. Bots take the empty seats."
+		)
+	else:
+		_status.text = Language.t("Waiting for the host to start.")
+	if (
+		roster.you_watch()
+		and not roster.playing
+		and not (nobody_plays and (hosting or roster.quick))
+	):
+		_status.text += Language.t(" You watch: you take no seat.")
 
 
 func _unhandled_input(event: InputEvent) -> void:

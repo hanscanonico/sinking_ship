@@ -3,8 +3,9 @@ extends RefCounted
 ## A room as the players in it see it (SH12): its code, whether its match is on, and
 ## its players in the order they joined — the first the room's host, any whose client
 ## has gone mid-match played by a bot, and any who watch seatless (seated() lists the
-## rest, in seat order). What a menu shows; the server sends one to each
-## player whenever it changes.
+## rest, in seat order) — and whether it is a quick game, which starts on its own
+## (RoomServer, QUICK). What a menu shows; the server sends one to each player whenever
+## it changes.
 
 
 ## One player of the room.
@@ -27,6 +28,10 @@ class Player:
 
 var code := ""
 var playing := false
+## Whether the room is a quick game's: its match starts on its own, with whoever is in it.
+var quick := false
+## Ticks until a waiting quick game starts, as the roster was sent; 0 for none counting.
+var starts_in := 0
 var players: Array[Player] = []
 ## The receiving player's place in [member players]; -1 when not known.
 var you := -1
