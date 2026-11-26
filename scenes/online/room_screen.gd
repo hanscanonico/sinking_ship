@@ -29,6 +29,8 @@ var seats := 0
 var server_url := ""
 ## Whether this runs in a browser: only a page has an address to invite to.
 var on_web := OS.has_feature("web")
+## The clock a quick game counts down on, in msec: the engine's unless a test's.
+var clock := Callable(Time, &"get_ticks_msec")
 
 ## The room shown; null while none is.
 var _roster: RoomRoster
@@ -38,9 +40,11 @@ var _asked := false
 ## the server holds a finished match a moment (ServerRules.finished_linger) before the
 ## room waits for its host again.
 var _ended := false
+## Whether the match the room shows as on is this player's own, begun and being made.
+var _begun := false
 ## Whether the host pressed Start while that match lingered: asked for once it is gone.
 var _queued := false
-## When a waiting quick game starts, on the engine's clock in msec; -1 for no such room.
+## When a waiting quick game starts, on [member clock] in msec; -1 for no such room.
 var _quick_ends_msec := -1
 ## The seconds left the status last said; -1 when it said none.
 var _shown_seconds := -1
@@ -71,11 +75,21 @@ func _ready() -> void:
 ## Shows [param roster]'s room, and [param note] — a refusal, say — under it; [param ended]
 ## when the match it shows as on is the one this player has just seen end (back from the
 ## results): the room then says it opens again in a moment, and a Start pressed meanwhile
-## is asked for as soon as it does.
-func show_room(roster: RoomRoster, note: String = "", ended: bool = false) -> void:
+## is asked for as soon as it does. A quick game counts down from [param heard_msec], when
+## its roster came on [member clock] — now when -1 — as the player may have been in a
+## match, or its results, since. [param begun] when the match the roster shows as on is
+## this player's next, begun and still being made: the room says it is coming, not busy.
+func show_room(
+	roster: RoomRoster,
+	note: String = "",
+	ended: bool = false,
+	heard_msec: int = -1,
+	begun: bool = false
+) -> void:
 	var hosting := roster.you_host()
 	var same := _roster != null and _roster.code == roster.code
 	_ended = roster.playing and (ended or _ended and same)
+	_begun = roster.playing and begun and not _ended
 	var start_now := _queued and not roster.playing and hosting
 	_queued = _queued and _ended and hosting
 	_roster = roster
@@ -93,7 +107,8 @@ func show_room(roster: RoomRoster, note: String = "", ended: bool = false) -> vo
 	_watch.disabled = roster.playing
 	_quick_ends_msec = -1
 	if roster.quick and not roster.playing:
-		_quick_ends_msec = Time.get_ticks_msec() + int(Ticks.to_seconds(roster.starts_in) * 1000.0)
+		var heard: int = heard_msec if heard_msec >= 0 else clock.call()
+		_quick_ends_msec = heard + int(Ticks.to_seconds(roster.starts_in) * 1000.0)
 	_show_status()
 	_show_seats(roster)
 	show()
@@ -117,7 +132,7 @@ func _process(_delta: float) -> void:
 
 ## The whole seconds until a waiting quick game starts, as its roster said.
 func _seconds_left() -> int:
-	return ceili(maxi(_quick_ends_msec - Time.get_ticks_msec(), 0) / 1000.0)
+	return ceili(maxi(_quick_ends_msec - (clock.call() as int), 0) / 1000.0)
 
 
 ## What the room is waiting for, under its code.
@@ -128,6 +143,8 @@ func _show_status() -> void:
 	_shown_seconds = _seconds_left() if _quick_ends_msec >= 0 else -1
 	if _ended:
 		_status.text = Language.t("That match is over: the room opens again in a moment.")
+	elif _begun:
+		_status.text = Language.t("The match begins: it shows in a moment.")
 	elif roster.playing:
 		_status.text = Language.t("A match is on in this room: it waits for that one to end.")
 	elif nobody_plays:
