@@ -161,8 +161,10 @@ func _process(_delta: float) -> void:
 				_answer()
 			if _runs_free():
 				return
+			# None taken: the session is over, or the seat was freed while it waited.
 			if not _take_batch():
 				get_tree().quit()
+			if _queue.is_empty():
 				return
 		if not _run(_queue.pop_front()):
 			return
@@ -250,13 +252,17 @@ func _runs_free() -> bool:
 
 
 ## The next batch's commands, waited for with the game held; false when the wait is over
-## with none — nobody fed it, or the window was closed.
+## with none — nobody fed it, or the window was closed. A crew's seat freed while it
+## waits (tools/crew.sh free, after a held seat's last batch) stops waiting: true, with
+## no command queued, and the game plays on.
 func _take_batch() -> bool:
 	var path := _dir.path_join("in/%04d.txt" % (_batch + 1))
 	var since := Time.get_ticks_msec()
 	while not FileAccess.file_exists(path):
 		if _closing:
 			return false
+		if _crew != null and FileAccess.file_exists(_dir.path_join("free")):
+			return true
 		if Time.get_ticks_msec() - since > idle_seconds * 1000.0:
 			print("play: no batch for %d s: quitting" % roundi(idle_seconds))
 			return false
@@ -481,13 +487,24 @@ func _met(condition: PackedStringArray) -> bool:
 
 
 ## The seat this session plays: online, the one the server gave it, not always the
-## first; a watcher's answers go on telling of the first.
+## first. A watcher, who plays none, is told of the seat whose eyes it watches through
+## (spectate_next and the rest turn them).
 func _local_seat() -> int:
 	if not is_instance_valid(_match):
 		return MatchScene.LOCAL_SEAT
-	# Read where the match keeps it: its file has no line to spare for a way to ask.
-	var seat: int = _match._local_seat
-	return seat if seat >= 0 else MatchScene.LOCAL_SEAT
+	# Read where the match keeps them: its file has no line to spare for a way to ask.
+	var viewed := -1
+	if _match._local_seat < 0 and _match._order != null and not _snapshot().is_empty():
+		viewed = _match._viewed()
+	return told_seat(_match._local_seat, viewed)
+
+
+## The seat an answer tells of: the [param local] one played, or for a watcher (-1) the
+## [param viewed] one, whose eyes it looks through; the first when neither is known.
+static func told_seat(local: int, viewed: int) -> int:
+	if local >= 0:
+		return local
+	return viewed if viewed >= 0 else MatchScene.LOCAL_SEAT
 
 
 func _snapshot() -> Dictionary:

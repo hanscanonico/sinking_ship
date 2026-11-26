@@ -2,6 +2,10 @@ extends GutTest
 ## The played session's driver (PlayDriver, make play): how a batch's lines become
 ## commands, and what an answer says of the match and of its events.
 
+## A session's folder, freed (tools/crew.sh free).
+const FREED_DIR := "user://test_play_driver_freed"
+const FREED_FILE := "user://test_play_driver_freed/free"
+
 
 func test_a_line_is_its_words_and_a_quoted_one_stays_whole() -> void:
 	assert_eq(
@@ -66,6 +70,12 @@ func test_online_an_answer_tells_of_the_seat_the_server_gave() -> void:
 	assert_false(PlayDriver.tells(landed.to_dict(), 0), "a shove on someone else's seat")
 
 
+func test_a_watcher_is_told_of_the_seat_it_watches() -> void:
+	assert_eq(PlayDriver.told_seat(2, 5), 2, "a player, of the seat played")
+	assert_eq(PlayDriver.told_seat(-1, 5), 5, "a watcher, of the seat whose eyes it has")
+	assert_eq(PlayDriver.told_seat(-1, -1), MatchScene.LOCAL_SEAT, "else of the first")
+
+
 func test_an_answer_leaves_the_bots_own_brawl_out() -> void:
 	var theirs := SimEvent.new(SimEvent.Kind.SHOVE_LANDED, 45, 2)
 	theirs.target = 3
@@ -84,3 +94,22 @@ func test_the_flags_put_a_session_on_a_crews_clock() -> void:
 	)
 	assert_eq(args.crew_dir, "/tmp/crew/clock")
 	assert_eq(MatchArgs.parse(PackedStringArray()).crew_dir, "", "its frames its own")
+
+
+## A held seat waits on its next batch; freed then — its agent done with its turn — it
+## stops waiting and plays on, rather than holding the whole crew until a batch comes.
+func test_a_seat_freed_while_it_waits_stops_waiting() -> void:
+	var dir := FREED_DIR
+	DirAccess.make_dir_recursive_absolute(dir + "/in")
+	var driver := PlayDriver.new(dir, 2.0)
+	driver._crew = CrewClock.new(dir + "/clock", "seat1", false)
+	var free := FileAccess.open(FREED_FILE, FileAccess.WRITE)
+	free.close()
+	var began := Time.get_ticks_msec()
+	assert_true(driver._take_batch(), "it plays on")
+	assert_lt(Time.get_ticks_msec() - began, 1000, "at once, not after its idle seconds")
+	assert_true(driver._queue.is_empty(), "with no command taken")
+	DirAccess.remove_absolute(FREED_FILE)
+	DirAccess.remove_absolute(dir + "/in")
+	DirAccess.remove_absolute(dir)
+	driver.free()
