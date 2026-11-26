@@ -83,12 +83,25 @@ func first_slot() -> Button:
 
 
 ## Makes [param next] — the Join button — what follows the last slot, whether typed past
-## or reached to the right, and what leads back to it.
+## or reached to the right, and what leads back to it: Backspace on it too, taking the
+## last letter back as it would in the last slot.
 func lead_to(next: Control) -> void:
 	_after = next
 	var last := _slots[-1]
 	last.focus_neighbor_right = last.get_path_to(next)
 	next.focus_neighbor_left = next.get_path_to(last)
+	next.gui_input.connect(_on_after_input.bind(next))
+
+
+func _on_after_input(event: InputEvent, next: Control) -> void:
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.keycode != KEY_BACKSPACE:
+		return
+	var before := code()
+	_erase(_slots.size() - 1)
+	next.accept_event()
+	if code() != before:
+		edited.emit()
 
 
 func _on_slot_input(event: InputEvent, index: int) -> void:
