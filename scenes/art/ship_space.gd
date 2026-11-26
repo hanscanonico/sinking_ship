@@ -321,6 +321,19 @@ func floor_beneath(platform: ShipPlatform) -> float:
 	return beneath if beneath != -INF else platform.height
 
 
+## The underside of the lowest deck over all of [param area] whose underside stands over
+## [param height] by [param reach] at most; NAN when none.
+func underside_over(area: Rect2, height: float, reach: float) -> float:
+	var lowest := INF
+	for index: int in _platforms_near(area):
+		var platform := layout.platforms[index]
+		var under := platform.height - ShipArt.PLANK
+		if under > height + SLIVER and under <= height + reach and under < lowest:
+			if platform.area.grow(SLIVER).encloses(area):
+				lowest = under
+	return NAN if lowest == INF else lowest
+
+
 ## The highest deck at or below [param height] under [param point]; NAN when none.
 ## Asked a hundred thousand times as she is dressed: it reads the one cell of _deck_grid
 ## holding the point, its platforms highest first, and stops at the first under the
