@@ -1888,7 +1888,7 @@ top = -1.3583
 script = ExtResource("3_block")
 area = Rect2(-70.83, -6.6, 0.79, 0.1)
 bottom = -2.3583
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_engine_port_hi0_0"]
 script = ExtResource("3_block")
@@ -1912,7 +1912,7 @@ top = -1.3583
 script = ExtResource("3_block")
 area = Rect2(-70.83, -5.4, 0.79, 0.1)
 bottom = -2.3583
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_engine_starboard_lo0_0"]
 script = ExtResource("3_block")
@@ -1936,7 +1936,7 @@ top = -1.3583
 script = ExtResource("3_block")
 area = Rect2(-70.83, 5.3, 0.79, 0.1)
 bottom = -2.3583
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_engine_starboard_hi0_0"]
 script = ExtResource("3_block")
@@ -1960,7 +1960,7 @@ top = -1.3583
 script = ExtResource("3_block")
 area = Rect2(-70.83, 6.5, 0.79, 0.1)
 bottom = -2.3583
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_boat_port_lo0_0"]
 script = ExtResource("3_block")

@@ -83328,25 +83328,25 @@ to = Vector2(104.85, 0.4)
 script = ExtResource("3_block")
 area = Rect2(-71.7625, -2.6625, 0.5793, 0.1)
 bottom = 7.21
-top = 7.675
+top = 8.375
 
 [sub_resource type="Resource" id="Blocker_side_boat_second_class_staircase_0_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-71.7625, -0.8125, 0.5793, 0.1)
 bottom = 7.21
-top = 7.675
+top = 8.375
 
 [sub_resource type="Resource" id="Blocker_side_boat_grand_staircase_1_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(31.7033, -2.6, 0.8092, 0.1)
 bottom = 7.21
-top = 7.675
+top = 8.375
 
 [sub_resource type="Resource" id="Blocker_side_boat_grand_staircase_1_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(31.7033, -0.0625, 0.2396, 0.1)
 bottom = 7.21
-top = 7.675
+top = 8.375
 
 [sub_resource type="Resource" id="Blocker_side_boat_ladder_2_lo0_0"]
 script = ExtResource("3_block")
@@ -83436,25 +83436,25 @@ top = 10.575
 script = ExtResource("3_block")
 area = Rect2(62.6125, -10.975, 0.5793, 0.1)
 bottom = 7.21
-top = 7.675
+top = 8.375
 
 [sub_resource type="Resource" id="Blocker_side_boat_ladder_9_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(62.225, -9.875, 0.9668, 0.1)
 bottom = 7.21
-top = 7.675
+top = 8.375
 
 [sub_resource type="Resource" id="Blocker_side_boat_ladder_10_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(62.6125, 9.9625, 0.5793, 0.1)
 bottom = 7.21
-top = 7.675
+top = 8.375
 
 [sub_resource type="Resource" id="Blocker_side_boat_ladder_10_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(62.6125, 11.125, 0.5793, 0.1)
 bottom = 7.21
-top = 7.675
+top = 8.375
 
 [sub_resource type="Resource" id="Blocker_side_a_ladder_0_lo0_0"]
 script = ExtResource("3_block")
@@ -83532,55 +83532,55 @@ top = 6.5
 script = ExtResource("3_block")
 area = Rect2(-69.0325, 0.775, 0.3575, 0.1)
 bottom = 4.46
-top = 4.7109
+top = 5.5
 
 [sub_resource type="Resource" id="Blocker_side_a_second_class_staircase_2_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-69.1398, 2.875, 0.8432, 0.1)
 bottom = 4.46
-top = 4.8
+top = 5.5
 
 [sub_resource type="Resource" id="Blocker_side_a_after_grand_staircase_3_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-39.8455, -2.225, 0.608, 0.1)
 bottom = 4.46
-top = 4.8
+top = 5.5
 
 [sub_resource type="Resource" id="Blocker_side_a_after_grand_staircase_3_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-39.8455, 1.9375, 0.608, 0.1)
 bottom = 4.46
-top = 4.8
+top = 5.5
 
 [sub_resource type="Resource" id="Blocker_side_a_grand_staircase_4_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(31.375, 0.025, 0.0625, 0.1)
 bottom = 4.46
-top = 4.8
+top = 5.5
 
 [sub_resource type="Resource" id="Blocker_side_a_grand_staircase_4_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(30.925, 2.9375, 0.5125, 0.1)
 bottom = 4.46
-top = 4.8
+top = 5.5
 
 [sub_resource type="Resource" id="Blocker_side_b_second_class_stairway_0_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-88.5148, -2.7875, 0.4648, 0.1)
 bottom = 1.71
-top = 2.05
+top = 2.75
 
 [sub_resource type="Resource" id="Blocker_side_b_second_class_stairway_0_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-88.5148, -1.625, 0.4648, 0.1)
 bottom = 1.71
-top = 2.05
+top = 2.75
 
 [sub_resource type="Resource" id="Blocker_side_b_second_class_staircase_1_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-70.4523, -1.625, 0.4648, 0.1)
 bottom = 1.71
-top = 2.05
+top = 2.75
 
 [sub_resource type="Resource" id="Blocker_side_b_ladder_2_lo0_0"]
 script = ExtResource("3_block")
@@ -83670,73 +83670,73 @@ top = 3.1917
 script = ExtResource("3_block")
 area = Rect2(-43.7, 1.9, 0.4886, 0.1)
 bottom = 1.71
-top = 2.05
+top = 2.75
 
 [sub_resource type="Resource" id="Blocker_side_b_after_grand_staircase_5_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-43.7, 2.875, 0.4886, 0.1)
 bottom = 1.71
-top = 2.05
+top = 2.75
 
 [sub_resource type="Resource" id="Blocker_side_b_grand_staircase_6_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(30.925, -3.0375, 0.4886, 0.1)
 bottom = 1.71
-top = 2.05
+top = 2.75
 
 [sub_resource type="Resource" id="Blocker_side_b_grand_staircase_6_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(31.3523, -0.125, 0.0613, 0.1)
 bottom = 1.71
-top = 2.05
+top = 2.75
 
 [sub_resource type="Resource" id="Blocker_side_c_third_class_stairway_0_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-113.3125, -1.5375, 0.1414, 0.1)
 bottom = -2.1875
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_c_second_class_stairway_2_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-93.45, 0.7125, 0.545, 0.1)
 bottom = -1.2275
-top = -0.8661
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_c_second_class_staircase_3_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-68.375, 0.9625, 0.95, 0.1)
 bottom = -1.4775
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_c_grand_staircase_5_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(31.0515, 0.025, 0.5735, 0.1)
 bottom = -1.4775
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_c_grand_staircase_5_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(30.675, 2.9375, 0.95, 0.1)
 bottom = -1.4775
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_c_third_class_ladderway_6_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(94.9164, -7.1, 0.6586, 0.1)
 bottom = 0.46
-top = 0.8625
+top = 1.5625
 
 [sub_resource type="Resource" id="Blocker_side_c_third_class_ladderway_6_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(94.9164, -4.625, 0.6586, 0.1)
 bottom = 0.46
-top = 0.8625
+top = 1.5625
 
 [sub_resource type="Resource" id="Blocker_side_c_third_class_ladderway_7_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(94.9789, 4.775, 0.6586, 0.1)
 bottom = 0.46
-top = 0.8625
+top = 1.5625
 
 [sub_resource type="Resource" id="Blocker_side_c_crew_s_stair_8_hi0_0"]
 script = ExtResource("3_block")
@@ -83748,13 +83748,13 @@ top = 0.8625
 script = ExtResource("3_block")
 area = Rect2(101.1664, 4.025, 0.6586, 0.1)
 bottom = 0.46
-top = 0.8625
+top = 1.5625
 
 [sub_resource type="Resource" id="Blocker_side_d_third_class_stairway_0_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-114.9542, -2.9125, 0.7959, 0.1)
 bottom = -4.2275
-top = -2.8875
+top = -2.1875
 
 [sub_resource type="Resource" id="Blocker_side_d_third_class_stairway_0_lo0_1"]
 script = ExtResource("3_block")
@@ -83766,7 +83766,7 @@ top = -3.5697
 script = ExtResource("3_block")
 area = Rect2(-114.9542, -1.5, 0.7959, 0.1)
 bottom = -4.2275
-top = -2.8875
+top = -2.1875
 
 [sub_resource type="Resource" id="Blocker_side_d_third_class_stairway_0_hi0_1"]
 script = ExtResource("3_block")
@@ -83784,19 +83784,19 @@ top = -3.6375
 script = ExtResource("3_block")
 area = Rect2(-70.1784, -1.0625, 0.4409, 0.1)
 bottom = -4.2275
-top = -3.8875
+top = -3.1875
 
 [sub_resource type="Resource" id="Blocker_side_d_stair_4_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-64.1, -10.7409, 0.1, 0.8273)
 bottom = -4.2275
-top = -3.8875
+top = -3.1875
 
 [sub_resource type="Resource" id="Blocker_side_d_stair_4_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-62.9375, -10.7409, 0.1, 0.4409)
 bottom = -4.2275
-top = -3.8875
+top = -3.1875
 
 [sub_resource type="Resource" id="Blocker_side_d_stewards_staircase_5_hi0_0"]
 script = ExtResource("3_block")
@@ -83808,13 +83808,13 @@ top = -4.2491
 script = ExtResource("3_block")
 area = Rect2(31.05, -0.0625, 0.4886, 0.1)
 bottom = -4.2275
-top = -3.8875
+top = -3.1875
 
 [sub_resource type="Resource" id="Blocker_side_d_stair_7_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(36.2375, -5.8125, 0.1934, 0.1)
 bottom = -4.2275
-top = -4.1428
+top = -3.1875
 
 [sub_resource type="Resource" id="Blocker_side_d_firemen_s_spiral_staircase_8_lo0_0"]
 script = ExtResource("3_block")
@@ -83832,7 +83832,7 @@ top = -2.7065
 script = ExtResource("3_block")
 area = Rect2(100.15, -1.3198, 0.1, 0.8876)
 bottom = -3.7065
-top = -1.95
+top = -1.25
 
 [sub_resource type="Resource" id="Blocker_side_d_firemen_s_spiral_staircase_8_hi0_0"]
 script = ExtResource("3_block")
@@ -83850,7 +83850,7 @@ top = -2.7065
 script = ExtResource("3_block")
 area = Rect2(101.375, -1.3198, 0.1, 0.8876)
 bottom = -3.7065
-top = -1.95
+top = -1.25
 
 [sub_resource type="Resource" id="Blocker_side_d_firemen_s_spiral_staircase_9_lo0_0"]
 script = ExtResource("3_block")
@@ -83886,7 +83886,7 @@ top = -2.7185
 script = ExtResource("3_block")
 area = Rect2(103.5, 0.8536, 0.1, 0.9017)
 bottom = -3.7185
-top = -1.95
+top = -1.25
 
 [sub_resource type="Resource" id="Blocker_side_d_third_class_ladder_11_hi0_0"]
 script = ExtResource("3_block")
@@ -83922,13 +83922,13 @@ top = -6.6375
 script = ExtResource("3_block")
 area = Rect2(-91.45, -6.0375, 0.3232, 0.1)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_second_class_stairway_2_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-92.325, 1.15, 0.3232, 0.1)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_second_class_staircase_3_hi0_0"]
 script = ExtResource("3_block")
@@ -83940,19 +83940,19 @@ top = -6.6375
 script = ExtResource("3_block")
 area = Rect2(-65, 10.1268, 0.1, 0.3232)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_ladder_6_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-45.5167, -9.5, 0.6593, 0.1)
 bottom = -7.0813
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_ladder_7_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-19.4762, -7.1, 0.3012, 0.1)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_third_class_ladderway_8_lo0_0"]
 script = ExtResource("3_block")
@@ -83970,19 +83970,19 @@ top = -6.6375
 script = ExtResource("3_block")
 area = Rect2(51.4875, -6.85, 0.2792, 0.1)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_linen_drying_room_s_ladder_10_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(51.4875, -5.8125, 0.2792, 0.1)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_turkish_bath_stair_11_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(34.3125, -0.1375, 0.1, 0.2792)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_ladder_12_lo0_0"]
 script = ExtResource("3_block")
@@ -83994,25 +83994,25 @@ top = -6.6375
 script = ExtResource("3_block")
 area = Rect2(72.817, 4.3125, 0.3205, 0.1)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_third_class_ladder_15_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(96.05, 4.7125, 0.3232, 0.1)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_third_class_ladder_15_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(96.05, 5.8125, 0.3232, 0.1)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_e_firemen_s_spiral_staircase_16_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(102.375, -0.1375, 0.1, 0.3232)
 bottom = -6.8525
-top = -6.6375
+top = -5.9375
 
 [sub_resource type="Resource" id="Blocker_side_f_third_class_stairway_0_lo0_0"]
 script = ExtResource("3_block")
@@ -84024,7 +84024,7 @@ top = -9.2625
 script = ExtResource("3_block")
 area = Rect2(-69.25, -9.975, 0.2827, 0.1)
 bottom = -9.3712
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_f_stair_3_hi0_0"]
 script = ExtResource("3_block")
@@ -84252,7 +84252,7 @@ top = -16.0447
 script = ExtResource("3_block")
 area = Rect2(110.2959, 0.3375, 0.5583, 0.1)
 bottom = -16.4775
-top = -15.575
+top = -14.875
 
 [sub_resource type="Resource" id="Blocker_side_space_lower_orlop_hold_ladder_0_hi0_0"]
 script = ExtResource("3_block")
@@ -84626,7 +84626,7 @@ top = -14.7812
 script = ExtResource("3_block")
 area = Rect2(-21.8125, -9.2005, 0.1, 0.8994)
 bottom = -11.032
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_1_f_hi0_1"]
 script = ExtResource("3_block")
@@ -84710,7 +84710,7 @@ top = -12.2681
 script = ExtResource("3_block")
 area = Rect2(-3.75, -6.263, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_2_f_hi0_1"]
 script = ExtResource("3_block")
@@ -84764,7 +84764,7 @@ top = -15.6986
 script = ExtResource("3_block")
 area = Rect2(-12.5625, -10.4505, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_2_a_hi0_1"]
 script = ExtResource("3_block")
@@ -84848,7 +84848,7 @@ top = -12.375
 script = ExtResource("3_block")
 area = Rect2(15.125, -6.388, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_3_f_hi0_1"]
 script = ExtResource("3_block")
@@ -84908,7 +84908,7 @@ top = -16.45
 script = ExtResource("3_block")
 area = Rect2(5.9375, -6.3255, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_3_a_hi0_1"]
 script = ExtResource("3_block")
@@ -84962,7 +84962,7 @@ top = -15.6986
 script = ExtResource("3_block")
 area = Rect2(22.4625, -8.2005, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_4_a_lo0_1"]
 script = ExtResource("3_block")
@@ -85016,7 +85016,7 @@ top = -15.6986
 script = ExtResource("3_block")
 area = Rect2(23.8125, -8.2005, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_4_a_hi0_1"]
 script = ExtResource("3_block")
@@ -85100,7 +85100,7 @@ top = -12.2681
 script = ExtResource("3_block")
 area = Rect2(50, -6.263, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_5_f_hi0_1"]
 script = ExtResource("3_block")
@@ -85154,7 +85154,7 @@ top = -15.6986
 script = ExtResource("3_block")
 area = Rect2(41.375, -7.513, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_5_a_hi0_1"]
 script = ExtResource("3_block")
@@ -85238,7 +85238,7 @@ top = -11.9472
 script = ExtResource("3_block")
 area = Rect2(66.5625, -8.7005, 0.1, 0.9403)
 bottom = -11.067
-top = -9.2625
+top = -8.5625
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_6_f_hi0_1"]
 script = ExtResource("3_block")

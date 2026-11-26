@@ -64,9 +64,6 @@ const DOOR_FROM := 0.5
 ## A flight's side rail's id begins with this (tools/flight_rails.py lays them): hung over
 ## a deck, it heads no doorway.
 const FLIGHT_SIDE_RAIL := "Blocker_side_"
-## One hung no further than this under a deck is drawn up to it, a screen from the deck's
-## edge, not a box floating in the air (DeckWorks.underside_over).
-const SIDE_RAIL_SCREEN := 1.0
 const FRAME_WIDTH := 0.1
 const FRAME_PROUD := 0.03
 const RAIL_WIDTH := 0.09
@@ -951,11 +948,7 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: Sh
 	if _space.is_wall(blocker):
 		var deck := _space.deck_under(centre, blocker.bottom)
 		var foot := blocker.bottom if is_nan(deck) else deck
-		if blocker.resource_scene_unique_id.begins_with(FLIGHT_SIDE_RAIL):
-			var screen := DeckWorks.underside_over(_space.layout, area, top, SIDE_RAIL_SCREEN)
-			top = top if is_nan(screen) else screen
-		var head := maxf(top, blocker.top)
-		var shown := ShipMesh.ALL_FACES & ~hull.under_skin(area, blocker.bottom, head)
+		var shown := ShipMesh.ALL_FACES & ~hull.under_skin(area, blocker.bottom, blocker.top)
 		_lined.box(
 			mesh,
 			area,
@@ -965,7 +958,7 @@ func _blocker(mesh: ShipMesh, blocker: ShipBlocker, pieces: Dictionary, hull: Sh
 			shown,
 			shown & ShipMesh.SIDES,
 			foot,
-			head
+			blocker.top
 		)
 		if (
 			not is_nan(deck)

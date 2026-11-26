@@ -2701,25 +2701,25 @@ top = 4.6244
 script = ExtResource("3_block")
 area = Rect2(-1.35, 0.4923, 0.1, 0.3077)
 bottom = -0.89
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_inner_stair_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-0.15, 0.4923, 0.1, 0.3077)
 bottom = -0.89
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_forward_companionway_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(11.0923, 0.8, 0.3077, 0.1)
 bottom = -0.89
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_forward_companionway_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(11.0923, 2, 0.3077, 0.1)
 bottom = -0.89
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_stokehold_aft_hi0_0"]
 script = ExtResource("3_block")
@@ -2749,13 +2749,13 @@ top = -1.6
 script = ExtResource("3_block")
 area = Rect2(6.9682, 1.4, 0.4318, 0.1)
 bottom = -3.6025
-top = -3.3
+top = -2.6
 
 [sub_resource type="Resource" id="Blocker_side_lower_hold_forward_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(10.8, -1.5, 0.4318, 0.1)
 bottom = -3.6025
-top = -3.3
+top = -2.6
 
 [sub_resource type="Resource" id="Blocker_side_bilge_1_lo0_0"]
 script = ExtResource("3_block")
@@ -2773,13 +2773,13 @@ top = -3.3
 script = ExtResource("3_block")
 area = Rect2(-5.6, -1.9578, 0.1, 0.2078)
 bottom = -3.6025
-top = -3.3
+top = -2.6
 
 [sub_resource type="Resource" id="Blocker_side_bilge_2_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-4.4, -1.9578, 0.1, 0.2078)
 bottom = -3.6025
-top = -3.3
+top = -2.6
 
 [sub_resource type="Resource" id="Blocker_side_bilge_3_lo0_0"]
 script = ExtResource("3_block")
@@ -2797,13 +2797,13 @@ top = -3.3
 script = ExtResource("3_block")
 area = Rect2(-5.6, 1.75, 0.1, 0.2078)
 bottom = -3.6025
-top = -3.3
+top = -2.6
 
 [sub_resource type="Resource" id="Blocker_side_bilge_4_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(-4.4, 1.75, 0.1, 0.2078)
 bottom = -3.6025
-top = -3.3
+top = -2.6
 
 [sub_resource type="Resource" id="Blocker_side_forecastle_hatch_1_hi0_0"]
 script = ExtResource("3_block")

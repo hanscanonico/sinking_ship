@@ -73,6 +73,7 @@ HEAD_CLEAR = 0.01  # how far over a body's head on what is under it a rail hung 
 RAIL_THIN = 0.02  # the least a rail standing in the gap beside what stands by its flight is thick
 OPENING_INBOARD = 0.05  # how far inboard of a railing's line art-lint's probes through it start
 DOORWAY_PROBE = 0.2  # how far either side of a doorway's head its opening is seen through
+SCREEN_REACH = 1.0  # a rail hung no further than this under a deck's edge is hung from the deck
 
 
 def _clamp(v, a, b):
@@ -299,7 +300,22 @@ def rail_piece(plat_geo, ramp_geo, block_geo, k, fixed, line, out, p0, p1, t0, t
             else:
                 top = min(top, q[4])
     assert top - bottom >= RAIL_LEAST, "flight %d's side rail at %s stands in something" % (k, g)
+    # Hung under a deck's edge within SCREEN_REACH of it, it hangs from that deck, a screen up
+    # to it, not a box floating in the air under it — where nothing stands in between.
+    if deck is None or bottom > deck + 1e-6:
+        over = [q[4] for q in plat_geo if _encloses(q, g) and top < q[4] <= top + SCREEN_REACH]
+        if over:
+            deck_over = min(over)
+            blocked = _standing(block_geo, g, top, deck_over) or any(
+                _overlap(o, g) and top < high and deck_over > low for o, low, high in openings)
+            if not blocked:
+                top = deck_over
     return (*g, bottom, top)
+
+
+def _encloses(q, g):
+    """Whether q's (x0, x1, z0, z1, ...) plan holds all of g's, but for a sliver."""
+    return q[0] <= g[0] + 1e-3 and g[1] <= q[1] + 1e-3 and q[2] <= g[2] + 1e-3 and g[3] <= q[3] + 1e-3
 
 
 def rail_flight_sides(plat_geo, ramp_geo, block_geo, rail_geo, ramps, box):
