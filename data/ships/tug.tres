@@ -648,13 +648,13 @@ top = 3.4
 script = ExtResource("3_block")
 area = Rect2(-4.15, -1.5, 0.2385, 0.1)
 bottom = -0.89
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_engine_galley_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(1.4, 1.4, 0.2385, 0.1)
 bottom = -0.89
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Section_0"]
 script = ExtResource("10_section")

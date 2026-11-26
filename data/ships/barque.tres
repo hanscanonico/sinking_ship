@@ -1091,25 +1091,25 @@ floor_height = 2.2
 script = ExtResource("3_block")
 area = Rect2(-9.6, -2, 0.16, 0.1)
 bottom = -0.79
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_companionway_aft_s_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(-9.6, 1.9, 0.16, 0.1)
 bottom = -0.79
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_companionway_fore_p_hi0_0"]
 script = ExtResource("3_block")
 area = Rect2(9.8, -2, 0.16, 0.1)
 bottom = -0.79
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_companionway_fore_s_lo0_0"]
 script = ExtResource("3_block")
 area = Rect2(9.8, 1.9, 0.16, 0.1)
 bottom = -0.79
-top = -0.7
+top = 0
 
 [sub_resource type="Resource" id="Blocker_side_poop_port_lo0_0"]
 script = ExtResource("3_block")
