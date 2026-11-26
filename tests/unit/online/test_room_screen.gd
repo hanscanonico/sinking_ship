@@ -192,3 +192,11 @@ func test_start_is_dead_while_everyone_watches() -> void:
 	roster.players[0].watching = true
 	_screen.show_room(roster)
 	assert_false(start.disabled, "Bea plays")
+	roster.players[1].watching = true
+	roster.you = 1
+	_screen.show_room(roster)
+	assert_eq(
+		status.text,
+		"Everyone here watches: someone has to play.",
+		"told to a watcher who does not host as well: the host cannot start"
+	)

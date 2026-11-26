@@ -130,7 +130,7 @@ func _show_status() -> void:
 		_status.text = Language.t("That match is over: the room opens again in a moment.")
 	elif roster.playing:
 		_status.text = Language.t("A match is on in this room: it waits for that one to end.")
-	elif nobody_plays and (hosting or roster.quick):
+	elif nobody_plays:
 		_status.text = Language.t("Everyone here watches: someone has to play.")
 	elif roster.quick and _shown_seconds > 0:
 		_status.text = (
@@ -145,11 +145,7 @@ func _show_status() -> void:
 		)
 	else:
 		_status.text = Language.t("Waiting for the host to start.")
-	if (
-		roster.you_watch()
-		and not roster.playing
-		and not (nobody_plays and (hosting or roster.quick))
-	):
+	if roster.you_watch() and not roster.playing and not nobody_plays:
 		_status.text += Language.t(" You watch: you take no seat.")
 
 
