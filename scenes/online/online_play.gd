@@ -14,7 +14,9 @@ extends Node
 ## mouse let go opens it too. The pause goes whenever the match under it does — at its
 ## end, at the next BEGIN, at any way out — and the settings screen opened from it goes
 ## with it, before whatever shows next takes the focus. At the results, Back to the room
-## waits there for the host's next start, and Leave hangs up for the Online screen.
+## waits there for the host's next start, and Leave hangs up for the Online screen; a
+## quick game's results count down to its next match, which starts on its own, and the
+## room shows, saying it is coming, while her ship is dressed.
 ##
 ## A player at the results is still in the room, so the host's next start pulls them
 ## into its match: a BEGIN always lets the match scene that is up go before it builds
@@ -191,6 +193,7 @@ func _process(_delta: float) -> void:
 	# a frame.
 	if _dressing != null and Engine.get_process_frames() > _begun_frame and _dressing.done():
 		_show_match()
+	_say_next()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -272,6 +275,7 @@ func _on_began(config: MatchConfig, seat: int) -> void:
 	if _built_msec >= 0 and now - _built_msec < MIN_BUILD_GAP_MSEC:
 		return
 	_built_msec = now
+	var from_results := _match != null
 	_leave_match()
 	_watching = seat < 0
 	_gone.clear()
@@ -292,6 +296,10 @@ func _on_began(config: MatchConfig, seat: int) -> void:
 	_made = MATCH_SCENE.instantiate()
 	add_child(_made)
 	_made.stand_aside()
+	# Come from the results, the room shows meanwhile, saying the match is coming.
+	if from_results:
+		playing_changed.emit(false)
+		_show_room()
 
 
 ## Says in the match's feed which of [param roster]'s players have gone from its match
@@ -374,6 +382,27 @@ func _back_to_room() -> void:
 func _show_room(note: String = "", ended: bool = false) -> void:
 	var begun := _room.state == RoomClient.State.PLAYING
 	_room_screen.show_room(_room.roster, note, ended, _roster_msec, begun)
+
+
+## Over the results, what comes next: a quick game's room starts its next match on its
+## own with everyone in it, so they count down to it — to the moment the room screen
+## does, from when the roster came — and say nothing for a room its host starts by hand.
+func _say_next() -> void:
+	if _match == null or not _match.call(&"is_over"):
+		return
+	var results := _match.get_node_or_null(^"EndOverlay")
+	if results == null or not results.has_method(&"say_next"):
+		return
+	var line := ""
+	var ends := RoomScreen.quick_ends_msec(_room.roster, _roster_msec)
+	if ends >= 0:
+		var left := RoomScreen.seconds_until(ends, _clock.call())
+		line = Language.t("Quick game: starting…")
+		if left > 0:
+			line = (
+				Language.t("The next quick game starts in %d s, with everyone in the room.") % left
+			)
+	results.call(&"say_next", line)
 
 
 ## From the results out of the room, for the Online screen.
