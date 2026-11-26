@@ -8,8 +8,8 @@ extends CanvasLayer
 ## Graphics — the window mode, VSync, a frame-rate cap, whether the frame rate shows,
 ## the graphics preset with a line on what it changes (GraphicsQuality), and the 3D
 ## view's render scale, both this machine's own until the player picks them. Under
-## every page, the language the game speaks (Language), each under its own name. Each change applies as it is
-## made; closing saves them under user://.
+## every page, the language the game speaks (Language), each under its own name. Each
+## change applies as it is made; closing saves them under user://.
 
 signal closed
 ## The first-person view or the graphics changed: whatever is on screen should take
