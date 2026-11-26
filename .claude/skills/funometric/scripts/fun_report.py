@@ -190,15 +190,28 @@ def pacing(m):
 
 
 def journal_section(paths, matches):
+    # A journal's `# replay: NAME` line ties it to that played match: its moments are
+    # read against that match's beats only, and its times — the HUD clock, which counts
+    # the countdown — are moved onto the scan's clock, which starts at Go.
     rows = []
     for path in paths:
+        played = None
         for line in Path(path).read_text(encoding="utf-8").splitlines():
+            if line.startswith("# replay:"):
+                name = line.split(":", 1)[1].strip()
+                played = next((m for m in matches if name in Path(m["path"]).stem), None)
+                if played is None:
+                    print(f"{path}: no scanned match named {name}", file=sys.stderr)
+                continue
             if not line.strip() or line.startswith("#") or line.startswith("t_s"):
                 continue
             f = line.split("\t")
             if len(f) >= 5:
-                rows.append(dict(t=num(f[0]), feel=num(f[1]) or 0, axis=f[2], moment=f[3], why=f[4],
-                                 shot=f[5] if len(f) > 5 else "", src=Path(path).name))
+                t = num(f[0])
+                if t is not None and played is not None:
+                    t -= played["head"]["live_from"]
+                rows.append(dict(t=t, feel=num(f[1]) or 0, axis=f[2], moment=f[3], why=f[4],
+                                 shot=f[5] if len(f) > 5 else "", match=played))
     if not rows:
         return []
     out = ["", "## What it felt like (journal)", ""]
@@ -210,19 +223,25 @@ def journal_section(paths, matches):
     out += ["", "| Axis | Moments | Mean feel |", "|---|---|---|"]
     for axis, fs in sorted(by_axis.items(), key=lambda kv: statistics.mean(kv[1])):
         out.append(f"| {axis} | {len(fs)} | {statistics.mean(fs):+.2f} |")
-    human_beats = [b for m in matches if m["head"]["humans"] for b in m["beats"]
-                   if b[2] < m["head"]["humans"] or b[3] in range(m["head"]["humans"]) or b[2] == -1]
+    def human_beats(m):
+        if m is None:
+            return []
+        humans = range(m["head"]["humans"])
+        return [b for b in m["beats"] if b[2] in humans or b[3] in humans or b[2] == -1]
+
     for title, pick in (("Best moments", sorted(rows, key=lambda r: -r["feel"])[:5]),
                         ("Worst moments", sorted(rows, key=lambda r: r["feel"])[:5])):
         out += ["", f"### {title}", ""]
         for r in pick:
             near = ""
-            if r["t"] is not None and human_beats:
-                close = [b for b in human_beats if abs(b[0] - r["t"]) <= 3]
+            if r["t"] is not None:
+                close = [b for b in human_beats(r["match"]) if abs(b[0] - r["t"]) <= 3]
                 if close:
                     near = " — sim: " + ", ".join(f"{b[0]:.0f}s {b[1].lower()}" for b in close[:4])
             shot = f" ({r['shot']})" if r["shot"] else ""
             t = f"{r['t']:.0f} s" if r["t"] is not None else "–"
+            if r["match"] is not None:
+                t += f" of {r['match']['head']['ship']} {r['match']['head']['seed']}"
             out.append(f"- **{r['feel']:+.0f}** at {t}, *{r['axis']}*: {r['moment']} — {r['why']}{near}{shot}")
     return out
 

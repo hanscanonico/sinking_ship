@@ -54,16 +54,35 @@ go somewhere, pick fights, flee the water, take bonuses, try to be last one dry.
 least two whole matches with different plans (one aggressive, one cautious, or one
 chasing bonuses) — a single style only measures that style.
 
+Moving by turns is clumsy; two helpers take the clumsiness out of the judgement:
+`python3 $S/hunt.py ["wait 10"]` runs at the nearest rival on your level and shoves;
+`python3 $S/hunt.py guard` faces them braced and shoves only one in reach;
+`python3 .claude/skills/playtest/scripts/go.py X Z` walks a leg. Loop them a few turns
+at a time, printing only the `match:` / `me:` lines and the events, and stop the loop the
+moment the answer says `me: SWIMMING` — then play that moment by hand (swim for the hull,
+try to climb: the cold leaves about four seconds). A turn's mouse look lands a frame
+later, so act after `wait 2`, never in the frame of the `turn`. What a helper gets wrong
+(steering into a deckhouse, a rival that out-turns you between turns) is the tool's
+limit, not the game's: do not journal it as a controls problem unless a player with a
+mouse would hit it too.
+
+On the menu, set the seed by clicking the field and erasing what is there first
+(`key BackSpace` a few times) — typing adds to the seed shown. The replay's file name
+carries the seed that was played.
+
 Keep the journal in the scratchpad as a TSV, one line per moment worth a feeling, written
-*right after the turn* it happened in, never reconstructed at the end:
+*right after the turn* it happened in, never reconstructed at the end. Its first line
+names the match it is about (the replay's name, filled in once the match is over):
 
 ```
+# replay: 2026-11-26_20-13-57_steamer_11
 t_s	feel	axis	moment	why	shot
 12	+1	opening	ran aft, first opponent at the funnel	a choice of where to fight	0003_aft.png
 41	-2	agency	shoved over the rail from behind, never saw him	no warning, no counterplay	0007_rail.png
 ```
 
-- `t_s`: match seconds from the live start (the answer's clock, minus the countdown).
+- `t_s`: the HUD clock's seconds (it counts the countdown; the report moves them onto the
+  scan's clock, which starts at Go).
 - `feel`: −2 hated it, −1 dull or annoying, 0 neutral, +1 enjoyed, +2 loved it.
 - `axis`: one of `opening`, `interaction`, `agency`, `clarity`, `tension`, `dead-air`,
   `comeback`, `spectacle`, `fairness`, `controls`, `spectating`, `ending`.
@@ -83,7 +102,7 @@ $S/fun.sh OUT replay path/to/that.replay
 ## 3. Judge — feel against measure
 
 ```sh
-python3 $S/fun_report.py OUT/*.fun --journal journal.tsv
+python3 $S/fun_report.py OUT/*.fun --journal m1.tsv --journal m2.tsv
 ```
 
 The report lists every axis for all seats and for your seats, the pacing strips, and
