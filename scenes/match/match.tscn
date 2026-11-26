@@ -231,6 +231,11 @@ unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0.7)
 horizontal_alignment = 1
 
+[node name="Next" type="Label" parent="EndOverlay/Panel/Box"]
+unique_name_in_owner = true
+visible = false
+horizontal_alignment = 1
+
 [node name="Hint" type="Label" parent="EndOverlay/Panel/Box"]
 modulate = Color(1, 1, 1, 0.7)
 text = "R / Start — rematch   ·   Esc — menu"

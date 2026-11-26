@@ -8,14 +8,14 @@ extends CanvasLayer
 ## survival), shoves landed and knock-outs credited, all from MatchStats and so from the
 ## events
 ## alone (D5), with rematch and back to the menu — or, online, back to the room and
-## leave (offer_room) — on a plate over the world dimmed under a scrim, the HUDs having
-## stood down. From a session's second match on, the session's standings stand beside
-## the table (SessionTally): each name's points and rank over its matches. Under the
-## table one line tells the ship's fate (setup_fate, MatchTranscript.fate_line): her
-## name, how her sinking ends and how much of it the match played. A watcher has no seat
-## (-1): the title names who won (watched_title) and no row is picked out. The plate
-## stands whole inside the view whatever the seats: its rows set tighter, its names cut
-## shorter, as it needs (_fit_plate).
+## leave (offer_room), and what comes next (say_next) — on a plate over the world dimmed
+## under a scrim, the HUDs having stood down. From a session's second match on, the
+## session's standings stand beside the table (SessionTally): each name's points and
+## rank over its matches. Under the table one line tells the ship's fate (setup_fate,
+## MatchTranscript.fate_line): her name, how her sinking ends and how much of it the
+## match played. A watcher has no seat (-1): the title names who won (watched_title) and
+## no row is picked out. The plate stands whole inside the view whatever the seats: its
+## rows set tighter, its names cut shorter, as it needs (_fit_plate).
 
 signal rematch_requested
 signal menu_requested
@@ -76,6 +76,7 @@ var _named: Dictionary[Label, String] = {}
 @onready var _session_table: GridContainer = %SessionTable
 @onready var _fate: Label = %Fate
 @onready var _seed: Label = %Seed
+@onready var _next: Label = %Next
 @onready var _rematch: Button = %Rematch
 @onready var _hint: Label = $Panel/Box/Hint
 @onready var _watch: Button = %WatchReplay
@@ -237,6 +238,16 @@ func offer_room() -> void:
 	_rematch.text = "Back to the room"
 	_menu.text = "Leave"
 	_watch.visible = false
+
+
+## Online, what is coming after these results — a quick game's countdown to its next
+## match, say — as [param line] words it, over the hint; "" for nothing.
+func say_next(line: String) -> void:
+	_next.text = line
+	var shown := not line.is_empty()
+	if _next.visible != shown:
+		_next.visible = shown
+		_fit_plate()
 
 
 ## Whether the results offer to watch the match again (replay_requested).
