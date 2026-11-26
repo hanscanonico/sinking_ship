@@ -9,7 +9,8 @@ extends CanvasLayer
 ## Start asks for the match once per showing — until the server's answer, a refusal
 ## or the room changed shows the room again — and is there but dead for everyone else,
 ## who wait for the host, and while everyone in the room watches. A quick game counts
-## down to the moment it starts on its own, its host still free to start it sooner. Leave room, and ui_cancel, leave.
+## down to the moment it starts on its own, its host still free to start it sooner. Leave
+## room, and ui_cancel, leave.
 ##
 ## Every name in it is another player's typing, so it is a plain Label, cut short with
 ## an ellipsis where it is too long for its seat's line.

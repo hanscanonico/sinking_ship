@@ -2,7 +2,8 @@ class_name OnlineMenu
 extends CanvasLayer
 ## The Online screen (SH12), over the main menu's backdrop: a display name — the rule the
 ## server holds it to shown under it — then Create a room, Join one by its code
-## (CodePicker), or Quick game: play with everyone else asking for one, no code needed. The server is never asked for: in a browser it is the page's own, and
+## (CodePicker), or Quick game: play with everyone else asking for one, no code needed. The
+## server is never asked for: in a browser it is the page's own, and
 ## natively the release's public one, or the one a --server launch flag names. What the
 ## player chose becomes an OnlineLink, checked as every link is, and only a link with no
 ## problem is asked for; the name is remembered for the next run (OnlineSettings). What

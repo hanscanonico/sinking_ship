@@ -4,7 +4,8 @@ extends RefCounted
 ## says HELLO with its display name, then CREATEs a room, JOINs one by its code,
 ## STARTs the match as the room's host, says whether it WATCHes rather than plays, asks
 ## for a QUICK game — put in a room with every other player asking, its match starting on
-## its own — or LEAVEs; the server answers WELCOME, or REFUSED with a reason, sends the room's ROSTER
+## its own — or LEAVEs; the server answers WELCOME, or REFUSED with a reason, sends the
+## room's ROSTER
 ## whenever it changes and, as a match begins, BEGIN with its seed, its seat count, the
 ## client's seat — none for a watcher —, its pace — fast or
 ## paced, the server's to say (ServerRules.fast) —, whether it has bonuses — the server's
