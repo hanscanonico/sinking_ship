@@ -924,6 +924,9 @@ msgstr "Partida rápida: empieza en %d s con todos a bordo. Los bots ocupan el r
 msgid "Quick game: starting…"
 msgstr "Partida rápida: empezando…"
 
+msgid "The next quick game starts in %d s, with everyone in the room."
+msgstr "La próxima partida rápida empieza en %d s, con todos los de la sala."
+
 msgid "Create a room"
 msgstr "Crear una sala"
 

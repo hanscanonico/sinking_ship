@@ -105,10 +105,7 @@ func show_room(
 	_start.disabled = (roster.playing and not _ended) or not hosting or _queued or nobody_plays
 	_watch.set_pressed_no_signal(roster.you_watch())
 	_watch.disabled = roster.playing
-	_quick_ends_msec = -1
-	if roster.quick and not roster.playing:
-		var heard: int = heard_msec if heard_msec >= 0 else clock.call()
-		_quick_ends_msec = heard + int(Ticks.to_seconds(roster.starts_in) * 1000.0)
+	_quick_ends_msec = quick_ends_msec(roster, heard_msec if heard_msec >= 0 else clock.call())
 	_show_status()
 	_show_seats(roster)
 	show()
@@ -132,7 +129,21 @@ func _process(_delta: float) -> void:
 
 ## The whole seconds until a waiting quick game starts, as its roster said.
 func _seconds_left() -> int:
-	return ceili(maxi(_quick_ends_msec - (clock.call() as int), 0) / 1000.0)
+	return seconds_until(_quick_ends_msec, clock.call())
+
+
+## When [param roster]'s waiting quick game starts, in msec on the clock that heard the
+## roster at [param heard_msec]; -1 for a room that starts nothing on its own, or whose
+## match is on. OnlinePlay's results count down to the same moment.
+static func quick_ends_msec(roster: RoomRoster, heard_msec: int) -> int:
+	if roster == null or not roster.quick or roster.playing:
+		return -1
+	return heard_msec + int(Ticks.to_seconds(roster.starts_in) * 1000.0)
+
+
+## The whole seconds from [param now_msec] to [param ends_msec], none once it has passed.
+static func seconds_until(ends_msec: int, now_msec: int) -> int:
+	return ceili(maxi(ends_msec - now_msec, 0) / 1000.0)
 
 
 ## What the room is waiting for, under its code.

@@ -82,6 +82,10 @@ func first_slot() -> Button:
 	return _slots[0]
 
 
+func last_slot() -> Button:
+	return _slots[-1]
+
+
 ## Makes [param next] — the Join button — what follows the last slot, whether typed past
 ## or reached to the right, and what leads back to it: Backspace on it too, taking the
 ## last letter back as it would in the last slot.
