@@ -161,9 +161,9 @@ func _process(_delta: float) -> void:
 				_answer()
 			if _runs_free():
 				return
+			# None taken: the session is over, or the seat was freed while it waited.
 			if not _take_batch():
 				get_tree().quit()
-				return
 			if _queue.is_empty():
 				return
 		if not _run(_queue.pop_front()):
