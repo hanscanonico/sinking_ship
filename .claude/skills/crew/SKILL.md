@@ -69,7 +69,7 @@ Wait until its output says `all N seats up` (a first launch bakes for a minute).
 
 ## 3. Brief one agent per seat — all in one message
 
-Spawn N `general-purpose` agents with `model: fable`, in the background, one per seat.
+Spawn N `general-purpose` agents in the background, one per seat, on the session's model (pass no `model`).
 Each brief is self-contained; give every agent:
 
 - its seat number and name, the worktree path, and that the crew is already up;
