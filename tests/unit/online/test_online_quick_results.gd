@@ -108,6 +108,14 @@ func test_quick_results_count_down_to_the_next_game() -> void:
 	_play(client, true)
 	_beats(fixture, 2 + ServerRules.beats(fixture.rules.quick_wait))
 	assert_eq(_built.size(), 1, "the quick game began")
+	# Before the room reopens (finished_linger), the line is there already, so the
+	# results' plate does not jump when the count comes in (seen played, 2026-11-26).
+	_beats(fixture, 1)
+	assert_eq(
+		_built[0].results.next_line,
+		"The next quick game starts soon, with everyone in the room.",
+		"said from the start"
+	)
 	_until_reopened(fixture, client)
 	_beats(fixture, 5 * Ticks.RATE)
 	var left := ceili(fixture.rules.quick_wait - 5.0)
