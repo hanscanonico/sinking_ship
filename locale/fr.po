@@ -1077,6 +1077,9 @@ msgstr "Un bot prend cette place"
 msgid "watching"
 msgstr "spectateur"
 
+msgid "%s left: a bot plays on"
+msgstr "%s est parti : un bot joue à sa place"
+
 msgid "gone · a bot plays"
 msgstr "parti · un bot joue"
 

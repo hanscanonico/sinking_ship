@@ -100,6 +100,12 @@ func add(events: Array[SimEvent]) -> void:
 				_in_colour(_post(line), kind)
 
 
+## Posts [param text] as a line of its own: what no event of the match says, such as a
+## player gone from an online match, a bot playing on in their seat (OnlinePlay).
+func say(text: String) -> void:
+	_post(text)
+
+
 ## Every line taken down.
 func clear() -> void:
 	for label: Label in _ages.keys():
