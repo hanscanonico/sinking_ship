@@ -2,8 +2,9 @@ class_name RoomCodec
 extends RefCounted
 ## The room protocol (SH12), in packets opened as every other (WireCodec): a client
 ## says HELLO with its display name, then CREATEs a room, JOINs one by its code,
-## STARTs the match as the room's host, says whether it WATCHes rather than plays, or
-## LEAVEs; the server answers WELCOME, or REFUSED with a reason, sends the room's ROSTER
+## STARTs the match as the room's host, says whether it WATCHes rather than plays, asks
+## for a QUICK game — put in a room with every other player asking, its match starting on
+## its own — or LEAVEs; the server answers WELCOME, or REFUSED with a reason, sends the room's ROSTER
 ## whenever it changes and, as a match begins, BEGIN with its seed, its seat count, the
 ## client's seat — none for a watcher —, its pace — fast or
 ## paced, the server's to say (ServerRules.fast) —, whether it has bonuses — the server's
@@ -111,8 +112,8 @@ static func normalize_code(typed: String) -> String:
 	return code
 
 
-## A packet of [param kind] that carries nothing more: WELCOME, CREATE, LEAVE or
-## START.
+## A packet of [param kind] that carries nothing more: WELCOME, CREATE, LEAVE, START
+## or QUICK.
 func encode_bare(kind: WireCodec.Kind) -> PackedByteArray:
 	return wire.header(kind).data_array
 
@@ -186,6 +187,8 @@ func encode_roster(roster: RoomRoster) -> PackedByteArray:
 	var out := wire.header(WireCodec.Kind.ROSTER)
 	_put_text(out, roster.code)
 	out.put_u8(1 if roster.playing else 0)
+	out.put_u8(1 if roster.quick else 0)
+	out.put_u32(maxi(roster.starts_in, 0))
 	out.put_u8(roster.you if roster.you >= 0 else NOBODY)
 	out.put_u8(roster.players.size())
 	for player: RoomRoster.Player in roster.players:
@@ -271,6 +274,11 @@ static func _roster(reader: WireCodec.Reader) -> RoomRoster:
 	var roster := RoomRoster.new()
 	roster.code = _text(reader)
 	roster.playing = reader.byte() != 0
+	var quick := reader.byte()
+	roster.quick = quick == 1
+	roster.starts_in = reader.u32()
+	if quick > 1 or (roster.starts_in > 0 and not roster.quick):
+		reader.ok = false
 	var you := reader.byte()
 	roster.you = -1 if you == NOBODY else you
 	for index in reader.byte():

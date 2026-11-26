@@ -33,7 +33,10 @@ extends RefCounted
 ## at all — is refused VERSION at its HELLO.
 ## 12: a seat's snapshot carries the tick a shove last staggered it (#776), so a client of
 ## 11 — which would read every seat a field short — is refused VERSION at its HELLO.
-const PROTOCOL_VERSION := 12
+## 13: a client may ask for a quick game (QUICK), and a roster says whether its room is
+## one and how long it waits yet, so a client of 12 — which would read every roster two
+## fields short — is refused VERSION at its HELLO.
+const PROTOCOL_VERSION := 13
 ## The build of what plays a match — core/, ai/ and net/ — bumped by hand whenever a
 ## change there would play the same data differently: part of every match's hash, so
 ## two builds that would not agree are refused as other data.
@@ -73,6 +76,7 @@ enum Kind {
 	PONG,
 	TIMELINE,
 	WATCH,
+	QUICK,
 }
 ## Why a packet is not one of this protocol and match: too short to tell or of no kind
 ## there is, of another protocol version, or of another match's data.

@@ -906,6 +906,18 @@ msgstr "Código de la sala"
 msgid "Join"
 msgstr "Unirse"
 
+msgid "Quick game"
+msgstr "Partida rápida"
+
+msgid "Plays with everyone else waiting for one, bots on the empty seats."
+msgstr "Juega con todos los que esperan una, con bots en los asientos vacíos."
+
+msgid "Quick game: it starts in %d s with everyone aboard. Bots take the rest."
+msgstr "Partida rápida: empieza en %d s con todos a bordo. Los bots ocupan el resto."
+
+msgid "Quick game: starting…"
+msgstr "Partida rápida: empezando…"
+
 msgid "Create a room"
 msgstr "Crear una sala"
 

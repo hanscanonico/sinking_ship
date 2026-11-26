@@ -3,10 +3,10 @@ extends RefCounted
 ## A player's side of a server's rooms (SH12), Node-free, so the menu, a headless
 ## autoplayer and the tests drive the same one. It says HELLO with the display name
 ## as the connection opens; then, on the caller's word, it creates a room, joins one
-## by its code, starts the match as the room's host, watches its matches rather than
-## plays them, or leaves. What the server says
-## comes back as signals and in [member state] and [member roster]. As a match
-## begins, [signal began] gives its config — at the pace and with the bonuses BEGIN
+## by its code, asks for a quick game with whoever else is asking, starts the match as
+## the room's host, watches its matches rather than plays them, or leaves. What the
+## server says comes back as signals and in [member state] and [member roster]. As a
+## match begins, [signal began] gives its config — at the pace and with the bonuses BEGIN
 ## said, the server's, never this end's own — and this client's seat, and play() the
 ## RemoteMatch a SimDriver steps, the server's snapshots routed to it from here.
 ## poll() reads the wire: call it every frame, a match on or not.
@@ -82,6 +82,14 @@ func create_room() -> void:
 	_left = false
 	_joining_code = ""
 	_send(_codec.encode_bare(WireCodec.Kind.CREATE))
+
+
+## Asks for a quick game: a room with every other player asking for one, whose match
+## starts on its own.
+func quick_game() -> void:
+	_left = false
+	_joining_code = ""
+	_send(_codec.encode_bare(WireCodec.Kind.QUICK))
 
 
 ## Joins the room [param code] names, however it is cased.

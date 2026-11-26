@@ -9,7 +9,8 @@ extends RefCounted
 ## is hostile input: the query is bounded, a code must be code letters, a name one the
 ## server takes, and a server a ws:// or wss:// address with a plain host, a port and
 ## a path. Whatever is wrong is a problem to show the player, never a connection made.
-## The Online screen makes its links here too (from_menu), from what the player typed.
+## The Online screen makes its links here too (from_menu), from what the player typed —
+## a quick game's among them, which names no room.
 
 ## Where the reverse proxy in front of a deployed server upgrades to its WebSocket.
 const SERVER_PATH := "/ws"
@@ -34,7 +35,9 @@ var wanted := false
 ## names a server that is not one: the server the Online screen plays on in a browser.
 var server_url := ""
 var create := false
-## The room to join, upper case; "" when creating one.
+## Whether to play a quick game with whoever else is asking for one: no room named.
+var quick := false
+## The room to join, upper case; "" when creating one or playing a quick game.
 var room := ""
 var player_name := ""
 ## Whether the link itself names the player; a page's that does not plays under
@@ -70,14 +73,22 @@ static func from_args(args: MatchArgs, rules: ServerRules) -> OnlineLink:
 
 
 ## The link the Online screen makes of what the player chose: [param creating] a room,
-## or joining [param code]'s, on [param server] as [param display_name].
+## or joining [param code]'s — or, [param quick], a quick game, the code ignored — on
+## [param server] as [param display_name].
 static func from_menu(
-	server: String, creating: bool, code: String, display_name: String, rules: ServerRules
+	server: String,
+	creating: bool,
+	code: String,
+	display_name: String,
+	rules: ServerRules,
+	quick: bool = false
 ) -> OnlineLink:
 	var link := OnlineLink.new()
 	link.wanted = true
 	link.named = true
-	link._check(server, creating, "" if creating else code, display_name, rules)
+	link.quick = quick and not creating
+	var joining := "" if creating or link.quick else code
+	link._check(server, creating, joining, display_name, rules)
 	return link
 
 
@@ -275,7 +286,7 @@ func _check(
 	create = creating
 	if creating and not code.is_empty():
 		problems.append("Create a room or join one, not both.")
-	elif not creating:
+	elif not creating and not quick:
 		room = RoomCodec.normalize_code(code)
 		if code.is_empty():
 			problems.append("Name a room to join, or create one.")

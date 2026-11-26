@@ -17,6 +17,12 @@ extends RefCounted
 ## match let go, a player silent too long given up for gone, and the matches built in
 ## a second, and by one connection, are capped.
 ##
+## A QUICK game needs no code: the client is put in the waiting quick game with room
+## for it, the oldest first, or a new one is made. A quick game starts on its own —
+## quick_wait after it was made, or as soon as it is full — with every player waiting in
+## it and bots on the rest, and waits quick_wait again after each match. Its host may
+## still start it sooner, and its code still lets a friend in.
+##
 ## A room code is all that keeps a room to those it is given to, and every player is
 ## shown the match seeds: codes and seeds come from separate Draws, so no seed seen
 ## says anything of a code.
@@ -269,6 +275,8 @@ func _take(packet: Transport.Packet) -> void:
 			_pong(connection, message.value)
 		WireCodec.Kind.CREATE:
 			_create(connection)
+		WireCodec.Kind.QUICK:
+			_quick(connection)
 		WireCodec.Kind.JOIN:
 			_join(connection, message.text)
 		WireCodec.Kind.START:
@@ -309,18 +317,51 @@ func _create(connection: Connection) -> void:
 		return
 	if not _attempt(connection):
 		return
+	var created := _new_room(connection)
+	if created != null:
+		_seat(connection, created)
+
+
+## Puts [param connection] in the waiting quick game with room for it — the oldest —
+## or in a new one.
+func _quick(connection: Connection) -> void:
+	if connection.room != null:
+		_refuse(connection, RoomCodec.Refusal.IN_ROOM)
+		return
+	if not _attempt(connection):
+		return
+	for waiting: Room in _rooms.values():
+		if (
+			waiting.quick
+			and waiting.phase == Room.Phase.WAITING
+			and waiting.members.size() < _rules.players_per_room
+		):
+			_seat(connection, waiting)
+			return
+	var created := _new_room(connection)
+	if created == null:
+		return
+	created.quick = true
+	created.starts_at = _beat + ServerRules.beats(_rules.quick_wait)
+	_say("room %s is a quick game" % created.code)
+	_seat(connection, created)
+
+
+## A new room, made for [param connection]; null, and the connection told why, when the
+## server holds all the rooms it may or draws no free code.
+func _new_room(connection: Connection) -> Room:
 	if _rooms.size() >= _rules.max_rooms:
 		_refuse(connection, RoomCodec.Refusal.SERVER_FULL)
-		return
+		return null
 	var code := _new_code()
 	if code.is_empty():
 		_say("no free room code drawn for %s" % _who(connection))
 		_refuse(connection, RoomCodec.Refusal.BUSY)
-		return
+		return null
 	var created := Room.new(code, _wire, _beat)
 	_rooms[created.code] = created
 	_say("room %s created by %s" % [created.code, _who(connection)])
-	_seat(connection, created)
+	return created
 
 
 func _join(connection: Connection, typed: String) -> void:
@@ -388,12 +429,32 @@ func _start(connection: Connection) -> void:
 	if not _may_build(connection):
 		_refuse(connection, RoomCodec.Refusal.BUSY)
 		return
+	if not _begin_match(at, connection):
+		_refuse(connection, RoomCodec.Refusal.BUSY)
+
+
+## Starts a waiting quick game whose wait is over, or which is full: when someone in it
+## plays and the server may build a match this beat — else on a later beat, its wait
+## begun again when everyone in it watches or no seed is drawn.
+func _start_quick(waiting: Room) -> void:
+	if waiting.members.size() < _rules.players_per_room and _beat < waiting.starts_at:
+		return
+	if waiting.has_players() and not _may_build(null):
+		return
+	if not waiting.has_players() or not _begin_match(waiting, null):
+		waiting.starts_at = _beat + ServerRules.beats(_rules.quick_wait)
+		_send_rosters(waiting)
+
+
+## Builds [param at]'s match and tells its players — for [param by], or for the server
+## itself, a quick game's, when null; false, nothing built, when no seed is drawn.
+func _begin_match(at: Room, by: Connection) -> bool:
 	var match_seed := _seeds.u32()
 	if match_seed < 0:
 		_say("room %s: no match seed drawn" % at.code)
-		_refuse(connection, RoomCodec.Refusal.BUSY)
-		return
-	_count_build(connection)
+		return false
+	_count_build(by)
+	at.starts_at = -1
 	var config := config_for(_match_rules, match_seed, _rules.fast, _rules.bonuses)
 	var bots := BotInputSource.fill(config, BotProfile.for_tier(config.bot_tier))
 	at.start(config, _net, bots, _beat, _codec.wire)
@@ -437,6 +498,7 @@ func _start(connection: Connection) -> void:
 		)
 	)
 	_send_rosters(at)
+	return true
 
 
 ## Has [param connection] watch its room's matches when [param on], else play them: its
@@ -460,10 +522,10 @@ func _watch(connection: Connection, on: bool) -> void:
 
 ## Whether a match may be built for [param connection] now: no sooner than
 ## start_cooldown after its last, and no more than starts_per_second on the whole
-## server.
+## server — the last alone for a quick game starting itself, [param connection] null.
 func _may_build(connection: Connection) -> bool:
 	var cooldown := ServerRules.beats(_rules.start_cooldown)
-	if connection.started >= 0 and _beat - connection.started < cooldown:
+	if connection != null and connection.started >= 0 and _beat - connection.started < cooldown:
 		return false
 	if _beat - _starts_from >= Ticks.RATE:
 		_starts_from = _beat
@@ -475,7 +537,8 @@ func _may_build(connection: Connection) -> bool:
 ## only once its seed is drawn, as a START refused before that built nothing.
 func _count_build(connection: Connection) -> void:
 	_starts += 1
-	connection.started = _beat
+	if connection != null:
+		connection.started = _beat
 
 
 func _leave(connection: Connection) -> void:
@@ -507,6 +570,9 @@ func _leave_room(connection: Connection) -> void:
 
 
 func _step_room(stepped: Room) -> void:
+	# A quick game started here plays its first tick on this beat, as a START's does.
+	if stepped.quick and stepped.phase == Room.Phase.WAITING:
+		_start_quick(stepped)
 	match stepped.phase:
 		Room.Phase.PLAYING:
 			stepped.step(_beat)
@@ -520,6 +586,8 @@ func _step_room(stepped: Room) -> void:
 			stepped.step(_beat)
 			if _beat - stepped.since >= ServerRules.beats(_rules.finished_linger):
 				stepped.reopen(_beat)
+				if stepped.quick:
+					stepped.starts_at = _beat + ServerRules.beats(_rules.quick_wait)
 				_say("room %s: waiting for its host again" % stepped.code)
 				_send_rosters(stepped)
 				match_finished.emit(stepped.code)
@@ -584,6 +652,7 @@ func _keep_time() -> void:
 		var idle := _beat - waiting.since
 		if (
 			waiting.phase == Room.Phase.WAITING
+			and not waiting.quick
 			and idle >= ServerRules.beats(_rules.idle_room_timeout)
 		):
 			_close_room(waiting, "idle")
@@ -719,7 +788,10 @@ func _turn_away(connection: Connection, reason: RoomCodec.Refusal) -> void:
 
 func _send_rosters(changed: Room) -> void:
 	for player: Room.Member in changed.present():
-		_wire.send(player.peer, _codec.encode_roster(changed.roster_for(player.peer)))
+		var roster := changed.roster_for(player.peer)
+		if changed.starts_at >= 0 and changed.phase == Room.Phase.WAITING:
+			roster.starts_in = maxi(changed.starts_at - _beat, 0)
+		_wire.send(player.peer, _codec.encode_roster(roster))
 
 
 func _who(connection: Connection) -> String:
