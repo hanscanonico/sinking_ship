@@ -11,7 +11,9 @@
 #   make crew [N=2] [SEED=1701] [WS_PORT=47941] [RES=640x360] [HEADLESS=1]   in the
 #       background: the server and N seats, Ada, Bea, Cal, Dee, Eve, Fay, Gus, Hal, each
 #       on the server's Online screen under its name; until `tools/crew.sh quit`, or
-#       PLAY_IDLE (900) seconds with no turn at a seat, which leaves that seat alone
+#       PLAY_IDLE (900) seconds with no turn at a seat, which leaves that seat alone.
+#       LANGS=fr,es,en plays seat 1 in French, seat 2 in Spanish, seat 3 in English,
+#       and the list again from seat 4; every seat in English without it
 #   tools/crew.sh 2 'click "Join"; until text "Ada" 300; shot room'   a turn at seat 2
 #   tools/crew.sh say Bea 'joined ABCD; ready'     a line on the crew's board
 #   tools/crew.sh board [FROM]                     the board, from line FROM on
@@ -115,18 +117,21 @@ serve() {
 	done
 	echo "crew: server on ws://127.0.0.1:$port, its log $CREW/server.log"
 
-	local k name
+	local k name language languages=()
+	IFS=, read -r -a languages <<<"${LANGS:-en}"
+	((${#languages[@]})) || languages=(en)
 	for ((k = 1; k <= seats; k++)); do
 		name="${NAMES[k - 1]}"
+		language="${languages[(k - 1) % ${#languages[@]}]}"
 		rm -rf "$CREW/seat$k/in" "$CREW/seat$k/out" "$CREW/seat$k/free"
 		mkdir -p "$CREW/seat$k"
 		[[ "${FREE:-0}" == 1 ]] && touch "$CREW/seat$k/free"
 		PLAY="$CREW/seat$k" PLAY_IDLE="${PLAY_IDLE:-900}" RES="${RES:-640x360}" \
 			PLAY_HEADLESS="${HEADLESS:-0}" tools/play.sh serve \
-			--connect="ws://127.0.0.1:$port" --name="$name" --language=en \
+			--connect="ws://127.0.0.1:$port" --name="$name" --language="$language" \
 			--crew="$CREW/clock" >/dev/null 2>&1 &
 		started+=("$!")
-		echo "crew: seat $k is $name: tools/crew.sh $k '<commands>'"
+		echo "crew: seat $k is $name, in $language: tools/crew.sh $k '<commands>'"
 	done
 	for ((k = 1; k <= seats; k++)); do
 		waited=0
