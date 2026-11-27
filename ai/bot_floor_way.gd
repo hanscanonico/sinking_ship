@@ -11,7 +11,16 @@ extends RefCounted
 ## target, over a grid of CELL squares, each one a body could stand on, never a stair but its
 ## own — through whatever zones the floor runs through, and over squares FINER of CELL
 ## across where none is found over CELL's — then along that way as far as it could walk
-## straight. It looks once a think, the bot's own think_period, and walks at what
+## straight. To an end further off than NARROW the search settles its MOST squares long
+## before it gets there: the way round is then as much of one as the search found, to the
+## square it settled nearest that end, kept to the zone the bot stands in — a room nearer
+## the end is no way to it — and from its end the bot looks again. So it comes out of a
+## pocket of the floor a walk straight at a far stair runs into, as the Titanic's boat
+## deck has between her officers' house and the winch beside it; and where that walk would
+## hold but leave its zone short of its portal — into a room beside her C deck's promenade,
+## whose route is back out by the door it came in by — it keeps to its zone's floor
+## instead (_leaves). A bot that makes no headway asks for a way round whatever it found
+## before (round_about). It looks once a think, the bot's own think_period, and walks at what
 ## it found in between. Asked of the Surfaces of the frame it stands in; nothing here rolls
 ## the bot's stream. The search runs in the game's extension where it is loaded, square for
 ## square (NativeSurfaces.floor_way, #410): its GDScript is the web's, and the twin the
@@ -50,6 +59,7 @@ const LEAN := 0.5
 ## zone — once off the last it found.
 const FINDS := 4
 
+var _walk_graph: WalkGraph
 var _surfaces: Surfaces
 var _rules: BrawlRules
 ## What a square holds, and what a walk straight is looked along by (SNUG, LEAN).
@@ -63,23 +73,32 @@ var _wait := 0
 var _aim := Vector3.INF
 ## The way round it found last, its points from where it stood to the portal or the target,
 ## the leg it is for — null for its target in its own zone — and how many more it may look for
-## along that leg; empty for none.
+## along that leg; empty for none. Where that way was looked for to, and whether it stops
+## short of there: as far toward it as the search got (_find).
 var _way := PackedVector3Array()
 var _way_leg: WalkGraph.Portal = null
 var _finds := FINDS
+var _way_to := Vector3.INF
+var _short := false
+## Whether the bot, making no headway, has asked for a way round since its last search
+## (round_about): it looks for one though a walk straight holds.
+var _asked := false
 ## Whether a search over CELL's squares found no way round along this leg from further than
 ## NARROW off its end, where it does not look over FINER's: it looks again only once within
 ## NARROW of it (#567).
 var _beyond := false
 ## What the extension's search is handed of these and the rules (NativeSurfaces.floor_way):
-## over CELL's squares, and over FINER's.
+## over CELL's squares, over FINER's, and over each to a far end, a way short of it taken.
 var _native_rules: PackedFloat64Array
 var _native_fine: PackedFloat64Array
+var _native_far: PackedFloat64Array
+var _native_far_fine: PackedFloat64Array
 ## How many squares its last search in GDScript settled (test_floor_way_native).
 var _settled := 0
 
 
 func _init(walk_graph: WalkGraph, rules: BrawlRules, think_period: int) -> void:
+	_walk_graph = walk_graph
 	_surfaces = walk_graph.surfaces()
 	_rules = rules
 	_snug = rules.body_radius * SNUG
@@ -100,6 +119,10 @@ func _init(walk_graph: WalkGraph, rules: BrawlRules, think_period: int) -> void:
 	_native_fine = _native_rules.duplicate()
 	_native_fine[0] = CELL * FINER
 	_native_fine[2] = MOST / (FINER * FINER)
+	_native_far = _native_rules.duplicate()
+	_native_far.append(LOOK)
+	_native_far_fine = _native_fine.duplicate()
+	_native_far_fine.append(LOOK)
 
 
 ## Where a body at [param from] on [param surface] walks to go on along [param leg] toward
@@ -119,8 +142,9 @@ func toward(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> 
 		_way_leg = leg
 		_finds = FINDS
 		_beyond = false
+		_asked = false
 		_wait = 0
-	elif leg == null and not _way.is_empty() and _flat(_way[_way.size() - 1], to) > NEAR:
+	elif leg == null and not _way.is_empty() and _flat(_way_to, to) > NEAR:
 		# Its target has moved on from where the way round to it ends.
 		_way.clear()
 		_wait = 0
@@ -135,6 +159,17 @@ func toward(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> 
 	return to if _aim == Vector3.INF else _aim
 
 
+## The bot makes no headway (BotBrain): at its next look it looks for a way round afresh,
+## whatever it found or did not find before along this leg, and though a walk straight
+## holds as far as it looks.
+func round_about() -> void:
+	_asked = true
+	_beyond = false
+	_finds = maxi(_finds, 1)
+	_way.clear()
+	_wait = 0
+
+
 ## Whether a body at [param from] is on the way round it holds for [param leg], within NEAR
 ## of a point of it: through whatever zones that way takes it, it is still on its leg.
 func holds(leg: WalkGraph.Portal, from: Vector3) -> bool:
@@ -142,7 +177,11 @@ func holds(leg: WalkGraph.Portal, from: Vector3) -> bool:
 
 
 ## One look (toward): Vector3.INF to walk at [param to], else the point of the way round to
-## walk to. None found, it looks for none again along the leg — unless it looked from where no
+## walk to. At the end of a way that stops short of where it was looked for to, it looks
+## again from there, as often as along a fresh leg: it has come on. A walk straight that
+## holds is taken — but to an end further off than NARROW where it leaves the bot's zone
+## for another than its leg leads into (_leaves), or the bot has asked (round_about). None
+## found, it looks for none again along the leg — unless it looked from where no
 ## body could stand, where its reckoning, carried on by a walk that a blocker stopped, puts
 ## it: none from there says nothing of the leg, and it looks again next think; or from
 ## further than NARROW off its end, where it looks again once within NARROW (#567).
@@ -152,35 +191,59 @@ func _look(from: Vector3, surface: int, leg: WalkGraph.Portal, to: Vector3) -> V
 		keep.append(_surfaces.ramp_surface(leg.ramp))
 	var heads := _heads(from, leg, to)
 	var near := _nearest(from)
+	if near != -1 and _short and _flat(from, _way[_way.size() - 1]) <= NEAR:
+		near = -1
+		_finds = FINDS
 	if near == -1:
 		_way.clear()
-		if _finds == 0 or _holds(from, to, heads, keep):
-			return Vector3.INF
-		var end := to if leg == null else leg.entry
-		var narrow := _flat(from, end) <= NARROW
-		if _beyond and not narrow:
-			return Vector3.INF
-		_way = _find(from, end, keep)
-		if _way.is_empty() and narrow:
-			_way = _find(from, end, keep, true)
-		var ends := _way.is_empty() and _stands(from, surface, keep, _snug)
-		if ends and not narrow:
-			# A doorway's lane may fall between CELL's squares: none found over them says
-			# nothing of the leg till FINER's are looked over too, within NARROW.
-			_beyond = true
-		else:
-			_finds = 0 if ends else _finds - 1
-		if _way.is_empty():
+		if not _seek(from, surface, leg, to, heads, keep):
 			return Vector3.INF
 		near = 0
 	var last := _way.size() - 1
 	for ahead: int in AHEAD:
 		var at := mini(near + ahead, last)
 		if _walks(from, _way[at], keep, INF):
-			if at == last and _holds(from, to, heads, keep):
+			if at == last and not _short and _holds(from, to, heads, keep):
 				return Vector3.INF
 			return _way[at]
 	return _way[mini(near + 1, last)]
+
+
+## Looks for a way round for _look, which holds none the bot is on, and keeps it (_way):
+## whether it found one.
+func _seek(
+	from: Vector3,
+	surface: int,
+	leg: WalkGraph.Portal,
+	to: Vector3,
+	heads: Vector3,
+	keep: PackedInt32Array
+) -> bool:
+	if _finds == 0:
+		return false
+	var end := to if leg == null else leg.entry
+	var narrow := _flat(from, end) <= NARROW
+	if _holds(from, to, heads, keep):
+		if narrow or not (_asked or _leaves(from, surface, leg, heads)):
+			return false
+	if _beyond and not narrow:
+		return false
+	_asked = false
+	_way = _toward(from, surface, end, keep, false, narrow)
+	if _way.is_empty():
+		# Over FINER's squares: a doorway's lane on the way to a far end too, as the
+		# 0.94 m doorways in the after wall of the Titanic's C deck promenade.
+		_way = _toward(from, surface, end, keep, true, narrow)
+	_way_to = end
+	_short = not _way.is_empty() and _way[_way.size() - 1] != end
+	var ends := _way.is_empty() and _stands(from, surface, keep, _snug)
+	if ends and not narrow:
+		# A doorway's lane may fall between CELL's squares: none found over them says
+		# nothing of the leg till FINER's are looked over too, within NARROW.
+		_beyond = true
+	else:
+		_finds = 0 if ends else _finds - 1
+	return not _way.is_empty()
 
 
 ## Whether a walk straight from [param from] at [param to] holds, as far as LOOK (_walks), and
@@ -191,6 +254,61 @@ func _holds(from: Vector3, to: Vector3, heads: Vector3, keep: PackedInt32Array) 
 	if not _walks(from, to, keep, LOOK):
 		return false
 	return heads == to or not _strays(from, heads, keep, LOOK)
+
+
+## The way round from [param from] on [param surface] to [param end] (_find, [param fine]):
+## the whole of it to an end within NARROW ([param narrow]); to one further off, as much of
+## it as the search found and the bot's zone holds (_in_its_zone).
+func _toward(
+	from: Vector3, surface: int, end: Vector3, keep: PackedInt32Array, fine: bool, narrow: bool
+) -> PackedVector3Array:
+	var way := _find(from, end, keep, fine, 0.0 if narrow else LOOK)
+	if not way.is_empty() and way[way.size() - 1] != end:
+		way = _in_its_zone(way, from, surface, end)
+	return way
+
+
+## Whether a walk straight from [param from] on [param surface] at [param heads], as far as
+## LOOK and its feet carried as _strays carries them, steps out of the zone it starts in
+## into another than [param leg] leads into: on from there its route is another, and back
+## the way it came where that zone's way on is through the one it left.
+func _leaves(from: Vector3, surface: int, leg: WalkGraph.Portal, heads: Vector3) -> bool:
+	var zone := _walk_graph.zone_at(from, surface)
+	if zone == WalkGraph.NONE:
+		return false
+	var flat := Vector2(heads.x - from.x, heads.z - from.z)
+	var length := minf(flat.length(), LOOK)
+	var steps := ceili(length / (_lean * 2.0))
+	var feet := from.y
+	for index in range(1, steps + 1):
+		var at := Vector2(from.x, from.z) + flat.normalized() * (length * index / steps)
+		var point := Vector3(at.x, feet, at.y)
+		var on := _surfaces.under(point, _rules.step_height)
+		if on == Surfaces.NONE:
+			return false
+		feet = _surfaces.height_at(on, point)
+		var into := _walk_graph.zone_at(Vector3(at.x, feet, at.y), on)
+		if into != zone and into != WalkGraph.NONE and (leg == null or into != leg.to_zone):
+			return true
+	return false
+
+
+## As much of [param way], one that stops short of [param end] (_find), as lies in the zone
+## a body at [param from] on [param surface] stands in: none of it once that leaves it less
+## than LOOK nearer [param end] than it stands.
+func _in_its_zone(
+	way: PackedVector3Array, from: Vector3, surface: int, end: Vector3
+) -> PackedVector3Array:
+	var zone := _walk_graph.zone_at(from, surface)
+	var kept := PackedVector3Array()
+	for point: Vector3 in way:
+		var on := _surfaces.under(point, _rules.step_height)
+		if _walk_graph.zone_at(point, on) != zone:
+			break
+		kept.append(point)
+	if kept.is_empty() or _flat(kept[kept.size() - 1], end) > _flat(from, end) - LOOK:
+		kept.clear()
+	return kept
 
 
 ## Where a body at [param from] walking at [param to], the point the walk graph gives it for
@@ -292,13 +410,19 @@ func _stands(point: Vector3, surface: int, keep: PackedInt32Array, radius: float
 ## ways — never across a corner — as points from the middle of its first square on to
 ## [param end]; empty when the search settles MOST squares, or all it can reach, before it
 ## comes within a square and a half of [param end]. [param fine], over squares FINER of
-## CELL across, as many more of them as cover as much floor.
+## CELL across, as many more of them as cover as much floor. With [param short] over 0, a
+## search that ends so gives the way to the square it settled nearest [param end] — the
+## first such — when that is at least [param short] metres nearer it than [param from]:
+## that way ends at the square's middle, not at [param end].
 func _find(
-	from: Vector3, end: Vector3, keep: PackedInt32Array, fine := false
+	from: Vector3, end: Vector3, keep: PackedInt32Array, fine := false, short := 0.0
 ) -> PackedVector3Array:
 	var mirror := _surfaces.native
 	if mirror != null:
-		return mirror.floor_way(from, end, keep, _native_fine if fine else _native_rules)
+		var native_rules := _native_fine if fine else _native_rules
+		if short > 0.0:
+			native_rules = _native_far_fine if fine else _native_far
+		return mirror.floor_way(from, end, keep, native_rules)
 	var side := CELL * FINER if fine else CELL
 	var most := int(MOST / (FINER * FINER)) if fine else MOST
 	var start := Vector2(from.x, from.z)
@@ -327,15 +451,21 @@ func _find(
 	open.push(start.distance_to(goal), first)
 	var settled := 0
 	var reached := -1
+	var nearest := -1
+	var nearest_off := INF
 	while not open.is_empty() and settled < most:
 		var cell := open.pop()
 		if done[cell] == 1:
 			continue
 		done[cell] = 1
 		settled += 1
-		if _middle(cell, origin, width, side).distance_to(goal) <= side * 1.5:
+		var off := _middle(cell, origin, width, side).distance_to(goal)
+		if off <= side * 1.5:
 			reached = cell
 			break
+		if off < nearest_off:
+			nearest = cell
+			nearest_off = off
 		var x := cell % width
 		var z := floori(float(cell) / width)
 		for dz in range(-1, 2):
@@ -365,8 +495,11 @@ func _find(
 	_settled = settled
 	var way := PackedVector3Array()
 	if reached == -1:
-		return way
-	way.append(end)
+		if short <= 0.0 or nearest == -1 or nearest_off > start.distance_to(goal) - short:
+			return way
+		reached = nearest
+	else:
+		way.append(end)
 	var back := reached
 	while back != -1:
 		var middle := _middle(back, origin, width, side)

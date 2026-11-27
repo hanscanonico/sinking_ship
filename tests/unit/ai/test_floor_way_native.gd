@@ -59,6 +59,30 @@ func test_the_g_deck_way_round_its_stairs_is_found_alike() -> void:
 	_assert_none("the G deck passage")
 
 
+## Out of the pocket on the Titanic's boat deck between her officers' house and the electric
+## winch beside it, toward the flight onto her raised roof 80 m aft: no search gets there,
+## and the way that stops short of it — out round the winch and aft along the house — is
+## the same from both, over CELL's squares and over FINER's.
+func test_a_way_that_stops_short_of_a_far_end_is_found_alike() -> void:
+	if not _loaded():
+		return
+	var ways := _ways(load(TITANIC))
+	var twin: BotFloorWay = ways[2]
+	var from := Vector3(36.3, 8.375, -7.0)
+	var end := Vector3(-44.125, 8.375, -5.0625)
+	_ask(ways, from, end, WalkGraph.NONE)
+	assert_eq(_found, 0, "no way all the way there")
+	var surfaces := (ways[0] as WalkGraph).surfaces()
+	var keep := PackedInt32Array([surfaces.under(from, SimFixtures.rules().step_height)])
+	var short := twin._find(from, end, keep, false, BotFloorWay.LOOK)
+	assert_gt(short.size(), 1, "a way short of it")
+	if short.size() > 1:
+		var last := short[short.size() - 1]
+		assert_ne(last, end, "that stops short")
+		assert_lt(last.x, 30.0, "aft of the step in the house's side: %s" % last)
+	_assert_none("the boat deck pocket")
+
+
 ## Ways round on the Titanic found only after more than half the squares a search may settle
 ## have settled, as the GDScript counts them, and searches that settle them all and give up:
 ## where the search gives up counts.
@@ -189,6 +213,17 @@ func _ask(ways: Array, from: Vector3, end: Vector3, ramp: int) -> void:
 				% [from, end, keep, mine.size(), theirs.size()]
 			)
 		)
+	# And as it asks of a far end: a way that stops short of it, where none gets there.
+	for fine: bool in [false, true]:
+		var mine_short := native._find(from, end, keep, fine, BotFloorWay.LOOK)
+		var their_short := twin._find(from, end, keep, fine, BotFloorWay.LOOK)
+		if var_to_bytes(mine_short) != var_to_bytes(their_short):
+			_differences.append(
+				(
+					"from %s short of %s (keeping %s, fine %s): %d points, not %d"
+					% [from, end, keep, fine, mine_short.size(), their_short.size()]
+				)
+			)
 
 
 ## The extension, let settle as many squares as the GDScript settled finding [param theirs],
