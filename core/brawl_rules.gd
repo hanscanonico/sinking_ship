@@ -185,13 +185,20 @@ extends Resource
 @export var blast_reach: float
 @export var blast_speed: float
 @export var blast_full_air: float
+## Seconds a full breath holds with a swimmer's head under the water (#861): the cold is
+## the water's on its body, the breath the air it has not got — under a deck with no air
+## over the water, or dunked by a dive or a pour.
+@export var breath_meter: float
+## Seconds of breath regained per second with its head in the air.
+@export var breath_regen: float
 ## Seconds of swimming a full cold meter holds.
 @export var cold_meter: float
 ## Seconds of the cold meter regained per second out of the sea.
 @export var cold_regen: float
 ## The share of the open water's rate the cold meter drains at while a swimmer's head is
-## in trapped air — a pocket under a ceiling (Q22, est. a quarter: the 4 s meter lasts
-## 16 s there). It never refills while swimming, so every match still ends.
+## in trapped air — a pocket under a ceiling, out of the open sea's wind and swell (Q22,
+## est. a half: the 8 s meter lasts 16 s there). It never refills while swimming, so
+## every match still ends.
 @export var pocket_cold_rate: float
 ## The highest a ledge may stand above the sea for a swimmer to climb onto it.
 @export var climb_reach: float
@@ -397,6 +404,8 @@ func problems() -> PackedStringArray:
 		"blast_reach",
 		"blast_speed",
 		"blast_full_air",
+		"breath_meter",
+		"breath_regen",
 		"cold_meter",
 		"cold_regen",
 		"pocket_cold_rate",

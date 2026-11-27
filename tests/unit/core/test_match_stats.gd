@@ -35,7 +35,7 @@ func test_knockout_credit_uses_the_event_field() -> void:
 	SimFixtures.place(sim, 0, Vector3(gap.x, 0.0, 0.2), 90.0)
 	SimFixtures.place(sim, 1, Vector3(gap.x, 0.0, 1.3), -90.0)
 	var played := MatchStats.new(2, 0)
-	for tick in 300:
+	for tick in SimFixtures.to_the_cold():
 		var buttons := InputFrame.SHOVE if tick == 0 else 0
 		played.add(SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, buttons)}))
 		if sim.is_over():

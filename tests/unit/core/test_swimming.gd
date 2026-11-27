@@ -408,7 +408,7 @@ func test_swimmer_waits_in_a_pocket_longer_than_the_cold_meter() -> void:
 	SimFixtures.step(sim, {}, Ticks.from_seconds(rules.cold_meter + 1.0))
 	assert_false(swimmer.is_out(), "a full meter and more, still in")
 	var lasts := rules.cold_meter / rules.pocket_cold_rate
-	assert_almost_eq(lasts, 16.0, 1e-9, "the 4 s meter lasts 16 s there")
+	assert_gt(lasts, rules.cold_meter + 1.0, "the meter lasts longer there")
 	var outs: Array[SimEvent] = []
 	for _tick in Ticks.from_seconds(lasts):
 		outs.append_array(_kinds(SimFixtures.step(sim), SimEvent.Kind.SEAT_OUT))

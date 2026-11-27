@@ -33,6 +33,7 @@ const CAUSES := {
 	PlayerState.Cause.NONE: "none",
 	PlayerState.Cause.COLD: "cold",
 	PlayerState.Cause.WITH_HER: "with her",
+	PlayerState.Cause.DROWNED: "drowned",
 }
 const DIGEST_LENGTH := 16
 ## How the results word her end (founders), by the label that tells it, the first

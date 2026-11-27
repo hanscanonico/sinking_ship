@@ -120,6 +120,7 @@ static func create(match_config: MatchConfig) -> MatchSim:
 		player.surface = sim.surfaces.under(player.pos, match_config.rules.step_height)
 		player.stamina = match_config.rules.stamina_max
 		player.cold = match_config.rules.cold_meter
+		player.breath = match_config.rules.breath_meter
 		match_state.seats.append(player)
 	match_state.props = PropState.from_layout(match_config.ship)
 	match_state.railing_hp.resize(match_config.ship.railings.size())
@@ -942,11 +943,12 @@ func _braced_against(target: PlayerState, shover: PlayerState, direction: Vector
 ## can (Movement.start_climb) — onto a dry face in a pocket as onto a deck edge; while it
 ## swims and does not climb, its cold meter drains — at pocket_cold_rate of the open water's
 ## with its head in trapped air (Q22), at the sea_cold_rate of a prop it holds that keeps it
-## afloat (#273), the lower of the two where both do — and it is out when that is empty, but
-## for a seat with a bonus that gives a spare meter (Double life, #307): that fills it
-## again, once, and the bonus is spent — one of them, of two. Out of the sea the meter
-## refills at cold_regen. A seat frozen in a hit-stop holds its meter, and neither falls in,
-## stands, climbs nor settles until the stop ends. Returns who went out.
+## afloat (#273), the lower of the two where both do — and its breath runs with its head
+## under (SwimMeters, #861). It is out when either is empty, by the cold or drowned, but for a
+## seat with a bonus that gives a spare meter (Double life, #307): that fills both again,
+## once, and the bonus is spent — one of them, of two. Out of the sea the cold meter
+## refills at cold_regen. A seat frozen in a hit-stop holds its meters, and neither falls
+## in, stands, climbs nor settles until the stop ends. Returns who went out.
 func _water(
 	live: Array[PlayerState],
 	pose_now: ShipPose,
@@ -961,6 +963,7 @@ func _water(
 			player.wet_ticks += 1
 		if player.is_frozen():
 			continue
+		SwimMeters.breathe(player, _movement.height_of(player), _here(), _rules, pose_now)
 		if player.body != PlayerState.Body.SWIMMING:
 			if not _movement.in_the_sea(player, pose_now) and not _swept(player, pose_now):
 				player.cold = minf(player.cold + _rules.cold_regen * dt, _rules.cold_meter)
@@ -987,18 +990,17 @@ func _water(
 		_movement.start_climb(player, pose_now, _seat_rules(player))
 		if player.is_climbing():
 			continue
-		var head := player.pos + Vector3.UP * _rules.head_height(_movement.height_of(player))
-		var rate := _rules.pocket_cold_rate if pose_now.in_pocket(head) else 1.0
-		rate = minf(rate, _seat_rules(player).sea_cold_rate)
-		player.cold = maxf(player.cold - dt * rate, 0.0)
+		SwimMeters.chill(player, _movement.height_of(player), _seat_rules(player), _rules, pose_now)
+		if player.cold > 0.0 and player.breath > 0.0:
+			continue
 		var spare := _spares_of(player)
-		if player.cold == 0.0 and not spare.is_empty():
-			player.cold = _rules.cold_meter
+		if not spare.is_empty():
+			SwimMeters.refill(player, _rules)
 			events.append(SimEvent.double_life_spent(tick, player.seat, spare[0]))
 			player.spend_bonus(spare[0])
 			_rerule(player)
-		elif player.cold == 0.0:
-			_out(player, tick, events)
+		else:
+			_out(player, tick, events, SwimMeters.cause(player))
 			exits.append(player)
 	return exits
 

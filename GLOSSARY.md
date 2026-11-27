@@ -117,9 +117,23 @@ their own, on her sinking's clock: when each comes, its kind, and which open spo
 A planned bonus with the most already aboard, or no spot open, never comes.
 _Avoid_: spawn schedule, drop table, loot table
 
+**Cold meter**:
+The seconds a seat may swim before the cold puts it out: the water's on its body, draining
+while it swims wherever its head is, and coming back slowly out of the sea. The HUD reads
+it as warmth, and as frost at the screen's edges.
+_Avoid_: health, air, oxygen
+
+**Breath**:
+The seconds a swimmer lasts with its head under the water — held down by a deck with no
+air under it, or dunked by a dive: out of it, the seat drowns. It comes back fast with its
+head in the air, afloat on the sea, in a pocket or on its feet. Never the cold meter's:
+a head in the air keeps its breath and the body stays as cold.
+_Avoid_: oxygen, air meter, health
+
 **Spare meter**:
-What Double life gives its taker: a second cold meter, filling the first again as it runs
-out in the sea, once. Unspent, it counts as a full meter more of cold left in the last swim.
+What Double life gives its taker: a second cold meter and a second breath, filling both
+again as either runs out in the sea, once. Unspent, it counts as a full meter more of cold
+left in the last swim.
 _Avoid_: extra life, respawn
 
 ### Watching her again

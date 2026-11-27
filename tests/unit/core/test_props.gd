@@ -427,7 +427,7 @@ func test_an_exit_a_crate_causes_credits_the_crate_and_its_shover() -> void:
 		SimFixtures.place(sim, 1, Vector3(gap.x, 0.0, gap.y - 0.7))
 		var told := MatchTranscript.new()
 		var outs: Array[SimEvent] = []
-		for tick in 10 * Ticks.RATE:
+		for tick in SimFixtures.to_the_cold():
 			var buttons := SHOVE if shoved and tick == 0 else 0
 			var events := SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, buttons)})
 			told.add(events)

@@ -11,7 +11,8 @@ enum Action { IDLE, WINDUP, ACTIVE, RECOVERY, CHARGE }
 ## the cold once she was gone and every surface was under (MatchVerdict.by_the_cold).
 ## WITH_HER: it was inside a piece of her on the tick that piece was gone
 ## (MatchVerdict.gone_with) — dry, maybe, in a hold that kept its air all the way down.
-enum Cause { NONE, COLD, WITH_HER }
+## DROWNED: its breath ran out with its head under the water (#861).
+enum Cause { NONE, COLD, WITH_HER, DROWNED }
 
 var seat: int
 ## The piece of her hull it is on (Pieces, SH33): 0, the whole ship, until she breaks.
@@ -56,6 +57,8 @@ var hitstop: int
 var held_vel: Vector3
 ## Seconds of swimming left before the cold puts the seat out.
 var cold: float
+## Seconds its breath holds with its head under the water before the seat drowns (#861).
+var breath: float
 ## Ticks it has swum, all match: of seats out on one tick with as much cold left, the
 ## drier places higher (MatchVerdict.place).
 var wet_ticks: int
@@ -192,6 +195,7 @@ const FIELDS := [
 	{"name": "hitstop", "kind": SnapshotField.Kind.INT},
 	{"name": "held_vel", "kind": SnapshotField.Kind.SPEEDS},
 	{"name": "cold", "kind": SnapshotField.Kind.AMOUNT},
+	{"name": "breath", "kind": SnapshotField.Kind.AMOUNT},
 	{"name": "wet_ticks", "kind": SnapshotField.Kind.INT},
 	{"name": "shoves", "kind": SnapshotField.Kind.INT},
 	{"name": "climb_left", "kind": SnapshotField.Kind.INT, "key": "climb"},
@@ -234,6 +238,7 @@ func to_dict() -> Dictionary:
 		"hitstop": hitstop,
 		"held_vel": held_vel,
 		"cold": cold,
+		"breath": breath,
 		"wet_ticks": wet_ticks,
 		"shoves": shoves,
 		"climb": climb_left,
@@ -274,6 +279,7 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.hitstop = entry["hitstop"]
 	player.held_vel = entry["held_vel"]
 	player.cold = entry["cold"]
+	player.breath = entry["breath"]
 	player.wet_ticks = entry["wet_ticks"]
 	player.shoves = entry["shoves"]
 	player.climb_left = entry["climb"]

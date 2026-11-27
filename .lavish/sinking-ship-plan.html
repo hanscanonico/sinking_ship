@@ -1421,7 +1421,7 @@ flowchart LR
     { "seat": 3, "out": false, "place": 0,
       "pos": [x, y, z], "vel": [x, y, z], "facing": rad,
       "surface": id | -1, "state": GROUNDED, "state_ticks": 7,
-      "stamina": 72.5, "cold": 4.0,            <span class="c"># SH4 / SH5</span>
+      "stamina": 72.5, "cold": 8.0, "breath": 6.0,            <span class="c"># SH4 / SH5</span>
       "shove_cd": 0, "charge": 0,
       "prev_buttons": 1, "last_input": [mx, mz, ax, az, b] },
     ...
@@ -1753,7 +1753,8 @@ flowchart LR
             is out that tick — shoved in, fallen in, or standing on a deck as it floods. Placement is
             the order out; seats out on the same tick share a placement.</li>
             <li><strong>From SH5 (Q1, recommended): the water is a countdown.</strong> In the sea you
-            swim slowly with a <strong>4 s cold meter</strong>. You can climb out onto any deck edge
+            swim slowly with a <strong>8 s cold meter</strong> (4 s until #861, which told the cold from
+            drowning: a head under the water has a <strong>6 s breath</strong> of its own). You can climb out onto any deck edge
             within <strong>0.6 m</strong> of the surface — which, on a ship going down by the head, is
             the low end, exactly where the fight is. Climbing takes <strong>0.5 s</strong> and a shove
             puts you back in. The meter refills slowly on deck, so a second dunking kills faster than
@@ -2464,10 +2465,11 @@ stages = [ flooding, attitude, air, failures, capsized_movement, breaking ]
           brace rules work unchanged on any face. A jump goes up the world's up. A swimmer swims in its cell's
           water; in a cell with no air above the water it is under, and it can pass a flooded doorway into the
           next cell and surface in that cell's pocket (SH29). The cold meter runs in any water, except that
-          while a swimmer's head is in a trapped pocket it drains at a slower pocket rate (est. a quarter of
-          the open-water rate, so today's 4 s meter lasts 16 s there), and a swimmer can climb out onto any
+          while a swimmer's head is in a trapped pocket it drains at a slower pocket rate (a half of
+          the open-water rate since #861, so the 8 s meter lasts 16 s there, as the 4 s one did), and a swimmer can climb out onto any
           dry face inside a pocket, as onto a deck edge today — Q22, built as recommended unless you
-          overrule it. Whether the meter runs faster under water is a data knob (est. no).
+          overrule it. The meter runs no faster under water: a head under it has a breath of its own
+          (#861, est. 6 s, back in 2 s with its head in the air), and out of breath the seat drowns.
           <strong>The camera keeps the world's up and the
           ship turns around you</strong> (D14): the eye 1.6 m above the feet along the world's up, the horizon
           level (Q17). Move and look are expressed in the plane of the face you stand on (D3); the input source

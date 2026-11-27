@@ -7,7 +7,8 @@ extends CanvasLayer
 ## screen's edge pointing at a shove winding up beside or behind, and a chevron, a
 ## ring and a name over every brawler in sight within CHEVRON_RANGE — the ring its
 ## stamina, or its warmth in the sea — kept under the clock and faded off the dials.
-## In the sea frost grows in from the screen's edges as the warmth runs out, and a
+## In the sea frost grows in from the screen's edges as the warmth runs out and the dark
+## closes in as the breath does (SwimVeil), and a
 ## prompt says when pressing on would climb out (Surfaces.climb_out); on deck one says what
 ## a Grab press would do, a bonus first (#307), by its kind's badge too (BonusIcons). Under
 ## the plate stand the seat's bonuses, a badge per kind and how many of it it has, and a
@@ -24,10 +25,6 @@ extends CanvasLayer
 ## How far under the crosshair a prompt stands: the climb's, in the sea, and the grab's
 ## on deck (#273).
 const PROMPT_BELOW := Vector2(0.0, 70.0)
-const FROST_SHADER := preload("res://scenes/match/frost.gdshader")
-## The frost's crystal texture: its side in pixels, and how many crystals across it.
-const CRYSTAL_SIZE := 512
-const CRYSTAL_CELLS := 9.0
 ## How far away a brawler still gets its chevron, in metres.
 const CHEVRON_RANGE := 15.0
 ## How far over the top of a body, hat and all, its chevron floats, in metres.
@@ -177,7 +174,7 @@ var _yaw: float
 var _camera: Camera3D
 var _view: MatchView
 var _prompts: InputPrompts
-var _frost: ColorRect
+var _veil := SwimVeil.new()
 var _plate := StyleBoxFlat.new()
 ## Per seat, whether its plate stood where it would, unlifted, last frame.
 var _plate_kept := PackedByteArray()
@@ -188,16 +185,7 @@ var _ranks := PackedFloat32Array()
 func _ready() -> void:
 	_font = ThemeDB.fallback_font
 	# Under the canvas, so the readouts stay legible through the frost.
-	_frost = ColorRect.new()
-	_frost.name = "Frost"
-	var frost := ShaderMaterial.new()
-	frost.shader = FROST_SHADER
-	frost.set_shader_parameter(&"crystals", _crystals())
-	_frost.material = frost
-	_frost.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_frost.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_frost.hide()
-	add_child(_frost)
+	add_child(_veil)
 	_plate.bg_color = PLATE
 	_plate.border_color = PLATE_EDGE
 	_plate.set_border_width_all(1)
@@ -256,7 +244,7 @@ func show_view(
 	_yaw = yaw
 	_camera = camera
 	_view = view
-	_show_frost()
+	_veil.show_for({} if _over() or not _eyes or flying else _entry(_seat), _rules)
 	_walked = _rooms.ghost_place(ghost, _schedule, snapshot, _rules.step_height)
 	var with := [
 		flying, _canvas.size, _prompts.word(&"grab"), _prompts.word(&"brace"), _walked, past_end
@@ -317,18 +305,6 @@ func _draw_live() -> void:
 func _over() -> bool:
 	var ended: bool = not _snapshot.is_empty() and _snapshot["phase"] == MatchState.Phase.ENDED
 	return _snapshot.is_empty() or ended and not past_end
-
-
-## Frost in from the screen's edges while the eyes swim, the further the emptier
-## their cold meter.
-func _show_frost() -> void:
-	var cold := 0.0
-	var me := {} if _over() or not _eyes or flying else _entry(_seat)
-	if not me.is_empty() and not me["out"] and me["state"] == PlayerState.Body.SWIMMING:
-		cold = 1.0 - _cold(me)
-	_frost.visible = cold > 0.0
-	if _frost.visible:
-		(_frost.material as ShaderMaterial).set_shader_parameter(&"cold", cold)
 
 
 ## Two dials, top right: the heel as the hull seen from astern (starboard on the
@@ -1029,27 +1005,6 @@ func _draw_climb_prompt(me: Dictionary, here: Surfaces, pose: ShipPose) -> void:
 		return
 	var at := _canvas.size * 0.5 + PROMPT_BELOW
 	_text(at, Language.t("Hold %s to climb") % _prompts.word(&"move_up"), TEXT, PROMPT_TEXT)
-
-
-## The frost's crystals: the edges between the cells of a seamless cellular noise,
-## white on black.
-static func _crystals() -> NoiseTexture2D:
-	var cells := FastNoiseLite.new()
-	cells.noise_type = FastNoiseLite.TYPE_CELLULAR
-	cells.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_SUB
-	cells.frequency = CRYSTAL_CELLS / CRYSTAL_SIZE
-	var ramp := Gradient.new()
-	ramp.offsets = PackedFloat32Array([0.0, 0.76, 0.93])
-	ramp.colors = PackedColorArray([Color.BLACK, Color.BLACK, Color.WHITE])
-	var texture := NoiseTexture2D.new()
-	texture.width = CRYSTAL_SIZE
-	texture.height = CRYSTAL_SIZE
-	texture.seamless = true
-	texture.invert = true
-	texture.generate_mipmaps = true
-	texture.color_ramp = ramp
-	texture.noise = cells
-	return texture
 
 
 ## [param entry]'s cold meter, as a share of a full one.
