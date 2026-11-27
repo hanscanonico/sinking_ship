@@ -65,7 +65,8 @@ extends RefCounted
 ## from before it. A bot that has stood still for two thinks while walking, with nobody
 ## at hand moving to be holding it back, steps aside — or, on an open deck making for a
 ## stair, goes round through the rooms beside it; and in a zone whose floor a straight walk
-## to its next portal would not get across, it goes round by the floor (BotFloorWay). Its
+## to its next portal would not get across, it goes round by the floor (BotFloorWay) — as it
+## does wherever it walks without headway and has no rooms to go round by (BotHeadway). Its
 ## stream also rolls, mistake_rate times a second, a lapse: mistake_seconds walking a
 ## heading of its choosing, neither bracing nor holding its shove for a line-up — still off
 ## the water, and off open drops too (and out of a crate's path) unless it is one of its
@@ -171,10 +172,8 @@ var _stuck := 0
 var _walked_from := 0
 ## Where it saw every seat at the last think, by seat.
 var _others_at := {}
-## Where it last made headway walking — a body's radius from the last such place —
-## and the tick its view showed it there: jiggling against a wall is no headway.
-var _headway_at := Vector3.INF
-var _stalled_since := 0
+## Whether its walking gets it anywhere: jiggling against a wall is no headway.
+var _headway: BotHeadway
 ## Whether, at the last think, water or an open edge stood within the edge margin
 ## plus the walk to the next think: until then, nothing nearer needs looking for.
 var _edges_near := true
@@ -218,6 +217,7 @@ func _init(
 	_props = BotProps.new(bot_seat, profile, rules, layout, bonus_rules)
 	_bonuses = BotBonuses.new(bot_seat, profile, rules, layout, bonus_rules)
 	_reckoning = BotReckoning.new(profile, rules)
+	_headway = BotHeadway.new(rules)
 	_floors = floors
 	_stand_on(Faces.Up.DECK)
 	_pacing = BotPacing.new(profile, plays_for, _targeting.carry)
@@ -391,9 +391,7 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	var seen_walking: bool = _walking and seen["tick"] > _walked_from
 	_stuck = _stuck + 1 if seen_walking and not moved and not held else 0
 	_stood_at = my_pos
-	if not seen_walking or _flat(my_pos, _headway_at) >= _rules.body_radius:
-		_headway_at = my_pos
-		_stalled_since = seen["tick"]
+	_headway.saw(my_pos, seen_walking, seen["tick"])
 	_others_at.clear()
 	for entry: Dictionary in seen["seats"]:
 		_others_at[entry["seat"]] = entry["pos"]
@@ -499,19 +497,19 @@ func _think(view: BotView, me: Dictionary, now_pos: Vector3, pose: ShipPose) -> 
 	var legs := wade if _wading else _walk_graph.route_in(found, _goal)
 	if _goal != kept_goal or legs.is_empty() or not _walk_graph.open(_legs, pose):
 		_legs = legs
-	if (
-		seen["tick"] - _stalled_since >= Ticks.from_seconds(_profile.detour_after_s)
-		and not _legs.is_empty()
-		and _legs[0].ramp != WalkGraph.NONE
-	):
-		# No headway for a while on the way to a stair across its deck: round through
-		# the rooms beside it.
+	if _headway.stalled_for(seen["tick"]) < Ticks.from_seconds(_profile.detour_after_s):
+		return
+	var by_rooms := _headway.goes_round(seen["tick"])
+	if by_rooms and not _legs.is_empty() and _legs[0].ramp != WalkGraph.NONE:
+		# No headway for a while on the way to a stair across its deck, nor round by
+		# the floor: round through the rooms beside it.
 		var way := _walk_graph.toward(_legs[0], now_pos, my_surface)
 		var round_by := _walk_graph.detour(now_pos, my_surface, way, pose)
 		if not round_by.is_empty():
 			round_by.append_array(_legs)
 			_legs = round_by
-			_stalled_since = seen["tick"]
+			return
+	_floor_way.round_about()
 
 
 ## The arbiter: the first urgent intent whose reason holds, else the best of the scored

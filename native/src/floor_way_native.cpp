@@ -221,7 +221,10 @@ bool NativeSurfaces::stands_at(const Vector3 &p_point, int32_t p_surface, const 
 // points from the middle of its first square on to p_end; empty when the search settles its
 // most squares, or all it can reach, before it comes within a square and a half of p_end. p_rules: the square's
 // side, the margin round the box, the most squares settled, a square's body's radius, a
-// step's height, a body's height, how low it crawls and a railing's height.
+// step's height, a body's height, how low it crawls and a railing's height; and, with a
+// ninth over 0, a search that ends so gives the way to the square it settled nearest p_end,
+// the first such, when that is at least that many metres nearer it than p_from: that way
+// ends at the square's middle, not at p_end.
 PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector3 &p_end,
 		const PackedInt32Array &p_keep, const PackedFloat64Array &p_rules) const {
 	const double side = p_rules[0];
@@ -232,6 +235,7 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 	const double body_height = p_rules[5];
 	const double crawl_height = p_rules[6];
 	const double railing_height = p_rules[7];
+	const double shorter = p_rules.size() > 8 ? p_rules[8] : 0.0;
 	const Vector2 start(p_from.x, p_from.z);
 	const Vector2 goal(p_end.x, p_end.z);
 	const Rect2 box = Rect2(start, Vector2()).expand(goal).grow(real_t(margin));
@@ -268,6 +272,8 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 	open.push(double(start.distance_to(goal)), int32_t(first));
 	int64_t settled = 0;
 	int64_t reached = -1;
+	int64_t nearest = -1;
+	double nearest_off = INF;
 	while (!open.empty() && settled < most) {
 		const int64_t cell = open.pop();
 		if (done[size_t(cell)] == 1) {
@@ -275,9 +281,14 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 		}
 		done[size_t(cell)] = 1;
 		settled++;
-		if (double(grid.middle(cell).distance_to(goal)) <= near_goal) {
+		const double off = double(grid.middle(cell).distance_to(goal));
+		if (off <= near_goal) {
 			reached = cell;
 			break;
+		}
+		if (off < nearest_off) {
+			nearest = cell;
+			nearest_off = off;
 		}
 		const int64_t x = cell % grid.width;
 		const int64_t z = int64_t(std::floor(double(cell) / double(grid.width)));
@@ -307,17 +318,23 @@ PackedVector3Array NativeSurfaces::floor_way(const Vector3 &p_from, const Vector
 		}
 	}
 	PackedVector3Array way;
-	if (reached == -1) {
-		return way;
+	const bool ends_short = reached == -1;
+	if (ends_short) {
+		if (shorter <= 0.0 || nearest == -1 || nearest_off > double(start.distance_to(goal)) - shorter) {
+			return way;
+		}
+		reached = nearest;
 	}
-	int64_t count = 1;
+	int64_t count = ends_short ? 0 : 1;
 	for (int64_t back = reached; back != -1; back = came[size_t(back)]) {
 		count++;
 	}
 	way.resize(count);
 	Vector3 *write = way.ptrw();
-	write[count - 1] = p_end;
-	int64_t at = count - 2;
+	if (!ends_short) {
+		write[count - 1] = p_end;
+	}
+	int64_t at = ends_short ? count - 1 : count - 2;
 	for (int64_t back = reached; back != -1; back = came[size_t(back)]) {
 		const Vector2 middle = grid.middle(back);
 		write[at--] = Vector3(middle.x, p_from.y, middle.y);

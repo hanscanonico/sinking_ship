@@ -25,6 +25,15 @@ const STARBOARD_LADDER_HEAD := Vector3(95.0, FORECASTLE, 6.0)
 ## centreline between, its fore face 0.31 m short of that rail.
 const POOP_STARBOARD := Vector3(-108.25, POOP, 4.5)
 const POOP_FORE_END := Vector3(-107.25, POOP, -3.0)
+## On her boat deck to port, beside her officers' house and forward of the electric winch
+## that stands 0.98 m off its side: abaft the winch the house steps out to 0.71 m from it, the
+## end of a pocket no body gets through. And the head of the flight up onto the raised roof
+## over her first-class lounge, 80 m aft along that deck.
+const BOAT_DECK := 8.375
+const BY_THE_OFFICERS_HOUSE := Vector3(40.0, BOAT_DECK, -7.0)
+const RAISED_ROOF_STAIR_HEAD := Vector3(-45.625, 9.575, -5.0625)
+## Abaft this the bot is out of the pocket and past the step in the house's side.
+const PAST_THE_HOUSE_STEP := 30.0
 ## How near the seat it goes for a bot comes: a shove's reach, about.
 const THERE := 1.6
 ## How long a walk is given.
@@ -132,3 +141,14 @@ func test_a_bot_up_from_her_forward_well_goes_round_the_windlass_for_a_seat() ->
 func test_a_bot_on_her_poop_goes_round_the_electric_winch_for_a_seat() -> void:
 	var got_to := _bot_walk(POOP_STARBOARD, POOP_FORE_END)
 	assert_lt(got_to.distance_to(POOP_FORE_END), THERE, "at the seat: at %s" % got_to)
+
+
+## A normal bot on her boat deck beside her officers' house goes for a seat at the head of
+## the flight onto her raised roof, 80 m aft: too far for a way round by the floor to be
+## found to (BotFloorWay), so it walks straight, into the pocket between the house and the
+## electric winch. Making no headway there, it goes round by the floor and on aft. On main
+## it walked to and fro between (35.94, 8.38, -7.0) and (36.48, 8.38, -6.98) for six minutes
+## of a match, until the sea took it (BotHeadway).
+func test_a_bot_on_her_boat_deck_comes_out_of_the_pocket_by_the_electric_winch() -> void:
+	var got_to := _bot_walk(BY_THE_OFFICERS_HOUSE, RAISED_ROOF_STAIR_HEAD)
+	assert_lt(got_to.x, PAST_THE_HOUSE_STEP, "aft of the house's step: at %s" % got_to)

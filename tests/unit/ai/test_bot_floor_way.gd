@@ -250,10 +250,10 @@ func test_a_bot_beside_a_stair_s_head_never_walks_across_its_railing() -> void:
 ## held between that stair's side and the railings of the stair heads down to the side
 ## passage: its way round is back through the saloon, whose starboard door's lane no 0.25 m
 ## square's middle falls in. From aft, further than NARROW off the stair's foot, no way round
-## is found over those squares, and the bot walks straight on; nearing the foot it looks
-## again, over finer squares too, and walks back aft round by the saloon. On main the far
-## look's search ended every one along the leg: the bot walked on into the strip and down
-## the head of the stair to the side passage (#567).
+## is found all the way, and the bot walks on forward — straight, or along as much of a way
+## as its search found; nearing the foot it looks again, and walks back aft round by the
+## saloon. On main the far look's search ended every one along the leg: the bot walked on
+## into the strip and down the head of the stair to the side passage (#567).
 func test_a_bot_looks_again_for_a_way_round_once_near_its_leg_s_end() -> void:
 	var layout := SimFixtures.steamer()
 	var graph := WalkGraph.new(layout, Surfaces.new(layout), SimFixtures.rules())
@@ -271,9 +271,16 @@ func test_a_bot_looks_again_for_a_way_round_once_near_its_leg_s_end() -> void:
 	var way := BotFloorWay.new(graph, SimFixtures.rules(), 1)
 	var on := surfaces.under(aft, step)
 	var to := graph.toward(leg, aft, on)
-	assert_eq(way.toward(aft, on, leg, to), to, "walks straight on from aft")
-	on = surfaces.under(forward, step)
-	to = graph.toward(leg, forward, on)
-	var aim := way.toward(forward, on, leg, to)
-	assert_lt(aim.x, forward.x, "back aft, round by the saloon: at %s" % aim)
-	assert_true(way.holds(leg, forward), "on its way round")
+	assert_gt(way.toward(aft, on, leg, to).x, aft.x, "walks on forward from aft")
+	# Walked on at its aim, half a metre a look, it turns back aft before the stair's foot.
+	var at := aft
+	var aim := to
+	for _look in 40:
+		on = surfaces.under(at, step)
+		to = graph.toward(leg, at, on)
+		aim = way.toward(at, on, leg, to)
+		if aim.x < at.x or at.x >= forward.x:
+			break
+		at = at.move_toward(Vector3(aim.x, at.y, aim.z), 0.5)
+	assert_lt(aim.x, at.x, "back aft, round by the saloon: at %s for %s" % [at, aim])
+	assert_true(way.holds(leg, at), "on its way round")
