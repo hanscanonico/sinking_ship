@@ -117,6 +117,7 @@ func clear() -> void:
 ## she went, whoever shoved it last; [param own_seat] is said as "You". [param names]
 ## labels each seat. A seat no shove sent, out [param aboard] — in a room of hers or on
 ## a deck the water came over (SeatRoom.out_aboard) — went into no sea: the cold got it.
+## One whose breath ran out under the water drowned (#861), whoever shoved it in.
 static func feed_line(
 	names: PackedStringArray,
 	out_seat: int,
@@ -130,6 +131,10 @@ static func feed_line(
 		if own_out:
 			return Language.t("You went down with her")
 		return Language.t("%s went down with her") % names[out_seat]
+	if cause == PlayerState.Cause.DROWNED and credit < 0:
+		if own_out:
+			return Language.t("You drowned")
+		return Language.t("%s drowned") % names[out_seat]
 	if credit < 0 and aboard:
 		if own_out:
 			return Language.t("The cold got you")

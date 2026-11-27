@@ -214,3 +214,17 @@ func test_a_seat_out_aboard_is_the_cold_s() -> void:
 	assert_eq(lines.size(), 2)
 	assert_true(lines.has("The cold got %s" % NAMES[0]), "out in her hold: %s" % [lines])
 	assert_true(lines.has("%s went into the sea" % NAMES[1]), "out in the sea: %s" % [lines])
+
+
+## A seat whose breath ran out under the water drowned (#861): the feed says so, in the
+## sea or aboard; one a shove sent in still reads as the shove's.
+func test_a_seat_out_of_breath_drowned() -> void:
+	var drowned := PlayerState.Cause.DROWNED
+	for aboard: bool in [false, true]:
+		assert_eq(KnockoutFeed.feed_line(NAMES, 0, -1, 0, drowned, aboard), "You drowned")
+		assert_eq(KnockoutFeed.feed_line(NAMES, 1, -1, 0, drowned, aboard), "%s drowned" % NAMES[1])
+	assert_eq(
+		KnockoutFeed.feed_line(NAMES, 0, 1, 0, drowned),
+		KnockoutFeed.feed_line(NAMES, 0, 1, 0, COLD),
+		"shoved in: the shove's"
+	)

@@ -502,6 +502,9 @@ msgstr "Coulé"
 msgid "Overboard"
 msgstr "À la mer"
 
+msgid "Drowned"
+msgstr "Noyé"
+
 msgid "Frozen"
 msgstr "Gelé"
 
@@ -578,6 +581,9 @@ msgid "%s m above the sea"
 msgstr "%s m au-dessus de l'eau"
 
 msgid "Stamina"
+msgstr "Souffle"
+
+msgid "Breath"
 msgstr "Souffle"
 
 msgid "Warmth"
@@ -688,6 +694,12 @@ msgstr "Vous avez coulé avec le navire"
 
 msgid "%s went down with her"
 msgstr "%s a coulé avec le navire"
+
+msgid "You drowned"
+msgstr "Vous vous êtes noyé"
+
+msgid "%s drowned"
+msgstr "%s s'est noyé"
 
 msgid "The cold got you"
 msgstr "Le froid vous a eu"

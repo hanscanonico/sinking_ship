@@ -693,12 +693,13 @@ static func match_lines(
 		lines
 		. append(
 			(
-				"me: action %s, stamina %.0f%s, cold %.2f, bonuses %s%s"
+				"me: action %s, stamina %.0f%s, cold %.2f, breath %.2f, bonuses %s%s"
 				% [
 					PlayerState.Action.keys()[me["action"]],
 					me["stamina"],
 					" (exhausted)" if me["exhausted"] else "",
 					me["cold"],
+					me["breath"],
 					me["bonuses"],
 					(
 						(

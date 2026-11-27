@@ -1,9 +1,9 @@
-// The cold creeping in as a swimmer's cold meter empties (FirstPersonHud): frost
+// The cold creeping in as a swimmer's cold meter empties (SwimVeil): frost
 // grown in from the screen's edges, feathered toward the centre and thickest where two
 // edges meet: a dense rime where it has settled, and a front of fine crystals still
 // growing. One pass over the screen, drawn only while the eyes swim and the meter is
 // not full; the clear middle returns early, and the crystals are a texture
-// FirstPersonHud builds once (their cell edges, white on black).
+// SwimVeil builds once (their cell edges, white on black).
 shader_type canvas_item;
 render_mode unshaded;
 

@@ -392,3 +392,23 @@ func test_the_frame_rate_shows_while_the_view_settings_say_so() -> void:
 	hud._process(1.0)
 	assert_false(fps.visible, "hidden once the player turns it off")
 	view.show_fps = was
+
+
+## A seat whose breath ran out says drowned (#861), aboard or not — a word of its own,
+## no wider than overboard in any language.
+func test_the_line_says_drowned_for_a_seat_out_of_breath() -> void:
+	var drowned := PlayerState.Cause.DROWNED
+	assert_eq(Hud.out_word(drowned), "Drowned")
+	assert_eq(Hud.out_word(drowned, true), "Drowned")
+	var font := UiTheme.shared().get_font(&"font", &"Label")
+	var overboard := font.get_string_size(
+		Hud.out_word(COLD), HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE
+	)
+	for language: String in ["en", "fr", "es"]:
+		Language.use(language)
+		var word := Hud.out_word(drowned)
+		for other: String in [Hud.out_word(COLD), Hud.out_word(COLD, true), Hud.out_word(WITH_HER)]:
+			assert_ne(word, other, "%s: a word of its own" % language)
+		var wide := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SIZE).x
+		assert_lte(wide, overboard.x, "%s: %s against Overboard" % [language, word])
+	Language.use(Language.SOURCE)

@@ -502,6 +502,9 @@ msgstr "Hundido"
 msgid "Overboard"
 msgstr "Al agua"
 
+msgid "Drowned"
+msgstr "Ahogado"
+
 msgid "Frozen"
 msgstr "Congelado"
 
@@ -579,6 +582,9 @@ msgstr "%s m sobre el mar"
 
 msgid "Stamina"
 msgstr "Aguante"
+
+msgid "Breath"
+msgstr "Aire"
 
 msgid "Warmth"
 msgstr "Calor"
@@ -688,6 +694,12 @@ msgstr "Te has hundido con el barco"
 
 msgid "%s went down with her"
 msgstr "%s se ha hundido con el barco"
+
+msgid "You drowned"
+msgstr "Te has ahogado"
+
+msgid "%s drowned"
+msgstr "%s se ha ahogado"
 
 msgid "The cold got you"
 msgstr "El frío pudo contigo"
