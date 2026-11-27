@@ -163,24 +163,19 @@ func test_a_bonus_taken_adds_to_those_the_seat_has() -> void:
 	assert_true(sim.state.bonuses.is_empty())
 
 
-## A seat holds at most the bonus rules' most_held of a kind: a press reaches none of a kind
-## it has as many of — that bonus stays aboard for another — and with three the most, it
-## takes a third.
-func test_a_seat_takes_no_more_of_a_kind_than_the_most_it_holds() -> void:
-	var sim := _with_a_bonus()
-	sim.state.seats[0].bonuses = PackedInt32Array([0, 0])
-	var events := SimFixtures.step(sim, {0: _grab(0)})
-	assert_eq(sim.state.seats[0].bonuses, PackedInt32Array([0, 0]), "two Double lives: no third")
-	assert_eq(sim.state.bonuses.size(), 1, "it stays aboard")
-	assert_true(_of(events, SimEvent.Kind.BONUS_TAKEN).is_empty())
-	var rules := SimFixtures.bonus_rules(600.0)
-	rules.most_held = 3
-	var more := SimFixtures.bonus_sim(rules, 1)
-	SimFixtures.bring_aboard(more, 0)
-	SimFixtures.place(more, 0, BESIDE, 0.0)
-	more.state.seats[0].bonuses = PackedInt32Array([0, 0])
-	SimFixtures.step(more, {0: _grab(0)})
-	assert_eq(more.state.seats[0].bonuses, PackedInt32Array([0, 0, 0]), "with three the most")
+## A seat takes any number of a kind: a press takes one more of a kind it has, however many
+## it has — a third, and a tenth.
+func test_a_seat_takes_any_number_of_a_kind() -> void:
+	for held: int in [2, 9]:
+		var sim := _with_a_bonus()
+		var had := PackedInt32Array()
+		had.resize(held)
+		sim.state.seats[0].bonuses = had.duplicate()
+		var events := SimFixtures.step(sim, {0: _grab(0)})
+		had.append(0)
+		assert_eq(sim.state.seats[0].bonuses, had, "%d Double lives, and one more" % held)
+		assert_true(sim.state.bonuses.is_empty(), "taken: none left aboard")
+		assert_eq(_of(events, SimEvent.Kind.BONUS_TAKEN).size(), 1)
 
 
 ## Nothing of an out seat's plays on after it: its bonus goes with it.

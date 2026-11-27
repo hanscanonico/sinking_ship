@@ -2,8 +2,9 @@ class_name BotBonuses
 extends RefCounted
 ## A bot and the bonuses aboard (#307) as its delayed view shows them (D10) — every one,
 ## walls or not, as the props are: the feed has told every player each one's kind and room.
-## The bonus it goes for, chosen at a think: of a kind worth something to it that it holds
-## fewer than the most of (BonusRules.most_held) — each it takes adds to those it has — a
+## The bonus it goes for, chosen at a think: of a kind worth something to it — each it takes
+## adds to those it has, one more of a kind it has worth as much less as it gives less
+## (BonusKind.next_share) — a
 ## walk of its range or less away — bonus_range_m, grown on a hull longer than the steamer's
 ## (BotProfile.bonus_range) — while the floor it lies on and the lowest point of its
 ## way there stand bonus_margin_m or more above the water as its view has the water now —
@@ -28,8 +29,6 @@ var _layout: ShipLayout
 var _reach: GrabReach
 ## The kinds of the match's bonuses (BonusRules.kinds): none in a match without bonuses.
 var _kinds: Array[BonusKind] = []
-## The most bonuses of one kind it holds (BonusRules.most_held).
-var _most_held := 0
 ## The props a hand may hold (GrabReach.holdable_of).
 var _holdable: PackedInt32Array
 ## The tick of its last Grab press, or -1.
@@ -50,14 +49,13 @@ func _init(
 	if bonus_rules != null:
 		_reach = GrabReach.new(layout, rules, bonus_rules)
 		_kinds.assign(bonus_rules.kinds)
-		_most_held = bonus_rules.most_held
 	_holdable = GrabReach.holdable_of(layout)
 
 
 ## Picks the bonus to go for at a think, from [param me] in [param seen], among those
 ## [param found] — a search of [param graph] from where it stands — reaches under
-## [param pose]: of a kind worth something to it (worth) that it holds fewer than the most
-## of, a walk of its range or less away, its floor and its way there its margin above the
+## [param pose]: of a kind worth something to it (worth), less for each of the kind it has
+## (BonusKind.next_share), a walk of its range or less away, its floor and its way there its margin above the
 ## water (_clear) — the best by its worth, less by up to bonus_walk_share of that
 ## the farther away it lies. Returns its score, that by bonus_weight, or 0 with none to go
 ## for: none, too, off her decks, where a body takes nothing (GrabReach) and her spots are
@@ -75,7 +73,7 @@ func choose(
 	var best := 0.0
 	for entry: Dictionary in seen["bonuses"]:
 		var kind: int = entry["kind"]
-		var gain := worth(kind) if held.count(kind) < _most_held else 0.0
+		var gain := worth(kind) * _kinds[kind].next_share(held.count(kind))
 		var at := _layout.bonus_spots[entry["spot"]].point
 		var zone := graph.zone_at(at, graph.surfaces().under(at, _rules.step_height))
 		if gain <= 0.0 or zone == WalkGraph.NONE:

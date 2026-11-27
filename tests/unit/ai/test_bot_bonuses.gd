@@ -536,11 +536,11 @@ func test_each_tier_goes_only_within_its_range() -> void:
 			assert_eq(goes, case[1], "%s, %.1f m off" % [tier, case[0]])
 
 
-## A bot's bonuses add up, so it goes for one of any kind worth something to it — beside
-## those it has, a second of a kind it has one of — and leaves one of a kind it has the most
-## of (BonusRules.most_held), which a press would not take. Its tier here values Plain at
-## half what it values Double life; the shipped tier, leaving Plain out, never goes for one.
-func test_a_bot_goes_for_a_bonus_it_can_still_hold() -> void:
+## A bot's bonuses add up, any number of them, so it goes for one of any kind worth
+## something to it — beside those it has, one more of a kind it has one of, or three. Its
+## tier here values Plain at half what it values Double life; the shipped tier, leaving
+## Plain out, never goes for one.
+func test_a_bot_goes_for_one_more_of_a_kind_it_has() -> void:
 	var rules := _two_kinds()
 	var profile := _tier(&"normal")
 	profile.bonus_worth = {rules.kinds[0]: 1.0, rules.kinds[1]: 0.5}
@@ -551,8 +551,9 @@ func test_a_bot_goes_for_a_bonus_it_can_still_hold() -> void:
 		[[1], 0, true],
 		[[0], 1, true],
 		[[0], 0, true],
-		[[0, 0], 0, false],
+		[[0, 0], 0, true],
 		[[0, 0], 1, true],
+		[[0, 0, 0], 0, true],
 	]:
 		var sim := _in_the_hold(-1.0, rules)
 		sim.state.bonuses[0].kind = case[1]

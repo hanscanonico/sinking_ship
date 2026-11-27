@@ -14,8 +14,8 @@ const MARKS_APART := 0.3
 
 ## The default match, and the survival one: bonuses are on in both goals, on the default
 ## bonus rules — Double life, High jump, Steady, Strong arms and Sure footing, every one as
-## likely, the first 20 s in, then every 45 s ± 15 s, at most two aboard and two of a kind
-## held: estimates, to tune after a playtest — and the command line's match plays them as
+## likely, the first 20 s in, then every 45 s ± 15 s, at most two aboard, and a seat taking
+## any number: estimates, to tune after a playtest — and the command line's match plays them as
 ## the data does.
 func test_the_match_data_plays_five_kinds_on_the_default_bonus_rules() -> void:
 	var rules: BonusRules = load(BONUS_RULES)
@@ -31,8 +31,8 @@ func test_the_match_data_plays_five_kinds_on_the_default_bonus_rules() -> void:
 		titles.append(kind.title)
 	assert_eq(titles, ["Double life", "High jump", "Steady", "Strong arms", "Sure footing"])
 	assert_eq(rules.odds, PackedFloat64Array([1.0, 1.0, 1.0, 1.0, 1.0]), "every one as likely")
-	var times := [rules.first, rules.interval, rules.jitter, rules.most_aboard, rules.most_held]
-	assert_eq(times, [20.0, 45.0, 15.0, 2, 2])
+	var times := [rules.first, rules.interval, rules.jitter, rules.most_aboard]
+	assert_eq(times, [20.0, 45.0, 15.0, 2])
 	assert_eq(rules.kinds[0], SimFixtures.double_life())
 	for kind: BonusKind in rules.kinds:
 		assert_gt(kind.radius, 0.0, "%s: a size its model stays inside" % kind.title)
@@ -42,9 +42,10 @@ func test_the_match_data_plays_five_kinds_on_the_default_bonus_rules() -> void:
 ## What each kind gives its taker, and nothing more (est.): Double life a spare cold meter;
 ## High jump a 1.5 m jump; Steady three quarters of a shove's knockback; Strong arms a 1.2 m
 ## reach out of the sea and ladders at 1.5 times the pace; Sure footing a 22° grip angle and a
-## 44° stand limit — two of it 30° and 53°, under the brace's 55° hold. A field a kind leaves
-## unset — a jump, a slope or a reach of 0, a share or a ladder's pace of 1 — leaves that rule
-## the brawl rules'.
+## 44° stand limit — any number of it under 30° and 53°, under the brace's 55° hold. A field
+## a kind leaves unset — a jump, a slope or a reach of 0, a share or a ladder's pace of 1 —
+## leaves that rule the brawl rules'. Each further one of a kind gives half what the one
+## before it gave; each Double life a whole spare meter.
 func test_each_kind_gives_its_own_edge_and_leaves_the_rest_as_it_is() -> void:
 	var rules: BonusRules = load(BONUS_RULES)
 	var gives := {}
@@ -63,23 +64,29 @@ func test_each_kind_gives_its_own_edge_and_leaves_the_rest_as_it_is() -> void:
 	assert_eq(gives["Steady"], [false, 0.0, 0.0, 0.0, 0.75, 0.0, 1.0])
 	assert_eq(gives["Strong arms"], [false, 0.0, 0.0, 0.0, 1.0, 1.2, 1.5])
 	assert_eq(gives["Sure footing"], [false, 0.0, 22.0, 44.0, 1.0, 0.0, 1.0])
+	for kind: BonusKind in rules.kinds:
+		assert_eq(kind.stack_share, 1.0 if kind.spare_meter else 0.5, kind.title)
 
 
-## Each kind is checked as a seat holding the most of it plays (BonusRules.most_held), the
-## rules as one holding the most of every kind at once: a 1.8 m jump, gaining 0.9 m on the
-## brawl rules' 0.9, plays two at a time — 2.7 m, a 10.4 m/s take-off — but not three, at
-## 12 m/s past a full charge's 11; and two kinds each gaining 0.6 m play two of each alone,
-## but not together, at 3.3 m and 11.5 m/s.
-func test_a_kind_is_checked_as_the_most_a_seat_holds_of_it() -> void:
+## A seat takes any number of a kind, so each kind is checked as the furthest any number of
+## it brings its rules (SeatRules.at_most), the rules as any number of every kind at once: a
+## 1.8 m jump, gaining 0.9 m on the brawl rules' 0.9, plays where each further one gives
+## half the one before — never past 2.7 m, a 10.4 m/s take-off — but not at two thirds, 3.6 m
+## and 12 m/s past a full charge's 11; and two kinds each gaining 0.6 m, half again each
+## time, play alone, but not together, at 3.3 m and 11.5 m/s. A kind that sets a rule and
+## gives the whole of it every time has no furthest, and is refused; one that sets none
+## (Double life) may.
+func test_a_kind_is_checked_as_any_number_of_it_a_seat_takes() -> void:
 	var config := MatchConfig.from_rules(load(DEFAULT_MATCH), 1701)
 	assert_eq(config.rules.jump_height, 0.9, "the brawl rules' jump")
 	var high := SimFixtures.plain_kind()
 	high.jump_height = 1.8
 	var kinds: Array[BonusKind] = [high]
 	config.bonus_rules = SimFixtures.bonus_rules(1.0, 45.0, 0.0, 2, kinds)
-	for case: Array in [[1, true], [2, true], [3, false]]:
-		config.bonus_rules.most_held = case[0]
-		assert_eq(config.problems().is_empty(), case[1], "%d of a 1.8 m jump" % case[0])
+	for case: Array in [[0.0, true], [0.5, true], [2.0 / 3.0, false], [1.0, false]]:
+		high.stack_share = case[0]
+		var what := "a 1.8 m jump, each further one %.2f of the last" % case[0]
+		assert_eq(config.problems().is_empty(), case[1], what)
 	var one := SimFixtures.plain_kind()
 	one.jump_height = 1.5
 	var other := one.duplicate()
@@ -89,10 +96,12 @@ func test_a_kind_is_checked_as_the_most_a_seat_holds_of_it() -> void:
 		playing.assign(case[0])
 		config.bonus_rules = SimFixtures.bonus_rules(1.0, 45.0, 0.0, 2, playing)
 		var problems := config.problems()
-		assert_eq(problems.is_empty(), case[1], "%d kinds of 1.5 m, two of each" % playing.size())
-	var none := SimFixtures.bonus_rules()
-	none.most_held = 0
-	assert_false(none.problems().is_empty(), "a seat holds one of a kind or more")
+		assert_eq(problems.is_empty(), case[1], "%d kinds of 1.5 m, any number" % playing.size())
+	var plain := SimFixtures.plain_kind()
+	for case: Array in [[1.0, true], [1.1, false], [-0.1, false]]:
+		plain.stack_share = case[0]
+		var what := "a kind that sets no rule, at a stack share of %.1f" % case[0]
+		assert_eq(plain.problems().is_empty(), case[1], what)
 
 
 ## Every brawler with a bonus wears its kind's mark (#313): each kind's colour stands apart
@@ -147,7 +156,7 @@ func test_a_match_is_checked_for_its_bonus_rules_and_kinds() -> void:
 	assert_eq(off.problems(), PackedStringArray(), "a match without bonuses has none to check")
 
 
-## No speed a kind gives, one at a time — a jump's take-off, a ladder's climb — may reach the
+## No speed a kind gives, here one at a time (a stack share of 0) — a jump's take-off, a ladder's climb — may reach the
 ## fastest the rules move anything across her deck (BrawlRules.fastest_speed: a full charge's
 ## knockback, as shipped), which the online prediction leans on (ContactWatch). A 2.5 m jump
 ## leaves a level deck at 10.3 m/s and a ladder at 7 times the pace climbs at 10.5, both under
@@ -160,9 +169,9 @@ func test_no_speed_a_kind_gives_reaches_the_fastest_the_rules_move_anything() ->
 		var kind := SimFixtures.plain_kind()
 		kind.jump_height = case[0]
 		kind.ladder_speed_mult = case[1]
+		kind.stack_share = 0.0
 		var kinds: Array[BonusKind] = [kind]
 		config.bonus_rules = SimFixtures.bonus_rules(1.0, 45.0, 0.0, 2, kinds)
-		config.bonus_rules.most_held = 1
 		var what := "a %.1f m jump, ladders at %.0f times the pace" % [case[0], case[1]]
 		assert_eq(config.problems().is_empty(), case[2], what)
 
@@ -196,9 +205,9 @@ func test_a_kind_s_slopes_rise_from_its_grip_angle_to_under_the_brace_s_hold() -
 		var kind := SimFixtures.plain_kind()
 		kind.grip_angle_deg = case[0]
 		kind.stand_limit_deg = case[1]
+		kind.stack_share = 0.0
 		var kinds: Array[BonusKind] = [kind]
 		config.bonus_rules = SimFixtures.bonus_rules(1.0, 45.0, 0.0, 2, kinds)
-		config.bonus_rules.most_held = 1
 		var what := "a %.1f° grip angle, a %.1f° stand limit" % [case[0], case[1]]
 		assert_eq(config.problems().is_empty(), case[2], what)
 
@@ -226,9 +235,9 @@ func test_a_kind_answers_only_for_the_slopes_it_sets() -> void:
 		var kind := SimFixtures.plain_kind()
 		kind.grip_angle_deg = case[0]
 		kind.stand_limit_deg = case[1]
+		kind.stack_share = 0.0
 		var kinds: Array[BonusKind] = [kind]
 		config.bonus_rules = SimFixtures.bonus_rules(1.0, 45.0, 0.0, 2, kinds)
-		config.bonus_rules.most_held = 1
 		var what := "a %.1f° grip angle, a %.1f° stand limit" % [case[0], case[1]]
 		assert_eq(config.problems().is_empty(), case[2], what)
 
