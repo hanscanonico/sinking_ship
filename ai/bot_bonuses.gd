@@ -4,8 +4,7 @@ extends RefCounted
 ## walls or not, as the props are: the feed has told every player each one's kind and room.
 ## The bonus it goes for, chosen at a think: of a kind worth something to it — each it takes
 ## adds to those it has, one more of a kind it has worth as much less as it gives less
-## (BonusKind.next_share) — a
-## walk of its range or less away — bonus_range_m, grown on a hull longer than the steamer's
+## (BonusKind.next_share) — a walk of its range or less away — bonus_range_m, grown on a hull longer than the steamer's
 ## (BotProfile.bonus_range) — while the floor it lies on and the lowest point of its
 ## way there stand bonus_margin_m or more above the water as its view has the water now —
 ## never as the timeline has it next; the best for its worth, less the farther it lies.
@@ -55,7 +54,8 @@ func _init(
 ## Picks the bonus to go for at a think, from [param me] in [param seen], among those
 ## [param found] — a search of [param graph] from where it stands — reaches under
 ## [param pose]: of a kind worth something to it (worth), less for each of the kind it has
-## (BonusKind.next_share), a walk of its range or less away, its floor and its way there its margin above the
+## (BonusKind.next_share), a walk of its range or less away, its floor and its way there
+## its margin above the
 ## water (_clear) — the best by its worth, less by up to bonus_walk_share of that
 ## the farther away it lies. Returns its score, that by bonus_weight, or 0 with none to go
 ## for: none, too, off her decks, where a body takes nothing (GrabReach) and her spots are
