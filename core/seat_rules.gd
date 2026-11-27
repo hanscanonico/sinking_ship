@@ -5,8 +5,10 @@ extends RefCounted
 ## how high it climbs out of the sea and how fast up a ladder — and what the prop in its
 ## hands costs it (#273). The brawl rules' own for a seat with empty hands and no bonus; a
 ## held prop's kind sets its carry costs, and each bonus it has what its kind gives
-## (BonusKind) on top of the others': each brings the rule it changes as far from the brawl
-## rules' as its kind sets it, so two of a kind bring it twice as far. Derived from what
+## (BonusKind) on top of the others': the first of a kind brings the rule it changes as far
+## from the brawl rules' as its kind sets it, and each further one of the kind a share of
+## what the one before it did (BonusKind.stack_share) — any number of them, every one
+## further, never past what the kind's most comes to (at_most). Derived from what
 ## the seat has, never in the snapshot: the props say who holds what (PropState.holder) and
 ## each seat what bonuses it has (PlayerState.bonuses), so a snapshot needs nothing more,
 ## and the sim, the bots and the HUD each derive it from what they read.
@@ -40,9 +42,35 @@ var sea_cold_rate: float
 
 ## The rules under [param rules] for a seat holding [param held] — a kind, or null for
 ## empty hands — with bonuses of [param bonuses] — their kinds, two of a kind listed twice:
-## each brings what its kind sets as far again from the brawl rules' own, a ladder's pace
-## by its share more of theirs.
+## each kind brings what it sets from the brawl rules' own, a ladder's pace by its share
+## more of theirs, as many times as that many of it give together (BonusKind.stacked).
 static func of(rules: BrawlRules, held: PropKind, bonuses: Array[BonusKind] = []) -> SeatRules:
+	var seat := _bare(rules, held)
+	var counts: Dictionary[BonusKind, int] = {}
+	for bonus: BonusKind in bonuses:
+		counts[bonus] = counts.get(bonus, 0) + 1
+	for bonus: BonusKind in counts:
+		seat._give(rules, bonus, bonus.stacked(counts[bonus]))
+	return seat
+
+
+## The rules under [param rules] for a seat with empty hands and as many bonuses of every
+## kind of [param kinds] as it could ever take: the furthest they bring its rules
+## (BonusKind.stacked_most), which any number of them stays short of. What the bonus rules
+## are checked by.
+static func at_most(rules: BrawlRules, kinds: Array[BonusKind]) -> SeatRules:
+	var seat := _bare(rules, null)
+	var given: Array[BonusKind] = []
+	for bonus: BonusKind in kinds:
+		if not given.has(bonus) and bonus.sets_a_rule():
+			given.append(bonus)
+			seat._give(rules, bonus, bonus.stacked_most())
+	return seat
+
+
+## The rules under [param rules] for a seat holding [param held] — a kind, or null — and no
+## bonus.
+static func _bare(rules: BrawlRules, held: PropKind) -> SeatRules:
 	var seat := SeatRules.new()
 	seat.jump_height = rules.jump_height
 	seat.grip_angle_deg = rules.grip_angle_deg
@@ -60,18 +88,22 @@ static func of(rules: BrawlRules, held: PropKind, bonuses: Array[BonusKind] = []
 		seat.may_charge = held.carry_charge
 		if held.afloat:
 			seat.sea_cold_rate = held.sea_cold_rate
-	for bonus: BonusKind in bonuses:
-		if bonus.jump_height > 0.0:
-			seat.jump_height += bonus.jump_height - rules.jump_height
-		if bonus.grip_angle_deg > 0.0:
-			seat.grip_angle_deg += bonus.grip_angle_deg - rules.grip_angle_deg
-		if bonus.stand_limit_deg > 0.0:
-			seat.stand_limit_deg += bonus.stand_limit_deg - rules.stand_limit_deg
-		seat.knockback_share -= 1.0 - bonus.knockback_share
-		if bonus.climb_reach > 0.0:
-			seat.climb_reach += bonus.climb_reach - rules.climb_reach
-		seat.ladder_speed += rules.ladder_speed * (bonus.ladder_speed_mult - 1.0)
 	return seat
+
+
+## Gives the seat what [param bonus] sets, [param times] over: each rule it sets that many
+## times as far from [param rules]' own as one of it brings it.
+func _give(rules: BrawlRules, bonus: BonusKind, times: float) -> void:
+	if bonus.jump_height > 0.0:
+		jump_height += (bonus.jump_height - rules.jump_height) * times
+	if bonus.grip_angle_deg > 0.0:
+		grip_angle_deg += (bonus.grip_angle_deg - rules.grip_angle_deg) * times
+	if bonus.stand_limit_deg > 0.0:
+		stand_limit_deg += (bonus.stand_limit_deg - rules.stand_limit_deg) * times
+	knockback_share -= (1.0 - bonus.knockback_share) * times
+	if bonus.climb_reach > 0.0:
+		climb_reach += (bonus.climb_reach - rules.climb_reach) * times
+	ladder_speed += rules.ladder_speed * (bonus.ladder_speed_mult - 1.0) * times
 
 
 ## Every reason a seat on these rules cannot be played beside [param rules], the brawl rules

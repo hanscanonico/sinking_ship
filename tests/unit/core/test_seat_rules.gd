@@ -110,24 +110,59 @@ func _held(kinds: Array) -> Array[BonusKind]:
 	return held
 
 
-## Bonuses add up: each brings what its kind sets as far again from the brawl rules' own, so
-## two of a kind bring it twice as far — a jump, a share of a shove's knockback, a climb
-## reach, a ladder's pace, a slope — and kinds that set different rules each give theirs.
-func test_two_of_a_kind_give_twice_what_one_does() -> void:
+## Bonuses add up, any number of them: the first of a kind brings what its kind sets from
+## the brawl rules' own, and each further one a share of what the one before it did — half,
+## here — so two bring it one and a half times as far: a jump, a share of a shove's
+## knockback, a climb reach, a ladder's pace, a slope. Kinds that set different rules each
+## give theirs.
+func test_each_further_one_of_a_kind_gives_a_share_of_the_one_before() -> void:
 	var rules := _rules()
 	var gives := _gives(1.4, 0.6, 1.1, 2.5)
+	assert_eq(gives.stack_share, 0.5, "half, unless its data says otherwise")
 	var two := SeatRules.of(rules, null, _held([gives, gives]))
-	assert_almost_eq(two.jump_height, 2.0, 1e-9, "0.8 m and 0.6 m more twice")
-	assert_almost_eq(two.knockback_share, 0.2, 1e-9, "1 less 0.4 twice")
-	assert_almost_eq(two.climb_reach, 1.7, 1e-9, "0.5 m and 0.6 m more twice")
-	assert_almost_eq(two.ladder_speed, 8.0, 1e-9, "2 m/s and 3 m/s more twice")
+	assert_almost_eq(two.jump_height, 1.7, 1e-9, "0.8 m and 0.6 m more, 1.5 times")
+	assert_almost_eq(two.knockback_share, 0.4, 1e-9, "1 less 0.4, 1.5 times")
+	assert_almost_eq(two.climb_reach, 1.4, 1e-9, "0.5 m and 0.6 m more, 1.5 times")
+	assert_almost_eq(two.ladder_speed, 6.5, 1e-9, "2 m/s and 3 m/s more, 1.5 times")
 	var footing := SimFixtures.plain_kind()
 	footing.grip_angle_deg = 16.0
 	footing.stand_limit_deg = 34.0
 	var both := SeatRules.of(rules, null, _held([gives, footing, footing]))
 	assert_almost_eq(both.jump_height, 1.4, 1e-9, "one jump's")
-	assert_almost_eq(both.grip_angle_deg, 20.0, 1e-9, "12° and 4° more twice")
-	assert_almost_eq(both.stand_limit_deg, 38.0, 1e-9, "30° and 4° more twice")
+	assert_almost_eq(both.grip_angle_deg, 18.0, 1e-9, "12° and 4° more, 1.5 times")
+	assert_almost_eq(both.stand_limit_deg, 36.0, 1e-9, "30° and 4° more, 1.5 times")
+	var whole := _gives(1.4, 1.0, 0.0, 1.0)
+	whole.stack_share = 1.0
+	var thrice := SeatRules.of(rules, null, _held([whole, whole, whole]))
+	assert_almost_eq(thrice.jump_height, 2.6, 1e-9, "the whole of it each time: 0.6 m thrice")
+
+
+## A seat takes any number of a kind, and every one moves its rules further: each jump
+## higher than the last, each shove's share smaller, never past the furthest any number of
+## them brings them (at_most) — twice what one gives, at half again each time — and a kind
+## that sets nothing moves nothing, however many.
+func test_every_further_one_gives_more_and_none_passes_the_furthest() -> void:
+	var rules := _rules()
+	var gives := _gives(1.4, 0.6, 1.1, 2.5)
+	var most := SeatRules.at_most(rules, _held([gives, gives, SimFixtures.plain_kind()]))
+	assert_almost_eq(most.jump_height, 2.0, 1e-9, "0.8 m and 0.6 m more twice")
+	assert_almost_eq(most.knockback_share, 0.2, 1e-9, "1 less 0.4 twice")
+	assert_almost_eq(most.climb_reach, 1.7, 1e-9, "0.5 m and 0.6 m more twice")
+	assert_almost_eq(most.ladder_speed, 8.0, 1e-9, "2 m/s and 3 m/s more twice")
+	assert_eq([most.grip_angle_deg, most.stand_limit_deg], [12.0, 30.0], "the slopes the rules'")
+	var held: Array[BonusKind] = []
+	var last := SeatRules.of(rules, null)
+	for count in range(1, 13):
+		held.append(gives)
+		var seat := SeatRules.of(rules, null, held)
+		assert_gt(seat.jump_height, last.jump_height, "%d jump higher" % count)
+		assert_lt(seat.knockback_share, last.knockback_share, "%d take less of a shove" % count)
+		assert_gt(seat.ladder_speed, last.ladder_speed, "%d climb faster" % count)
+		assert_lt(seat.jump_height, most.jump_height, "%d: short of the furthest" % count)
+		assert_gt(seat.knockback_share, most.knockback_share, "%d: short of the furthest" % count)
+		last = seat
+	assert_eq(gives.next_share(0), 1.0, "the first, the whole of it")
+	assert_eq(gives.next_share(3), 0.125, "the fourth, an eighth")
 
 
 ## A bonus gives its taker what its kind sets (#316) — its jump, its share of a shove's
