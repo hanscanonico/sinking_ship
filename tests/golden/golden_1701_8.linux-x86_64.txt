@@ -35,7 +35,7 @@ must 2 thrown · 1 bakes · drawn
 04:01.3 water through over_bulkhead_hold_to_hold_wing_s
 04:20.6 seat 0 out · cold · place 3
 04:24.2 seat 5 out · cold · place 2
-winner seat 1 at 04:24.2 · digest 780bd7795b3a1f79
+winner seat 1 at 04:24.2 · digest 9cad68efcf953bd5
 sinking at the end of the match: physics 0:13:05 (on the paced clock, Q20) · seen 89% · sea 1.58 m up her · trim +8.5° · list +10.4° · engine_bilge_p 0.98 m · engine_bilge_s full · engine_room 2.59 m · hold_bilge full · hold 2.55 m · hold_wing_p 1.27 m · hold_wing_s 6.51 m · forepeak 5.51 m
 not played: gone at 0:14:38 · trim +87.6° · list -17.7° · founders by the head · fast · port boats useless · starboard boats useless · lights out · funnel fell
 bending peak 0.05 of strength, x -5.5 m, hogging
