@@ -25,7 +25,8 @@ static func gone_with(
 ## the sea (Surfaces.sunk, asked only then). They all go out by the cold, but for the one
 ## with the most cold left — its spare meter counted (cold_left, [param spares]) — when it
 ## has the most alone. In a tie for the most they all go out, and their places say who
-## won, if any (place): a draw, the sea's, only between seats alike in all it counts. Nothing else ends a match: on a wreck that keeps dry footing — on
+## won, if any (place): a draw, the sea's, only between seats alike in all it counts.
+## Nothing else ends a match: on a wreck that keeps dry footing — on
 ## her side on the bottom, or upside down on her air — it goes on until one seat is left,
 ## however long (Q21).
 static func by_the_cold(
