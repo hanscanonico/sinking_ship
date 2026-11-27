@@ -3,8 +3,8 @@ extends Resource
 ## How bonuses come aboard (#307), the match data's (MatchRules.bonus_rules): the kinds a bonus
 ## may be and their odds, when the first comes, how far apart the next ones come and by how
 ## much that varies, and the most aboard at once. A seat takes any number of them, of any
-## kind (BonusKind.stack_share). Every time is on her sinking's clock, quickened with her on the fast clock (BonusPlan). A
-## match without bonuses has none.
+## kind (BonusKind.stack_share). Every time is on her sinking's clock, quickened with
+## her on the fast clock (BonusPlan). A match without bonuses has none.
 
 ## The kinds a bonus may be, and per kind its odds: a weight, each kind's chance its share
 ## of their sum.

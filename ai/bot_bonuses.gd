@@ -4,7 +4,8 @@ extends RefCounted
 ## walls or not, as the props are: the feed has told every player each one's kind and room.
 ## The bonus it goes for, chosen at a think: of a kind worth something to it — each it takes
 ## adds to those it has, one more of a kind it has worth as much less as it gives less
-## (BonusKind.next_share) — a walk of its range or less away — bonus_range_m, grown on a hull longer than the steamer's
+## (BonusKind.next_share) — a walk of its range or less away — bonus_range_m, grown on a
+## hull longer than the steamer's
 ## (BotProfile.bonus_range) — while the floor it lies on and the lowest point of its
 ## way there stand bonus_margin_m or more above the water as its view has the water now —
 ## never as the timeline has it next; the best for its worth, less the farther it lies.

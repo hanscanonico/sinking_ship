@@ -156,8 +156,9 @@ func test_a_match_is_checked_for_its_bonus_rules_and_kinds() -> void:
 	assert_eq(off.problems(), PackedStringArray(), "a match without bonuses has none to check")
 
 
-## No speed a kind gives, here one at a time (a stack share of 0) — a jump's take-off, a ladder's climb — may reach the
-## fastest the rules move anything across her deck (BrawlRules.fastest_speed: a full charge's
+## No speed a kind gives, here one at a time (a stack share of 0) — a jump's take-off,
+## a ladder's climb — may reach the fastest the rules move anything across her deck
+## (BrawlRules.fastest_speed: a full charge's
 ## knockback, as shipped), which the online prediction leans on (ContactWatch). A 2.5 m jump
 ## leaves a level deck at 10.3 m/s and a ladder at 7 times the pace climbs at 10.5, both under
 ## a full charge's 11; a 3 m jump, at 11.3, and a ladder at 8 times the pace, at 12, are
