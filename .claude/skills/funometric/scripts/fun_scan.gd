@@ -25,11 +25,14 @@ extends SceneTree
 const K := SimEvent.Kind
 const B := PlayerState.Body
 const TICKS := 30.0
-## An opponent this close (metres, on the same hull piece, across the deck) is "near":
+## An opponent this close (metres, on the same hull piece and deck, across it) is "near":
 ## a shove is a step or two away.
 const NEAR := 6.0
 ## Closer than this is a contact: the first one is when a seat first met somebody.
 const CONTACT := 3.0
+## An opponent more than this above or below (metres) stands on another deck: out of
+## reach however near across the deck, so neither near nor a contact.
+const SAME_DECK := 2.0
 ## Slower than this across the deck, grounded and with nobody near, is standing about.
 const IDLE_SPEED := 0.5
 ## A climb out of the sea the seat then outlives by this long is a close call.
@@ -261,6 +264,8 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 			var nearest := INF
 			for other: PlayerState in state.seats:
 				if other.seat == seat or other.is_out() or other.piece != p.piece:
+					continue
+				if absf(other.pos.y - p.pos.y) > SAME_DECK:
 					continue
 				nearest = minf(
 					nearest, Vector2(other.pos.x - p.pos.x, other.pos.z - p.pos.z).length()
