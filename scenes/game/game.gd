@@ -680,6 +680,12 @@ func _close_replay() -> void:
 
 
 func _rematch() -> void:
+	# Asked from the out plate (OutPlate) the match is still going: it is kept as it is
+	# left, as from the pause menu, and stopped — it stands aside for the next one's
+	# countdown, where nothing of it may play on unseen.
+	if _match != null and not _match.is_over() and not _match.replaying():
+		_match.save_replay()
+		_match.set_paused(true)
 	_play(_rematch_choices, true)
 
 

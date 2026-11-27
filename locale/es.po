@@ -823,6 +823,13 @@ msgstr "volver a la sala"
 msgid "leave"
 msgstr "salir"
 
+# The out plate
+msgid "watch"
+msgstr "ver"
+
+msgid "The match goes on"
+msgstr "La partida sigue"
+
 # Replays
 
 msgid "No replays yet: every match played here is kept, the newest %d."
