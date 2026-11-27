@@ -32,10 +32,15 @@ var _bar: Control
 var _breath := 1.0
 
 
-func _ready() -> void:
+## Over the whole screen from before it is in the tree: anchored once in it, a Control
+## keeps the empty rect it had.
+func _init() -> void:
 	name = "SwimVeil"
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+
+func _ready() -> void:
 	_frost = _veil("Frost", FROST_SHADER)
 	(_frost.material as ShaderMaterial).set_shader_parameter(&"crystals", _crystals())
 	_dark = _veil("Breathless", BREATHLESS_SHADER)
