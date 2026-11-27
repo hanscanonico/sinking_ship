@@ -562,6 +562,12 @@ msgstr "%s VA A CEDER"
 msgid "THE %s IS STRAINING"
 msgstr "LA %s VA A CEDER"
 
+msgid "%s %s ARE STRAINING"
+msgstr "%s %s VAN A CEDER"
+
+msgid "funnels"
+msgstr "chimeneas"
+
 msgid "funnel"
 msgstr "chimenea"
 
