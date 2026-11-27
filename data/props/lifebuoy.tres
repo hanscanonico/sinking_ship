@@ -10,4 +10,4 @@ height = 0.075
 carry_walk = 4.0
 loose_on_charge = true
 afloat = true
-sea_cold_rate = 0.5
+sea_cold_rate = 0.4

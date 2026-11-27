@@ -60,7 +60,7 @@ Moving by turns is clumsy; two helpers take the clumsiness out of the judgement:
 `python3 .claude/skills/playtest/scripts/go.py X Z` walks a leg. Loop them a few turns
 at a time, printing only the `match:` / `me:` lines and the events, and stop the loop the
 moment the answer says `me: SWIMMING` — then play that moment by hand (swim for the hull,
-try to climb: the cold leaves about twelve seconds afloat, the breath six with your head under). A turn's mouse look lands a frame
+try to climb: the cold leaves about eight seconds afloat, the breath six with your head under). A turn's mouse look lands a frame
 later, so act after `wait 2`, never in the frame of the `turn`. What a helper gets wrong
 (steering into a deckhouse, a rival that out-turns you between turns) is the tool's
 limit, not the game's: do not journal it as a controls problem unless a player with a
