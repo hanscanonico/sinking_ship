@@ -40,7 +40,7 @@ const SPEED_QUANTUM := 0.01
 const ANGLE_QUANTUM := TAU / 36000.0
 ## 0.01°.
 const DEGREES_QUANTUM := 0.01
-## Stamina, cold seconds and a railing's hits left.
+## Stamina, cold and breath seconds and a railing's hits left.
 const AMOUNT_QUANTUM := 0.001
 
 

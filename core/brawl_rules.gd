@@ -185,6 +185,12 @@ extends Resource
 @export var blast_reach: float
 @export var blast_speed: float
 @export var blast_full_air: float
+## Seconds a full breath holds with a swimmer's head under the water (#861): the cold is
+## the water's on its body, the breath the air it has not got — under a deck with no air
+## over the water, or dunked by a dive or a pour.
+@export var breath_meter: float
+## Seconds of breath regained per second with its head in the air.
+@export var breath_regen: float
 ## Seconds of swimming a full cold meter holds.
 @export var cold_meter: float
 ## Seconds of the cold meter regained per second out of the sea.
@@ -397,6 +403,8 @@ func problems() -> PackedStringArray:
 		"blast_reach",
 		"blast_speed",
 		"blast_full_air",
+		"breath_meter",
+		"breath_regen",
 		"cold_meter",
 		"cold_regen",
 		"pocket_cold_rate",
