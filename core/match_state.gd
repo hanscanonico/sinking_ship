@@ -42,17 +42,26 @@ func remaining() -> int:
 
 
 ## The winner once the match has ended: the last seat in, or, with every seat out, the
-## one placed first alone (MatchVerdict.place); -1 while still playing, or for a draw.
+## one placed first alone of several out on the last tick — a tie the places broke
+## (MatchVerdict.place); -1 while still playing, for a draw, or when the last seat went
+## out alone.
 func winner() -> int:
 	if phase != Phase.ENDED:
 		return -1
 	var first := -1
+	var last_tick := -1
+	var together := 0
 	for player: PlayerState in seats:
 		if not player.is_out():
 			return player.seat
 		if player.place == 1:
 			first = player.seat if first == -1 else -2
-	return maxi(first, -1)
+		if player.out_tick > last_tick:
+			last_tick = player.out_tick
+			together = 0
+		if player.out_tick == last_tick:
+			together += 1
+	return first if first >= 0 and together > 1 else -1
 
 
 ## The frame the seat of [param entry] — a seat of [param snapshot] — stands in: its
