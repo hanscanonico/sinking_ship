@@ -118,7 +118,7 @@ func show_results(
 ) -> void:
 	if visible or not stats.ended:
 		return
-	_title.text = _title_of(stats, local_seat, names, survival, aboard)
+	_title.text = title_of(stats, local_seat, names, survival, aboard)
 	for child in _table.get_children():
 		_named.erase(child)
 		_table.remove_child(child)
@@ -146,9 +146,10 @@ func show_results(
 
 ## The results' title: how [param stats]' match ended for [param local_seat] — under
 ## survival, [param survival], how long it lasted —, or for a watcher (-1) who won it.
+## A seat out of a match still going reads the same there (OutPlate): its place is fixed.
 ## [param aboard] says the seat went out inside one of her rooms: frozen there by the
 ## cold, never overboard (Hud.out_word).
-static func _title_of(
+static func title_of(
 	stats: MatchStats, local_seat: int, names: PackedStringArray, survival: bool, aboard := false
 ) -> String:
 	if local_seat < 0:

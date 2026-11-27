@@ -153,6 +153,8 @@ var _watcher := false
 @onready var _underwater: Underwater = $Underwater
 @onready var _end: EndOverlay = $EndOverlay
 @onready var _audio: MatchAudio = $Audio
+## The local seat's result as it goes out, the match going on (OutPlate).
+var _out := OutPlate.new()
 
 
 func _ready() -> void:
@@ -170,6 +172,9 @@ func _ready() -> void:
 	add_child(_lens_drops)
 	_feed.name = "KnockoutFeed"
 	add_child(_feed)
+	add_child(_out)
+	_out.rematch_requested.connect(rematch_requested.emit)
+	_out.menu_requested.connect(menu_requested.emit)
 	add_child(FxWarmUp.new(_fx.emitters()))
 	add_child(_prompts)
 	add_child(_pointer)
@@ -276,7 +281,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not _driver.started() or _mouse_freed or _aside:
+	if not _driver.started() or _mouse_freed or _aside or _out.visible:
 		return
 	if event is InputEventMouseMotion:
 		if _flying():
@@ -427,6 +432,7 @@ func start_online(played: PlayedMatch, local: LocalInputSource, names: PackedStr
 	session = null
 	_begin(played, local, seat, names, false, seat, INF, false)
 	_end.offer_room()
+	_out.offer_room()
 
 
 ## Stands a capture's eyes on [param at] — feet x, y, z in ship space, yaw and
@@ -699,11 +705,12 @@ func show_results_again() -> void:
 	_show_results(_last_stats, _last_aboard)
 
 
-## The results of [param stats] (EndOverlay.show_results), the local seat gone out
-## inside one of her rooms when [param aboard].
+## The results of [param stats] (EndOverlay.show_results), the local seat out inside one of
+## her rooms when [param aboard] — or, the match going on, its result as it goes out (OutPlate).
 func _show_results(stats: MatchStats, aboard: bool) -> void:
 	var survival := _config.goal == MatchRules.Goal.SURVIVAL
 	_end.show_results(stats, _local_seat, _names, _config.match_seed, survival, session, aboard)
+	_out.offer(stats, _local_seat if _local != null else -1, _names, survival, aboard, _prompts)
 
 
 ## Stands the ended match aside while Game holds the next one's countdown for its sinking (R20) — a
@@ -772,7 +779,7 @@ func _show_replay(snapshot: Dictionary, viewed: int) -> void:
 		clock.paused or _driver.is_over(),
 		clock.speed(),
 		Hud.whose_view(_hud.fit_name(_names[viewed]), viewed == _local_seat, false),
-		_camera_name(),
+		ReplayHud.camera_name(_free.active, _free.following, _ghost.active),
 		_prompts,
 		ReplaysMenu.result_words(snapshot, _watcher)
 	)
@@ -786,15 +793,6 @@ func _on_sought(_tick: int) -> void:
 	_feed.clear()
 	_fx.clear()
 	_audio.rewind()
-
-
-## The camera the replay's plate names.
-func _camera_name() -> String:
-	if _ghost.active:
-		return "Ghost"
-	if not _free.active:
-		return "First person"
-	return "Free · following" if _free.following else "Free camera"
 
 
 ## Takes up the settings screen's field of view, deck roll, view kick and graphics mid-match; the
@@ -863,22 +861,24 @@ func _shake_for_the_sinking(events: Array[SimEvent]) -> void:
 				_kick.shake(COLLAPSE_SHAKE)
 
 
-## Whether the ghost turns and walks now: walked, and neither paused, at the results nor
-## with the mouse let go.
+## Whether the view is the player's to turn: not paused, under a plate or with the mouse let go.
+func _turning() -> bool:
+	return not (_paused or _end.visible or _out.visible or _mouse_freed)
+
+
+## Whether the ghost turns and walks now: walked, and the view the player's (_turning).
 func _walking() -> bool:
-	return _ghost.active and not _paused and not _end.visible and not _mouse_freed
+	return _ghost.active and _turning()
 
 
-## Whether the local player's mouse and stick turn their look now: in play, and
-## neither paused, at the results nor with the mouse let go.
+## Whether the local player's mouse and stick turn their look now: in play (_turning).
 func _looking() -> bool:
-	return _local != null and not _paused and not _end.visible and not _mouse_freed
+	return _local != null and _turning()
 
 
-## Whether the free camera turns and flies now: flown, and neither paused, at the
-## results nor with the mouse let go.
+## Whether the free camera turns and flies now: flown, and the view the player's.
 func _flying() -> bool:
-	return _free.active and not _paused and not _end.visible and not _mouse_freed
+	return _free.active and _turning()
 
 
 ## The frame [param seat] of [param snapshot] stands in (MatchState.up_of): its piece's;

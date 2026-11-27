@@ -118,6 +118,16 @@ func setup(first_tick: int, last_tick: int) -> void:
 	_bar.value = first_tick
 
 
+## The camera the plate names (show_state): the ghost's when [param ghost], the free one
+## when [param free] — [param following] the seat watched or not —, else a seat's eyes.
+static func camera_name(free: bool, following: bool, ghost: bool) -> String:
+	if ghost:
+		return "Ghost"
+	if not free:
+		return "First person"
+	return "Free · following" if following else "Free camera"
+
+
 ## Shows where the replay stands: [param tick] of the span, [param paused] or playing
 ## at [param speed], seen through whose eyes ([param whose], as Hud.whose_view words
 ## it) from the [param camera] named, the keys worded by [param prompts]; and

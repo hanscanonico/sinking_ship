@@ -823,6 +823,13 @@ msgstr "retour au salon"
 msgid "leave"
 msgstr "quitter"
 
+# The out plate
+msgid "watch"
+msgstr "regarder"
+
+msgid "The match goes on"
+msgstr "La partie continue"
+
 # Replays
 
 msgid "No replays yet: every match played here is kept, the newest %d."

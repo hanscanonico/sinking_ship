@@ -80,9 +80,9 @@ func test_the_title_says_frozen_for_a_seat_the_cold_put_out_aboard() -> void:
 	]
 	var stats := MatchStats.new(3, 0)
 	stats.add(out)
-	assert_eq(EndOverlay._title_of(stats, 0, names, false, true), "Frozen — 3rd of 3")
-	assert_eq(EndOverlay._title_of(stats, 0, names, false), "Overboard — 3rd of 3")
-	assert_eq(EndOverlay._title_of(stats, 2, names, false, true), "Last one dry!")
+	assert_eq(EndOverlay.title_of(stats, 0, names, false, true), "Frozen — 3rd of 3")
+	assert_eq(EndOverlay.title_of(stats, 0, names, false), "Overboard — 3rd of 3")
+	assert_eq(EndOverlay.title_of(stats, 2, names, false, true), "Last one dry!")
 	var alone: Array[SimEvent] = [
 		SimEvent.seat_out(90, 0, 1, PlayerState.Cause.COLD, -1), SimEvent.match_ended(90, -1)
 	]
@@ -98,7 +98,7 @@ func test_the_title_says_frozen_for_a_seat_the_cold_put_out_aboard() -> void:
 	]
 	var with_her := MatchStats.new(2, 0)
 	with_her.add(sunk)
-	assert_eq(EndOverlay._title_of(with_her, 0, names, false, true), "Sunk — 2nd of 2")
+	assert_eq(EndOverlay.title_of(with_her, 0, names, false, true), "Sunk — 2nd of 2")
 
 
 ## Inside her as she went, the title says the local seat sank with her, never that it

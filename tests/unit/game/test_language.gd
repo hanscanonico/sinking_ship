@@ -134,6 +134,7 @@ func test_every_name_out_of_the_data_has_its_line() -> void:
 	names.append_array(EndOverlay.HEADINGS)
 	names.append_array(EndOverlay.SURVIVAL_HEADINGS)
 	names.append_array(EndOverlay.SESSION_HEADINGS)
+	names.append(OutPlate.GOES_ON)
 	names.append_array(InputPrompts.PAD_AXES.values().filter(_is_words))
 	names.append_array(InputPrompts.MOUSE_BUTTONS.values())
 	names.append_array(SinkSchedule.PHASES)
