@@ -59,16 +59,16 @@ func test_the_g_deck_way_round_its_stairs_is_found_alike() -> void:
 	_assert_none("the G deck passage")
 
 
-## Out of the pocket on the Titanic's boat deck between her officers' house and the electric
-## winch beside it, toward the flight onto her raised roof 80 m aft: no search gets there,
-## and the way that stops short of it — out round the winch and aft along the house — is
-## the same from both, over CELL's squares and over FINER's.
+## From before the pocket on the Titanic's boat deck between her officers' house and the
+## electric winch beside it, toward the flight onto her raised roof 80 m aft: no search gets
+## there, and the way that stops short of it — round outboard of the winch and aft along the
+## house — is the same from both, over CELL's squares and over FINER's.
 func test_a_way_that_stops_short_of_a_far_end_is_found_alike() -> void:
 	if not _loaded():
 		return
 	var ways := _ways(load(TITANIC))
 	var twin: BotFloorWay = ways[2]
-	var from := Vector3(36.3, 8.375, -7.0)
+	var from := Vector3(38.5, 8.375, -7.0)
 	var end := Vector3(-44.125, 8.375, -5.0625)
 	_ask(ways, from, end, WalkGraph.NONE)
 	assert_eq(_found, 0, "no way all the way there")
