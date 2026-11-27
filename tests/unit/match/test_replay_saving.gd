@@ -63,3 +63,35 @@ func test_a_match_bots_play_on_every_seat_is_never_written() -> void:
 	assert_not_null(scene.last_replay, "recorded for the results' Watch replay")
 	assert_true(scene.last_replay.playable())
 	assert_eq(_store.list(), PackedStringArray(), "nothing written to the player's list")
+
+
+## A rematch asked while the match still goes — the out plate's (OutPlate) — leaves it as
+## the pause menu's Menu does: kept as it stands, the once, and stopped behind the
+## countdown held for the next one (Game._rematch).
+func test_a_match_left_by_a_rematch_is_saved_once_and_stopped() -> void:
+	var chosen := _choices()
+	# A Game never booted (no menu, no music): only what Rematch reads.
+	var game: Game = autofree(Game.new())
+	autofree(game._baker)
+	add_child_autofree(game._hold)
+	game._args = MatchArgs.parse(PackedStringArray(["--autoplay"]))
+	game._match_rules = load(MATCH_DATA)
+	game._upcoming = NextMatch.new(game._match_rules, game._seeds)
+	game._menu = autofree(MainMenu.new())
+	game._rematch_choices = chosen
+	game._match = MATCH.instantiate()
+	add_child_autofree(game._match)
+	game._match.replays = ReplayRecorder.new(_store)
+	game._match.choices = chosen
+	game._match.start(chosen.config(game._match_rules), false)
+	for _beat in 3:
+		game._match._driver.step()
+	assert_false(game._match.is_over(), "the match still goes")
+	game._rematch()
+	assert_not_null(game._holding, "the next one's countdown is held")
+	assert_eq(_store.list().size(), 1, "the match left is written to the list")
+	assert_false(game._match._driver.is_processing(), "and nothing of it plays on unseen")
+	# Freed for the menu, or started over, the scene saves what it has not (_exit_tree).
+	game._match.save_replay()
+	assert_eq(_store.list().size(), 1, "the once")
+	game._cancel_hold()

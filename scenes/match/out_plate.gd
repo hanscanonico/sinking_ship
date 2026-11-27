@@ -4,11 +4,12 @@ extends CanvasLayer
 ## results will give it — "Overboard — 6th of 8 — shoved by Bot 3", its place fixed the
 ## tick it went (EndOverlay.title_of) — over Watch, Rematch and Menu, or online Watch and
 ## Leave (offer_room). Shown once a match, on a small plate with no scrim: the world
-## plays on behind it, and it takes only the mouse and the keys it names. Watch — its
-## button, Esc or the pad's Start or B — closes it and the spectating goes on as it
-## always did; the others close it too and go where the results' do. The match ending
-## under it, it gives way to the results (EndOverlay). Nothing shows for a seat nobody
-## plays (-1), a watcher's match or a replay.
+## plays on behind it. It takes the mouse and the keys it names, and the spectating keys
+## wait while it stands (MatchScene). Watch — its button, Esc or the pad's Start or B —
+## closes it and the spectating goes on as it always did; the others close it too and
+## go where the results' do. The match ending under it, it gives way to the results
+## (EndOverlay). Nothing shows for a seat nobody plays (-1), a watcher's match or a
+## replay.
 
 signal rematch_requested
 signal menu_requested

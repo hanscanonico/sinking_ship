@@ -8,6 +8,17 @@ const MATCH_DATA := "res://data/match/default.tres"
 const NAMES: Array[String] = ["You", "Bot 1", "Bot 2"]
 
 
+## A node over the plate, as Game is over the match: counts the pause presses the plate
+## let through to it — each would open the pause menu.
+class Above:
+	extends Node
+	var pauses := 0
+
+	func _unhandled_input(event: InputEvent) -> void:
+		if event.is_action_pressed("pause"):
+			pauses += 1
+
+
 func after_each() -> void:
 	Language.use(Language.SOURCE)
 
@@ -144,6 +155,27 @@ func test_esc_watches_and_a_press_inside_the_guard_does_nothing() -> void:
 	assert_false(plate.visible, "Esc watches on")
 
 
+## Esc is the plate's while it stands — taken inside the guard too — and never reaches
+## the pause above the match; closed, the plate takes nothing and Esc pauses as ever.
+func test_esc_never_reaches_the_pause_until_the_plate_is_closed() -> void:
+	var above := Above.new()
+	add_child_autofree(above)
+	var plate := OutPlate.new()
+	above.add_child(plate)
+	plate.offer(_out_third(), 0, PackedStringArray(NAMES))
+	get_viewport().push_input(_press(&"pause"))
+	assert_eq(above.pauses, 0, "inside the guard the press is taken, and does nothing")
+	assert_true(plate.visible)
+	_past_guard(plate)
+	plate._rematch.grab_focus()
+	get_viewport().push_input(_press(&"pause"))
+	assert_false(plate.visible, "Esc watches on")
+	assert_eq(above.pauses, 0, "and opens no pause menu")
+	assert_null(get_viewport().gui_get_focus_owner(), "no button of it keeps the focus unseen")
+	get_viewport().push_input(_press(&"pause"))
+	assert_eq(above.pauses, 1, "closed, the plate takes nothing: Esc is the pause's again")
+
+
 func test_rematch_and_menu_close_it_and_ask_the_match() -> void:
 	for asked: String in ["rematch_requested", "menu_requested"]:
 		var plate := _plate()
@@ -232,6 +264,26 @@ func test_a_played_seat_going_out_shows_it_over_the_match_going_on() -> void:
 	scene._process(0.0)
 	assert_true(results.visible, "the results show at the end, as ever")
 	assert_false(plate.visible)
+
+
+## Under the plate the spectating keys wait, as the mouse does; closed, the match hears
+## them again.
+func test_the_spectating_keys_wait_under_it_and_are_heard_once_it_is_closed() -> void:
+	var scene := _scene(false)
+	var plate: OutPlate = scene.get_node("OutPlate")
+	var out: Array[SimEvent] = [SimEvent.seat_out(90, 0, 3, PlayerState.Cause.COLD, -1)]
+	scene._stats.add(out)
+	# Who is dry is the snapshot's to say (SpectateOrder): the local seat is out of it too.
+	scene._driver.current["seats"][0]["out"] = true
+	scene._process(0.0)
+	assert_true(plate.visible)
+	var eyes := scene._order.target(scene._driver.current)
+	scene._unhandled_input(_press(&"spectate_next"))
+	assert_eq(scene._order.target(scene._driver.current), eyes, "the view's keys wait under it")
+	_past_guard(plate)
+	plate._watch.pressed.emit()
+	scene._unhandled_input(_press(&"spectate_next"))
+	assert_ne(scene._order.target(scene._driver.current), eyes, "closed, they switch seats again")
 
 
 ## Still open as the match ends, the plate gives way to the results.
