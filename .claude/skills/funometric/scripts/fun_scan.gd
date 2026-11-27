@@ -240,7 +240,7 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 					last_cause = (
 						"shoved"
 						if e.credit >= 0
-						else ("cold" if e.cause == PlayerState.Cause.COLD else "with_her")
+						else MatchTranscript.CAUSES[e.cause].replace(" ", "_")
 					)
 					if state.remaining() == 2 and duel_from < 0:
 						duel_from = t
@@ -306,9 +306,7 @@ func _scan(config: MatchConfig, max_ticks: int) -> void:
 		if p.is_out():
 			credit = credit_of[seat]
 			cause = (
-				"shoved"
-				if credit >= 0
-				else ("cold" if p.out_cause == PlayerState.Cause.COLD else "with_her")
+				"shoved" if credit >= 0 else MatchTranscript.CAUSES[p.out_cause].replace(" ", "_")
 			)
 		var spectate := live_ticks - alive[seat] if p.is_out() else 0
 		print(

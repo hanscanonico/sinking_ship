@@ -106,7 +106,7 @@ func test_an_exit_a_bowling_causes_is_credited_to_the_shover() -> void:
 	SimFixtures.place(sim, 1, Vector3(gap.x, 0.0, sent_z), 270.0)
 	SimFixtures.place(sim, 0, Vector3(gap.x, 0.0, sent_z - touch - 0.3), 90.0)
 	var outs: Array[SimEvent] = []
-	for tick in 10 * Ticks.RATE:
+	for tick in SimFixtures.to_the_cold():
 		var buttons := SHOVE if tick == 0 else 0
 		var events := SimFixtures.step(sim, {0: SimFixtures.frame(0, Vector2.ZERO, buttons)})
 		outs.append_array(_of(events, SimEvent.Kind.SEAT_OUT))

@@ -600,6 +600,12 @@ static func open_deck() -> ShipLayout:
 	return layout
 
 
+## Ticks enough for a seat on deck to go over the side and out by the cold: a shove or a
+## fall, a whole cold meter in the sea, and some to spare.
+static func to_the_cold() -> int:
+	return Ticks.from_seconds(rules().cold_meter + 6.0)
+
+
 ## A frame looking [param look_deg] from the bow toward starboard; without one,
 ## step() keeps the seat looking where it does — where place() turned it, say.
 static func frame(

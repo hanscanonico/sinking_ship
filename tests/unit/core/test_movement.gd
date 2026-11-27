@@ -48,7 +48,7 @@ func test_walking_off_the_deck_falls_into_the_sea() -> void:
 	var to_starboard := {0: SimFixtures.frame(0, Vector2.DOWN)}
 	var fell_at := -1
 	var events: Array[SimEvent] = []
-	for tick in 300:
+	for tick in SimFixtures.to_the_cold():
 		events.append_array(SimFixtures.step(sim, to_starboard))
 		var player := sim.state.seats[0]
 		if fell_at == -1 and player.body == PlayerState.Body.AIRBORNE:

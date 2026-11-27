@@ -196,8 +196,9 @@ extends Resource
 ## Seconds of the cold meter regained per second out of the sea.
 @export var cold_regen: float
 ## The share of the open water's rate the cold meter drains at while a swimmer's head is
-## in trapped air — a pocket under a ceiling (Q22, est. a quarter: the 4 s meter lasts
-## 16 s there). It never refills while swimming, so every match still ends.
+## in trapped air — a pocket under a ceiling, out of the open sea's wind and swell (Q22,
+## est. a half: the 12 s meter lasts 24 s there). It never refills while swimming, so
+## every match still ends.
 @export var pocket_cold_rate: float
 ## The highest a ledge may stand above the sea for a swimmer to climb onto it.
 @export var climb_reach: float

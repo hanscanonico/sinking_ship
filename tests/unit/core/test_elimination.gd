@@ -11,7 +11,7 @@ func _overboard(sim: MatchSim, seat: int, x: float) -> void:
 ## Steps until [param seat] is out; returns every exit and verdict on the way.
 func _until_out(sim: MatchSim, seat: int) -> Array[SimEvent]:
 	var events: Array[SimEvent] = []
-	for _tick in 300:
+	for _tick in SimFixtures.to_the_cold():
 		events.append_array(_exits(SimFixtures.step(sim)))
 		if sim.state.seats[seat].is_out():
 			break
@@ -106,7 +106,7 @@ func test_shove_credit_outlasts_the_stagger() -> void:
 	var events: Array[SimEvent] = []
 	var hit := false
 	var stagger_ended_on_deck := false
-	for tick in 300:
+	for tick in SimFixtures.to_the_cold():
 		var buttons := InputFrame.SHOVE if tick == 0 else 0
 		var tap := {0: SimFixtures.frame(0, Vector2.ZERO, buttons)}
 		events.append_array(_exits(SimFixtures.step(sim, tap)))

@@ -200,7 +200,7 @@ func test_a_fall_past_every_surface_reaches_the_sea() -> void:
 	faller.fall_from = start.y
 	var events: Array[SimEvent] = []
 	var passed_every_deck := false
-	for _tick in 8 * Ticks.RATE:
+	for _tick in SimFixtures.to_the_cold():
 		events.append_array(SimFixtures.step(sim))
 		passed_every_deck = passed_every_deck or faller.pos.y < lowest
 		if faller.is_out():

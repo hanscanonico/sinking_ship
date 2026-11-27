@@ -41,7 +41,7 @@ What the scan measures, per seat, from the live start: first contact (an opponen
 3 m), time near an opponent (within 6 m, same hull piece), the longest stretch with no beat
 (a beat: a shove given or taken, a fall, into or out of the sea, a bonus, a grab, an
 opponent coming near), shoves, close calls (climbed out and lived 10 s more, or a Double
-life spent), how it went out (shoved = a player has the credit; cold; with her), time
+life spent), how it went out (shoved = a player has the credit; cold; drowned; with her), time
 spent watching once out; per match: the first out, the gaps between outs, the final two's
 time and shoves, the ship's spectacle beats and their longest gap, and a 15 s heat strip.
 
@@ -60,7 +60,7 @@ Moving by turns is clumsy; two helpers take the clumsiness out of the judgement:
 `python3 .claude/skills/playtest/scripts/go.py X Z` walks a leg. Loop them a few turns
 at a time, printing only the `match:` / `me:` lines and the events, and stop the loop the
 moment the answer says `me: SWIMMING` — then play that moment by hand (swim for the hull,
-try to climb: the cold leaves about four seconds). A turn's mouse look lands a frame
+try to climb: the cold leaves about twelve seconds afloat, the breath six with your head under). A turn's mouse look lands a frame
 later, so act after `wait 2`, never in the frame of the `turn`. What a helper gets wrong
 (steering into a deckhouse, a rival that out-turns you between turns) is the tool's
 limit, not the game's: do not journal it as a controls problem unless a player with a

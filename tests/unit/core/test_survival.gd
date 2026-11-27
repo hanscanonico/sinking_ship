@@ -22,8 +22,9 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## most of a kind a seat holds and Sure footing's 44°, then #591's body_give, then #616's currents
 ## and wade_speed_deep, then #620's wet_grip, then #631's pour_topple and blasts, then #587's
 ## side rails on the steamer's flights, then crate_aground_slack, then her short side rails
-## hung from the deck over them): the goals must not move the battle royale's.
-const BATTLE_ROYALE_HASH := "8901e8dc1934c053d8e81e7e8e1de6b3d95abb182127e9f93a43f7faa0a6978a"
+## hung from the deck over them, then #861's breath and longer cold): the goals must not
+## move the battle royale's.
+const BATTLE_ROYALE_HASH := "ee9682856b7651cf85cec61df19316c6c5cd91229b1864a52a63550f957f61e0"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:
@@ -133,11 +134,12 @@ func test_a_survival_match_continues_exactly_from_its_snapshot() -> void:
 		assert_true(resumed.is_over(), "from tick %d it ends as the match did" % start)
 
 
-## Two seats on the flat deck, her sinking over at 6 s: seat 0 swims, out by the cold
-## in 4 s; seat 1 stands on deck.
+## Two seats on the flat deck, her sinking over 2 s past a whole cold meter: seat 0
+## swims, out by the cold a meter in; seat 1 stands on deck.
 func _duel(goal: MatchRules.Goal) -> MatchSim:
+	var over := SimFixtures.rules().cold_meter + 2.0
 	var config := SimFixtures.config(
-		2, SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [6.0, 0.0, 0.0, 0.0]])
+		2, SimFixtures.scenario([[0.0, 0.0, 0.0, 0.0], [over, 0.0, 0.0, 0.0]])
 	)
 	config.goal = goal
 	var sim := MatchSim.create(config)

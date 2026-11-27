@@ -97,7 +97,7 @@ func test_quick_shove_when_pinned_vaults() -> void:
 	var events: Array[SimEvent] = []
 	var vaulted_at := -1
 	# Long enough to swim until the cold takes it: nothing to climb out onto.
-	for tick in 8 * Ticks.RATE:
+	for tick in SimFixtures.to_the_cold():
 		var buttons := SHOVE if tick == 0 else 0
 		var frames := {
 			0: SimFixtures.frame(0, Vector2.ZERO, buttons, 90.0), 1: SimFixtures.frame(1)
