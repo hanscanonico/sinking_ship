@@ -24,7 +24,7 @@ const SURVIVAL_MATCH := "res://data/match/survival.tres"
 ## side rails on the steamer's flights, then crate_aground_slack, then her short side rails
 ## hung from the deck over them, then #861's breath and longer cold): the goals must not
 ## move the battle royale's.
-const BATTLE_ROYALE_HASH := "ee43c56f838feeae2a427fb9886df46b1fe7bc6ef7d8930ef0661ba1808e1a09"
+const BATTLE_ROYALE_HASH := "75cdf02da1ab4cba4154b76dc0ca3809b9779efcd451e2cb8edfc3451d106e9b"
 
 
 func test_the_data_carries_the_goal_onto_the_match() -> void:

@@ -84,8 +84,8 @@ var last_hit_crate: int = -1
 ## The bonuses it took (#307), each by its kind's index among the bonus rules' kinds, in
 ## their kinds' order — two of one kind listed twice — kept until it is out, and one that
 ## gives a spare cold meter until that is spent; empty for none. A bonus taken adds to
-## those it has, replacing none, and two of a kind give twice what one does (SeatRules), up
-## to the bonus rules' most_held of a kind (GrabReach).
+## those it has, replacing none — any number, of any kind — and each further one of a kind
+## gives more again, by less each time (SeatRules, BonusKind.stack_share).
 var bonuses := PackedInt32Array()
 ## 0 while still in; the shared finishing place once out.
 var place: int
@@ -144,11 +144,6 @@ func freeze(velocity: Vector3, ticks: int) -> void:
 		vel = Vector3.ZERO
 	else:
 		vel = velocity
-
-
-## How many bonuses of [param kind] it has, by its index among the bonus rules' kinds.
-func held_of(kind: int) -> int:
-	return bonuses.count(kind)
 
 
 ## Takes a bonus of [param kind], by its index among the bonus rules' kinds: one more of

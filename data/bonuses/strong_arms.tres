@@ -11,3 +11,4 @@ mark = Color(0.96, 0.7, 0.12, 1)
 icon = &"arm"
 climb_reach = 1.2
 ladder_speed_mult = 1.5
+stack_share = 0.5

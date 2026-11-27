@@ -10,3 +10,4 @@ height = 0.3
 mark = Color(0.86, 0.2, 0.27, 1)
 icon = &"heart"
 spare_meter = true
+stack_share = 1.0
