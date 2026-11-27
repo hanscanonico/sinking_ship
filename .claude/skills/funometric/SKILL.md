@@ -38,7 +38,7 @@ At most three engines at once. Three seeds per ship at least; the liners take mi
 match. Read the report's unfun rows: they are what to look for while playing.
 
 What the scan measures, per seat, from the live start: first contact (an opponent within
-3 m), time near an opponent (within 6 m, same hull piece), the longest stretch with no beat
+3 m), time near an opponent (within 6 m, same hull piece and deck), the longest stretch with no beat
 (a beat: a shove given or taken, a fall, into or out of the sea, a bonus, a grab, an
 opponent coming near), shoves, close calls (climbed out and lived 10 s more, or a Double
 life spent), how it went out (shoved = a player has the credit; cold; drowned; with her), time

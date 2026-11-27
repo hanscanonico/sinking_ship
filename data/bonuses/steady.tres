@@ -10,3 +10,4 @@ height = 0.3
 mark = Color(0.6, 0.3, 0.85, 1)
 icon = &"anchor"
 knockback_share = 0.75
+stack_share = 0.5

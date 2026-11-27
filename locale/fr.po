@@ -562,6 +562,12 @@ msgstr "%s VA CÉDER"
 msgid "THE %s IS STRAINING"
 msgstr "LA %s VA CÉDER"
 
+msgid "%s %s ARE STRAINING"
+msgstr "%s %s VONT CÉDER"
+
+msgid "funnels"
+msgstr "cheminées"
+
 msgid "funnel"
 msgstr "cheminée"
 

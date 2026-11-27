@@ -11,3 +11,4 @@ mark = Color(0.25, 0.8, 0.4, 1)
 icon = &"foot"
 grip_angle_deg = 22.0
 stand_limit_deg = 44.0
+stack_share = 0.5

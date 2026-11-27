@@ -43,12 +43,59 @@ extends Resource
 ## The climb's least time and the cold a climber knocked back in loses stay theirs.
 @export var climb_reach: float
 @export var ladder_speed_mult := 1.0
+@export_group("")
+## What each further one of the kind gives its taker, as a share of what the one before it
+## gave: a seat takes any number of a kind, and every one moves the rules its kind sets
+## further (SeatRules), by less each time, toward the furthest any number of them brings
+## them (stacked_most). 0…1: at 0 only the first gives anything; 1, every one the whole of
+## it, is only for a kind that sets no rule (Double life: each a spare meter of its own),
+## as rules moved so would have no furthest.
+@export var stack_share := 0.5
+
+
+## How many times what one of the kind gives [param count] of it give together: the first
+## the whole of it, each further one stack_share of the one before.
+func stacked(count: int) -> float:
+	var total := 0.0
+	var gain := 1.0
+	for _copy in count:
+		total += gain
+		gain *= stack_share
+	return total
+
+
+## How many times what one of the kind gives any number of it come to at most (stacked):
+## the furthest its rules ever go. INF at a stack_share of 1.
+func stacked_most() -> float:
+	return 1.0 / (1.0 - stack_share) if stack_share < 1.0 else INF
+
+
+## What one more of the kind gives a seat with [param held] of it, as a share of what the
+## first gave: what a bot weighs the next one by.
+func next_share(held: int) -> float:
+	var gain := 1.0
+	for _copy in held:
+		gain *= stack_share
+	return gain
+
+
+## Whether the kind moves a rule of its taker's (SeatRules): a jump, a slope, a shove's
+## share, a climb reach or a ladder's pace.
+func sets_a_rule() -> bool:
+	return (
+		jump_height > 0.0
+		or grip_angle_deg > 0.0
+		or stand_limit_deg > 0.0
+		or knockback_share != 1.0
+		or climb_reach > 0.0
+		or ladder_speed_mult != 1.0
+	)
 
 
 ## Every reason this kind cannot be played — beside [param rules], the match's brawl rules,
-## when they are given, for a seat holding one of it, or any number up to [param most]
-## (SeatRules.problems); empty when it can.
-func problems(rules: BrawlRules = null, most := 1) -> PackedStringArray:
+## when they are given, for a seat holding one of it, and for one holding any number
+## (SeatRules.at_most, SeatRules.problems); empty when it can.
+func problems(rules: BrawlRules = null) -> PackedStringArray:
 	var found := PackedStringArray()
 	if title.strip_edges().is_empty():
 		found.append("bonus kind: a title")
@@ -60,14 +107,19 @@ func problems(rules: BrawlRules = null, most := 1) -> PackedStringArray:
 		found.append("bonus kind: a jump and a climb reach of 0 or more, a ladder pace above 0")
 	if grip_angle_deg < 0.0 or stand_limit_deg < 0.0:
 		found.append("bonus kind: a grip angle and a stand limit of 0 or more")
+	if stack_share < 0.0 or stack_share > 1.0:
+		found.append("bonus kind: a stack share within 0…1")
+		return found
+	if stack_share == 1.0 and sets_a_rule():
+		found.append("bonus kind: a stack share under 1 for a kind that sets a rule")
+		return found
 	if rules == null:
 		return found
 	if stand_limit_deg >= rules.brace_holds_to:
 		found.append("bonus kind: a stand limit under the brace's hold")
-	var held: Array[BonusKind] = []
-	for copies in most:
-		held.append(self)
-		for problem: String in SeatRules.of(rules, null, held).problems(rules):
+	var held: Array[BonusKind] = [self]
+	for seat: SeatRules in [SeatRules.of(rules, null, held), SeatRules.at_most(rules, held)]:
+		for problem: String in seat.problems(rules):
 			if not found.has(problem):
 				found.append(problem)
 	return found
