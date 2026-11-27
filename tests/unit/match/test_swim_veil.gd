@@ -35,6 +35,7 @@ func test_the_veil_shows_each_only_when_it_has_something_to_say() -> void:
 	var rules := SimFixtures.rules()
 	var veil := SwimVeil.new()
 	add_child_autofree(veil)
+	assert_eq(veil.size, veil.get_viewport_rect().size, "over the whole screen")
 	var frost := veil.get_node("Frost") as CanvasItem
 	var dark := veil.get_node("Breathless") as CanvasItem
 	var bar := veil.get_node("Breath") as CanvasItem
