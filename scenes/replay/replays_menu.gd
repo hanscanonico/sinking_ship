@@ -188,7 +188,9 @@ static func result_words(snapshot: Dictionary, watched: bool) -> String:
 		if not entry["out"]:
 			winner = entry["seat"]
 			break
-	return winner_words(winner, true, watched)
+		if entry["place"] == 1:
+			winner = entry["seat"] if winner == -1 else -2
+	return winner_words(maxi(winner, -1), true, watched)
 
 
 ## Delete asks once: the first press arms it, the second deletes.

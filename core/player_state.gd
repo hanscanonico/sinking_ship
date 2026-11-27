@@ -56,6 +56,12 @@ var hitstop: int
 var held_vel: Vector3
 ## Seconds of swimming left before the cold puts the seat out.
 var cold: float
+## Ticks it has swum, all match: of seats out on one tick with as much cold left, the
+## drier places higher (MatchVerdict.place).
+var wet_ticks: int
+## The shoves it has landed on a seat, all match: what places it higher when those seats
+## have swum as long as well.
+var shoves: int
 ## Ticks of a climb out of the sea left; 0 when not climbing.
 var climb_left: int
 ## Where the climb puts the feet, standing.
@@ -186,6 +192,8 @@ const FIELDS := [
 	{"name": "hitstop", "kind": SnapshotField.Kind.INT},
 	{"name": "held_vel", "kind": SnapshotField.Kind.SPEEDS},
 	{"name": "cold", "kind": SnapshotField.Kind.AMOUNT},
+	{"name": "wet_ticks", "kind": SnapshotField.Kind.INT},
+	{"name": "shoves", "kind": SnapshotField.Kind.INT},
 	{"name": "climb_left", "kind": SnapshotField.Kind.INT, "key": "climb"},
 	{"name": "climb_to", "kind": SnapshotField.Kind.LENGTHS},
 	{"name": "last_hit_by", "kind": SnapshotField.Kind.INT},
@@ -226,6 +234,8 @@ func to_dict() -> Dictionary:
 		"hitstop": hitstop,
 		"held_vel": held_vel,
 		"cold": cold,
+		"wet_ticks": wet_ticks,
+		"shoves": shoves,
 		"climb": climb_left,
 		"climb_to": climb_to,
 		"last_hit_by": last_hit_by,
@@ -264,6 +274,8 @@ static func from_dict(entry: Dictionary) -> PlayerState:
 	player.hitstop = entry["hitstop"]
 	player.held_vel = entry["held_vel"]
 	player.cold = entry["cold"]
+	player.wet_ticks = entry["wet_ticks"]
+	player.shoves = entry["shoves"]
 	player.climb_left = entry["climb"]
 	player.climb_to = entry["climb_to"]
 	player.last_hit_by = entry["last_hit_by"]
