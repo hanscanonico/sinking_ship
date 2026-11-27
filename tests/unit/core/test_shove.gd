@@ -155,6 +155,7 @@ func test_simultaneous_shoves_both_land() -> void:
 	assert_true(west.is_staggered() and east.is_staggered(), "both land")
 	assert_eq(west.last_hit_by, 1)
 	assert_eq(east.last_hit_by, 0)
+	assert_eq([west.shoves, east.shoves], [1, 1], "each counts the shove it landed")
 	assert_almost_eq(SimFixtures.sent(west).x, -(rules.knockback + rules.recoil), 0.0001)
 	assert_almost_eq(SimFixtures.sent(east).x, rules.knockback + rules.recoil, 0.0001)
 

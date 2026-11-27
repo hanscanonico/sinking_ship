@@ -840,6 +840,7 @@ func _shoves(live: Array[PlayerState], tick: int, events: Array[SimEvent]) -> vo
 		# Every hit of one shove shares its direction: one shove landing on two
 		# bodies rocks its shover back once.
 		rock[hit.shover] = -hit.direction * _rules.recoil
+		shover.shoves += 1 - landed[hit.shover]
 		landed[hit.shover] = 1
 		stops[hit.target] = maxi(stops[hit.target], stop)
 		stops[hit.shover] = maxi(stops[hit.shover], stop)
@@ -956,6 +957,8 @@ func _water(
 	var dt := Ticks.SECONDS_PER_TICK
 	var exits: Array[PlayerState] = []
 	for player: PlayerState in live:
+		if player.body == PlayerState.Body.SWIMMING:
+			player.wet_ticks += 1
 		if player.is_frozen():
 			continue
 		if player.body != PlayerState.Body.SWIMMING:

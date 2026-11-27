@@ -119,7 +119,7 @@ must 0 thrown · 1 bakes · drawn
 05:45.2 wheelhouse lamps drowned
 05:46.4 aft_peak lamps drowned
 05:50.3 seat 6 out · cold · place 1
-all out at 05:50.3 · digest 67e8fdf994e71c2b
+all out at 05:50.3 · digest 0b8c15d0fcbe9440
 3 of 8 seats in at the plunge 04:35.2
 sinking at the end of the match: physics 0:02:27 (on the paced clock × 2.0, Q20) · seen 91% · sea 9.19 m up her · trim +21.6° · list +34.7° · aft_peak 8.31 m · poop_space 2.26 m · aft_bilge_p full · aft_bilge_s full · aft_cabins 5.46 m · engine_bilge_p 2.74 m · engine_bilge_s 5.30 m · engine_room 9.44 m · hold_bilge full · hold full · hold_wing_p 4.37 m · hold_wing_s full · hold_fwd_top 4.51 m · forepeak 10.20 m · deckhouse_cabins 4.71 m · deckhouse_hall 5.96 m · saloon full · wheelhouse 4.16 m
 not played: gone at 0:02:42 · trim +59.7° · list -12.7° · founders by the head · fast · port boats useless · lights out · funnel fell

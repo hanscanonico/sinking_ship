@@ -179,16 +179,25 @@ static func winner_words(winner: int, ended: bool, watched: bool) -> String:
 
 ## Who won the match [param snapshot] is the end of, as the list words it (winner_words)
 ## — the last seat in, the local one "you" unless the match was only [param watched], or
-## the sea with nobody left dry; "" while it has not ended. The replay bar's end line.
+## one alone at the top of a tie the places broke (MatchState.winner), or the sea with
+## nobody left dry; "" while it has not ended. The replay bar's end line.
 static func result_words(snapshot: Dictionary, watched: bool) -> String:
 	if snapshot["phase"] != MatchState.Phase.ENDED:
 		return ""
 	var winner := -1
+	var last_tick := -1
+	var together := 0
 	for entry: Dictionary in snapshot["seats"]:
 		if not entry["out"]:
-			winner = entry["seat"]
-			break
-	return winner_words(winner, true, watched)
+			return winner_words(entry["seat"], true, watched)
+		if entry["place"] == 1:
+			winner = entry["seat"] if winner == -1 else -2
+		if entry["out_tick"] > last_tick:
+			last_tick = entry["out_tick"]
+			together = 0
+		if entry["out_tick"] == last_tick:
+			together += 1
+	return winner_words(winner if winner >= 0 and together > 1 else -1, true, watched)
 
 
 ## Delete asks once: the first press arms it, the second deletes.

@@ -8,8 +8,8 @@ const SEED := 11
 const VECTOR_ROUNDING := 4e-6
 
 ## What test_snapshot_bytes_and_what_they_make_are_pinned's snapshots come to.
-const PINNED_PAYLOADS := "2ada538d6e98564aa395806fc2ab37ef470550c7567c4cb2d2fe6336e6981d5c"
-const PINNED_MADE := "ff6635cded11587c32cc09d118224277745bdd043b3fdb4876d52e90766387b4"
+const PINNED_PAYLOADS := "b8c56e8243a609d8d295bc77553328f3a715661ef53c0abee63065656013eb2e"
+const PINNED_MADE := "4b576ac5890d5f14a12004e5b3a48c1a8528e7c5f8120b50cc8c334309bc1bf6"
 
 var _rng := RandomNumberGenerator.new()
 
