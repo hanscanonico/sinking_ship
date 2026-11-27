@@ -24,8 +24,9 @@ static func gone_with(
 ## swims and [param sunk] says every surface of her still standing is wade_depth under
 ## the sea (Surfaces.sunk, asked only then). They all go out by the cold, but for the one
 ## with the most cold left — its spare meter counted (cold_left, [param spares]) — when it
-## has the most alone. A tie for the most is a draw, the sea's; the places go by the cold
-## they had left (place). Nothing else ends a match: on a wreck that keeps dry footing — on
+## has the most alone. In a tie for the most they all go out, and their places say who
+## won, if any (place): a draw, the sea's, only between seats alike in all it counts.
+## Nothing else ends a match: on a wreck that keeps dry footing — on
 ## her side on the bottom, or upside down on her air — it goes on until one seat is left,
 ## however long (Q21).
 static func by_the_cold(
@@ -61,9 +62,24 @@ static func cold_left(player: PlayerState, spares: PackedFloat64Array) -> float:
 	return player.cold + (spares[player.seat] if not spares.is_empty() else 0.0)
 
 
+## Whether [param one] places above [param other], both out on one tick: more cold left
+## (cold_left, [param spares]); as much, the drier — fewer ticks swum all match, the game
+## being to be the last one dry (#856); as dry, more shoves landed. Alike in all three,
+## neither does, and they share a place.
+static func outlasts(one: PlayerState, other: PlayerState, spares: PackedFloat64Array) -> bool:
+	var cold := cold_left(one, spares) - cold_left(other, spares)
+	if cold != 0.0:
+		return cold > 0.0
+	if one.wet_ticks != other.wet_ticks:
+		return one.wet_ticks < other.wet_ticks
+	return one.shoves > other.shoves
+
+
 ## Places [param exits], the seats out of [param state]'s match on [param tick], into
-## [param events]: seats out on the same tick share a place, unless their cold differs —
-## more cold left places higher (cold_left): the spare meters of [param spares], those of
+## [param events]: seats out on the same tick share a place, unless one outlasts the other
+## (outlasts) — more cold left, then drier, then more shoves landed — and with every seat
+## out, one alone at the top place has won (MatchState.winner): the spare meters of
+## [param spares], those of
 ## the seats the last swim put out (by_the_cold) as they stood before they went, counted
 ## and no other's. Under [param goal] LAST_STANDING, one or none left as seats go out ends the
 ## match; under SURVIVAL none left does, or one once [param tick] reaches [param over_tick] —
@@ -80,11 +96,11 @@ static func place(
 ) -> void:
 	var remaining := state.remaining()
 	for player: PlayerState in exits:
-		var warmer := 0
+		var ahead := 0
 		for other: PlayerState in exits:
-			if cold_left(other, spares) > cold_left(player, spares):
-				warmer += 1
-		player.place = remaining + 1 + warmer
+			if outlasts(other, player, spares):
+				ahead += 1
+		player.place = remaining + 1 + ahead
 		events.append(
 			SimEvent.seat_out(
 				tick,

@@ -200,3 +200,44 @@ func test_out_credit_goes_to_last_shover_within_window() -> void:
 		events = _until_out(falling, 0)
 		var credit := 1 if landed_at == 0 else -1
 		assert_eq([events[0].seat, events[0].credit], [0, credit], "landed at tick %d" % landed_at)
+
+
+## Seats out on one tick with as much cold left: the drier places higher, and alone at
+## the top it has won, out as it is (#856).
+func test_a_tie_on_the_cold_goes_to_the_drier_seat() -> void:
+	var sim := _after_the_plunge([2.5, 1.0, 2.5])
+	sim.state.seats[0].wet_ticks = 90
+	sim.state.seats[2].wet_ticks = 30
+	var events := _exits(SimFixtures.step(sim))
+	assert_eq(
+		[sim.state.seats[0].place, sim.state.seats[1].place, sim.state.seats[2].place], [2, 3, 1]
+	)
+	assert_true(sim.state.seats[2].is_out(), "the tied warmest all go out")
+	assert_eq(sim.state.winner(), 2, "the drier of them has won")
+	var last := events.back() as SimEvent
+	assert_eq([last.kind, last.seat], [SimEvent.Kind.MATCH_ENDED, 2])
+	var stats := MatchStats.new(3, 0)
+	stats.add(events)
+	assert_eq(stats.winner, 2)
+	var again := MatchSim.from_snapshot(sim.snapshot(), sim.config)
+	assert_eq(again.state.winner(), 2, "the snapshot keeps it")
+
+
+## As dry as each other too: the one that landed more shoves.
+func test_a_tie_on_the_cold_and_the_swim_goes_to_the_shoves() -> void:
+	var sim := _after_the_plunge([2.5, 2.5])
+	sim.state.seats[0].shoves = 4
+	sim.state.seats[1].shoves = 3
+	SimFixtures.step(sim)
+	assert_eq([sim.state.seats[0].place, sim.state.seats[1].place], [1, 2])
+	assert_eq(sim.state.winner(), 0)
+
+
+## A seat's swum ticks are counted as the match goes.
+func test_swum_ticks_are_counted() -> void:
+	var sim := SimFixtures.sim(2)
+	SimFixtures.swim(sim, 0, Vector3(0.0, 0.0, OVERBOARD_Z + 4.0))
+	for _tick in 10:
+		SimFixtures.step(sim)
+	assert_eq(sim.state.seats[0].wet_ticks, 10)
+	assert_eq(sim.state.seats[1].wet_ticks, 0)
